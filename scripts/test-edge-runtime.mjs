@@ -155,7 +155,10 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
-    const browser = await chromium.launch({ channel: 'msedge', headless: true });
+    const browser = await chromium.launch({
+      channel: process.platform === 'win32' ? 'msedge' : undefined,
+      headless: true,
+    });
     try {
       const studentPage = await browser.newPage();
       await studentPage.goto('http://127.0.0.1:5173');

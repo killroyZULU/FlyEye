@@ -4,6 +4,8 @@ This log tracks material documentation/product-decision changes. Code releases s
 
 ## Unreleased
 
+- Added least-privilege GitHub Actions quality gates for frozen dependency installation, formatting, linting, type checking, unit/component/Edge-handler tests, production build, browser secret scanning, Playwright, local migration reset, SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, database lint, generated database-type drift, and dependency audit. The workflow uses synthetic local data, enforces repository LF line endings for consistent checks, and performs no deployment.
+- Added a pull-request template covering bounded scope, security, tenancy, privacy, database review, automated evidence, human review, and the separate production-approval gate.
 - Added the FEAT-001 security/architecture forward fix: real Edge Runtime module resolution, server-enforced AAL2, post-validation audit decisions, durable pseudonymous actor and multi-organization evidence, constrained audit outcomes, actual-byte request limits, stale-operation cancellation guards, post-MFA revalidation, explicit local TOTP/JWT/origin configuration, browser-key rejection, build secret scans, and real local Auth/TOTP/Edge/browser integration tests.
 - Preserved the already-applied FEAT-001 migration and added `20260719000200_feat_001_security_forward_fix.sql` rather than rewriting migration history.
 - Implemented FEAT-001 login and initial RBAC as the first bounded vertical slice: invitation-only Supabase Auth entry, three initial roles, MFA gates for Instructor/Admin, deny-by-default RLS, protected access bootstrap, audit-gated authentication evidence, responsive UI states, and automated tests.

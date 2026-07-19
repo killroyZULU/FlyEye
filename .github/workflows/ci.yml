@@ -1,0 +1,140 @@
+name: CI quality gates
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  NODE_VERSION: 24.14.0
+  PNPM_VERSION: 11.9.0
+  SUPABASE_TELEMETRY_DISABLED: '1'
+
+jobs:
+  application:
+    name: Application quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: Check TypeScript
+        run: pnpm typecheck
+
+      - name: Run unit, component, and Edge-handler tests
+        run: pnpm test
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Scan source and browser bundle for server-only Supabase keys
+        run: pnpm check:browser-secrets
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright tests with synthetic responses
+        run: pnpm test:e2e
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+
+  database:
+    name: Local Supabase security
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Configure synthetic local Edge Function origin
+        run: cp supabase/functions/.env.example supabase/functions/.env
+
+      - name: Start local Supabase
+        run: |
+          if ! pnpm db:start > /tmp/supabase-start.log 2>&1; then
+            echo "Local Supabase failed to start; credential-bearing startup output was suppressed."
+            exit 1
+          fi
+
+      - name: Reset local database from version-controlled migrations
+        run: pnpm db:reset
+
+      - name: Run SQL and RLS tests
+        run: pnpm test:sql
+
+      - name: Run real Auth, TOTP, Edge, browser, and cross-organization integration
+        run: pnpm test:edge-runtime
+
+      - name: Lint local database
+        run: pnpm exec supabase db lint --local --level warning --fail-on warning
+
+      - name: Verify generated database types are current
+        run: |
+          pnpm db:types
+          git diff --exit-code -- src/lib/database.types.ts
+
+      - name: Stop local Supabase
+        if: always()
+        continue-on-error: true
+        run: pnpm exec supabase stop --no-backup
