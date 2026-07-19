@@ -1,0 +1,13 @@
+.git
+.agents
+.pnpm-store
+AGENTS.md
+node_modules
+dist
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+docs/FlyEye_Documentation
+supabase/migrations
+supabase/tests

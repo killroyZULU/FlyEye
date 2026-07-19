@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+dist/
+playwright-report/
+test-results/
+coverage/
+.env
+.env.*
+!.env.example
+*.local
+*.tsbuildinfo
+.supabase/
+supabase/.temp/
+supabase/.branches/
