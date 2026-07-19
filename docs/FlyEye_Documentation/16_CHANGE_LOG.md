@@ -1,0 +1,40 @@
+# Change Log
+
+This log tracks material documentation/product-decision changes. Code releases should also maintain release notes tied to commits and migrations.
+
+## Unreleased
+
+- Added the FEAT-001 security/architecture forward fix: real Edge Runtime module resolution, server-enforced AAL2, post-validation audit decisions, durable pseudonymous actor and multi-organization evidence, constrained audit outcomes, actual-byte request limits, stale-operation cancellation guards, post-MFA revalidation, explicit local TOTP/JWT/origin configuration, browser-key rejection, build secret scans, and real local Auth/TOTP/Edge/browser integration tests.
+- Preserved the already-applied FEAT-001 migration and added `20260719000200_feat_001_security_forward_fix.sql` rather than rewriting migration history.
+- Implemented FEAT-001 login and initial RBAC as the first bounded vertical slice: invitation-only Supabase Auth entry, three initial roles, MFA gates for Instructor/Admin, deny-by-default RLS, protected access bootstrap, audit-gated authentication evidence, responsive UI states, and automated tests.
+- Added the FEAT-001 specification and requirements traceability record; management-role operational authority remains pending permission-matrix and aviation-SME approval.
+- Completed local FEAT-001 migration, SQL/RLS, cross-tenant, audit-cardinality, and generated-type verification after establishing the Docker/Supabase development stack.
+- Moved local Supabase services to ports `55320` through `55328` to avoid Windows-reserved ports and disabled optional local analytics rather than exposing Docker's unauthenticated TCP daemon.
+- Pilot school, verified regulatory source register, privacy roles, retention schedules, provider contracts, and exact supported package versions remain to be confirmed.
+- Detailed domain ERD, permission matrix beyond portal access, threat model diagrams, and later feature specifications will be created during discovery/slice planning.
+
+## 0.2.0 — 2026-07-19
+
+- Replaced the separate React + ASP.NET Core + Azure MVP stack with a lean React/TypeScript + Supabase architecture.
+- Retained PostgreSQL, relational integrity, multi-tenancy, auditable revisions, deterministic calculations, and human aviation authority.
+- Established Supabase Auth, deny-by-default RLS, private Storage, Edge Functions, versioned SQL migrations, and generated database types.
+- Restricted direct browser writes to approved low-risk draft operations; authoritative transitions and calculations use protected functions.
+- Added Supabase service-role, RLS, Storage backup, function, view, and environment safeguards.
+- Updated implementation, API, security, QA, privacy, DevSecOps, roadmap, risk, and release guidance.
+- Added ADR-0005 and superseded/amended earlier implementation-specific ADRs without erasing decision history.
+
+## 0.1.0 — 2026-07-17
+
+- Created the professional FlyEye documentation package.
+- Established web-first responsive PWA direction and deferred native mobile.
+- Established React/TypeScript + ASP.NET Core + PostgreSQL modular-monolith baseline.
+- Established shared-schema multi-tenancy with defense-in-depth organization isolation.
+- Defined Dispatch, Training, Compliance, Platform Core, and Reporting MVP scope.
+- Defined human authority and deterministic weight-and-balance safety constraints.
+- Defined specification-driven AI development and vertical-slice implementation order.
+- Defined DevSecOps, QA, privacy, cybersecurity, pilot, recovery, and roadmap guidance.
+- Added accepted ADRs and reusable feature, traceability, and production-release templates.
+
+## Change process
+
+For each future entry record date, author/approver, affected documents/ADRs/requirements, reason, compatibility/migration impact, security/privacy/safety impact, and effective release. Material architecture changes require an ADR; requirement changes require updated traceability and test evidence.
