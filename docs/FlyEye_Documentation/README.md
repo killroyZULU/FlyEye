@@ -40,6 +40,7 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 | [14 Product Roadmap](14_PRODUCT_ROADMAP.md) | Evidence-gated delivery sequence and future modules |
 | [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
 | [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
+| [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
 | [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
 | [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |
 | [Traceability template](templates/REQUIREMENTS_TRACEABILITY_TEMPLATE.md) | Need-to-requirement-to-test evidence |
@@ -56,8 +57,12 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 - Delivery method: hybrid Stage-Gated Agile using contract-first, specification-driven AI implementation.
 - AI policy: advisory only, permission-aware, reviewable, optional, and unable to approve dispatch, airworthiness, or competency.
 - Safety rule: deterministic business rules and authoritative calculations precede AI assistance.
+- Governance: the founder is the unnamed product owner; qualified reviewers retain aviation, privacy, security, legal, customer, and production approval authority.
+- Commercial direction: evolve the capstone into a licensable Philippine flight-school product while customers retain ownership and control of their data.
 
 The production browser may directly perform only explicitly approved low-risk reads and draft operations under tested Row-Level Security. Dispatch transitions, assessment finalization, role changes, exports, authoritative weight-and-balance, audit-sensitive actions, and AI requests must pass through controlled Edge Functions or reviewed PostgreSQL functions.
+
+See [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) for the current product-owner decisions and the professional validations that remain outstanding.
 
 ## Document authority
 

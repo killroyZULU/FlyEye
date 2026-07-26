@@ -20,11 +20,14 @@ FlyEye is a multi-tenant PWA used by flight-school students, instructors, operat
 | IAM-002 | The system shall derive organization membership from authenticated server-side records. | Must |
 | IAM-003 | Row-Level Security and protected server-side functions shall enforce permission, organization, record assignment, and allowed-state checks. | Must |
 | IAM-004 | Authorized administrators shall invite, suspend, reactivate, and review members. | Must |
-| IAM-005 | Privileged and operational roles shall use MFA before production pilot access. | Must |
+| IAM-005 | Every user shall use MFA before real-data pilot or production access. | Must |
 | IAM-006 | Privileged actions shall require recent authentication where risk warrants it. | Should |
 | IAM-007 | Security-sensitive account events shall be logged and alertable. | Must |
 | IAM-008 | Every tenant-owned table exposed through the Supabase Data API shall use deny-by-default Row-Level Security with tested action-specific policies. | Must |
 | IAM-009 | Supabase service-role credentials shall never be delivered to browser code and shall be restricted to protected operational functions. | Must |
+| IAM-010 | A person may hold separate memberships in multiple organizations, with independent roles and explicit organization selection that never widens cross-tenant access. | Must |
+| IAM-011 | Organization administration shall not automatically grant operational, training, safety, quality, dispatch, assessment, or approval authority. | Must |
+| IAM-012 | The system shall prevent removal or demotion of an organization's last active administrator through ordinary administration workflows. | Must |
 
 ### 3.2 Aircraft and personnel compliance
 
@@ -144,6 +147,8 @@ FlyEye is a multi-tenant PWA used by flight-school students, instructors, operat
 ## 6. Data requirements
 
 Every operational aggregate shall include an opaque identifier, `organization_id`, status, version/concurrency token, creation/modification attribution, timestamps in UTC, archive/retention state, and audit linkage. Sensitive documents live in private Supabase Storage buckets, not as public URLs or large database binaries.
+
+The first pilot prioritizes PPL records. Later CPL, IR, MER, and other stages require separate specifications and approved source material. If minors participate, real data processing requires controller-approved guardian authority or consent, notices, safeguarding, access, retention, correction, and rights procedures following qualified DPO/legal review. FlyEye records approved evidence but does not decide legal sufficiency.
 
 See [Database Design](05_DATABASE_DESIGN.md).
 

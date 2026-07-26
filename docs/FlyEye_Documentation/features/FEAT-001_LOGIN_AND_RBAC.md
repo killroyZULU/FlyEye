@@ -44,7 +44,7 @@ As an invited Student Pilot, Instructor Pilot, or Admin, I want to sign in secur
 |---|---|---|
 | Invitation-only accounts | SRS IAM-001 | Verified product requirement |
 | Server-derived membership and authorization | SRS IAM-002/003; ADR-0005 | Verified architecture requirement |
-| Instructor/Admin MFA | Security Requirements section 3 | Verified security requirement |
+| Initial Instructor/Admin MFA and later universal-MFA target | Security Requirements section 3; Product and Governance Decisions section 5 | FEAT-001 implements privileged-role MFA only; universal enrollment, recovery, support, and enforcement remain pending |
 | Student/Instructor/Admin initial roles | Product-owner FEAT-001 task, 2026-07-19 | Approved for initial access routing |
 | Management pilots may use Admin grouping | Product-owner FEAT-001 task, 2026-07-19 | Approved only as an initial grouping |
 | CFI/Head of Training operational permissions | Qualified ATO SME and permission-matrix owner | Pending SME confirmation |
@@ -196,6 +196,7 @@ Packages are pinned in `package.json`; all selected packages reported an MIT or 
 
 - CFI, Head of Training, and other management authority requires an approved permission matrix and aviation-SME review.
 - MFA enrollment/recovery is not implemented.
+- Student users remain allowed at AAL1 in FEAT-001. The later product-owner decision requiring MFA for every user before real-data pilot or production access is not yet implemented.
 - Password recovery is not implemented.
 - Role and membership administration are not implemented.
 - Local Supabase uses ports `55320` through `55328`; optional local analytics is disabled.

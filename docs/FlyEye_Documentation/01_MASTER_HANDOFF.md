@@ -22,7 +22,9 @@ The first release focuses on:
 4. Training: courses, stages, lessons, competencies, assessments, strengths, weaknesses, remediation, acknowledgement, and progression.
 5. Basic reporting: training progress, repeated items, incomplete/returned records, utilization, expiries, and audit history.
 
-Deferred items include intelligent scheduling, billing, full maintenance work orders, safety management, predictive performance, maneuver recognition, native mobile, and direct regulatory integration.
+Deferred items include intelligent scheduling, billing, full maintenance work orders, safety management, predictive performance, maneuver recognition, native mobile, direct regulatory integration, and training stages beyond the separately validated PPL-first pilot.
+
+FlyEye began as a capstone and is intended to mature into a commercial product for Philippine flight schools. The documentation identifies the product owner as the Founder/Product Owner without naming the person or the potential pilot school. See [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md).
 
 ## Architecture summary
 
@@ -32,7 +34,7 @@ Deferred items include intelligent scheduling, billing, full maintenance work or
 | Managed platform | Supabase PostgreSQL, Auth, private Storage, Row-Level Security, and Edge Functions |
 | Server authority | Edge Functions and reviewed PostgreSQL functions for protected commands and calculations |
 | Structure | One TypeScript-oriented repository with bounded product modules and versioned SQL migrations |
-| Auth | Supabase Auth; invitation-only membership; MFA for privileged and operational roles |
+| Auth | Supabase Auth; invitation-only membership; MFA required for every user before real-data pilot or production access |
 | Authorization | Database RLS plus explicit permission, organization, record, and state checks in protected functions |
 | Tenancy | Shared PostgreSQL schema with `organization_id` and deny-by-default RLS on every exposed tenant table |
 | Hosting | Managed static frontend host plus separate Supabase staging and production projects |
@@ -81,7 +83,7 @@ Security is part of every slice. The production branch requires reviewed pull re
 Key controls include:
 
 - invitation-only accounts and least privilege;
-- MFA for privileged and operational roles;
+- MFA for every user before real-data pilot or production access;
 - deny-by-default RLS and server-side authorization for protected commands;
 - automated cross-tenant negative tests;
 - encryption in transit and at rest;
@@ -101,6 +103,8 @@ The likely arrangement is that each flight school acts as Personal Information C
 
 Collect only necessary information. Restrict medical, licensing, government identifier, training, and safety records. Production data is never copied casually into development. AI receives the smallest necessary redacted context and customer data is not used to train general models by default.
 
+The pilot may include minors only after the school and qualified privacy/legal reviewers establish guardian authority or consent, notices, safeguarding, access, retention, correction, and rights procedures. FlyEye records approved evidence but does not decide legal sufficiency.
+
 See [Privacy and Data Protection](12_PRIVACY_DATA_PROTECTION.md).
 
 ## Delivery method and gates
@@ -117,28 +121,29 @@ The lifecycle is Hybrid Stage-Gated Agile with human-centered discovery and two-
 
 ## Pilot assumptions
 
-The initial pilot is one school, eight weeks, at least 10 students, 3 instructors, 1 operations user, 1 Head of Training/administrator, 2 aircraft, 1 course, and 75 completed records. The first two to four weeks run in parallel with the school’s approved process. FlyEye does not become the official record or operational authority until the school completes its own approvals and change procedures.
+The initial pilot is one anonymous candidate school, eight weeks, at least 10 students, 3 instructors, 1 operations user, 1 Head of Training/administrator, 2 aircraft, a PPL-first course, and 75 completed records. Later CPL, IR, MER, and other stages require separate validation. The first two to four weeks run in parallel with the school’s approved process. FlyEye does not become the official record or operational authority until the school completes its own approvals and change procedures.
 
 See [Pilot Implementation Plan](13_PILOT_IMPLEMENTATION_PLAN.md).
 
 ## Current implementation status
 
-As of 2026-07-25:
+As of 2026-07-26:
 
 - FEAT-001 login and initial RBAC is merged into the development `main` branch. It proves local Supabase Auth, server-derived organization membership, initial role routing, privileged-role MFA enforcement, deny-by-default RLS, protected access bootstrap, audit evidence, and cross-organization isolation using synthetic data.
+- The product-owner decision now requires MFA for every user before real-data pilot or production access. FEAT-001 does not yet enforce MFA for Student users; universal enrollment, recovery, support, and enforcement require a later approved identity specification.
 - FEAT-001 is not production-approved. Independent human security/privacy review, account invitations, password recovery, MFA enrollment and recovery, user administration, deployment configuration, monitoring, and recovery evidence remain pending.
-- Draft pull request #2 adds verification-only GitHub Actions quality gates and a pull-request checklist. It performs no deployment and must not be merged without explicit product-owner authorization.
+- Pull request #2 merged the verification-only GitHub Actions quality gates and pull-request checklist into the development `main` branch at merge commit `c7627a5`. It performed no deployment.
 - The CI baseline covers frozen dependency installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, the browser-specific Supabase key scan, a pinned and fully redacted general Gitleaks scan of Git history, Playwright, local Supabase migration reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, database lint, generated-type drift, and dependency audit.
 - The schema-wide RLS regression discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails when any lacks enabled RLS. The Gitleaks CLI and Linux archive checksum are pinned; the separately licensed Gitleaks Action is not used.
 - No staging or production environment has been deployed, and no production data or credentials are authorized for development or CI.
 
 ## Immediate next actions
 
-1. Verify the completed CI guardrail update, review draft pull request #2, and obtain explicit authorization before committing, pushing, or merging it.
+1. Review and approve the [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) register and its aligned documentation updates.
 2. Draft, review, and approve one specification at a time for the planned identity and administration sequence: FEAT-002 Password Recovery; FEAT-003 Organization Admin and MFA Onboarding; FEAT-004 Member Invitations; FEAT-005 User Management and Basic Profiles; and FEAT-006 Role Assignment.
 3. Implement, independently review, locally demonstrate, and explicitly authorize each bounded feature pull request before moving to the next one. Use synthetic accounts from at least two organizations and test denial, conflict, and cross-organization paths.
 4. After FEAT-002 through FEAT-006 are complete, hold a UI design checkpoint to establish FlyEye's visual identity, design tokens, reusable components, and non-generic responsive direction before building the larger operational modules.
-5. Continue product discovery in parallel: obtain current authoritative CAAP/PCAR materials and qualified ATO review; interview stakeholders; collect authorized blank forms and workflow examples; and finalize the permission matrix, retention decisions, pilot agreement, and critical-workflow prototypes.
+5. Continue product discovery in parallel: formally engage the anonymous pilot candidate and qualified reviewers; obtain current authoritative CAAP/PCAR materials; collect and verify authorized forms and workflow examples; and finalize the permission matrix, minor-student safeguards, retention decisions, pilot agreement, and critical-workflow prototypes.
 
 The planned feature identifiers and sequence are roadmap intent, not approved implementation specifications. Each feature requires its own repository specification and traceability record before coding.
 
@@ -146,13 +151,13 @@ The planned feature identifiers and sequence are roadmap intent, not approved im
 
 - Verified current regulatory and retention requirements
 - Pilot school, approved process, and exact baseline metrics
-- Exact Supabase Auth/MFA invitation and support process
+- Exact Supabase Auth invitation, TOTP enrollment/recovery, recovery-code, email-delivery, redirect, throttling, and support procedures
 - Supabase region/plan, frontend host, cost envelope, and recovery commitments
 - E-signature/acknowledgement legal and operational form
 - Weather/NOTAM provider, licensing, provenance, and freshness rules
 - Customer-specific data export, deletion, and end-of-contract procedures
-- Exact password-recovery, invitation, MFA enrollment/recovery, email-delivery, redirect, throttling, and support procedures
-- Detailed role/permission matrix, privileged-role change safeguards, and future personnel qualification/profile boundaries
+- Detailed role/permission and separation-of-duties matrix, privileged-role change safeguards, and future personnel qualification/profile boundaries
+- Minor-student consent or authority, safeguarding, access, retention, and rights procedures
 - When native mobile, scheduling, safety, and AI features earn priority
 
 ## Prompt for another implementation LLM

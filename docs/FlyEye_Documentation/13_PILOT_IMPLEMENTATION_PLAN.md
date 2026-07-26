@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Validate product usefulness, usability, data quality, reliability, security, workflow fit, and commercial interest in a controlled flight-school setting without prematurely replacing the school’s approved official process.
+Validate product usefulness, usability, data quality, reliability, security, workflow fit, and commercial interest in a controlled flight-school setting without prematurely replacing the school's approved official process. A potential school has been identified but remains anonymous until an approved proposal and written participation are established.
 
 ## 2. Proposed scope
 
@@ -15,7 +15,7 @@ Validate product usefulness, usability, data quality, reliability, security, wor
 | Operations users | ≥1 |
 | Head of Training/admin | ≥1 |
 | Aircraft | ≥2 |
-| Course | ≥1 (for example PPL or CPL) |
+| Course | PPL first; CPL, IR, MER, and other stages later |
 | Completed records/assessments | ≥75 |
 
 ## 3. Preconditions
@@ -26,6 +26,8 @@ Validate product usefulness, usability, data quality, reliability, security, wor
 - Completed UAT, security, privacy, backup/restore, incident, monitoring, and support readiness
 - Configured users, aircraft, documents, courses, permissions, sources, and retention
 - No unresolved critical or high release-blocking defect
+- Synthetic setup and rehearsal data only until the real-data privacy, agreement, retention, reviewer, access, and security/recovery gates pass
+- If minors participate, approved guardian authority or consent, notices, safeguarding, access, retention, correction, and rights procedures
 
 ## 4. Baseline study
 
@@ -44,6 +46,8 @@ Measure at least 20 representative records where feasible: preparation time, rev
 ## 6. Training
 
 Separate sessions for students, instructors, operations, training management, quality/admin, and support. Cover responsibilities, source/freshness, record states, returns/amendments, offline limitations, security/MFA, privacy, incident reporting, AI limitations if enabled, and what remains the official process.
+
+MFA is required for every pilot user before real-data access. TOTP is the initial method; production-ready recovery codes, factor replacement, supervised recovery, and support procedures must be rehearsed before the pilot.
 
 ## 7. Support and incident operations
 
@@ -72,4 +76,3 @@ Immediately pause affected use for cross-tenant exposure, unauthorized approval/
 Produce metric definitions/results, qualitative findings by role, defect/incident summary, security/privacy/recovery observations, workflow deviations, requested changes categorized as configuration/core/custom/out-of-scope, cost/support findings, and go/revise/stop recommendation.
 
 Commercial transition requires stable release, customer acceptance of process change, support/SLA and pricing, privacy/security contract readiness, onboarding/offboarding, and a case study only with permission.
-

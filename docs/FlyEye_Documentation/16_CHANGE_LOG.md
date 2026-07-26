@@ -4,6 +4,8 @@ This log tracks material documentation/product-decision changes. Code releases s
 
 ## Unreleased
 
+- Added the founder-approved product and governance decision register and aligned the documentation for capstone-to-commercial direction, intended licensing/IP and customer-data ownership, anonymous pilot planning, multi-school memberships, role separation, universal MFA, minor-student safeguards, PPL-first delivery, synthetic-data gates, unresolved hosting choices, and deferred features.
+- Recorded that CI pull request #2 merged into the development `main` branch at `c7627a5`, its post-merge verification-only checks passed, and no deployment occurred.
 - Completed the remaining CI guardrail implementation with schema-wide RLS discovery across exposed Data API schemas and a pinned, checksum-verified, fully redacted Gitleaks `8.30.1` full-history scan while retaining the browser-specific Supabase key scan and verification-only/no-deployment boundary.
 - Pinned the existing ESLint toolchain's transitive MIT-licensed `brace-expansion` dependency to patched version `5.0.8` after the current high-severity GHSA-mh99-v99m-4gvg advisory caused the dependency-audit gate to fail.
 - Refreshed the handoff, DevSecOps guidance, and roadmap to distinguish the implemented FEAT-001 development baseline from production approval; record the verification-only CI state; align the manual Git gate with the current repository plan; reserve the FEAT-002 through FEAT-006 planning sequence; and add the post-identity visual-design checkpoint.
