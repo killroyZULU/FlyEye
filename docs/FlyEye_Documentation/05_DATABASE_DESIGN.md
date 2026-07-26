@@ -84,6 +84,9 @@ Use separate immutable audit entries instead of embedding unbounded change histo
 - Unique keys such as aircraft registration, course code, or role name should be scoped by organization when business-appropriate.
 - Every client-exposed tenant table has RLS enabled, with separate deny-by-default policies and explicit `WITH CHECK` conditions.
 - User-editable JWT/profile metadata is not trusted for organization membership or authorization.
+- A user may have memberships in multiple organizations, but each membership keeps an independent tenant and role context. Organization selection is a revalidated hint, never authorization.
+- One role per membership remains the initial default. Multiple-role support requires an approved permission and separation-of-duties matrix.
+- Organization administration never implies operational, training, safety, quality, dispatch, assessment, or approval authority.
 - Protected Edge/PostgreSQL functions validate organization context and do not trust request-body tenant IDs as authority.
 - Background jobs, reports, exports, file paths, and cache identifiers require `organization_id`.
 - Cross-tenant referential links are invalid and must be tested at both API and persistence boundaries.

@@ -45,7 +45,7 @@ Use OIDC/short-lived federation for CI-to-cloud authentication, not permanent pu
 | Environment | Purpose | Data |
 |---|---|---|
 | Development | Local Vite plus local Supabase CLI or isolated dev project | Synthetic only |
-| Staging | Separate frontend deployment and Supabase project for release/security/UAT | Synthetic or explicitly controlled pilot-like data |
+| Staging | Separate frontend deployment and Supabase project for release/security/UAT | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
 | Production | Separate frontend deployment and Supabase project | Approved real customer data |
 
 Separate credentials, databases, storage, keys, monitoring, and AI configuration. Production access is least-privileged, time-limited where possible, and audited.

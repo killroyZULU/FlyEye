@@ -6,11 +6,11 @@ FlyEye Aviation Training Operations Platform
 
 ## Sponsor and governance
 
-The pilot flight-school sponsor and named Head of Training/CFI are to be confirmed. The product owner/project manager is the founder. Aviation, privacy, security, and production approval cannot be self-certified by the developer alone.
+The potential pilot flight school remains anonymous until an approved proposal is prepared. Its sponsor and named Head of Training/CFI are to be confirmed. The product owner/project manager is identified as the Founder/Product Owner without a personal name. Aviation, privacy, security, legal, customer, and production approval cannot be self-certified by the developer alone.
 
 ## Purpose
 
-Design, validate, build, and pilot a secure digital platform that reduces incomplete flight-training operational records, improves processing and retrieval, supports competency-oriented assessment, and creates trustworthy audit evidence for a Philippine flight school.
+Continue the former capstone as a secure digital platform that can be validated, built, piloted, and eventually offered commercially to Philippine flight schools. It should reduce incomplete flight-training operational records, improve processing and retrieval, support competency-oriented assessment, and create trustworthy audit evidence.
 
 ## SMART overall goal
 
@@ -72,7 +72,7 @@ Hybrid Stage-Gated Agile, two-week sprints, human-centered discovery, compliance
 | Technical foundation | Nov–Dec 2026 | Deployable shell, auth, database, audit, CI/CD |
 | MVP delivery | Jan–Mar 2027 | Critical requirements implemented and traceable |
 | Verification/validation | Mar–May 2027 | Release candidate with no critical defects |
-| Controlled pilot | May–Jul 2027 | Pilot evidence and agreed metrics |
+| Controlled pilot | May–Jul 2027 | PPL-first pilot evidence and agreed metrics |
 | Commercial decision | Jul 2027 | Go/revise/stop decision and roadmap |
 
 Dates are planning assumptions and should be rebaselined when a pilot school and team capacity are confirmed.

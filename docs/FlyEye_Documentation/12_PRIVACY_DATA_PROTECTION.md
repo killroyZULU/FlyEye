@@ -42,28 +42,38 @@ The DPA/customer contract should address ownership, instructions/purpose, confid
 
 Customer data remains the customer’s data and is not a FlyEye commercial training dataset.
 
-## 7. User rights and records
+The intended commercial default is that the founder or a future FlyEye company retains the platform intellectual property and provides contractual license or subscription access. Any platform sale or intellectual-property assignment requires a specific reviewed written agreement; this documentation does not itself determine ownership.
+
+## 7. Minor students
+
+The pilot may include student pilots under 18. Before processing a minor's real data, the flight school as likely controller must obtain qualified DPO/legal review and establish the required guardian consent or other authority, notices, safeguarding, access restrictions, retention, correction, and rights procedures.
+
+FlyEye may record consent or authority status and supporting evidence but does not decide whether it is legally sufficient. Minor status must not expose unnecessary age, identity, medical, or guardian data to users without a verified purpose and permission.
+
+## 8. User rights and records
 
 Provide controlled workflows for access, correction, export, objection/consent preference where applicable, deactivation, and deletion/blocking where legally appropriate. Do not blindly delete records the controller must retain. Record request identity verification, decision, legal/operational basis, action, and time.
 
-## 8. Retention and deletion
+## 9. Retention and deletion
 
 Do not invent a universal retention duration. Obtain verified regulatory, contractual, operational, and legal requirements by record type. Configure retention schedules and holds. Ensure deletion/anonymization includes database, object storage, derived exports, caches, and provider data, while documenting backup aging behavior.
 
 The selected Supabase region, database backup tier, Storage object protection, frontend-host region/logging, and all cross-border data flows must be recorded in the data inventory and PIA. Supabase database backups must not be treated as backups of Storage objects.
 
-## 9. Support and development access
+## 10. Support and development access
 
 Production support and Supabase dashboard/service-role access is approved, time-limited where possible, reasoned, least-privileged, and audited. Use impersonation only if unavoidable and clearly visible/logged. Developers use synthetic/anonymized data. Screenshots, logs, support tickets, database exports, and AI prompts must not become uncontrolled copies of restricted information.
 
-## 10. AI privacy
+Development, automated tests, demonstrations, screenshots, and AI-assisted work use synthetic users, schools, aircraft, and records. Real customer or student data remains prohibited until the pilot agreement, DPA, PIA/privacy review, retention schedule, named reviewers, access review, and security/recovery evidence are approved.
+
+## 11. AI privacy
 
 Before an AI feature: document purpose and necessity, minimize/redact context, verify provider contract/retention/training terms and data region, prevent general-model training by default, restrict permissions, keep human review, record use/acceptance without storing unnecessary prompts, allow disablement, and update the PIA/subprocessor notice.
 
-## 11. Breach response
+## 12. Breach response
 
 FlyEye promptly informs the customer/DPO under contract, preserves evidence, identifies affected tenants/data, supports risk and notification assessment, contains and recovers, and documents corrective action. The responsible controller/DPO determines whether and when NPC/data-subject notification is legally required.
 
-## 12. Pilot privacy gate
+## 13. Pilot privacy gate
 
-Before real pilot data: approved data inventory and PIA, signed agreements, privacy notices, role/access review, subprocessor list, tested rights/export/correction process, retention decision, incident contacts, security/recovery evidence, and staff confidentiality/training.
+Before real pilot data: approved data inventory and PIA, signed agreements, privacy notices, role/access review, subprocessor list, tested rights/export/correction process, retention decision, incident contacts, security/recovery evidence, and staff confidentiality/training. If minors participate, the gate also requires qualified approval of guardian authority or consent, notices, safeguarding, access, retention, correction, and rights procedures.

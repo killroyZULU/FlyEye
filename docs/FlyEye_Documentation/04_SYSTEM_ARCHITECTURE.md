@@ -25,7 +25,7 @@ Desktop / Tablet / Mobile Browser / Installed PWA
                  Audit and domain records
 ```
 
-The frontend is deployed on a managed static host. Staging and production use separate Supabase projects and separate frontend deployments.
+The frontend is deployed on a managed static host. The provider, production domain, Supabase plan, and region remain undecided pending privacy, residency, latency, recovery, support, and cost review. Staging and production use separate Supabase projects and separate frontend deployments.
 
 ## 3. Recommended MVP stack
 
@@ -99,6 +99,7 @@ Required defenses:
 
 - Every exposed tenant table has RLS enabled and deny-by-default policies.
 - Membership is stored server-side and joined/checked in RLS; client metadata is not trusted as authorization.
+- A person may have separate memberships in multiple organizations; every membership keeps its own tenant and role context, and explicit organization selection never grants cross-tenant access.
 - Policies distinguish `select`, `insert`, `update`, and `delete` and include `WITH CHECK` conditions.
 - Protected functions set or verify organization context rather than accepting it as authority from the request body.
 - Database constraints prevent cross-organization relationships where practical.
@@ -109,7 +110,9 @@ Required defenses:
 
 ## 7. Authentication and permissions
 
-Use Supabase Auth with invitation-only account creation. MFA is mandatory for privileged and operational roles before a real-data pilot. Application permissions are stored in PostgreSQL membership/role tables; user-editable metadata is never an authorization source.
+Use Supabase Auth with invitation-only account creation. MFA is mandatory for every user before a real-data pilot or production access. TOTP is the initial method, with recovery codes, audited factor replacement, supervised recovery, and throttling required before production. Application permissions are stored in PostgreSQL membership/role tables; user-editable metadata is never an authorization source.
+
+One role per organization membership remains the initial default. Organization Admin controls approved account and access administration but receives no automatic training, safety, quality, operations, dispatch, assessment, or approval authority. Later roles and any multiple-role assignment require an approved permission and separation-of-duties matrix.
 
 Every protected command checks:
 
@@ -170,10 +173,12 @@ Recovery objectives are commitments only after database and object restore drill
 | Environment | Frontend | Supabase project | Data |
 |---|---|---|---|
 | Development | Local Vite | Local Supabase CLI or dedicated dev project | Synthetic |
-| Staging | Managed preview/staging | Separate staging project | Synthetic or explicitly controlled pilot-like data |
+| Staging | Managed preview/staging | Separate staging project | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
 | Production | Managed production host | Separate production project | Approved real customer data |
 
 Do not share project URLs, service-role keys, buckets, databases, AI keys, or email providers between staging and production.
+
+No staging or production environment, provider, domain, or paid plan is currently configured. These are future human-approved delivery decisions, not implementation claims.
 
 ## 14. Capacity
 
