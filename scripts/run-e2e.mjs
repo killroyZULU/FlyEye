@@ -173,7 +173,10 @@ const viewports = [
 
 try {
   await waitForServer();
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({
+    channel: process.platform === 'win32' ? 'msedge' : undefined,
+    headless: true,
+  });
   try {
     for (const viewport of viewports) {
       for (const scenario of scenarios) {

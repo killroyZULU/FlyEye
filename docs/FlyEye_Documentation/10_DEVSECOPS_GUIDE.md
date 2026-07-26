@@ -6,9 +6,19 @@ DevSecOps integrates build, test, security, deployment, monitoring, recovery, an
 
 ## 2. Source-control model
 
-Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Small team baseline: `feature/* -> main`, automatic staging deployment, manual production approval. Protect `main`: pull request, passing required checks, resolved conversations, appropriate reviewer/CODEOWNERS approval, no direct/force pushes, restricted production deployment.
+Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Use one bounded `feat/*`, `fix/*`, `docs/*`, `chore/*`, or `security/*` branch per task and merge it into stable `main` only through an explicitly authorized pull request. Never push or force-push feature work directly to `main`.
+
+GitHub-enforced branch protection is not available under the current repository plan. Until that changes, the project owner and implementation agent must apply the equivalent manual gate: use a pull request and checklist, require green CI, inspect the final diff and unresolved conversations, keep deployment separate, and obtain explicit authorization before every merge. Add required reviews/CODEOWNERS when additional qualified collaborators join and the repository plan supports the controls.
 
 ## 3. Pull-request pipeline
+
+The current CI baseline is verification-only. It runs frozen installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, a browser-specific Supabase key scan, a general Git-history secret scan, Playwright tests, dependency audit, local Supabase reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization integration, database lint, and generated database-type drift. It uses synthetic local data, least-privilege read-only repository permissions, and no deployment credentials.
+
+The schema-wide pgTAP guard discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails if any lacks enabled RLS. The general scanner uses the MIT-licensed Gitleaks CLI `8.30.1`, pinned by version and official Linux archive SHA-256, on a full Git-history checkout with 100% finding redaction. Gitleaks is feature-complete and receives security-maintenance releases. The separately licensed Gitleaks Action is not used, and the existing browser-specific Supabase key scan remains a distinct defense.
+
+SAST/CodeQL, broader license review, SBOM generation, configuration scanning, staging smoke/DAST, artifact promotion, and deployment remain later pre-pilot gates. They must not be described as passing until implemented and evidenced.
+
+The target release pipeline is:
 
 ```text
 Formatting/lint/type checks
@@ -65,6 +75,8 @@ Manage schema, RLS, functions, triggers, Storage policy, and security-relevant c
 ## 8. Dependency and supply chain
 
 Pin supported versions, use lockfiles, review new packages and licenses, run vulnerability alerts, generate an SBOM per release, protect workflows from untrusted PR execution, pin third-party actions appropriately, and define update SLAs based on severity/exposure.
+
+The development toolchain pins the transitive MIT-licensed `brace-expansion` package to `5.0.8` through a pnpm override. This remains within `minimatch`'s declared `^5.0.5` range and remediates GHSA-mh99-v99m-4gvg without adding a direct application dependency.
 
 ## 9. Release process
 
