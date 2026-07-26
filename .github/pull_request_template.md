@@ -27,8 +27,9 @@ Describe the single user or developer outcome this pull request delivers.
 
 - [ ] Frozen dependency installation passes.
 - [ ] Formatting, ESLint, TypeScript, unit/component/handler tests, and production build pass.
-- [ ] Browser secret scan and Playwright tests pass.
-- [ ] Local Supabase reset, SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.
+- [ ] Browser-specific Supabase and general repository secret scans pass.
+- [ ] Playwright tests pass.
+- [ ] Local Supabase reset, schema-wide SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.
 - [ ] Dependency audit passes without an unresolved high or critical advisory.
 - [ ] Loading, error, empty, unauthorized, conflict, and success states were considered where applicable.
 

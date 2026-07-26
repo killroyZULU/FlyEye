@@ -121,15 +121,26 @@ The initial pilot is one school, eight weeks, at least 10 students, 3 instructor
 
 See [Pilot Implementation Plan](13_PILOT_IMPLEMENTATION_PLAN.md).
 
+## Current implementation status
+
+As of 2026-07-25:
+
+- FEAT-001 login and initial RBAC is merged into the development `main` branch. It proves local Supabase Auth, server-derived organization membership, initial role routing, privileged-role MFA enforcement, deny-by-default RLS, protected access bootstrap, audit evidence, and cross-organization isolation using synthetic data.
+- FEAT-001 is not production-approved. Independent human security/privacy review, account invitations, password recovery, MFA enrollment and recovery, user administration, deployment configuration, monitoring, and recovery evidence remain pending.
+- Draft pull request #2 adds verification-only GitHub Actions quality gates and a pull-request checklist. It performs no deployment and must not be merged without explicit product-owner authorization.
+- The CI baseline covers frozen dependency installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, the browser-specific Supabase key scan, a pinned and fully redacted general Gitleaks scan of Git history, Playwright, local Supabase migration reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, database lint, generated-type drift, and dependency audit.
+- The schema-wide RLS regression discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails when any lacks enabled RLS. The Gitleaks CLI and Linux archive checksum are pinned; the separately licensed Gitleaks Action is not used.
+- No staging or production environment has been deployed, and no production data or credentials are authorized for development or CI.
+
 ## Immediate next actions
 
-1. Obtain current authoritative CAAP/PCAR materials and qualified ATO review.
-2. Interview at least 12 stakeholders across ideally three Philippine schools.
-3. Collect authorized blank forms, workflow examples, syllabi, and baseline measures.
-4. Finalize the MVP boundary, domain glossary, permission matrix, state diagrams, data retention, and pilot agreement.
-5. Prototype critical workflows and test them before full implementation.
-6. Create the project shell and prove frontend → Supabase Auth/RLS/PostgreSQL → protected Edge Function → staging.
-7. Implement one bounded vertical slice at a time, beginning with invitation-based organization access.
+1. Verify the completed CI guardrail update, review draft pull request #2, and obtain explicit authorization before committing, pushing, or merging it.
+2. Draft, review, and approve one specification at a time for the planned identity and administration sequence: FEAT-002 Password Recovery; FEAT-003 Organization Admin and MFA Onboarding; FEAT-004 Member Invitations; FEAT-005 User Management and Basic Profiles; and FEAT-006 Role Assignment.
+3. Implement, independently review, locally demonstrate, and explicitly authorize each bounded feature pull request before moving to the next one. Use synthetic accounts from at least two organizations and test denial, conflict, and cross-organization paths.
+4. After FEAT-002 through FEAT-006 are complete, hold a UI design checkpoint to establish FlyEye's visual identity, design tokens, reusable components, and non-generic responsive direction before building the larger operational modules.
+5. Continue product discovery in parallel: obtain current authoritative CAAP/PCAR materials and qualified ATO review; interview stakeholders; collect authorized blank forms and workflow examples; and finalize the permission matrix, retention decisions, pilot agreement, and critical-workflow prototypes.
+
+The planned feature identifiers and sequence are roadmap intent, not approved implementation specifications. Each feature requires its own repository specification and traceability record before coding.
 
 ## Open decisions requiring evidence
 
@@ -140,7 +151,8 @@ See [Pilot Implementation Plan](13_PILOT_IMPLEMENTATION_PLAN.md).
 - E-signature/acknowledgement legal and operational form
 - Weather/NOTAM provider, licensing, provenance, and freshness rules
 - Customer-specific data export, deletion, and end-of-contract procedures
-- Whether row-level security is required in the initial release
+- Exact password-recovery, invitation, MFA enrollment/recovery, email-delivery, redirect, throttling, and support procedures
+- Detailed role/permission matrix, privileged-role change safeguards, and future personnel qualification/profile boundaries
 - When native mobile, scheduling, safety, and AI features earn priority
 
 ## Prompt for another implementation LLM

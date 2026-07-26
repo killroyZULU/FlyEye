@@ -23,6 +23,16 @@ Exit: problem and requirements accepted by a pilot candidate and aviation SME.
 
 Exit: invited user securely performs an authorized tenant-scoped action with complete audit evidence.
 
+### Current Stage 1 sequence
+
+1. FEAT-001 login and initial RBAC is implemented on the development baseline and locally demonstrated with synthetic two-organization security tests; human security/privacy review and production approval remain pending.
+2. Verify, review, and explicitly authorize the verification-only CI quality-gate pull request, including its schema-wide RLS regression coverage and pinned general repository secret scanner. No deployment is part of this step.
+3. Deliver separate approved slices for FEAT-002 Password Recovery, FEAT-003 Organization Admin and MFA Onboarding, FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment.
+4. Hold a visual-identity checkpoint after the identity/user-management foundation. Establish FlyEye-specific design tokens, reusable components, responsive patterns, and a non-generic reference screen while preserving accessibility and tested workflow behavior.
+5. Move into aircraft, personnel compliance, and dispatch only after the foundation and relevant human review gates are complete.
+
+The feature numbers above reserve planning order only. Scope, authority, data, RLS, audit, privacy, abuse cases, UI states, and tests require a separately approved specification and traceability record for each slice.
+
 ## Stage 2: Dispatch MVP
 
 - Aircraft and personnel compliance records
