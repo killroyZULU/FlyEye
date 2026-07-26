@@ -41,7 +41,7 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 | [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
 | [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
 | [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
-| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Founder/Product Owner decisions recorded; technical, security/privacy, and accessibility reviewers are not assigned; implementation remains unauthorized |
+| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Founder/Product Owner decisions and Codex-guided owner review recorded; later local synthetic implementation requires separate explicit authorization, and qualified independent human review is required before its pull request may merge |
 | [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery need, requirement, control, and planned-evidence mapping |
 | [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
 | [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |

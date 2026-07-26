@@ -2,16 +2,16 @@
 
 ## Status and ownership
 
-- Status: Founder/Product Owner decisions recorded for documentation preparation; implementation not started or authorized
-- Founder/Product Owner: Approved the decisions recorded in this specification for synthetic local implementation planning and documentation preparation on 2026-07-26
-- Technical reviewer: Not assigned; approval pending
-- Independent security/privacy reviewer: Not assigned; approval pending
-- Accessibility reviewer: Not assigned; approval pending
+- Status: Founder/Product Owner decisions and Codex-guided owner review recorded; implementation not started; separate explicit authorization required before local synthetic implementation
+- Founder/Product Owner: Approved the decisions recorded in this specification and completed an owner-led review on 2026-07-26
+- Owner-led review coverage: Recovery eligibility/authority, recovery-link security, password policy, session revocation, enumeration/abuse controls, audit/notifications/privacy, accessibility, and the local synthetic-development boundary
+- Codex role: Facilitated the owner review and may provide implementation and verification support; Codex review and automated checks are supporting evidence, not independent approval
+- Independent implementation reviewer: Not assigned; before a future implementation pull request may merge, one qualified independent human must review its technical, security/privacy, and accessibility aspects, with additional reviewers required for any competence gap
 - Aviation SME: Not required for the password-recovery behavior; no aviation authority or workflow is changed
 - Technical owner: FlyEye project
 - Target release: Identity-foundation sequence after FEAT-001
 
-Founder/Product Owner approval is product-direction approval only. It is not technical, security, privacy, accessibility, implementation, deployment, or production approval. AI review and green CI are not human approval. FEAT-002 implementation remains unauthorized until the required technical, independent security/privacy, and accessibility reviews are assigned and their approvals are recorded.
+The completed owner-led review approves the specification and governance boundary for later AI-assisted local synthetic implementation only after separate explicit authorization. It is not independent human review, runtime acceptance, merge approval, deployment authorization, or production approval. AI review and green CI are supporting evidence only. A future implementation pull request cannot merge until qualified independent human review covers its technical, security/privacy, and accessibility aspects; additional reviewers are required wherever the primary reviewer lacks competence.
 
 ## User outcome and problem
 
@@ -62,7 +62,7 @@ This feature has no aviation rule, dispatch decision, airworthiness action, trai
 
 ## Founder/Product Owner decisions
 
-The following decisions are approved for documentation preparation and later synthetic local implementation planning. They do not authorize implementation.
+The following decisions are approved for documentation preparation and later AI-assisted local synthetic implementation after separate explicit authorization. This documentation task does not itself authorize implementation.
 
 | Decision area | Approved synthetic/local position |
 |---|---|
@@ -83,10 +83,16 @@ The following decisions are approved for documentation preparation and later syn
 
 ### Decisions required before implementation starts
 
-- Assign technical, independent security/privacy, and accessibility reviewers.
-- Record their approval of this specification and the bounded synthetic-local implementation plan.
+- Obtain separate explicit authorization for the bounded AI-assisted local synthetic implementation.
 - Confirm the pinned Supabase CLI, Auth server, and JavaScript client versions used for the evidence spike.
 - Confirm that implementation remains local synthetic development only, with no hosted environment or real data.
+
+### Independent review required before implementation pull-request merge
+
+- Assign one qualified independent human to review the future implementation’s technical, security/privacy, and accessibility aspects before its pull request may merge.
+- Engage additional independent reviewers wherever the primary reviewer lacks competence in a required area.
+- Record reviewer identity, competence and independence, scope examined, evidence reviewed, findings, corrections, and approval or rejection.
+- Owner-led review, Codex review, automated checks, and green CI do not satisfy this independent merge gate.
 
 ### Runtime evidence required before implementation acceptance
 
@@ -96,7 +102,7 @@ The following decisions are approved for documentation preparation and later syn
 - Prove two-client global refresh-token revocation and test old refresh tokens, old access JWTs, FEAT-001 auth bootstrap, and every currently browser-accessible Data API or RPC path.
 - Verify exact Supabase Auth audit event names and fields for recovery requests, password changes, and token/session revocation.
 - Verify Mailpit recovery and password-changed notifications, tenant neutrality, the 60-second cooldown, provider-neutral CAPTCHA outcomes, generic responses, timing behavior, and accessible fallback.
-- Stop for specification review if newer requests leave older credentials usable, any old-session access survives, or required audit evidence is unavailable.
+- Stop implementation for specification review if newer requests leave older credentials usable, any old-session access survives, required audit evidence is unavailable, or required security, privacy, or accessibility evidence fails or remains unavailable.
 
 ### Real-data pilot and production gates
 
@@ -110,7 +116,7 @@ The following decisions are approved for documentation preparation and later syn
 
 | Configuration | Local synthetic development | Preview/staging | Production |
 |---|---|---|---|
-| Authorization | Documentation decisions approved; implementation requires assigned reviewer approvals | Not authorized or configured | Not authorized or configured |
+| Authorization | Owner-led review complete; implementation requires separate explicit authorization; independent human review is required before its pull request may merge | Not authorized or configured | Not authorized or configured |
 | Data | Synthetic accounts only; at least two organizations and one multi-membership identity | Synthetic data only if a future preview is approved | Real data prohibited until all pilot/production gates pass |
 | Recovery callbacks | `http://127.0.0.1:5173/auth/recovery` and `http://127.0.0.1:4173/auth/recovery` only | Exact origin unresolved; no wildcard or supplied continuation | Domain and exact callbacks unresolved; no wildcard or supplied continuation |
 | Email | Local Mailpit, synthetic sender, version-controlled recovery and password-changed templates | Provider, sender, support address, and monitoring unresolved | SMTP, sender identity/domain, support address, monitoring, and terms unresolved |
@@ -370,19 +376,19 @@ It does not authorize implementation, package installation, database migration, 
 ## Known limitations and approvals still required
 
 - No implementation or executable evidence exists yet.
-- Founder/Product Owner decisions are approved only for documentation preparation and synthetic local implementation planning; implementation is unauthorized.
-- Technical, independent security/privacy, and accessibility reviewers are not assigned, and their approvals remain pending.
+- Founder/Product Owner decisions and the Codex-guided owner review support later AI-assisted local synthetic implementation only after separate explicit authorization; no implementation is currently authorized.
+- A qualified independent human implementation reviewer is not assigned. Before a future implementation pull request may merge, that reviewer must cover technical, security/privacy, and accessibility aspects, with additional reviewers engaged for any competence gap.
 - No preview or production domain, exact hosted redirect allowlist, sender identity, SMTP provider, CAPTCHA provider, Supabase plan/region/residency, hosting, or production Auth configuration is approved.
 - Exact resend/supersession behavior, recovery-prefetch behavior, session revocation across all old-session paths, and provider audit-event coverage require runtime evidence on pinned versions.
 - Breached-password protection, production rate/IP/WAF controls, retention, export, log drains, access controls, alerts, delivery monitoring, and operational ownership remain unresolved.
 - Lost-mailbox, MFA-factor, recovery-code, supervised support, and account-compromise procedures are deferred and remain mandatory before real-data pilot or production use.
 - Aviation-SME approval is not required unless later changes introduce aviation authority or workflow behavior.
-- A documentation review or green CI result is not implementation approval, security validation, privacy approval, deployment authorization, or production readiness.
+- Owner-led review, Codex review, documentation review, and green CI are supporting evidence only; they are not independent implementation approval, deployment authorization, or production readiness.
 
 ## Definition of Done
 
 - [ ] Founder/Product Owner confirms the implemented outcome matches the approved decisions
-- [ ] Assigned technical, independent security/privacy, and accessibility reviewers approve the selected Supabase recovery, email, redirect, abuse-control, audit, session-revocation, and accessible-fallback design
+- [ ] Before implementation pull-request merge, one qualified independent human reviewer approves its technical, security/privacy, and accessibility aspects, with additional reviewers engaged for any competence gap
 - [ ] Exact Auth configuration and email templates are version-controlled or covered by a reviewed drift-detecting runbook
 - [ ] Bounded UI/Auth implementation is complete without unrelated identity or application changes
 - [ ] No public schema change occurs unless runtime evidence stops implementation, the specification is amended, and the session/audit requirement and additive migration are approved
@@ -390,6 +396,7 @@ It does not authorize implementation, package installation, database migration, 
 - [ ] Previously issued sessions, residual JWT behavior, password-change notification, and provider audit evidence are independently verified
 - [ ] Service-role/secret keys, passwords, recovery credentials, real data, and sensitive logs remain absent from browser/source/build/test evidence
 - [ ] Loading, generic acknowledgement, invalid, expired, used, validation, provider error, revocation failure, offline, and success states are reviewed
+- [ ] Any failed or unavailable required credential, session-revocation, audit, security, privacy, or accessibility evidence stops implementation for specification review
 - [ ] FEAT-002 traceability is updated with reproducible evidence; no result is inferred from documentation
-- [ ] Separate implementation diff, security/privacy review, and product acceptance are recorded
+- [ ] Separate implementation diff, qualified independent human review, and product acceptance are recorded
 - [ ] No deployment or production approval is inferred
