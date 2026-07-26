@@ -4,6 +4,7 @@ This log tracks material documentation/product-decision changes. Code releases s
 
 ## Unreleased
 
+- Added the documentation-complete FEAT-002 Password Recovery specification and traceability record. The bounded design covers non-enumerating requests, a prefetch-resistant short-lived single-use recovery credential, server-authoritative password policy, global refresh-session revocation, residual access-token risk, provider audit/security evidence, password-change notification, abuse controls, tenant-neutral behavior, complete UI states, synthetic test plans, and explicit unresolved production gates. No application, schema, Supabase environment, deployment, or production change is included.
 - Added the founder-approved product and governance decision register and aligned the documentation for capstone-to-commercial direction, intended licensing/IP and customer-data ownership, anonymous pilot planning, multi-school memberships, role separation, universal MFA, minor-student safeguards, PPL-first delivery, synthetic-data gates, unresolved hosting choices, and deferred features.
 - Recorded that CI pull request #2 merged into the development `main` branch at `c7627a5`, its post-merge verification-only checks passed, and no deployment occurred.
 - Completed the remaining CI guardrail implementation with schema-wide RLS discovery across exposed Data API schemas and a pinned, checksum-verified, fully redacted Gitleaks `8.30.1` full-history scan while retaining the browser-specific Supabase key scan and verification-only/no-deployment boundary.
