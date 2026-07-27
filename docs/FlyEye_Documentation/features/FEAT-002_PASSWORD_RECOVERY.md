@@ -2,7 +2,7 @@
 
 ## Status and ownership
 
-- Status: Evidence-based amendment, bounded local synthetic implementation, post-password-change correction, Codex review, final automated verification, participant-exercised local synthetic desktop recovery walkthrough, and Founder/Product Owner bounded local MVP acceptance are complete; Git publication of the scoped feature branch and a draft pull request is authorized, while merge, hosted validation, deployment, real-data, production, and FEAT-003 gates remain pending
+- Status: Evidence-based amendment, bounded local synthetic implementation, post-password-change correction, Codex review, final automated verification, participant-exercised local synthetic desktop recovery walkthrough, Founder/Product Owner bounded local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 gates remain pending
 - Founder/Product Owner: Approved the original decisions, completed an owner-led review, approved the verified-password-AMR amendment, and separately authorized the bounded local synthetic implementation on 2026-07-26
 - Owner-led review coverage: Recovery eligibility/authority, recovery-link security, password policy, session revocation, enumeration/abuse controls, audit/notifications/privacy, accessibility, and the local synthetic-development boundary
 - Codex role: Facilitated the owner review, implemented the bounded change, reviewed the corrected diff, and produced the automated technical evidence; this is agent review, not qualified independent human review or Founder/Product Owner approval
@@ -11,7 +11,7 @@
 - Technical owner: FlyEye project
 - Target release: Identity-foundation sequence after FEAT-001
 
-The completed owner-led review approved the original specification and governance boundary. The 2026-07-26 pinned-runtime review then disproved the assumption that a Supabase recovery session is automatically isolated from normal FlyEye application access. The Founder/Product Owner approved the smallest secure amendment and separately authorized this bounded local synthetic implementation. After the review-found post-password-change defect was corrected, focused affected checks and one final required verification matrix passed. That completed Codex review and automated evidence satisfy the bounded-local technical review gate. No qualified independent human technical or security/privacy review was performed. On 2026-07-27 the Founder/Product Owner—not the agent or automation—granted bounded local MVP product acceptance with the documented residual evidence limitations and separately authorized the scoped Git publication and draft pull request.
+The completed owner-led review approved the original specification and governance boundary. The 2026-07-26 pinned-runtime review then disproved the assumption that a Supabase recovery session is automatically isolated from normal FlyEye application access. The Founder/Product Owner approved the smallest secure amendment and separately authorized this bounded local synthetic implementation. After the review-found post-password-change defect was corrected, focused affected checks and one final required verification matrix passed. That completed Codex review and automated evidence satisfy the bounded-local technical review gate. No qualified independent human technical or security/privacy review was performed. On 2026-07-27 the Founder/Product Owner—not the agent or automation—granted bounded local MVP product acceptance with the documented residual evidence limitations and separately authorized the scoped Git publication and draft pull request. PR #5 then normally merged feature commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897` into development `main` at merge commit `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`.
 
 ## User outcome and problem
 
@@ -82,7 +82,7 @@ The pinned server source explains the verification matrix: `email` searches both
 
 ## Authorized local implementation evidence
 
-The authorized implementation was exercised on 2026-07-26 and corrected and fully reverified on 2026-07-27 in the uncommitted `feat/FEAT-002-password-recovery` working tree based on `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`. It retained Supabase CLI `2.109.1`, GoTrue `v2.192.0`, and `@supabase/supabase-js` `2.110.7`; added no package or SQL migration; and used only randomized `example.test` identities and synthetic organizations.
+The authorized implementation was exercised on 2026-07-26 and corrected and fully reverified on 2026-07-27 in the then-uncommitted `feat/FEAT-002-password-recovery` working tree based on `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`. It was published as feature commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`, retained Supabase CLI `2.109.1`, GoTrue `v2.192.0`, and `@supabase/supabase-js` `2.110.7`, added no package or SQL migration, and used only randomized `example.test` identities and synthetic organizations.
 
 | Evidence area | Local automated result | Boundary |
 |---|---|---|
@@ -96,7 +96,7 @@ The authorized implementation was exercised on 2026-07-26 and corrected and full
 
 The 2026-07-27 correction additionally proved that `SupabaseAuthGateway.signOutEverywhere()` maps both a resolved global-sign-out error and a rejected global-sign-out exception to `revocation_failed`, attempts local cleanup in either case, and that every unexpected exception after the password update enters the terminal sign-in/support state with password fields and recovery state cleared, no organization/workspace load, and no second password submission.
 
-These agent and automated results support the local implementation only. The participant-exercised desktop walkthrough and its limitations are recorded in [FEAT-002 traceability](FEAT-002_TRACEABILITY.md). The Founder/Product Owner accepted those documented residual local limitations only for this bounded MVP publication decision. CAPTCHA provider activation, distributed/IP abuse behavior, timing-distribution analysis, unexercised human-only accessibility behavior at later applicable gates, hosted validation, real-data use, merge, deployment, and production approval remain unresolved. No qualified independent human technical or security/privacy review was performed.
+These agent and automated results support the local implementation only. The participant-exercised desktop walkthrough and its limitations are recorded in [FEAT-002 traceability](FEAT-002_TRACEABILITY.md). The Founder/Product Owner accepted those documented residual local limitations only for this bounded MVP publication decision, and their later merge authorization did not expand that evidence. CAPTCHA provider activation, distributed/IP abuse behavior, timing-distribution analysis, unexercised human-only accessibility behavior at later applicable gates, hosted validation, real-data use, deployment, and production approval remain unresolved. No qualified independent human technical or security/privacy review was performed.
 
 ## Approved smallest secure amendment
 
@@ -111,11 +111,11 @@ The Founder/Product Owner approved this amendment and separately authorized its 
 7. Treat raw provider audit rows as restricted security data. Reproducible evidence records action names, field names, match booleans, and HTTP results only; it does not copy full emails, IP addresses, tokens, or raw payloads into application logs, screenshots, documentation, or AI prompts.
 8. Use `logout` plus old-refresh-token and old-access-path denial as the pinned session-revocation evidence. Reverify exact actions on every pinned Auth upgrade; do not infer `token_revoked`.
 
-This approved amendment preserves the no-schema baseline and reuses the existing protected bootstrap and audit boundary. The local implementation follows this boundary; product acceptance, publication, hosted use, merge, deployment, and production remain separately gated.
+This approved amendment preserves the no-schema baseline and reuses the existing protected bootstrap and audit boundary. The local implementation follows this boundary. Product acceptance, publication, and merge were granted through separate recorded decisions; hosted use, deployment, and production remain separately gated.
 
 ## Founder/Product Owner decisions and approved amendments
 
-The decisions and evidence-based amendments below are approved for the bounded local synthetic implementation. This approval does not authorize a commit, push, pull request, merge, hosted environment, real data, deployment, or production use.
+The decisions and evidence-based amendments below record the bounded local synthetic implementation approval as it existed before later publication and merge decisions. At that stage, the approval did not authorize a commit, push, pull request, merge, hosted environment, real data, deployment, or production use.
 
 | Decision area | Approved synthetic/local position |
 |---|---|
@@ -139,12 +139,12 @@ The decisions and evidence-based amendments below are approved for the bounded l
 - Founder/Product Owner approved the verified-password-AMR bootstrap amendment on 2026-07-26.
 - Founder/Product Owner separately authorized the bounded AI-assisted local synthetic FEAT-002 implementation on `feat/FEAT-002-password-recovery`.
 - Supabase CLI `2.109.1`, GoTrue `v2.192.0`, and `@supabase/supabase-js` `2.110.7` remained pinned.
-- The implementation used only local synthetic `example.test` identities and randomized organizations. No hosted environment, real data, commit, push, pull request, merge, or deployment was authorized or performed.
+- The implementation used only local synthetic `example.test` identities and randomized organizations. At the implementation stage, no hosted environment, real data, commit, push, pull request, merge, or deployment was authorized or performed; later publication and merge decisions are recorded separately.
 
 ### Risk-based technical review and evidence reuse
 
 - The completed Codex review and automated verification are the technical code-review evidence for this bounded local change. Never label either as qualified independent human review.
-- The review target is `feat/FEAT-002-password-recovery` at HEAD `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`, including the complete modified and untracked implementation-content hashes, pinned dependencies, local configuration, and evidence recorded in [FEAT-002 traceability](FEAT-002_TRACEABILITY.md).
+- The reviewed working-tree implementation was based on `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e` and was published on `feat/FEAT-002-password-recovery` as commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`, with the same implementation-content manifest, pinned dependencies, local configuration, and evidence recorded in [FEAT-002 traceability](FEAT-002_TRACEABILITY.md).
 - The review-found post-password-change defect was corrected, focused affected checks passed, and one final required verification matrix passed on 2026-07-27.
 - Do not repeat the complete matrix while the branch, HEAD, working-tree content hashes, dependencies, configuration, and referenced evidence remain unchanged.
 - No qualified independent human technical or security/privacy review was performed. The Founder/Product Owner received the material finding and correction outcome and approved this governance treatment.
@@ -174,7 +174,7 @@ The decisions and evidence-based amendments below are approved for the bounded l
 
 | Configuration | Local synthetic development | Preview/staging | Production |
 |---|---|---|---|
-| Authorization | Amendment and bounded implementation approved; Codex review, local automated technical evidence, and the scope-limited human desktop walkthrough are recorded; bounded local MVP acceptance and scoped Git publication/draft-PR authorization were granted on 2026-07-27; merge remains unauthorized | Not authorized or configured | Not authorized or configured |
+| Authorization | Amendment and bounded implementation approved; Codex review, local automated technical evidence, and the scope-limited human desktop walkthrough are recorded; bounded local MVP acceptance was granted and PR #5 normally merged feature commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897` into development `main` at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94` | Not authorized or configured | Not authorized or configured |
 | Data | Synthetic accounts only; at least two organizations and one multi-membership identity | Synthetic data only if a future preview is approved | Real data prohibited until all pilot/production gates pass |
 | Recovery callbacks | `http://127.0.0.1:5173/auth/recovery` and `http://127.0.0.1:4173/auth/recovery` only | Exact origin unresolved; no wildcard or supplied continuation | Domain and exact callbacks unresolved; no wildcard or supplied continuation |
 | Email | Local Mailpit, synthetic sender, version-controlled recovery and password-changed templates | Provider, sender, support address, and monitoring unresolved | SMTP, sender identity/domain, support address, monitoring, and terms unresolved |
@@ -446,11 +446,11 @@ No new application package is expected. Any proposed dependency requires documen
 
 The earlier documentation-only review was superseded only by the Founder/Product Owner's explicit approval of the verified-password-AMR amendment and separate authorization for this bounded local synthetic implementation. The authorized file scope is the implementation list above plus the four FEAT-002 documentation files, local test scripts, and Playwright configuration required to exercise the bounded flow.
 
-No package installation, SQL migration, Supabase dashboard change, GitHub Actions change, commit, push, pull request, merge, hosted environment, real data, deployment, production credential, or production use is authorized.
+This implementation authorization permitted no package installation, SQL migration, Supabase dashboard change, or GitHub Actions change. Later explicit decisions authorized the recorded feature commit, push, PR #5, and normal merge only; no hosted environment, real data, deployment, production credential, or production use was authorized.
 
 ## Known limitations and approvals still required
 
-- The bounded product implementation is complete and Founder/Product Owner-accepted for the current local MVP publication decision. The scoped feature-branch commit, push, and draft pull request are authorized; merge, hosted validation, deployment, real-data use, and production approval are not.
+- The bounded product implementation is complete, Founder/Product Owner-accepted for the local MVP decision, and normally merged into development `main` through PR #5. The feature branch was retained. Hosted validation, deployment, real-data use, and production approval remain unauthorized.
 - The verified-password-AMR bootstrap amendment and local synthetic implementation were approved for this bounded task; no broader identity, hosted, or release authority is implied.
 - No qualified independent human technical or security/privacy review was performed. Under the approved risk-based model, the Founder/Product Owner completed the participant-exercised focused desktop recovery walkthrough; the traceability record preserves the unexercised human-only accessibility behaviors as residual local evidence limitations.
 - No preview or production domain, exact hosted redirect allowlist, sender identity, SMTP provider, CAPTCHA provider, Supabase plan/region/residency, hosting, or production Auth configuration is approved.
@@ -477,5 +477,5 @@ No package installation, SQL migration, Supabase dashboard change, GitHub Action
 - [x] Loading, generic acknowledgement, invalid, expired, used, validation, provider error, revocation failure, offline, and success states are covered by the local automated implementation evidence
 - [x] Any failed or unavailable required credential, session-revocation, audit, security, privacy, or accessibility evidence stops implementation for specification review
 - [x] FEAT-002 traceability is updated with reproducible evidence; no result is inferred from documentation
-- [x] Separate Founder/Product Owner product acceptance and scoped Git publication authorization are recorded; merge authorization remains ungranted
+- [x] Separate Founder/Product Owner product acceptance, scoped Git publication, and normal merge decisions are recorded
 - [x] No deployment or production approval is inferred

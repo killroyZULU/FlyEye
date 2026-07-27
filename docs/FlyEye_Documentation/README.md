@@ -41,8 +41,8 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 | [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
 | [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
 | [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
-| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, and Founder/Product Owner local MVP acceptance are complete; Git publication of the feature branch and a draft pull request is authorized, while merge, hosted validation, deployment, real-data, and production gates remain pending |
-| [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery requirements, corrected local automated evidence, risk-based review record, unresolved accessibility judgment, and separate Founder/Product Owner gates |
+| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, Founder/Product Owner local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 gates remain pending |
+| [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery requirements, corrected local automated evidence, PR #5 merge and CI record, unchanged residual accessibility limitations, and remaining Founder/Product Owner gates |
 | [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
 | [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |
 | [Traceability template](templates/REQUIREMENTS_TRACEABILITY_TEMPLATE.md) | Need-to-requirement-to-test evidence |
