@@ -53,9 +53,11 @@ Use the Supabase client, generated database types, versioned SQL migrations, exi
 
 Build, lint/type-check, test units/components/SQL/RLS/Edge Functions/E2E, run authorization and cross-tenant negatives, inspect migrations, generated type drift, policies and privileged functions, verify audit/telemetry, and manually test realistic synthetic scenarios.
 
-### Step E: Independent review
+### Step E: Risk-based review
 
-A separate reviewer (AI plus qualified human for sensitive changes) inspects security, tenancy, aviation assumptions, calculation accuracy, migration safety, test gaps, dependency/license risk, performance, and scope drift.
+A separate review agent inspects security, tenancy, aviation assumptions, calculation accuracy, migration safety, test gaps, dependency/license risk, performance, and scope drift. This agent review plus the required automated verification is the default technical gate for bounded local changes. Never describe it as qualified independent human review.
+
+Escalate to a qualified human when the review finds a material defect, security/privacy concern, accessibility concern, or specification conflict; when schema, migrations, RLS, grants, roles, memberships, tenant authority, or privileged functions change; when aviation-authoritative calculations, approvals, competency decisions, dispatch, or operational safety behavior change; when production deployment or real-data use is proposed; or when required accessibility behavior cannot be evaluated reliably through automation.
 
 ### Step F: Stage and record evidence
 
@@ -67,11 +69,11 @@ Deploy to staging, validate, update traceability and change log, record known li
 |---|---|---|
 | Product/requirements AI | Stories, rules, acceptance, scope | Product decision |
 | Architecture AI | Data/API/design/ADR proposal | Architecture approval |
-| Implementation AI | Code, migrations, tests, docs | Its own diff or production release |
+| Implementation AI | Code, migrations, tests, docs | Product acceptance or production release |
 | Review AI | Findings and missing evidence | Risk acceptance |
 | Human/aviation reviewers | Correctness, risk, operational fit | Must remain accountable |
 
-The same model may be used in separate sessions, but creator and reviewer contexts should be distinct.
+The same model may be used in separate sessions, but creator and reviewer contexts should be distinct. Human escalation and explicit Founder/Product Owner decisions remain separate from the agent-review record.
 
 ## 6. Prompt template
 
@@ -80,6 +82,9 @@ The same model may be used in separate sessions, but creator and reviewer contex
 ## 7. Efficiency rules
 
 - One coherent outcome per branch/PR.
+- Fingerprint the review target with branch, HEAD, complete working-tree content hashes, dependencies, configuration, and referenced evidence. Do not repeat review or the full verification matrix when that fingerprint is unchanged.
+- After a correction, run focused affected checks and then one final required verification matrix.
+- Store or reference detailed evidence once; later unchanged reports summarize the result and point to that evidence.
 - Prefer small files and explicit module boundaries.
 - Keep naming, status vocabulary, and errors stable.
 - Put durable decisions in docs/ADRs, not chat memory.
@@ -99,7 +104,7 @@ The same model may be used in separate sessions, but creator and reviewer contex
 - Manual production database edits
 - Massive unrelated refactors mixed with features
 - Microservices/Kubernetes/native apps before evidence
-- An AI author approving its own security or production release
+- An AI author granting product acceptance, risk acceptance, merge authority, deployment approval, or production approval
 
 ## 9. First milestones
 

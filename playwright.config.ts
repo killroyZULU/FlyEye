@@ -8,6 +8,15 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: 'list',
+  webServer: {
+    command: 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4173',
+    url: 'http://127.0.0.1:4173',
+    reuseExistingServer: false,
+    env: {
+      VITE_SUPABASE_URL: 'http://127.0.0.1:55321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'test-publishable-key',
+    },
+  },
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'off',

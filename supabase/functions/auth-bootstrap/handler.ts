@@ -12,6 +12,7 @@ const requestSchema = z.object({ organizationId: z.uuid().optional() }).strict()
 export type AuthenticatedActor = {
   userId: string;
   assuranceLevel: AssuranceLevel;
+  authenticationMethods: string[];
 };
 
 export type AuditDecision = {
@@ -181,6 +182,36 @@ export function createAuthBootstrapHandler(
     } catch {
       return jsonResponse(allowedOrigin, 401, {
         error: { code: 'auth.authentication_required', message: 'Sign in to continue.' },
+      });
+    }
+
+    if (!actor.authenticationMethods.includes('password')) {
+      const correlationId = createCorrelationId();
+      try {
+        await recordDenied(
+          dependencies,
+          actor,
+          correlationId,
+          'authentication_method_not_allowed',
+          {
+            currentAssuranceLevel: actor.assuranceLevel,
+            requiredAuthenticationMethod: 'password',
+          },
+        );
+      } catch {
+        return jsonResponse(allowedOrigin, 500, {
+          error: {
+            code: 'auth.audit_unavailable',
+            message: 'Access could not be verified. Try again.',
+          },
+        });
+      }
+
+      return jsonResponse(allowedOrigin, 403, {
+        error: {
+          code: 'auth.authentication_method_not_allowed',
+          message: 'Sign in with your password to continue.',
+        },
       });
     }
 

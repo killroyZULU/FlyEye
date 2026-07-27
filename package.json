@@ -16,6 +16,7 @@
     "test:sql": "supabase test db",
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:edge-runtime": "node scripts/test-edge-runtime.mjs",
+    "test:recovery-runtime": "node scripts/test-recovery-runtime.mjs",
     "check:browser-secrets": "node scripts/check-browser-secrets.mjs --require-dist",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

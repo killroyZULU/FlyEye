@@ -88,6 +88,66 @@ async function mockSupabase(page: Page, options: { invalid?: boolean; empty?: bo
   await page.route('**/auth/v1/logout*', async (route) => {
     await route.fulfill({ status: 204, body: '' });
   });
+
+  await page.route('**/auth/v1/recover*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
+  await page.route('**/auth/v1/verify*', async (route) => {
+    const requestBody = route.request().postDataJSON() as {
+      token_hash?: string;
+      type?: string;
+    };
+    expect(requestBody.type).toBe('recovery');
+    expect(requestBody.token_hash).toBe('synthetic-recovery-token-hash-1234567890');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: accessToken,
+        token_type: 'bearer',
+        expires_in: 3600,
+        refresh_token: 'synthetic-recovery-refresh-token',
+        user: {
+          id: '40000000-0000-4000-8000-000000000001',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'student@example.test',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      }),
+    });
+  });
+
+  await page.route('**/auth/v1/user*', async (route) => {
+    if (route.request().method() !== 'PUT') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: '40000000-0000-4000-8000-000000000001',
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'student@example.test',
+        app_metadata: { provider: 'email', providers: ['email'] },
+        user_metadata: {},
+        identities: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  });
 }
 
 async function submitLogin(page: Page) {
@@ -165,4 +225,41 @@ test('login remains usable at the configured viewport', async () => {
   await expect(page.getByLabel('Email address')).toBeInViewport();
   await expect(page.getByLabel('Password', { exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Sign in securely' })).toBeInViewport();
+});
+
+test('password recovery requires explicit confirmation and fresh sign-in', async () => {
+  await mockSupabase(page);
+  await page.goto('/auth/forgot-password');
+
+  await page.getByLabel('Email address').fill('student@example.test');
+  await page.getByRole('button', { name: 'Send recovery instructions' }).click();
+  const acknowledgementHeading = page.getByRole('heading', {
+    name: 'Recovery request received',
+  });
+  await expect(acknowledgementHeading).toBeVisible();
+  await expect(acknowledgementHeading).toBeFocused();
+
+  await page.goto('/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890');
+  const confirmationHeading = page.getByRole('heading', {
+    name: 'Continue password recovery?',
+  });
+  await expect(confirmationHeading).toBeVisible();
+  await expect(confirmationHeading).toBeFocused();
+  await expect(page).toHaveURL(/\/auth\/recovery$/);
+  await page.getByRole('button', { name: 'Continue securely' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Protect your account' })).toBeFocused();
+  await page.getByLabel('New password', { exact: true }).fill('a secure synthetic password');
+  await page
+    .getByLabel('Confirm new password', { exact: true })
+    .fill('a secure synthetic password');
+  await page.getByRole('button', { name: 'Change password and end sessions' }).click();
+
+  const completeHeading = page.getByRole('heading', { name: 'Your password has changed' });
+  await expect(completeHeading).toBeVisible();
+  await expect(completeHeading).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Continue to sign in' })).toBeVisible();
+  for (const heading of ['Student workspace', 'Instructor workspace', 'Administration workspace']) {
+    await expect(page.getByRole('heading', { name: heading })).toHaveCount(0);
+  }
 });
