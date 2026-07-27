@@ -98,7 +98,18 @@ The following remain deferred until the relevant core workflows and evidence are
 
 Deferred features require their own evidence, approved specification, security/privacy review, and aviation review where applicable. AI remains advisory and cannot approve dispatch, release aircraft, calculate authoritative weight and balance, or mark a student competent.
 
-## 10. Decisions still requiring qualified validation
+## 10. Development review and evidence governance
+
+- For bounded local development changes, a separate agent review plus the required automated verification is the default technical code-review gate. An agent review is never described or recorded as qualified independent human review.
+- Review evidence may be reused when the branch, HEAD, complete working-tree content hashes, dependencies, configuration, and referenced evidence have not changed. Repeated review or a repeated full verification matrix is not required for an identical review target.
+- After a correction, run focused checks for the affected behavior and then one final required verification matrix. Store or reference detailed evidence once; later status reports summarize the unchanged evidence and its identifier or location.
+- Human escalation is required when an agent identifies a material defect, security/privacy concern, accessibility concern, or specification conflict; when schema, migrations, RLS, grants, roles, memberships, tenant authority, or privileged functions change; when aviation-authoritative calculations, approvals, competency decisions, dispatch, or operational safety behavior change; when production deployment or real-data use is proposed; or when required accessibility behavior cannot be evaluated reliably through automation.
+- Product acceptance, Git publication authorization, merge authorization, deployment approval, and production approval remain separate explicit Founder/Product Owner decisions. Agent review and green automation cannot grant or imply any of them.
+- Human aviation, privacy/legal, customer, penetration-test, pilot-readiness, and production-review duties elsewhere in the documentation remain in force where their stated risk or lifecycle gate applies.
+
+For corrected FEAT-002, the completed Codex review and automated verification are the technical code-review evidence. The full verification matrix is not repeated while the review target remains unchanged. No qualified independent human technical or security/privacy review was performed. The Founder/Product Owner completed the focused human desktop keyboard/visual walkthrough and, on 2026-07-27, accepted the bounded local MVP outcome together with the documented residual local evidence limitations for the current publication decision. The Founder/Product Owner separately authorized one scoped commit, push of `feat/FEAT-002-password-recovery` to the existing `origin`, and a draft pull request against `main`. This does not authorize merge, hosted validation, deployment, real-data use, production approval, or FEAT-003.
+
+## 11. Decisions still requiring qualified validation
 
 - Final licensing, intellectual-property, warranty, support, and customer-contract language
 - Pilot school agreement, named sponsor, and authorization to identify the school

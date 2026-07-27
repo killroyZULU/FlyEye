@@ -254,6 +254,13 @@ button:focus-visible {
   font-size: 0.78rem;
 }
 
+.field-guidance,
+.privacy-copy {
+  color: #6a7882;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .status-message {
   min-height: 1.2rem;
   color: #943d36;
@@ -288,6 +295,36 @@ button:focus-visible {
   color: #176c69;
   font-size: 0.84rem;
   font-weight: 800;
+}
+
+.text-link,
+.primary-link {
+  justify-self: center;
+  border-radius: 0.35rem;
+  color: #176c69;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+}
+
+.primary-link {
+  width: 100%;
+  min-height: 3.2rem;
+  display: grid;
+  place-items: center;
+  padding: 0.8rem 1rem;
+  background: #0b3448;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgb(11 52 72 / 18%);
+}
+
+.text-link:focus-visible,
+.primary-link:focus-visible {
+  outline: 3px solid rgb(37 150 143 / 28%);
+  outline-offset: 2px;
 }
 
 .support-copy,

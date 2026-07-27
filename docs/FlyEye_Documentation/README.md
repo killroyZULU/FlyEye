@@ -41,8 +41,8 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 | [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
 | [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
 | [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
-| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Founder/Product Owner decisions and Codex-guided owner review recorded; later local synthetic implementation requires separate explicit authorization, and qualified independent human review is required before its pull request may merge |
-| [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery need, requirement, control, and planned-evidence mapping |
+| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, and Founder/Product Owner local MVP acceptance are complete; Git publication of the feature branch and a draft pull request is authorized, while merge, hosted validation, deployment, real-data, and production gates remain pending |
+| [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery requirements, corrected local automated evidence, risk-based review record, unresolved accessibility judgment, and separate Founder/Product Owner gates |
 | [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
 | [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |
 | [Traceability template](templates/REQUIREMENTS_TRACEABILITY_TEMPLATE.md) | Need-to-requirement-to-test evidence |
@@ -59,7 +59,7 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 - Delivery method: hybrid Stage-Gated Agile using contract-first, specification-driven AI implementation.
 - AI policy: advisory only, permission-aware, reviewable, optional, and unable to approve dispatch, airworthiness, or competency.
 - Safety rule: deterministic business rules and authoritative calculations precede AI assistance.
-- Governance: the founder is the unnamed product owner; qualified reviewers retain aviation, privacy, security, legal, customer, and production approval authority.
+- Governance: the founder is the unnamed product owner; risk-based agent review is the default bounded-local technical gate, while explicit human escalation and aviation, privacy, security, legal, customer, and production approval duties remain risk- and lifecycle-based.
 - Commercial direction: evolve the capstone into a licensable Philippine flight-school product while customers retain ownership and control of their data.
 
 The production browser may directly perform only explicitly approved low-risk reads and draft operations under tested Row-Level Security. Dispatch transitions, assessment finalization, role changes, exports, authoritative weight-and-balance, audit-sensitive actions, and AI requests must pass through controlled Edge Functions or reviewed PostgreSQL functions.

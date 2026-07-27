@@ -34,7 +34,11 @@ function dependencies(
 ): AuthBootstrapDependencies {
   return {
     allowedOrigin,
-    authenticate: vi.fn().mockResolvedValue({ userId: actorUserId, assuranceLevel: 'aal1' }),
+    authenticate: vi.fn().mockResolvedValue({
+      userId: actorUserId,
+      assuranceLevel: 'aal1',
+      authenticationMethods: ['password'],
+    }),
     resolveAccessContext: vi.fn().mockResolvedValue(validContext),
     recordDecision: vi.fn().mockResolvedValue(undefined),
     createCorrelationId: () => fallbackCorrelationId,
@@ -92,6 +96,93 @@ describe('auth-bootstrap Edge Function handler', () => {
     const invalidResponse = await createAuthBootstrapHandler(invalid)(request());
     expect(invalidResponse.status).toBe(401);
     expect(invalid.resolveAccessContext).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['OTP-only', ['otp']],
+    ['empty', []],
+  ])(
+    'denies and audits a verified %s session before resolving organization context',
+    async (_label, authenticationMethods) => {
+      const configured = dependencies({
+        authenticate: vi.fn().mockResolvedValue({
+          userId: actorUserId,
+          assuranceLevel: 'aal1',
+          authenticationMethods,
+        }),
+      });
+
+      const response = await createAuthBootstrapHandler(configured)(request());
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: 'auth.authentication_method_not_allowed',
+          message: 'Sign in with your password to continue.',
+        },
+      });
+      expect(configured.resolveAccessContext).not.toHaveBeenCalled();
+      expect(configured.recordDecision).toHaveBeenCalledTimes(1);
+      expect(configured.recordDecision).toHaveBeenCalledWith({
+        actorUserId,
+        actorSubjectId: actorUserId,
+        eventName: 'authentication.access_denied',
+        outcome: 'denied',
+        correlationId: fallbackCorrelationId,
+        organizationId: null,
+        organizationIds: [],
+        reasonCode: 'authentication_method_not_allowed',
+        metadata: {
+          currentAssuranceLevel: 'aal1',
+          requiredAuthenticationMethod: 'password',
+        },
+      });
+    },
+  );
+
+  it('fails closed when an authentication-method denial cannot be audited', async () => {
+    const configured = dependencies({
+      authenticate: vi.fn().mockResolvedValue({
+        userId: actorUserId,
+        assuranceLevel: 'aal1',
+        authenticationMethods: ['otp'],
+      }),
+      recordDecision: vi.fn().mockRejectedValue(new Error('audit unavailable')),
+    });
+
+    const response = await createAuthBootstrapHandler(configured)(request());
+
+    expect(response.status).toBe(500);
+    expect(configured.resolveAccessContext).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: 'auth.audit_unavailable',
+        message: 'Access could not be verified. Try again.',
+      },
+    });
+  });
+
+  it('retains password plus TOTP sessions for the existing AAL2 authorization path', async () => {
+    const configured = dependencies({
+      authenticate: vi.fn().mockResolvedValue({
+        userId: actorUserId,
+        assuranceLevel: 'aal2',
+        authenticationMethods: ['password', 'totp'],
+      }),
+      resolveAccessContext: vi.fn().mockResolvedValue({
+        ...validContext,
+        currentAssuranceLevel: 'aal2',
+      }),
+    });
+
+    const response = await createAuthBootstrapHandler(configured)(request());
+
+    expect(response.status).toBe(200);
+    expect(configured.resolveAccessContext).toHaveBeenCalledWith({
+      actorUserId,
+      assuranceLevel: 'aal2',
+      selectedOrganizationId: undefined,
+    });
   });
 
   it('treats an AAL1 privileged context as denied audit evidence', async () => {

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 import { assuranceLevelSchema, type AssuranceLevel } from '../_shared/access-context.ts';
 import { createAuthBootstrapHandler } from './handler.ts';
@@ -15,7 +16,20 @@ function configuredAllowedOrigin(supabaseUrl: string): string {
   throw new Error(`ALLOWED_ORIGIN is required for ${new URL(supabaseUrl).hostname}.`);
 }
 
-function assuranceFromVerifiedToken(accessToken: string): AssuranceLevel {
+type VerifiedAuthenticationContext = {
+  assuranceLevel: AssuranceLevel;
+  authenticationMethods: string[];
+};
+
+const authenticationMethodReferenceSchema = z
+  .object({
+    method: z.string().trim().min(1).max(64),
+  })
+  .passthrough();
+
+function authenticationContextFromVerifiedToken(
+  accessToken: string,
+): VerifiedAuthenticationContext {
   const payloadSegment = accessToken.split('.')[1];
   if (!payloadSegment) throw new Error('The verified token payload is unavailable.');
 
@@ -23,8 +37,18 @@ function assuranceFromVerifiedToken(accessToken: string): AssuranceLevel {
     .replaceAll('-', '+')
     .replaceAll('_', '/')
     .padEnd(Math.ceil(payloadSegment.length / 4) * 4, '=');
-  const payload = JSON.parse(atob(padded)) as { aal?: unknown };
-  return assuranceLevelSchema.parse(payload.aal ?? 'aal1');
+  const payload = JSON.parse(atob(padded)) as { aal?: unknown; amr?: unknown };
+  const authenticationMethods = z
+    .array(authenticationMethodReferenceSchema)
+    .max(16)
+    .safeParse(payload.amr);
+
+  return {
+    assuranceLevel: assuranceLevelSchema.parse(payload.aal ?? 'aal1'),
+    authenticationMethods: authenticationMethods.success
+      ? [...new Set(authenticationMethods.data.map((reference) => reference.method))]
+      : [],
+  };
 }
 
 const supabaseUrl = requiredEnvironment('SUPABASE_URL');
@@ -45,9 +69,10 @@ Deno.serve(
     authenticate: async (accessToken) => {
       const { data, error } = await publicClient.auth.getUser(accessToken);
       if (error || !data.user) throw new Error('Authentication failed.');
+      const authenticationContext = authenticationContextFromVerifiedToken(accessToken);
       return {
         userId: data.user.id,
-        assuranceLevel: assuranceFromVerifiedToken(accessToken),
+        ...authenticationContext,
       };
     },
     resolveAccessContext: async ({ actorUserId, assuranceLevel, selectedOrganizationId }) => {

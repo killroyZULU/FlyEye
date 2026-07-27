@@ -72,6 +72,8 @@ Pilot release exit additionally requires security review, recovery drill, incide
 
 Store requirement ID, test ID, build/commit, Supabase/frontend environment identifiers, migration version, preconditions/data, steps or automated test link, expected/actual result, artifacts, tester, date, defect link, and reviewer. Evidence must be reproducible and privacy-safe.
 
+Detailed evidence is stored or referenced once. Later reports may summarize it when the branch, HEAD, complete working-tree content hashes, dependencies, configuration, and evidence are unchanged. After a correction, run focused affected checks and then one final required verification matrix; do not repeat the full matrix again without a review-target change.
+
 ## 10. Pilot quality metrics
 
 - No critical defects and no unresolved exploitable high vulnerability
@@ -86,4 +88,6 @@ Store requirement ID, test ID, build/commit, Supabase/frontend environment ident
 
 ## 11. Responsibility
 
-AI may generate tests and review suggestions. Humans approve the test strategy, verified sources, aviation scenarios, security risk, UAT, and production release. The implementation agent must not be the only reviewer of its own tests.
+AI may generate tests and perform a separate agent review. For bounded local changes, that review plus required automated verification is the default technical gate; the implementation context must not be the only reviewer of its own tests. An agent review is not qualified independent human review and cannot grant risk acceptance, product acceptance, Git publication, merge, deployment, or production approval.
+
+Human escalation is required for material defects or specification conflicts; security/privacy or accessibility concerns; schema, migration, RLS, grant, role, membership, tenant-authority, or privileged-function changes; aviation-authoritative or operational-safety behavior; proposed production or real-data use; and accessibility behavior automation cannot reliably evaluate. Humans continue to approve verified aviation sources and scenarios, UAT, applicable security risk, and production release.

@@ -48,6 +48,10 @@ function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
   return {
     hasSession: vi.fn().mockResolvedValue(false),
     signIn: vi.fn().mockResolvedValue(undefined),
+    requestPasswordRecovery: vi.fn().mockResolvedValue(undefined),
+    verifyRecoveryCredential: vi.fn().mockResolvedValue(undefined),
+    updateRecoveredPassword: vi.fn().mockResolvedValue(undefined),
+    signOutEverywhere: vi.fn().mockResolvedValue(undefined),
     loadAccessContext: vi.fn().mockResolvedValue(context('student_pilot')),
     getMfaAssurance: vi.fn().mockResolvedValue({ currentLevel: 'aal1', nextLevel: 'aal2' }),
     verifyTotp: vi.fn().mockResolvedValue(undefined),

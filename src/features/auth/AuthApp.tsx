@@ -8,7 +8,10 @@ import {
 } from '../../lib/access-context';
 import { LoginForm } from './components/LoginForm';
 import { MfaForm } from './components/MfaForm';
+import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
+import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
+import { RECOVERY_COMPLETE_PATH, RECOVERY_REQUEST_PATH } from './recovery';
 import {
   AuthGatewayError,
   type AuthGateway,
@@ -39,6 +42,14 @@ type AuthAppProps = {
   gateway: AuthGateway;
 };
 
+type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete';
+
+function currentAuthRoute(pathname: string): AuthRoute {
+  if (pathname === RECOVERY_REQUEST_PATH) return 'recovery-request';
+  if (pathname === RECOVERY_COMPLETE_PATH) return 'recovery-complete';
+  return 'sign-in';
+}
+
 function safeError(error: unknown): { code: AuthGatewayErrorCode; message: string } {
   if (error instanceof AuthGatewayError) {
     return { code: error.code, message: error.message };
@@ -48,6 +59,7 @@ function safeError(error: unknown): { code: AuthGatewayErrorCode; message: strin
 }
 
 export function AuthApp({ gateway }: AuthAppProps) {
+  const route = currentAuthRoute(window.location.pathname);
   const [state, setState] = useState<AuthState>('checking-session');
   const [message, setMessage] = useState<string>();
   const [memberships, setMemberships] = useState<AccessMembership[]>([]);
@@ -70,6 +82,12 @@ export function AuthApp({ gateway }: AuthAppProps) {
 
   useEffect(() => {
     mountedRef.current = true;
+    if (route !== 'sign-in') {
+      return () => {
+        mountedRef.current = false;
+        invalidateOperations();
+      };
+    }
 
     async function restoreSession() {
       const operation = beginOperation();
@@ -107,7 +125,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
     };
     // The gateway is an application-lifetime dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gateway]);
+  }, [gateway, route]);
 
   async function loadAccess(selectedOrganizationId?: string) {
     const operation = beginOperation();
@@ -283,14 +301,18 @@ export function AuthApp({ gateway }: AuthAppProps) {
 
       <section className="auth-panel" aria-label="Account access">
         <div className="auth-card">
-          {state === 'checking-session' || state === 'loading-access' ? (
+          {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
+
+          {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
+
+          {route === 'sign-in' && (state === 'checking-session' || state === 'loading-access') ? (
             <StatePanel eyebrow="Secure access" title="Verifying your session">
               <div className="loading-line" aria-hidden="true" />
               <p>Please wait while FlyEye checks your account and school access.</p>
             </StatePanel>
           ) : null}
 
-          {state === 'signed-out' || state === 'signing-in' ? (
+          {route === 'sign-in' && (state === 'signed-out' || state === 'signing-in') ? (
             <>
               <div className="section-heading">
                 <span className="eyebrow">Welcome back</span>
@@ -298,13 +320,16 @@ export function AuthApp({ gateway }: AuthAppProps) {
                 <p>Use the email address from your school invitation.</p>
               </div>
               <LoginForm busy={state === 'signing-in'} message={message} onSubmit={handleSignIn} />
+              <a className="text-link" href={RECOVERY_REQUEST_PATH}>
+                Forgot password?
+              </a>
               <p className="support-copy">
                 Accounts are invitation-only. Contact your school administrator if you need access.
               </p>
             </>
           ) : null}
 
-          {state === 'selecting-organization' ? (
+          {route === 'sign-in' && state === 'selecting-organization' ? (
             <StatePanel eyebrow="School access" title="Choose your organization">
               <p>Your account has access to more than one FlyEye organization.</p>
               <div className="organization-list">
@@ -326,7 +351,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {state === 'mfa-required' || state === 'verifying-mfa' ? (
+          {route === 'sign-in' && (state === 'mfa-required' || state === 'verifying-mfa') ? (
             <MfaForm
               busy={state === 'verifying-mfa'}
               message={message}
@@ -335,7 +360,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             />
           ) : null}
 
-          {state === 'empty' ? (
+          {route === 'sign-in' && state === 'empty' ? (
             <StatePanel
               eyebrow="No active access"
               title="Your account is not assigned"
@@ -351,7 +376,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {state === 'unauthorized' ? (
+          {route === 'sign-in' && state === 'unauthorized' ? (
             <StatePanel
               eyebrow="Access unavailable"
               title="You cannot enter this workspace"
@@ -364,7 +389,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {state === 'conflict' ? (
+          {route === 'sign-in' && state === 'conflict' ? (
             <StatePanel
               eyebrow="Access conflict"
               title="Administrator review is required"
@@ -377,7 +402,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {state === 'error' ? (
+          {route === 'sign-in' && state === 'error' ? (
             <StatePanel
               eyebrow="Connection problem"
               title="Access could not be verified"
@@ -393,7 +418,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {state === 'success' && activeMembership ? (
+          {route === 'sign-in' && state === 'success' && activeMembership ? (
             <StatePanel
               eyebrow="Access verified"
               title={landingLabel(activeMembership.role)}

@@ -110,6 +110,56 @@ async function mockSupabase(page, options = {}) {
     });
   });
   await page.route('**/auth/v1/logout*', async (route) => route.fulfill({ status: 204, body: '' }));
+  await page.route('**/auth/v1/recover*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+  await page.route('**/auth/v1/verify*', async (route) => {
+    const body = route.request().postDataJSON();
+    assert.equal(body.type, 'recovery');
+    assert.equal(body.token_hash, 'synthetic-recovery-token-hash-1234567890');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: accessToken,
+        token_type: 'bearer',
+        expires_in: 3600,
+        refresh_token: 'synthetic-recovery-refresh-token',
+        user: {
+          id: '40000000-0000-4000-8000-000000000001',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'student@example.test',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      }),
+    });
+  });
+  await page.route('**/auth/v1/user*', async (route) => {
+    if (route.request().method() !== 'PUT') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: '40000000-0000-4000-8000-000000000001',
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'student@example.test',
+        app_metadata: { provider: 'email', providers: ['email'] },
+        user_metadata: {},
+        identities: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  });
 }
 
 async function submitLogin(page) {
@@ -123,7 +173,11 @@ async function runScenario(browser, viewport, scenario) {
   try {
     await page.addInitScript(() => localStorage.clear());
     await mockSupabase(page, scenario.options);
-    await page.goto('http://127.0.0.1:4173');
+    await page.goto(
+      scenario.name === 'recovery'
+        ? 'http://127.0.0.1:4173/auth/forgot-password'
+        : 'http://127.0.0.1:4173',
+    );
 
     if (scenario.name === 'viewport') {
       for (const label of ['Email address', 'Password']) {
@@ -136,6 +190,61 @@ async function runScenario(browser, viewport, scenario) {
           }),
           true,
         );
+      }
+      return;
+    }
+
+    if (scenario.name === 'recovery') {
+      await page.getByLabel('Email address').fill('student@example.test');
+      await page.getByRole('button', { name: 'Send recovery instructions' }).click();
+      const acknowledgementHeading = page.getByRole('heading', {
+        name: 'Recovery request received',
+      });
+      await acknowledgementHeading.waitFor();
+      assert.equal(
+        await acknowledgementHeading.evaluate(
+          (element) => element === globalThis.document.activeElement,
+        ),
+        true,
+      );
+      await page.goto(
+        'http://127.0.0.1:4173/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890',
+      );
+      const confirmationHeading = page.getByRole('heading', {
+        name: 'Continue password recovery?',
+      });
+      await confirmationHeading.waitFor();
+      assert.equal(
+        await confirmationHeading.evaluate(
+          (element) => element === globalThis.document.activeElement,
+        ),
+        true,
+      );
+      assert.equal(new URL(page.url()).search, '');
+      await page.getByRole('button', { name: 'Continue securely' }).click();
+      const passwordHeading = page.getByRole('heading', { name: 'Protect your account' });
+      await passwordHeading.waitFor();
+      assert.equal(
+        await passwordHeading.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      await page.getByLabel('New password', { exact: true }).fill('a secure synthetic password');
+      await page
+        .getByLabel('Confirm new password', { exact: true })
+        .fill('a secure synthetic password');
+      await page.getByRole('button', { name: 'Change password and end sessions' }).click();
+      const completeHeading = page.getByRole('heading', { name: 'Your password has changed' });
+      await completeHeading.waitFor();
+      assert.equal(
+        await completeHeading.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      for (const heading of [
+        'Student workspace',
+        'Instructor workspace',
+        'Administration workspace',
+      ]) {
+        assert.equal(await page.getByRole('heading', { name: heading }).count(), 0);
       }
       return;
     }
@@ -165,6 +274,7 @@ const scenarios = [
   { name: 'invalid', options: { invalid: true } },
   { name: 'empty', options: { empty: true } },
   { name: 'viewport', options: {} },
+  { name: 'recovery', options: {} },
 ];
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
@@ -187,7 +297,7 @@ try {
   } finally {
     await browser.close();
   }
-  process.stdout.write('8 Playwright E2E scenarios passed.\n');
+  process.stdout.write('10 Playwright E2E scenarios passed.\n');
 } finally {
   viteProcess.kill();
 }

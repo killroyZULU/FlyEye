@@ -67,7 +67,7 @@ Most implementation may be created through “vibe coding,” but FlyEye uses **
 4. Ask AI to analyze and plan before editing.
 5. Implement a complete vertical slice rather than an entire layer.
 6. Run automated checks and inspect the diff.
-7. Perform a separate security/architecture review.
+7. Perform a separate risk-based agent review and escalate the defined high-risk changes or findings to qualified humans.
 8. Deploy to staging and test realistic synthetic scenarios.
 9. Obtain human and aviation-SME approval where applicable.
 10. Record test evidence, decisions, limitations, and release notes.
@@ -127,11 +127,13 @@ See [Pilot Implementation Plan](13_PILOT_IMPLEMENTATION_PLAN.md).
 
 ## Current implementation status
 
-As of 2026-07-26:
+As of 2026-07-27:
 
 - FEAT-001 login and initial RBAC is merged into the development `main` branch. It proves local Supabase Auth, server-derived organization membership, initial role routing, privileged-role MFA enforcement, deny-by-default RLS, protected access bootstrap, audit evidence, and cross-organization isolation using synthetic data.
-- The product-owner decision now requires MFA for every user before real-data pilot or production access. FEAT-001 does not yet enforce MFA for Student users; universal enrollment, recovery, support, and enforcement require a later approved identity specification.
-- FEAT-001 is not production-approved. Independent human security/privacy review, account invitations, password recovery, MFA enrollment and recovery, user administration, deployment configuration, monitoring, and recovery evidence remain pending.
+- The product-owner decision requires MFA for every user before real-data pilot or production access. FEAT-001 does not yet enforce MFA for Student users; universal MFA enrollment, factor recovery/replacement, support, and enforcement require later approved identity specifications.
+- FEAT-001 is not production-approved. Independent human security/privacy review, account invitations, MFA enrollment and recovery, user administration, deployment configuration, monitoring, and recovery evidence remain pending.
+- FEAT-002 Password Recovery is complete on `feat/FEAT-002-password-recovery`, with its final technical review target based on HEAD `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`. The bounded post-password-change correction converts both resolved and rejected global-sign-out failures to `revocation_failed`, attempts local cleanup, and keeps every post-update exception in the terminal sign-in/support state. Local automation passed the full requested frontend, browser, Supabase, SQL/RLS, Edge, recovery-runtime, database-lint, generated-type, secret, and dependency checks, including both old refresh tokens, per-alias OTP-denial audit evidence, and automated focus checks.
+- FEAT-002's completed Codex review and automated verification are the bounded-local technical code-review evidence under the approved risk-based model. No qualified independent human technical or security/privacy review was performed. The implementation-content fingerprint remained unchanged after the Founder/Product Owner walkthrough, so the full matrix was not repeated. On 2026-07-27 the Founder/Product Owner accepted the bounded local MVP outcome and the documented residual local accessibility limitations for the current publication decision, and separately authorized one scoped commit, push of `feat/FEAT-002-password-recovery` to the existing `origin`, and a draft pull request against `main`. Merge, hosted validation, deployment, real-data use, production approval, and FEAT-003 remain unauthorized.
 - Pull request #2 merged the verification-only GitHub Actions quality gates and pull-request checklist into the development `main` branch at merge commit `c7627a5`. It performed no deployment.
 - The CI baseline covers frozen dependency installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, the browser-specific Supabase key scan, a pinned and fully redacted general Gitleaks scan of Git history, Playwright, local Supabase migration reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, database lint, generated-type drift, and dependency audit.
 - The schema-wide RLS regression discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails when any lacks enabled RLS. The Gitleaks CLI and Linux archive checksum are pinned; the separately licensed Gitleaks Action is not used.
@@ -139,11 +141,12 @@ As of 2026-07-26:
 
 ## Immediate next actions
 
-1. Review and approve the [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) register and its aligned documentation updates.
-2. Draft, review, and approve one specification at a time for the planned identity and administration sequence: FEAT-002 Password Recovery; FEAT-003 Organization Admin and MFA Onboarding; FEAT-004 Member Invitations; FEAT-005 User Management and Basic Profiles; and FEAT-006 Role Assignment.
-3. Implement, independently review, locally demonstrate, and explicitly authorize each bounded feature pull request before moving to the next one. Use synthetic accounts from at least two organizations and test denial, conflict, and cross-organization paths.
-4. After FEAT-002 through FEAT-006 are complete, hold a UI design checkpoint to establish FlyEye's visual identity, design tokens, reusable components, and non-generic responsive direction before building the larger operational modules.
-5. Continue product discovery in parallel: formally engage the anonymous pilot candidate and qualified reviewers; obtain current authoritative CAAP/PCAR materials; collect and verify authorized forms and workflow examples; and finalize the permission matrix, minor-student safeguards, retention decisions, pilot agreement, and critical-workflow prototypes.
+1. Publish the accepted bounded FEAT-002 branch through the authorized single scoped commit, push to the existing `origin`, and draft pull request against `main`; do not merge it without a separate Founder/Product Owner decision.
+2. Keep hosted validation, merge, deployment, real-data use, and production approval as separate Founder/Product Owner gates. Do not rerun the complete FEAT-002 verification matrix unless the branch review target, implementation-content hashes, dependencies, configuration, or evidence changes.
+3. Do not begin FEAT-003 without separate Founder/Product Owner authorization and an approved specification. When authorized, draft, review, and approve one specification at a time for FEAT-003 Organization Admin and MFA Onboarding, FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment.
+4. Implement, agent-review, locally demonstrate, and explicitly authorize each later bounded feature before moving to the next one. Escalate the human-review triggers in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md), use synthetic accounts from at least two organizations, and test denial, conflict, and cross-organization paths.
+5. After FEAT-002 through FEAT-006 are complete, hold a UI design checkpoint to establish FlyEye's visual identity, design tokens, reusable components, and non-generic responsive direction before building the larger operational modules.
+6. Continue product discovery in parallel: formally engage the anonymous pilot candidate and qualified reviewers; obtain current authoritative CAAP/PCAR materials; collect and verify authorized forms and workflow examples; and finalize the permission matrix, minor-student safeguards, retention decisions, pilot agreement, and critical-workflow prototypes.
 
 The planned feature identifiers and sequence are roadmap intent, not approved implementation specifications. Each feature requires its own repository specification and traceability record before coding.
 
