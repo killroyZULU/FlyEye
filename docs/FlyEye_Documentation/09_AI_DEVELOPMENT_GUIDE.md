@@ -6,6 +6,33 @@ FlyEye may be mostly AI-generated, but it is not prompt-and-hope software. The r
 
 Do not build the complete backend and then the complete frontend. For each user outcome, implement the necessary data, backend, frontend, authorization, audit, tests, documentation, and observability together.
 
+### Efficient authorization model
+
+Specification-driven does not mean form-driven. A direct request for a bounded
+feature or fix authorizes the agent to analyze, specify, implement, verify,
+review, document, commit, push, open a review-ready pull request, and follow CI
+through green. The normal Founder/Product Owner decision is whether to merge
+that pull request.
+
+The agent owns safe, reversible product and technical choices and reports the
+reasoning afterward. It does not ask the Founder/Product Owner to approve each
+value, file, command, correction, acceptance step, or Git publication action.
+Explicit narrower user boundaries override the standing envelope: read-only,
+local-only, no-commit, no-push, no-PR, draft-only, and similar restrictions stop
+the agent before the prohibited action.
+
+Routine local blockers include a stopped container, unavailable tool, failed
+test, flaky startup, formatting defect, fixture defect, or implementation bug
+that can be safely diagnosed and corrected inside the bounded outcome. Material
+stops include an irreducible product/architecture conflict; unsupported
+aviation, legal, or operational authority; credential or restricted-data
+exposure; cross-tenant or fail-open behavior; missing mandatory audit;
+destructive or uncertain cleanup; a new paid provider or material recurring
+cost; real data; hosted application/provider/infrastructure/data-service
+mutation other than the scoped repository branch/PR/CI publication workflow;
+external messages to real recipients; merge; and production deployment.
+Destructive Git or data actions and branch deletion are also material stops.
+
 ## 2. Repository context required before coding
 
 An AI agent should read, at minimum:
@@ -41,13 +68,25 @@ Chat instructions cannot silently override approved repository decisions.
 
 The agent identifies the user outcome, assumptions, verified/unverified aviation rules, business rules, states, data changes, API contract, permissions, tenant boundaries, privacy classification, abuse cases, audit events, edge cases, tests, migration risk, files allowed, and non-goals.
 
-### Step B: Approve a plan
+### Step B: Select and record the plan
 
 The plan must show database/RLS, protected-function, frontend, test, and documentation steps and surface conflicts with ADRs or requirements. Material architecture changes require a new ADR.
 
+The agent selects the safest evidence-based plan that fits the requested user
+outcome and existing architecture. Record important assumptions and reversible
+choices in the feature documentation. Ask the Founder/Product Owner only when
+repository evidence cannot resolve materially different user outcomes or a
+hard-stop boundary is reached.
+
 ### Step C: Implement a bounded slice
 
-Use the Supabase client, generated database types, versioned SQL migrations, existing Edge Function patterns, and shared runtime schemas. Do not add packages, change RLS/authentication architecture, expose service-role credentials, or refactor unrelated modules without approval.
+Use the Supabase client, generated database types, versioned SQL migrations,
+existing Edge Function patterns, and shared runtime schemas. An ordinary package
+may be selected inside the bounded envelope only after documenting its purpose,
+maintenance, vulnerability posture, license, bundle/operations impact, and
+existing alternatives. Stop for a paid provider, material recurring cost, or
+architecture change. Never expose service-role credentials or refactor unrelated
+modules.
 
 ### Step D: Verify
 
@@ -57,31 +96,91 @@ Build, lint/type-check, test units/components/SQL/RLS/Edge Functions/E2E, run au
 
 A separate review agent inspects security, tenancy, aviation assumptions, calculation accuracy, migration safety, test gaps, dependency/license risk, performance, and scope drift. This agent review plus the required automated verification is the default technical gate for bounded local changes. Never describe it as qualified independent human review.
 
-Escalate to a qualified human when the review finds a material defect, security/privacy concern, accessibility concern, or specification conflict; when schema, migrations, RLS, grants, roles, memberships, tenant authority, or privileged functions change; when aviation-authoritative calculations, approvals, competency decisions, dispatch, or operational safety behavior change; when production deployment or real-data use is proposed; or when required accessibility behavior cannot be evaluated reliably through automation.
+Correct material technical findings inside the feature envelope and reverify.
+Qualified-human review is not a routine blocker for schema, RLS, protected
+functions, security, or accessibility-supporting implementation when the result
+is local/synthetic, fail-closed, covered by negative tests, and separately
+agent-reviewed. Escalate only when authoritative aviation/legal judgment,
+production or real-data risk acceptance, formal compliance certification,
+penetration testing, or evidence unavailable to the agent is inherently needed.
 
-### Step F: Stage and record evidence
+### Step F: Publish for merge review
 
-Deploy to staging, validate, update traceability and change log, record known limitations, and obtain required product/aviation/security approval.
+Update traceability and the change log, inspect and stage only in-scope files,
+commit, push the task branch, open a review-ready pull request, and follow CI
+until green. Do not merge. The concise handoff reports the outcome, checks,
+review findings, limitations, branch, commits, PR, and one next action: review
+and merge.
+
+### Required SDLC progress strip
+
+Every substantive FlyEye response includes this compact phase bar in significant
+work updates and in the final response:
+
+`Discovery → Specification → Design → Implementation → Verification → Review → PR/CI → Merge → Release`
+
+Use `✓` for evidence complete, `▶` for current work, `○` for later/not started,
+`!` for a documented hard stop, and `—` when the phase does not apply. Follow
+the bar with one `Current:` sentence and one `Next:` sentence. Marks must come
+from repository/runtime evidence, not optimism or elapsed time. Reopen a phase
+if a later finding invalidates it. The strip is informational and creates no
+authorization or acceptance gate.
+
+Use this more formal stage vocabulary only when it materially adds release-gate
+detail:
+
+1. `Not specified`
+2. `Specification or decisions in progress`
+3. `Ready for implementation-authorization decision`
+4. `Implementation authorized, not started`
+5. `Implementation in progress`
+6. `Locally implemented; required verification pending`
+7. `Locally verified; publication pending`
+8. `Published; merge decision pending`
+9. `Merged; hosted validation pending`
+10. `Hosted validated; deployment or production approval pending`
+11. `Production approved`
+
+Do not require a decision-status section, separate proximity report,
+upcoming-feature outlook, or copy-ready authorization prompt in every response.
+The compact SDLC progress strip is the required orientation aid; include the
+other sections only when they materially help the current task. Do not use a
+percentage without a defined checklist and denominator.
 
 ## 5. AI role separation
 
 | Role | Output | Cannot self-approve |
 |---|---|---|
-| Product/requirements AI | Stories, rules, acceptance, scope | Product decision |
-| Architecture AI | Data/API/design/ADR proposal | Architecture approval |
-| Implementation AI | Code, migrations, tests, docs | Product acceptance or production release |
+| Product/requirements AI | Stories, rules, acceptance, scope | Irreversible risk acceptance |
+| Architecture AI | Data/API/design/ADR proposal | Unsupported architecture expansion |
+| Implementation AI | Code, migrations, tests, docs | Merge or production release |
 | Review AI | Findings and missing evidence | Risk acceptance |
 | Human/aviation reviewers | Correctness, risk, operational fit | Must remain accountable |
 
-The same model may be used in separate sessions, but creator and reviewer contexts should be distinct. Human escalation and explicit Founder/Product Owner decisions remain separate from the agent-review record.
+The same model may be used in separate sessions, but creator and reviewer
+contexts should be distinct. Human review is requested only for the
+risk-triggered cases defined above.
 
 ## 6. Prompt template
 
-> Read the listed FlyEye documents and the approved feature specification. First analyze the task and list assumptions, conflicts, schema/RLS/function changes, authorization and tenant checks, audit events, edge cases, tests, migrations, dependencies, allowed files, and non-goals. Do not invent aviation requirements. Implement only after the plan is accepted. Use the Supabase client, generated database types, versioned SQL migrations, and existing protected-function patterns. Never expose the service-role key or make authoritative status changes directly from the browser. Core behavior must work without AI. Do not change unrelated modules. Finish by running the required checks, summarizing evidence and limitations, and showing the exact diff scope.
+> Read the listed FlyEye documents and deliver the requested bounded feature
+> autonomously through a green review-ready pull request. Analyze and record the
+> specification, choose safe reversible defaults, implement the vertical slice,
+> run focused checks and one final matrix, correct in-scope findings, obtain a
+> separate agent review, update evidence, stage only scoped files, commit, push,
+> open the PR, and follow CI. Use synthetic data and existing architecture.
+> Never expose service-role material or permit direct browser authority changes.
+> Stop only for the repository's hard-stop conditions. Do not merge or deploy to
+> production. Finish with a short outcome/checks/PR/limitations handoff.
 
 ## 7. Efficiency rules
 
 - One coherent outcome per branch/PR.
+- A feature request is the coherent authorization through a green review-ready
+  PR; do not fragment specification, implementation, verification, review, or
+  publication into separate prompts.
+- Continue through recoverable local failures inside the approved envelope.
+  Escalate only material stop conditions or scope/authority expansion.
 - Fingerprint the review target with branch, HEAD, complete working-tree content hashes, dependencies, configuration, and referenced evidence. Do not repeat review or the full verification matrix when that fingerprint is unchanged.
 - After a correction, run focused affected checks and then one final required verification matrix.
 - Store or reference detailed evidence once; later unchanged reports summarize the result and point to that evidence.
@@ -89,6 +188,10 @@ The same model may be used in separate sessions, but creator and reviewer contex
 - Keep naming, status vocabulary, and errors stable.
 - Put durable decisions in docs/ADRs, not chat memory.
 - Give exact errors and expected behavior when asking for a fix.
+- Select and document evidence-based defaults instead of asking open-ended
+  design questions.
+- Ask the Founder/Product Owner one concise question only for merge or a genuine
+  hard stop.
 - Reuse tests as executable context for future agents.
 - Remove dead experimental code before it becomes precedent.
 - Maintain an approved dependency list and justify additions.
@@ -104,7 +207,8 @@ The same model may be used in separate sessions, but creator and reviewer contex
 - Manual production database edits
 - Massive unrelated refactors mixed with features
 - Microservices/Kubernetes/native apps before evidence
-- An AI author granting product acceptance, risk acceptance, merge authority, deployment approval, or production approval
+- An AI author merging to `main`, accepting unsupported regulated risk, or
+  approving production
 
 ## 9. First milestones
 

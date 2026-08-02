@@ -30,6 +30,7 @@ export type AuditDecision = {
 export type AuthBootstrapDependencies = {
   allowedOrigin: string;
   authenticate: (accessToken: string) => Promise<AuthenticatedActor>;
+  validateAdminFactorState?: (actorUserId: string) => Promise<boolean>;
   resolveAccessContext: (input: {
     actorUserId: string;
     assuranceLevel: AssuranceLevel;
@@ -262,6 +263,78 @@ export function createAuthBootstrapHandler(
     const organizationId =
       context.selectedOrganizationId ??
       (context.organizationIds.length === 1 ? context.organizationIds[0]! : null);
+
+    const grantedAdmin = context.memberships.some(
+      (membership) => membership.role === 'admin' && membership.accessStatus === 'granted',
+    );
+    if (grantedAdmin && dependencies.validateAdminFactorState) {
+      let factorStateValid: boolean;
+      try {
+        factorStateValid = await dependencies.validateAdminFactorState(actor.userId);
+      } catch {
+        try {
+          await dependencies.recordDecision({
+            actorUserId: actor.userId,
+            actorSubjectId: actor.userId,
+            eventName: 'authentication.access_denied',
+            outcome: 'denied',
+            correlationId: context.correlationId,
+            organizationId,
+            organizationIds: context.organizationIds,
+            reasonCode: 'factor_inventory_unavailable',
+            metadata: {
+              membershipCount: context.memberships.length,
+              currentAssuranceLevel: context.currentAssuranceLevel,
+            },
+          });
+        } catch {
+          return jsonResponse(allowedOrigin, 500, {
+            error: {
+              code: 'auth.audit_unavailable',
+              message: 'Access could not be verified. Try again.',
+            },
+          });
+        }
+        return jsonResponse(allowedOrigin, 503, {
+          error: {
+            code: 'auth.factor_inventory_unavailable',
+            message: 'Your authenticator state could not be confirmed. Try again.',
+          },
+        });
+      }
+
+      if (!factorStateValid) {
+        try {
+          await dependencies.recordDecision({
+            actorUserId: actor.userId,
+            actorSubjectId: actor.userId,
+            eventName: 'authentication.access_denied',
+            outcome: 'denied',
+            correlationId: context.correlationId,
+            organizationId,
+            organizationIds: context.organizationIds,
+            reasonCode: 'factor_state_conflict',
+            metadata: {
+              membershipCount: context.memberships.length,
+              currentAssuranceLevel: context.currentAssuranceLevel,
+            },
+          });
+        } catch {
+          return jsonResponse(allowedOrigin, 500, {
+            error: {
+              code: 'auth.audit_unavailable',
+              message: 'Access could not be verified. Try again.',
+            },
+          });
+        }
+        return jsonResponse(allowedOrigin, 409, {
+          error: {
+            code: 'auth.access_context_conflict',
+            message: 'Your authenticator information needs administrator review.',
+          },
+        });
+      }
+    }
 
     try {
       await dependencies.recordDecision({

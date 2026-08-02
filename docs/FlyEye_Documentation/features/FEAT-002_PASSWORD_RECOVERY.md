@@ -2,7 +2,7 @@
 
 ## Status and ownership
 
-- Status: Evidence-based amendment, bounded local synthetic implementation, post-password-change correction, Codex review, final automated verification, participant-exercised local synthetic desktop recovery walkthrough, Founder/Product Owner bounded local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 gates remain pending
+- Status: Evidence-based amendment, bounded local synthetic implementation, post-password-change correction, Codex review, final automated verification, participant-exercised local synthetic desktop recovery walkthrough, Founder/Product Owner bounded local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 implementation gates remain pending. The later FEAT-003 documentation phase does not change FEAT-002 evidence.
 - Founder/Product Owner: Approved the original decisions, completed an owner-led review, approved the verified-password-AMR amendment, and separately authorized the bounded local synthetic implementation on 2026-07-26
 - Owner-led review coverage: Recovery eligibility/authority, recovery-link security, password policy, session revocation, enumeration/abuse controls, audit/notifications/privacy, accessibility, and the local synthetic-development boundary
 - Codex role: Facilitated the owner review, implemented the bounded change, reviewed the corrected diff, and produced the automated technical evidence; this is agent review, not qualified independent human review or Founder/Product Owner approval

@@ -308,6 +308,121 @@ describe('auth-bootstrap Edge Function handler', () => {
     });
   });
 
+  it('revalidates exactly-one verified TOTP before returning granted admin access', async () => {
+    const adminContext = {
+      ...validContext,
+      memberships: [
+        {
+          ...validContext.memberships[0],
+          role: 'admin',
+          permissions: ['portal.admin.access'],
+          requiredAssuranceLevel: 'aal2',
+          accessStatus: 'granted',
+        },
+      ],
+      currentAssuranceLevel: 'aal2',
+    };
+    const validateAdminFactorState = vi.fn().mockResolvedValue(true);
+    const configured = dependencies({
+      authenticate: vi.fn().mockResolvedValue({
+        userId: actorUserId,
+        assuranceLevel: 'aal2',
+        authenticationMethods: ['password', 'totp'],
+      }),
+      resolveAccessContext: vi.fn().mockResolvedValue(adminContext),
+      validateAdminFactorState,
+    });
+
+    const response = await createAuthBootstrapHandler(configured)(request());
+
+    expect(response.status).toBe(200);
+    expect(validateAdminFactorState).toHaveBeenCalledWith(actorUserId);
+    expect(configured.recordDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'authentication.access_context_loaded',
+        outcome: 'success',
+      }),
+    );
+  });
+
+  it('fails admin access closed when the provider factor inventory conflicts', async () => {
+    const adminContext = {
+      ...validContext,
+      memberships: [
+        {
+          ...validContext.memberships[0],
+          role: 'admin',
+          permissions: ['portal.admin.access'],
+          requiredAssuranceLevel: 'aal2',
+          accessStatus: 'granted',
+        },
+      ],
+      currentAssuranceLevel: 'aal2',
+    };
+    const configured = dependencies({
+      authenticate: vi.fn().mockResolvedValue({
+        userId: actorUserId,
+        assuranceLevel: 'aal2',
+        authenticationMethods: ['password', 'totp'],
+      }),
+      resolveAccessContext: vi.fn().mockResolvedValue(adminContext),
+      validateAdminFactorState: vi.fn().mockResolvedValue(false),
+    });
+
+    const response = await createAuthBootstrapHandler(configured)(request());
+
+    expect(response.status).toBe(409);
+    expect(configured.recordDecision).toHaveBeenCalledTimes(1);
+    expect(configured.recordDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'authentication.access_denied',
+        reasonCode: 'factor_state_conflict',
+      }),
+    );
+  });
+
+  it('reports unavailable audit when factor inventory and denial audit both fail', async () => {
+    const adminContext = {
+      ...validContext,
+      memberships: [
+        {
+          ...validContext.memberships[0],
+          role: 'admin',
+          permissions: ['portal.admin.access'],
+          requiredAssuranceLevel: 'aal2',
+          accessStatus: 'granted',
+        },
+      ],
+      currentAssuranceLevel: 'aal2',
+    };
+    const configured = dependencies({
+      authenticate: vi.fn().mockResolvedValue({
+        userId: actorUserId,
+        assuranceLevel: 'aal2',
+        authenticationMethods: ['password', 'totp'],
+      }),
+      resolveAccessContext: vi.fn().mockResolvedValue(adminContext),
+      validateAdminFactorState: vi.fn().mockRejectedValue(new Error('provider unavailable')),
+      recordDecision: vi.fn().mockRejectedValue(new Error('audit unavailable')),
+    });
+
+    const response = await createAuthBootstrapHandler(configured)(request());
+
+    expect(response.status).toBe(500);
+    expect(configured.recordDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'authentication.access_denied',
+        reasonCode: 'factor_inventory_unavailable',
+      }),
+    );
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: 'auth.audit_unavailable',
+        message: 'Access could not be verified. Try again.',
+      },
+    });
+  });
+
   it('rejects requests from an unapproved origin', async () => {
     const configured = dependencies();
     const response = await createAuthBootstrapHandler(configured)(

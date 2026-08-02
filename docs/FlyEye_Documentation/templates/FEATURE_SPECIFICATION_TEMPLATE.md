@@ -3,6 +3,7 @@
 ## Status and ownership
 
 - Status: Draft | Reviewed | Approved | Implemented | Verified | Released
+- Current SDLC phase: Discovery | Specification | Design | Implementation | Verification | Review | PR/CI | Merge | Release
 - Product owner:
 - Aviation SME:
 - Technical owner:
@@ -117,6 +118,30 @@ List providers/packages. New dependencies require purpose, maintenance, vulnerab
 - Authentication/tenancy architecture unless explicitly approved
 - Unrelated modules
 
+## Autonomous delivery boundary
+
+A request for this bounded feature authorizes specification refinement,
+implementation, local synthetic verification, in-scope correction, separate
+agent review, documentation, scoped commit/push, a review-ready pull request,
+and CI follow-up through green.
+
+- Branch and baseline:
+- Bounded outcome and non-goals:
+- Expected implementation, migration, test, fixture, documentation, and tooling
+  areas:
+- Safe reversible defaults selected by the agent:
+- Material hard-stop conditions:
+- Always excluded: merge, real data, production deployment, destructive Git/data
+  actions, branch deletion, unsupported regulated authority, and unrelated
+  features:
+
+## Verification tiers
+
+- Focused checks for implementation and corrections:
+- Complete feature-specific evidence:
+- One final application/database matrix after the review target stabilizes:
+- Fingerprint/evidence location used to avoid unchanged reruns:
+
 ## Definition of Done
 
 - [ ] Requirements and sources approved
@@ -127,4 +152,7 @@ List providers/packages. New dependencies require purpose, maintenance, vulnerab
 - [ ] Accessibility/responsive/offline behavior reviewed as applicable
 - [ ] Docs, traceability, ADR/change log updated
 - [ ] Separate diff review completed
-- [ ] Product, aviation, security/privacy approvals recorded as required
+- [ ] Risk-triggered aviation/legal/production/formal-compliance reviews recorded
+      when inherently required
+- [ ] Scoped branch is committed, pushed, and represented by a green
+      review-ready pull request

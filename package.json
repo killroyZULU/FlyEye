@@ -17,11 +17,15 @@
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:edge-runtime": "node scripts/test-edge-runtime.mjs",
     "test:recovery-runtime": "node scripts/test-recovery-runtime.mjs",
+    "test:runtime": "node scripts/run-runtime-matrix.mjs",
     "check:browser-secrets": "node scripts/check-browser-secrets.mjs --require-dist",
+    "verify:app": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:browser-secrets && pnpm test:e2e && pnpm audit --audit-level high",
+    "verify:database:running": "pnpm db:reset && pnpm test:sql && pnpm test:runtime && pnpm exec supabase db lint --local --level warning --fail-on warning && pnpm db:types:check",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:types": "node scripts/generate-database-types.mjs"
+    "db:types": "node scripts/generate-database-types.mjs",
+    "db:types:check": "node scripts/generate-database-types.mjs --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.7",

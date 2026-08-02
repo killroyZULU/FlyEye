@@ -133,7 +133,7 @@ jobs:
 
       - name: Start local Supabase
         run: |
-          if ! pnpm db:start > /tmp/supabase-start.log 2>&1; then
+          if ! pnpm db:start > /dev/null 2>&1; then
             echo "Local Supabase failed to start; credential-bearing startup output was suppressed."
             exit 1
           fi
@@ -144,18 +144,35 @@ jobs:
       - name: Run SQL and RLS tests
         run: pnpm test:sql
 
-      - name: Run real Auth, TOTP, Edge, browser, and cross-organization integration
-        run: pnpm test:edge-runtime
+      - name: Run sanitized local runtime matrix
+        run: pnpm test:runtime
 
       - name: Lint local database
         run: pnpm exec supabase db lint --local --level warning --fail-on warning
 
       - name: Verify generated database types are current
-        run: |
-          pnpm db:types
-          git diff --exit-code -- src/lib/database.types.ts
+        run: pnpm db:types:check
 
       - name: Stop local Supabase
         if: always()
         continue-on-error: true
         run: pnpm exec supabase stop --no-backup
+
+  quality-gate:
+    name: Required quality gate
+    if: always()
+    needs:
+      - application
+      - database
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Require every verification group
+        shell: bash
+        run: |
+          if [[ "${{ needs.application.result }}" != "success" || "${{ needs.database.result }}" != "success" ]]; then
+            echo "One or more required verification groups failed or did not complete."
+            exit 1
+          fi
+          echo "All required verification groups passed."

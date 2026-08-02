@@ -6,6 +6,16 @@ import {
   type LoginRequest,
 } from '../../../lib/access-context';
 import type { Database } from '../../../lib/database.types';
+import {
+  adminOnboardingCompleteSchema,
+  adminOnboardingStartSchema,
+  adminOnboardingStatusSchema,
+  type AdminBootstrapGrant,
+  type AdminOnboardingComplete,
+  type AdminOnboardingStart,
+  type AdminOnboardingStatus,
+  type TotpPreparation,
+} from '../admin-onboarding';
 import { approvedRecoveryRedirect } from '../recovery';
 
 export type AuthGatewayErrorCode =
@@ -15,6 +25,12 @@ export type AuthGatewayErrorCode =
   | 'configuration_error'
   | 'access_context_conflict'
   | 'access_context_unavailable'
+  | 'admin_onboarding_conflict'
+  | 'admin_onboarding_not_available'
+  | 'admin_onboarding_recent_authentication_required'
+  | 'admin_onboarding_provider_unavailable'
+  | 'admin_onboarding_audit_unavailable'
+  | 'admin_onboarding_limiter_unavailable'
   | 'mfa_invalid'
   | 'mfa_enrollment_required'
   | 'recovery_invalid'
@@ -48,6 +64,15 @@ export interface AuthGateway {
   updateRecoveredPassword(password: string): Promise<void>;
   signOutEverywhere(): Promise<void>;
   loadAccessContext(organizationId?: string): Promise<AccessContextResponse>;
+  loadAdminOnboardingStatus(): Promise<AdminOnboardingStatus>;
+  startAdminOnboarding(grant: AdminBootstrapGrant): Promise<AdminOnboardingStart>;
+  prepareAdminTotp(factorState: AdminOnboardingStart['factorState']): Promise<TotpPreparation>;
+  verifyAdminTotp(factorId: string, code: string): Promise<void>;
+  completeAdminOnboarding(
+    start: AdminOnboardingStart,
+    idempotencyKey: string,
+  ): Promise<AdminOnboardingComplete>;
+  cancelAdminOnboarding(bootstrapGrantId: string, idempotencyKey: string): Promise<void>;
   getMfaAssurance(): Promise<MfaAssurance>;
   verifyTotp(code: string): Promise<void>;
   signOut(): Promise<void>;
@@ -69,13 +94,343 @@ function errorCode(error: unknown): string | undefined {
   return typeof code === 'string' ? code : undefined;
 }
 
+function providerStatus(error: unknown): number {
+  if (typeof error !== 'object' || error === null) return 0;
+  const status: unknown = Reflect.get(error, 'status') as unknown;
+  return typeof status === 'number' ? status : responseStatus(error);
+}
+
 function supportedAssuranceLevel(level: string | null): 'aal1' | 'aal2' | null {
   return level === 'aal1' || level === 'aal2' ? level : null;
+}
+
+const MAX_TOTP_QR_SVG_BYTES = 512 * 1024;
+const MAX_TOTP_QR_SVG_ELEMENTS = 12_000;
+const MAX_TOTP_QR_LEADING_COMMENTS = 4;
+const MAX_TOTP_QR_COMMENT_BYTES = 512;
+const MAX_TOTP_QR_COMMENTS_TOTAL_BYTES = 1024;
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+const SVG_ROOT_ATTRIBUTES = new Set(['height', 'width', 'xmlns', 'xmlns:xlink']);
+const SVG_RECT_ATTRIBUTES = new Set(['height', 'style', 'width', 'x', 'y']);
+const SVG_RECT_STYLE_PROPERTIES = new Set([
+  'fill',
+  'fill-opacity',
+  'stroke',
+  'stroke-opacity',
+  'stroke-width',
+]);
+
+function boundedSvgNumber(value: string, minimum: number): boolean {
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?(?:px)?$/.test(value)) return false;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= minimum && parsed <= 4096;
+}
+
+function safeSvgColor(value: string): boolean {
+  if (/^(?:black|white|none|#[0-9a-f]{3,4}|#[0-9a-f]{6}|#[0-9a-f]{8})$/i.test(value)) {
+    return true;
+  }
+
+  const rgb = /^rgb\(([^)]+)\)$/i.exec(value);
+  if (!rgb?.[1]) return false;
+  const components = rgb[1].split(',').map((component) => component.trim());
+  if (components.length !== 3) return false;
+  return components.every((component) => {
+    const percentage = component.endsWith('%');
+    const number = percentage ? component.slice(0, -1) : component;
+    if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(number)) return false;
+    const parsed = Number.parseFloat(number);
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= (percentage ? 100 : 255);
+  });
+}
+
+function safeSvgOpacity(value: string): boolean {
+  if (!/^(?:0(?:\.\d+)?|1(?:\.0+)?)$/.test(value)) return false;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1;
+}
+
+function safeSvgRectStyle(value: string): boolean {
+  if (value.length < 1 || value.length > 256) return false;
+  const declarations = value
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .filter(Boolean);
+  if (declarations.length < 1 || declarations.length > SVG_RECT_STYLE_PROPERTIES.size) {
+    return false;
+  }
+
+  const properties = new Set<string>();
+  for (const declaration of declarations) {
+    const separator = declaration.indexOf(':');
+    if (separator <= 0 || declaration.indexOf(':', separator + 1) !== -1) return false;
+    const property = declaration.slice(0, separator).trim().toLowerCase();
+    const propertyValue = declaration.slice(separator + 1).trim();
+    if (!SVG_RECT_STYLE_PROPERTIES.has(property) || properties.has(property) || !propertyValue) {
+      return false;
+    }
+    properties.add(property);
+
+    if (
+      ((property === 'fill' || property === 'stroke') && !safeSvgColor(propertyValue)) ||
+      ((property === 'fill-opacity' || property === 'stroke-opacity') &&
+        !safeSvgOpacity(propertyValue)) ||
+      (property === 'stroke-width' && !boundedSvgNumber(propertyValue, 0))
+    ) {
+      return false;
+    }
+  }
+
+  return properties.has('fill');
+}
+
+function safeSvgElementAttributes(element: Element, isRoot: boolean): boolean {
+  const attributes = new Map(
+    Array.from(element.attributes).map((attribute) => [
+      attribute.name.toLowerCase(),
+      attribute.value.trim(),
+    ]),
+  );
+  const allowed = isRoot ? SVG_ROOT_ATTRIBUTES : SVG_RECT_ATTRIBUTES;
+  if (
+    attributes.size !== element.attributes.length ||
+    [...attributes.keys()].some((name) => !allowed.has(name))
+  ) {
+    return false;
+  }
+
+  if (isRoot) {
+    return (
+      attributes.get('xmlns') === SVG_NAMESPACE &&
+      (!attributes.has('xmlns:xlink') || attributes.get('xmlns:xlink') === XLINK_NAMESPACE) &&
+      boundedSvgNumber(attributes.get('width') ?? '', 1) &&
+      boundedSvgNumber(attributes.get('height') ?? '', 1)
+    );
+  }
+
+  return (
+    boundedSvgNumber(attributes.get('x') ?? '', 0) &&
+    boundedSvgNumber(attributes.get('y') ?? '', 0) &&
+    boundedSvgNumber(attributes.get('width') ?? '', 1) &&
+    boundedSvgNumber(attributes.get('height') ?? '', 1) &&
+    safeSvgRectStyle(attributes.get('style') ?? '')
+  );
+}
+
+function normalizeTotpQrSvg(input: string): string | undefined {
+  const providerValue = input.trim();
+  const wrapper = /^data:image\/svg\+xml;utf-8,/i.exec(providerValue);
+  if (!wrapper || new TextEncoder().encode(providerValue).byteLength > MAX_TOTP_QR_SVG_BYTES) {
+    return undefined;
+  }
+
+  const svg = providerValue.slice(wrapper[0].length).trim();
+  if (
+    svg.length < 32 ||
+    new TextEncoder().encode(svg).byteLength > MAX_TOTP_QR_SVG_BYTES ||
+    Array.from(svg).some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return (
+        codePoint !== 9 &&
+        codePoint !== 10 &&
+        codePoint !== 13 &&
+        (codePoint < 32 || codePoint > 126)
+      );
+    }) ||
+    /<!doctype|<!entity|<!\[cdata\[|<\?(?!xml\b)|<script\b|<foreignobject\b/i.test(svg)
+  ) {
+    return undefined;
+  }
+
+  let withoutDeclaration = svg;
+  const declaration = /^<\?xml\s+([^?]+)\?>\s*/i.exec(svg);
+  if (declaration) {
+    const declarationText = declaration[1];
+    if (!declarationText) return undefined;
+    const declarationAttributes = [
+      ...declarationText.matchAll(/([a-z]+)\s*=\s*(["'])([^"']+)\2/gi),
+    ];
+    if (
+      declarationAttributes.some(
+        (attribute) => !attribute[0] || !attribute[1] || attribute[3] === undefined,
+      )
+    ) {
+      return undefined;
+    }
+    const residue = declarationAttributes.reduce(
+      (value, attribute) => value.replace(attribute[0] ?? '', ''),
+      declarationText,
+    );
+    const values = new Map(
+      declarationAttributes.map((attribute) => [
+        (attribute[1] ?? '').toLowerCase(),
+        attribute[3] ?? '',
+      ]),
+    );
+    if (
+      residue.trim() ||
+      values.size !== declarationAttributes.length ||
+      values.get('version') !== '1.0' ||
+      (values.has('encoding') && values.get('encoding')?.toUpperCase() !== 'UTF-8') ||
+      (values.has('standalone') && values.get('standalone') !== 'no') ||
+      [...values.keys()].some(
+        (name) => name !== 'version' && name !== 'encoding' && name !== 'standalone',
+      )
+    ) {
+      return undefined;
+    }
+    withoutDeclaration = svg.slice(declaration[0].length);
+  }
+
+  let normalizedSvg = withoutDeclaration;
+  let commentCount = 0;
+  let commentBytes = 0;
+  while (normalizedSvg.startsWith('<!--')) {
+    const comment = /^<!--([\s\S]*?)-->\s*/.exec(normalizedSvg);
+    if (!comment?.[0] || comment[1] === undefined) return undefined;
+    const currentCommentBytes = new TextEncoder().encode(comment[1]).byteLength;
+    commentCount += 1;
+    commentBytes += currentCommentBytes;
+    if (
+      commentCount > MAX_TOTP_QR_LEADING_COMMENTS ||
+      currentCommentBytes > MAX_TOTP_QR_COMMENT_BYTES ||
+      commentBytes > MAX_TOTP_QR_COMMENTS_TOTAL_BYTES ||
+      comment[1].includes('--')
+    ) {
+      return undefined;
+    }
+    normalizedSvg = normalizedSvg.slice(comment[0].length);
+  }
+
+  if (!normalizedSvg.startsWith('<svg') || /<\?/.test(normalizedSvg)) {
+    return undefined;
+  }
+
+  const document = new DOMParser().parseFromString(normalizedSvg, 'image/svg+xml');
+  if (document.getElementsByTagName('parsererror').length !== 0) {
+    return undefined;
+  }
+
+  const root = document.documentElement;
+  const elements = Array.from(document.getElementsByTagName('*'));
+  if (
+    root.localName.toLowerCase() !== 'svg' ||
+    root.namespaceURI !== SVG_NAMESPACE ||
+    elements.length < 2 ||
+    elements.length > MAX_TOTP_QR_SVG_ELEMENTS
+  ) {
+    return undefined;
+  }
+
+  for (const element of elements) {
+    const isRoot = element === root;
+    if (
+      element.namespaceURI !== SVG_NAMESPACE ||
+      (!isRoot && element.localName.toLowerCase() !== 'rect') ||
+      (!isRoot && element.parentElement !== root) ||
+      (!isRoot && element.childNodes.length !== 0) ||
+      !safeSvgElementAttributes(element, isRoot)
+    ) {
+      return undefined;
+    }
+  }
+
+  for (const node of Array.from(root.childNodes)) {
+    if (node.nodeType === 1) continue;
+    if (node.nodeType !== 3 || node.textContent?.trim()) return undefined;
+  }
+
+  return normalizedSvg;
+}
+
+async function edgeErrorDetails(
+  error: unknown,
+): Promise<{ status: number; code?: string; retryAfterSeconds?: number }> {
+  const status = responseStatus(error);
+  if (typeof error !== 'object' || error === null) return { status };
+  const context: unknown = Reflect.get(error, 'context');
+  if (!(context instanceof Response)) return { status };
+
+  try {
+    const payload: unknown = await context.clone().json();
+    if (typeof payload !== 'object' || payload === null) return { status };
+    const errorPayload: unknown = Reflect.get(payload, 'error');
+    const code: unknown =
+      typeof errorPayload === 'object' && errorPayload !== null
+        ? (Reflect.get(errorPayload, 'code') as unknown)
+        : undefined;
+    const retryHeader = context.headers.get('retry-after');
+    const retryAfterSeconds =
+      retryHeader && /^\d+$/.test(retryHeader) ? Number.parseInt(retryHeader, 10) : undefined;
+    return {
+      status,
+      code: typeof code === 'string' ? code : undefined,
+      retryAfterSeconds,
+    };
+  } catch {
+    return { status };
+  }
+}
+
+function factorInventory(input: unknown): Array<{
+  id: string;
+  factor_type: 'totp' | 'phone' | 'webauthn';
+  status: 'verified' | 'unverified';
+}> {
+  if (!Array.isArray(input) || input.length > 16) {
+    throw new AuthGatewayError(
+      'admin_onboarding_conflict',
+      'Your authenticator information needs administrator review.',
+    );
+  }
+
+  const factors = input.map((factor) => {
+    if (typeof factor !== 'object' || factor === null) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your authenticator information needs administrator review.',
+      );
+    }
+    const id: unknown = Reflect.get(factor, 'id') as unknown;
+    const factorType: unknown = Reflect.get(factor, 'factor_type') as unknown;
+    const status: unknown = Reflect.get(factor, 'status') as unknown;
+    if (
+      typeof id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ||
+      !['totp', 'phone', 'webauthn'].includes(String(factorType)) ||
+      !['verified', 'unverified'].includes(String(status))
+    ) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your authenticator information needs administrator review.',
+      );
+    }
+    return {
+      id,
+      factor_type: factorType as 'totp' | 'phone' | 'webauthn',
+      status: status as 'verified' | 'unverified',
+    };
+  });
+
+  if (new Set(factors.map((factor) => factor.id)).size !== factors.length) {
+    throw new AuthGatewayError(
+      'admin_onboarding_conflict',
+      'Your authenticator information needs administrator review.',
+    );
+  }
+  return factors;
 }
 
 function asGatewayError(error: unknown): AuthGatewayError {
   if (error instanceof AuthGatewayError) {
     return error;
+  }
+
+  if (providerStatus(error) === 429) {
+    return new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.', {
+      cause: error,
+    });
   }
 
   if (error instanceof TypeError) {
@@ -261,6 +616,238 @@ export class SupabaseAuthGateway implements AuthGateway {
     }
 
     return parsed.data;
+  }
+
+  private async invokeAdminOnboarding(body: Record<string, unknown>): Promise<unknown> {
+    const invocation: unknown = await this.client.functions.invoke(
+      'organization-admin-onboarding',
+      { body },
+    );
+    if (typeof invocation !== 'object' || invocation === null) {
+      throw new AuthGatewayError(
+        'admin_onboarding_audit_unavailable',
+        'Administrator onboarding could not be verified. Try again.',
+      );
+    }
+
+    const data: unknown = Reflect.get(invocation, 'data');
+    const error: unknown = Reflect.get(invocation, 'error');
+    if (!error) return data;
+
+    const details = await edgeErrorDetails(error);
+    switch (details.code) {
+      case 'admin_onboarding.rate_limited':
+        throw new AuthGatewayError(
+          'rate_limited',
+          details.retryAfterSeconds
+            ? `Wait ${details.retryAfterSeconds} seconds before trying again.`
+            : 'Too many attempts. Wait before trying again.',
+        );
+      case 'admin_onboarding.recent_authentication_required':
+        throw new AuthGatewayError(
+          'admin_onboarding_recent_authentication_required',
+          'Sign in with your password again to continue.',
+        );
+      case 'admin_onboarding.not_available':
+      case 'admin_onboarding.not_eligible':
+        throw new AuthGatewayError(
+          'admin_onboarding_not_available',
+          'This administrator onboarding request is not available.',
+        );
+      case 'admin_onboarding.conflict':
+        throw new AuthGatewayError(
+          'admin_onboarding_conflict',
+          'Your administrator onboarding information needs review.',
+        );
+      case 'admin_onboarding.provider_unavailable':
+        throw new AuthGatewayError(
+          'admin_onboarding_provider_unavailable',
+          'Authenticator state could not be confirmed. Try again.',
+        );
+      case 'admin_onboarding.limiter_unavailable':
+        throw new AuthGatewayError(
+          'admin_onboarding_limiter_unavailable',
+          'Administrator onboarding is temporarily unavailable. Try again later.',
+        );
+      case 'admin_onboarding.audit_unavailable':
+        throw new AuthGatewayError(
+          'admin_onboarding_audit_unavailable',
+          'Administrator onboarding could not be verified. Try again.',
+        );
+      default:
+        if (details.status === 429) {
+          throw new AuthGatewayError(
+            'rate_limited',
+            'Too many attempts. Wait before trying again.',
+          );
+        }
+        throw new AuthGatewayError(
+          'admin_onboarding_audit_unavailable',
+          'Administrator onboarding could not be verified. Try again.',
+        );
+    }
+  }
+
+  async loadAdminOnboardingStatus(): Promise<AdminOnboardingStatus> {
+    const parsed = adminOnboardingStatusSchema.safeParse(
+      await this.invokeAdminOnboarding({ action: 'status' }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your administrator onboarding information needs review.',
+      );
+    }
+    return parsed.data;
+  }
+
+  async startAdminOnboarding(grant: AdminBootstrapGrant): Promise<AdminOnboardingStart> {
+    const parsed = adminOnboardingStartSchema.safeParse(
+      await this.invokeAdminOnboarding({
+        action: 'start',
+        bootstrapGrantId: grant.bootstrapGrantId,
+        expectedVersion: grant.grantVersion,
+        idempotencyKey: crypto
+          .getRandomValues(new Uint8Array(16))
+          .reduce((value, byte) => `${value}${byte.toString(16).padStart(2, '0')}`, ''),
+      }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your administrator onboarding information needs review.',
+      );
+    }
+    return parsed.data;
+  }
+
+  async prepareAdminTotp(
+    factorState: AdminOnboardingStart['factorState'],
+  ): Promise<TotpPreparation> {
+    const { data, error } = await this.client.auth.mfa.listFactors();
+    if (error) throw asGatewayError(error);
+
+    const all = factorInventory(data.all);
+    const allTotpIds = all
+      .filter((factor) => factor.factor_type === 'totp')
+      .map((factor) => factor.id)
+      .sort();
+    const convenienceTotpIds = factorInventory(data.totp)
+      .map((factor) => factor.id)
+      .sort();
+    if (
+      allTotpIds.length !== convenienceTotpIds.length ||
+      allTotpIds.some((id, index) => id !== convenienceTotpIds[index])
+    ) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your authenticator information needs administrator review.',
+      );
+    }
+
+    if (factorState === 'challenge_required') {
+      if (all.length !== 1 || all[0]?.factor_type !== 'totp' || all[0].status !== 'verified') {
+        throw new AuthGatewayError(
+          'admin_onboarding_conflict',
+          'Your authenticator information needs administrator review.',
+        );
+      }
+      return { kind: 'challenge', factorId: all[0].id };
+    }
+
+    if (all.length !== 0) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Your authenticator information needs administrator review.',
+      );
+    }
+
+    const { data: enrollment, error: enrollmentError } = await this.client.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'FlyEye authenticator',
+    });
+    if (enrollmentError) throw asGatewayError(enrollmentError);
+
+    const qrSvg = normalizeTotpQrSvg(enrollment.totp.qr_code);
+    const manualSecret = enrollment.totp.secret;
+    const uri = enrollment.totp.uri;
+    if (
+      !qrSvg ||
+      !/^[A-Z2-7]+=*$/i.test(manualSecret) ||
+      manualSecret.length < 16 ||
+      manualSecret.length > 256 ||
+      !uri.startsWith('otpauth://totp/') ||
+      uri.length > 2048
+    ) {
+      throw new AuthGatewayError(
+        'admin_onboarding_provider_unavailable',
+        'Authenticator enrollment could not be prepared safely.',
+      );
+    }
+
+    return {
+      kind: 'enrollment',
+      factorId: enrollment.id,
+      qrSvg,
+      manualSecret,
+    };
+  }
+
+  async verifyAdminTotp(factorId: string, code: string): Promise<void> {
+    const { error } = await this.client.auth.mfa.challengeAndVerify({ factorId, code });
+    if (error) {
+      if (error.status === 429) {
+        throw new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.');
+      }
+      throw new AuthGatewayError('mfa_invalid', 'The verification code is invalid or expired.');
+    }
+
+    const { data: assurance, error: assuranceError } =
+      await this.client.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError) throw asGatewayError(assuranceError);
+    if (assurance.currentLevel !== 'aal2') {
+      throw new AuthGatewayError(
+        'admin_onboarding_provider_unavailable',
+        'Authenticator verification could not be confirmed.',
+      );
+    }
+  }
+
+  async completeAdminOnboarding(
+    start: AdminOnboardingStart,
+    idempotencyKey: string,
+  ): Promise<AdminOnboardingComplete> {
+    const parsed = adminOnboardingCompleteSchema.safeParse(
+      await this.invokeAdminOnboarding({
+        action: 'complete',
+        bootstrapGrantId: start.bootstrapGrantId,
+        expectedVersion: start.grantVersion,
+        idempotencyKey,
+      }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'admin_onboarding_conflict',
+        'Administrator onboarding completion could not be revalidated.',
+      );
+    }
+    return parsed.data;
+  }
+
+  async cancelAdminOnboarding(bootstrapGrantId: string, idempotencyKey: string): Promise<void> {
+    try {
+      await this.invokeAdminOnboarding({
+        action: 'cancel',
+        bootstrapGrantId,
+        idempotencyKey,
+      });
+    } finally {
+      try {
+        await this.client.auth.signOut({ scope: 'local' });
+      } catch {
+        // The UI clears in-memory enrollment state even if local SDK cleanup reports failure.
+      }
+    }
   }
 
   async getMfaAssurance(): Promise<MfaAssurance> {
