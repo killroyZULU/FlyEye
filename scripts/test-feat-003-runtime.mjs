@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -12,7 +20,13 @@ import { createClient } from '@supabase/supabase-js';
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const origin = 'http://127.0.0.1:5173';
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
+const cliBinaryPath = resolveSupabaseBinary();
 const configPath = path.resolve('supabase', 'config.toml');
+const commandTimeoutMs = 30_000;
+const requestTimeoutMs = 30_000;
+const readinessProbeTimeoutMs = 2_000;
+const shutdownTimeoutMs = 5_000;
+const diagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
 const linkedMarkers = [
   path.resolve('supabase', '.temp', 'project-ref'),
   path.resolve('supabase', '.temp', 'pooler-url'),
@@ -24,6 +38,134 @@ let edgeProcess;
 let temporaryDirectory;
 let cleanupRequired = false;
 let cleanupComplete = false;
+
+function resolveSupabaseBinary() {
+  const require = createRequire(realpathSync(cliPath));
+  const platformCandidates = {
+    darwin: { arm64: ['darwin-arm64'], x64: ['darwin-x64'] },
+    linux: {
+      arm64: ['linux-arm64', 'linux-arm64-musl'],
+      x64: ['linux-x64', 'linux-x64-musl'],
+    },
+    win32: { arm64: ['windows-arm64'], x64: ['windows-x64'] },
+  };
+  const candidates = platformCandidates[process.platform]?.[process.arch] ?? [];
+  const executableName = process.platform === 'win32' ? 'supabase.exe' : 'supabase';
+
+  for (const suffix of candidates) {
+    try {
+      const packageDirectory = path.dirname(
+        require.resolve(`@supabase/cli-${suffix}/package.json`),
+      );
+      return path.join(packageDirectory, 'bin', executableName);
+    } catch {
+      // Try the next pinned platform package.
+    }
+  }
+
+  throw new Error('Pinned local Supabase binary is unavailable for this platform.');
+}
+
+function reportDiagnostic(diagnosticStage, event) {
+  assert.match(diagnosticStage, /^[a-z0-9-]+$/);
+  assert.match(event, /^(?:enter|passed)$/);
+  if (diagnosticsEnabled) {
+    process.stdout.write(`FEAT-003 runtime diagnostic: stage=${diagnosticStage} event=${event}.\n`);
+  }
+}
+
+function enterStage(diagnosticStage, description) {
+  stage = description;
+  reportDiagnostic(diagnosticStage, 'enter');
+}
+
+function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
+  return fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  });
+}
+
+function waitForChildExit(child, timeoutMs) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const finish = (exited) => {
+      clearTimeout(timer);
+      child.removeListener('exit', onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    child.once('exit', onExit);
+  });
+}
+
+async function waitForProcessGroupExit(processId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(-processId, 0);
+    } catch (error) {
+      if (error?.code === 'ESRCH') return true;
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
+}
+
+async function stopChild(child, diagnosticStage, description) {
+  if (!child) return;
+  enterStage(diagnosticStage, description);
+
+  if (child.exitCode === null && child.signalCode === null) {
+    if (process.platform === 'win32') {
+      const termination = spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+        stdio: 'ignore',
+        timeout: commandTimeoutMs,
+        windowsHide: true,
+      });
+      if (![0, 128].includes(termination.status ?? -1)) {
+        throw new Error('Synthetic child process tree shutdown failed.');
+      }
+    } else {
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch (error) {
+        if (error?.code !== 'ESRCH') throw error;
+      }
+    }
+
+    const childExited = await waitForChildExit(child, shutdownTimeoutMs);
+    const processTreeExited =
+      process.platform === 'win32'
+        ? childExited
+        : childExited && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+
+    if (!processTreeExited) {
+      if (process.platform !== 'win32') {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch (error) {
+          if (error?.code !== 'ESRCH') throw error;
+        }
+      }
+      const forcedChildExit = await waitForChildExit(child, shutdownTimeoutMs);
+      const forcedTreeExit =
+        process.platform === 'win32'
+          ? forcedChildExit
+          : forcedChildExit && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+      if (!forcedTreeExit) {
+        throw new Error('Synthetic child process tree shutdown remained uncertain.');
+      }
+    }
+  }
+
+  child.stdout?.destroy();
+  child.stderr?.destroy();
+  reportDiagnostic(diagnosticStage, 'passed');
+}
 
 function assertLoopbackUrl(value, label) {
   const url = new URL(value);
@@ -46,6 +188,7 @@ function safeCommandFailure(label) {
 function localStatus() {
   const result = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
     encoding: 'utf8',
+    timeout: commandTimeoutMs,
     windowsHide: true,
   });
   if (result.status !== 0) throw safeCommandFailure('Local Supabase status');
@@ -59,6 +202,7 @@ function localStatus() {
 function inspectDatabaseContainer(expectedContainer) {
   const result = spawnSync('docker', ['inspect', expectedContainer], {
     encoding: 'utf8',
+    timeout: commandTimeoutMs,
     windowsHide: true,
   });
   if (result.status !== 0) throw safeCommandFailure('Local database container inspection');
@@ -81,6 +225,7 @@ function psql(sql, variables = {}, tuplesOnly = false) {
   const result = spawnSync('docker', args, {
     input: `\\set ON_ERROR_STOP on\n${sql}`,
     encoding: 'utf8',
+    timeout: commandTimeoutMs,
     windowsHide: true,
   });
   if (result.status !== 0) throw safeCommandFailure('Parameterized local PostgreSQL command');
@@ -95,6 +240,7 @@ function psqlMustFail(sql, variables = {}) {
   const result = spawnSync('docker', args, {
     input: `\\set ON_ERROR_STOP on\n${sql}`,
     encoding: 'utf8',
+    timeout: commandTimeoutMs,
     windowsHide: true,
   });
   assert.notEqual(result.status, 0, 'The injected database failure unexpectedly succeeded.');
@@ -139,6 +285,7 @@ function browserClient() {
       detectSessionInUrl: false,
       persistSession: false,
     },
+    global: { fetch: boundedFetch },
   });
 }
 
@@ -176,7 +323,7 @@ async function promoteToAal2(signedIn) {
 }
 
 async function invokeFunction(pathname, token, body) {
-  const response = await fetch(`${apiUrl}/functions/v1/${pathname}`, {
+  const response = await boundedFetch(`${apiUrl}/functions/v1/${pathname}`, {
     method: 'POST',
     headers: {
       apikey: publishableKey,
@@ -227,10 +374,11 @@ async function waitForEdgeRuntime() {
       throw new Error('Local Edge Runtime stopped before readiness.');
     }
     try {
-      const response = await fetch(`${apiUrl}/functions/v1/organization-admin-onboarding`, {
-        method: 'OPTIONS',
-        headers: { origin },
-      });
+      const response = await boundedFetch(
+        `${apiUrl}/functions/v1/organization-admin-onboarding`,
+        { method: 'OPTIONS', headers: { origin } },
+        readinessProbeTimeoutMs,
+      );
       if (response.status === 204) return;
     } catch {
       // Bounded readiness retry.
@@ -244,13 +392,14 @@ async function restartLocalAuth() {
   const authContainer = `supabase_auth_${projectId}`;
   const restart = spawnSync('docker', ['restart', authContainer], {
     encoding: 'utf8',
+    timeout: commandTimeoutMs,
     windowsHide: true,
   });
   if (restart.status !== 0) throw safeCommandFailure('Local Auth scenario reset');
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
-      const response = await fetch(`${apiUrl}/auth/v1/health`);
+      const response = await boundedFetch(`${apiUrl}/auth/v1/health`, {}, readinessProbeTimeoutMs);
       if (response.ok) {
         await new Promise((resolve) => setTimeout(resolve, 2_000));
         return;
@@ -566,11 +715,12 @@ async function createVerifiedRaceActor(user) {
 }
 
 async function runBrowserOnboarding() {
-  stage = 'browser frontend startup';
+  enterStage('browser-frontend-startup', 'browser frontend startup');
   const viteProcess = spawn(
     process.execPath,
     ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5173'],
     {
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         VITE_SUPABASE_URL: apiUrl,
@@ -594,7 +744,7 @@ async function runBrowserOnboarding() {
         throw new Error('Local frontend stopped before readiness.');
       }
       try {
-        const response = await fetch(origin);
+        const response = await boundedFetch(origin);
         if (response.ok) break;
       } catch {
         // Bounded local frontend readiness retry.
@@ -603,7 +753,7 @@ async function runBrowserOnboarding() {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
-    stage = 'browser launch';
+    enterStage('browser-launch', 'browser launch');
     const browser = await chromium.launch({
       channel: process.platform === 'win32' ? 'msedge' : undefined,
       headless: true,
@@ -624,7 +774,7 @@ async function runBrowserOnboarding() {
         }
       });
 
-      stage = 'browser administrator sign-in';
+      enterStage('browser-sign-in', 'browser administrator sign-in');
       await page.goto(origin);
       await page.getByLabel('Email address').fill(users.uiAdmin.email);
       await page.getByLabel('Password', { exact: true }).fill(password);
@@ -632,7 +782,7 @@ async function runBrowserOnboarding() {
 
       stage = 'browser onboarding heading lookup';
       const heading = page.getByRole('heading', { name: 'Set up your authenticator' });
-      stage = 'browser onboarding heading wait';
+      enterStage('browser-onboarding-ready', 'browser onboarding heading wait');
       try {
         await heading.waitFor({ timeout: 10_000 });
       } catch {
@@ -679,7 +829,7 @@ async function runBrowserOnboarding() {
       const secret = (await secretElement.textContent())?.trim();
       assert.ok(secret);
       await codeInput.fill(currentTotp(secret));
-      stage = 'browser TOTP completion';
+      enterStage('browser-totp-completion', 'browser TOTP completion');
       await page.getByRole('button', { name: 'Verify and create administrator' }).click();
       await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
 
@@ -708,7 +858,7 @@ async function runBrowserOnboarding() {
       await browser.close();
     }
   } finally {
-    viteProcess.kill();
+    await stopChild(viteProcess, 'browser-frontend-shutdown', 'browser frontend shutdown');
   }
 }
 
@@ -807,7 +957,9 @@ async function cleanup() {
 
   for (const user of Object.values(users)) {
     const { error } = await adminClient.auth.admin.deleteUser(user.id);
-    if (error) throw new Error('Synthetic local Auth cleanup failed.');
+    if (error && error.status !== 404) {
+      throw new Error('Synthetic local Auth cleanup failed.');
+    }
   }
 }
 
@@ -864,7 +1016,7 @@ const baselineLimiterEvents = psql(
 const nonLoopbackGuard = spawnSync(
   process.execPath,
   [process.argv[1], '--verify-non-loopback-guard'],
-  { encoding: 'utf8', windowsHide: true },
+  { encoding: 'utf8', timeout: commandTimeoutMs, windowsHide: true },
 );
 assert.equal(nonLoopbackGuard.status, 0);
 
@@ -904,23 +1056,24 @@ const users = Object.fromEntries(
 
 const adminClient = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  global: { fetch: boundedFetch },
 });
 
 try {
-  stage = 'local Auth initial scenario reset';
+  enterStage('auth-reset-initial', 'local Auth initial scenario reset');
   await restartLocalAuth();
 
-  stage = 'synthetic identity creation';
-  await createUsers();
+  enterStage('identity-creation', 'synthetic identity creation');
   cleanupRequired = true;
+  await createUsers();
 
-  stage = 'fixture failure injection';
+  enterStage('fixture-failure-injection', 'fixture failure injection');
   verifyInjectedIssuanceFailures();
 
-  stage = 'atomic fixture issuance';
+  enterStage('fixture-issuance', 'atomic fixture issuance');
   seedFixture();
 
-  stage = 'ephemeral Edge secret startup';
+  enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -929,10 +1082,11 @@ try {
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },
   );
   edgeProcess = spawn(
-    process.execPath,
-    [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
+    cliBinaryPath,
+    ['functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
     {
       cwd: process.cwd(),
+      detached: process.platform !== 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     },
@@ -946,7 +1100,7 @@ try {
   });
   await waitForEdgeRuntime();
 
-  stage = 'first-admin status and tenant isolation';
+  enterStage('first-admin-status', 'first-admin status and tenant isolation');
   const firstAdminAal1 = await signIn(users.firstAdmin);
   const firstStatus = await onboarding(firstAdminAal1.session.access_token, {
     action: 'status',
@@ -1005,7 +1159,7 @@ try {
   assert.equal(crossTenantStart.status, 404);
 
   stage = 'browser-role direct table denial';
-  const directTable = await fetch(
+  const directTable = await boundedFetch(
     `${apiUrl}/rest/v1/organization_admin_bootstrap_grants?select=id`,
     {
       headers: {
@@ -1016,7 +1170,7 @@ try {
   );
   assert.notEqual(directTable.status, 200);
   stage = 'browser-role direct RPC denial';
-  const directRpc = await fetch(
+  const directRpc = await boundedFetch(
     `${apiUrl}/rest/v1/rpc/complete_first_organization_admin_bootstrap`,
     {
       method: 'POST',
@@ -1030,7 +1184,7 @@ try {
   );
   assert.notEqual(directRpc.status, 200);
 
-  stage = 'first-admin start';
+  enterStage('first-admin-start', 'first-admin start');
   const firstStartKey = randomBytes(16).toString('hex');
   const firstStart = await onboarding(firstAdminAal1.session.access_token, {
     action: 'start',
@@ -1048,9 +1202,9 @@ try {
   }
   assert.equal(firstStart.payload.factorState, 'enrollment_required');
 
-  stage = 'first-admin TOTP enrollment';
+  enterStage('first-admin-totp', 'first-admin TOTP enrollment');
   const firstAdminAal2 = await promoteToAal2(firstAdminAal1);
-  stage = 'first-admin completion';
+  enterStage('first-admin-completion', 'first-admin completion');
   const firstCompleteKey = randomBytes(16).toString('hex');
   const firstComplete = await onboarding(firstAdminAal2.session.access_token, {
     action: 'complete',
@@ -1067,16 +1221,16 @@ try {
     throw new Error('First-admin completion returned a safe failure contract.');
   }
   assert.equal(firstComplete.payload.decision, 'completed');
-  stage = 'first-admin final bootstrap';
+  enterStage('first-admin-bootstrap', 'first-admin final bootstrap');
   const finalContext = await bootstrap(firstAdminAal2.session.access_token, organizations.a);
   assert.equal(finalContext.status, 200);
   assert.equal(finalContext.payload.decision, 'granted');
   assert.equal(finalContext.payload.memberships[0].role, 'admin');
 
-  stage = 'real browser onboarding and accessibility';
+  enterStage('browser-onboarding', 'real browser onboarding and accessibility');
   await runBrowserOnboarding();
 
-  stage = 'organization-serialized completion race';
+  enterStage('completion-race', 'organization-serialized completion race');
   const [raceOne, raceTwo] = await Promise.all([
     createVerifiedRaceActor(users.raceAdminOne),
     createVerifiedRaceActor(users.raceAdminTwo),
@@ -1126,9 +1280,9 @@ try {
   );
   assert.equal(raceMembershipCount, '1');
 
-  stage = 'local Auth scenario reset before limiter evidence';
+  enterStage('auth-reset-limiter', 'local Auth scenario reset before limiter evidence');
   await restartLocalAuth();
-  stage = 'protected action paths and status limiter burst';
+  enterStage('limiter-burst', 'protected action paths and status limiter burst');
   const noAccess = await signIn(users.noAccess);
   const limiterRequests = {
     status: () => onboarding(noAccess.session.access_token, { action: 'status' }),
@@ -1164,14 +1318,14 @@ try {
   assert.equal((await limiterRequests.complete()).status, 403);
   assert.equal((await limiterRequests.cancel()).status, 404);
 
-  stage = '60-second limiter recovery';
+  enterStage('limiter-recovery', '60-second limiter recovery');
   for (let elapsed = 0; elapsed < 60; elapsed += 15) {
     await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
   const recoveredStatus = await limiterRequests.status();
   assert.notEqual(recoveredStatus.status, 429);
 
-  stage = 'completion replay after limiter recovery';
+  enterStage('completion-replay', 'completion replay after limiter recovery');
   const firstReplay = await onboarding(firstAdminAal2.session.access_token, {
     action: 'complete',
     bootstrapGrantId: grants.first,
@@ -1193,7 +1347,7 @@ try {
   assert.equal(winningRaceReplay.status, 200);
   assert.equal(winningRaceReplay.payload.decision, 'already_completed');
 
-  stage = 'privacy-minimized audit and limiter evidence';
+  enterStage('privacy-evidence', 'privacy-minimized audit and limiter evidence');
   const prohibitedPersistedFields = psql(
     `
       select count(*)
@@ -1255,10 +1409,12 @@ try {
   );
   assert.equal(networkSourceCount, '0');
 
-  stage = 'bounded cleanup';
+  enterStage('fixture-cleanup', 'bounded cleanup');
   await cleanup();
   cleanupComplete = true;
   cleanupRequired = false;
+  reportDiagnostic('fixture-cleanup', 'passed');
+  reportDiagnostic('fixture-assertions', 'passed');
 
   process.stdout.write(
     'FEAT-003 sanitized local fixture, Auth/TOTP/Edge, tenant, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
@@ -1267,11 +1423,14 @@ try {
   process.stderr.write(`FEAT-003 runtime evidence failed at sanitized stage: ${stage}.\n`);
   process.exitCode = 1;
 } finally {
+  try {
+    await stopChild(edgeProcess, 'edge-runtime-shutdown', 'ephemeral Edge runtime shutdown');
+  } catch {
+    process.stderr.write('FEAT-003 Edge runtime shutdown uncertainty: evidence run is invalid.\n');
+    process.exitCode = 1;
+  }
   if (temporaryDirectory) {
     rmSync(temporaryDirectory, { recursive: true, force: true });
-  }
-  if (edgeProcess && edgeProcess.exitCode === null) {
-    edgeProcess.kill();
   }
   if (cleanupRequired && !cleanupComplete) {
     try {

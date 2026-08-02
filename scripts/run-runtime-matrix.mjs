@@ -12,6 +12,8 @@ const priority = new Map([
 ]);
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
+const feat003DiagnosticPattern =
+  /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/;
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -101,11 +103,20 @@ for (const fixture of fixtures) {
     }
   }
 
+  const isFeat003Fixture = fixture === 'test-feat-003-runtime.mjs';
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    stdio: 'ignore',
+    encoding: isFeat003Fixture ? 'utf8' : undefined,
+    env: isFeat003Fixture ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
+    stdio: isFeat003Fixture ? ['ignore', 'pipe', 'ignore'] : 'ignore',
     timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
+
+  if (isFeat003Fixture && typeof result.stdout === 'string') {
+    for (const line of result.stdout.split(/\r?\n/)) {
+      if (feat003DiagnosticPattern.test(line)) process.stdout.write(`${line}\n`);
+    }
+  }
 
   if (result.status !== 0) {
     const outcome =
