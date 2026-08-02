@@ -49,6 +49,37 @@ function psql(sql, tuplesOnly = false) {
   return result.stdout.trim();
 }
 
+const baselineLimiterState = psql(
+  `
+    select limiter_key_hash || ':' || action
+    from public.admin_onboarding_rate_limit_state
+    order by limiter_key_hash, action;
+  `,
+  true,
+)
+  .split(/\r?\n/)
+  .filter(Boolean);
+const baselineLimiterEvents = psql(
+  `
+    select id::text
+    from public.admin_onboarding_rate_limit_events
+    order by id;
+  `,
+  true,
+)
+  .split(/\r?\n/)
+  .filter(Boolean);
+assert.ok(
+  baselineLimiterState.every((entry) =>
+    /^[0-9a-f]{64}:(status|start|complete|cancel)$/.test(entry),
+  ),
+);
+assert.ok(
+  baselineLimiterEvents.every((id) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id),
+  ),
+);
+
 function base32Bytes(value) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   let bits = '';
@@ -236,7 +267,19 @@ function assertSingleAudit(contextResponse, expected) {
 }
 
 async function cleanup() {
+  const stateCleanupPredicate = baselineLimiterState.length
+    ? `limiter_key_hash || ':' || action not in (${baselineLimiterState
+        .map((entry) => `'${entry}'`)
+        .join(', ')})`
+    : 'true';
+  const eventCleanupPredicate = baselineLimiterEvents.length
+    ? `id not in (${baselineLimiterEvents.map((id) => `'${id}'::uuid`).join(', ')})`
+    : 'true';
+
   psql(`
+    begin;
+    delete from public.admin_onboarding_rate_limit_events where ${eventCleanupPredicate};
+    delete from public.admin_onboarding_rate_limit_state where ${stateCleanupPredicate};
     delete from public.authentication_events
     where actor_subject_id in (${Object.values(users)
       .map((user) => `'${user.id}'::uuid`)
@@ -244,7 +287,30 @@ async function cleanup() {
     delete from public.membership_roles where organization_id in ('${organizationA}', '${organizationB}');
     delete from public.organization_memberships where organization_id in ('${organizationA}', '${organizationB}');
     delete from public.organizations where id in ('${organizationA}', '${organizationB}');
+    commit;
   `);
+  assert.equal(
+    psql(
+      `
+        select limiter_key_hash || ':' || action
+        from public.admin_onboarding_rate_limit_state
+        order by limiter_key_hash, action;
+      `,
+      true,
+    ),
+    baselineLimiterState.join('\n'),
+  );
+  assert.equal(
+    psql(
+      `
+        select id::text
+        from public.admin_onboarding_rate_limit_events
+        order by id;
+      `,
+      true,
+    ),
+    baselineLimiterEvents.join('\n'),
+  );
   for (const user of Object.values(users)) {
     await adminClient.auth.admin.deleteUser(user.id);
   }

@@ -47,6 +47,9 @@ Separation of duties is the default. Any future combination of roles must be exp
 - Output encoding and strict CSP; sanitize approved rich text only
 - Anti-forgery protection; restrictive CORS
 - Rate limiting on auth, reset, exports, downloads, AI, and expensive reports
+- Server-enforced per-action abuse controls for protected Edge Functions using approved combinations of authenticated subject, safely derived network source, organization after authorization, failure pattern, and operation cost
+- Provider quotas, platform/runtime resource limits, client counters, and disabled buttons are defense-in-depth only and do not satisfy FlyEye application-level rate limiting
+- Safe non-enumerating `429` responses with bounded retry guidance; sensitive mutations fail closed if required limiter state is unavailable
 - Request/body limits, timeouts, safe error responses, dependency timeouts/circuit behavior
 - Managed frontend/edge protections, rate controls, and a WAF where the selected host/production risk warrants it
 - Security headers and cache rules preventing sensitive browser/proxy caching

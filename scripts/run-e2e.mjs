@@ -109,6 +109,18 @@ async function mockSupabase(page, options = {}) {
       ),
     });
   });
+  await page.route('**/functions/v1/organization-admin-onboarding', async (route) => {
+    const body = route.request().postDataJSON();
+    assert.equal(body.action, 'status');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        grants: [],
+        correlationId: '30000000-0000-4000-8000-000000000010',
+      }),
+    });
+  });
   await page.route('**/auth/v1/logout*', async (route) => route.fulfill({ status: 204, body: '' }));
   await page.route('**/auth/v1/recover*', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });

@@ -8,6 +8,38 @@ function clientWithAuth(auth: Record<string, unknown>): SupabaseClient<Database>
   return { auth } as unknown as SupabaseClient<Database>;
 }
 
+const syntheticProviderSecret = 'A'.repeat(16);
+const syntheticProviderUri = (() => {
+  const uri = new URL('otpauth://totp/FlyEye:synthetic@example.test');
+  uri.searchParams.set('secret', syntheticProviderSecret);
+  return uri.toString();
+})();
+
+function enrollmentGateway(qrCode: string): SupabaseAuthGateway {
+  return new SupabaseAuthGateway(
+    clientWithAuth({
+      mfa: {
+        listFactors: vi.fn().mockResolvedValue({
+          data: { all: [], totp: [], phone: [], webauthn: [] },
+          error: null,
+        }),
+        enroll: vi.fn().mockResolvedValue({
+          data: {
+            id: '60000000-0000-4000-8000-000000000001',
+            type: 'totp',
+            totp: {
+              qr_code: qrCode,
+              secret: syntheticProviderSecret,
+              uri: syntheticProviderUri,
+            },
+          },
+          error: null,
+        }),
+      },
+    }),
+  );
+}
+
 describe('FEAT-002 Supabase auth gateway', () => {
   it('uses the exact recovery redirect and keeps provider outcomes generic', async () => {
     const resetPasswordForEmail = vi
@@ -93,4 +125,161 @@ describe('FEAT-002 Supabase auth gateway', () => {
       expect(signOut).toHaveBeenNthCalledWith(2, { scope: 'local' });
     },
   );
+});
+
+describe('FEAT-003 Supabase auth gateway', () => {
+  it('accepts the pinned raw SVG shape without exposing the provisioning URI', async () => {
+    const qrSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2" height="2">' +
+      '<rect x="0" y="0" width="1" height="1" style="fill:rgb(0,0,0);stroke:none"/>' +
+      '</svg>';
+    const gateway = enrollmentGateway(
+      `data:image/svg+xml;utf-8,<?xml version="1.0"?>\n<!-- synthetic generator -->\n${qrSvg}`,
+    );
+
+    const prepared = await gateway.prepareAdminTotp('enrollment_required');
+
+    expect(prepared).toEqual({
+      kind: 'enrollment',
+      factorId: '60000000-0000-4000-8000-000000000001',
+      qrSvg,
+      manualSecret: syntheticProviderSecret,
+    });
+    expect(JSON.stringify(prepared)).not.toContain('otpauth://');
+  });
+
+  it.each([
+    [
+      'a percent-encoded wrapper',
+      'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%2F%3E%3C%2Fsvg%3E',
+    ],
+    [
+      'a base64 wrapper',
+      'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0Lz48L3N2Zz4=',
+    ],
+    [
+      'an extra wrapper parameter',
+      'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>',
+    ],
+    ['an unwrapped raw SVG', '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'],
+    [
+      'script content',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><script/><rect/></svg>',
+    ],
+    [
+      'foreign content',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><foreignObject/><rect/></svg>',
+    ],
+    [
+      'an event handler',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect/></svg>',
+    ],
+    [
+      'a link reference',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><rect href="https://example.test/a"/></svg>',
+    ],
+    [
+      'a CSS URL',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url(https://example.test/a)"/></svg>',
+    ],
+    [
+      'a doctype or entity',
+      'data:image/svg+xml;utf-8,<!DOCTYPE svg [<!ENTITY x "x">]><svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>',
+    ],
+    [
+      'CDATA',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><![CDATA[x]]><rect/></svg>',
+    ],
+    [
+      'an image element',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><image/><rect/></svg>',
+    ],
+    [
+      'a use element',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><use/><rect/></svg>',
+    ],
+    [
+      'a non-QR path',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
+    ],
+    [
+      'an oversized body',
+      `data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg">${'<rect x="0" y="0" width="1" height="1"/>'.repeat(14_000)}</svg>`,
+    ],
+    [
+      'an oversized leading comment',
+      `data:image/svg+xml;utf-8,<!--${'x'.repeat(513)}--><svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>`,
+    ],
+    [
+      'an in-document comment',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"><!--x--><rect/></svg>',
+    ],
+    [
+      'an unapproved root attribute',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2" focusable="true"><rect x="0" y="0" width="1" height="1" style="fill:black"/></svg>',
+    ],
+    [
+      'an unapproved rectangle attribute',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" rx="1" style="fill:black"/></svg>',
+    ],
+    [
+      'an unapproved CSS property',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black;filter:none"/></svg>',
+    ],
+    [
+      'a duplicate CSS property',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black;fill:white"/></svg>',
+    ],
+    [
+      'an oversized SVG dimension',
+      'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="4097" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black"/></svg>',
+    ],
+  ])('rejects %s from the provider SVG contract', async (_label, qrSvg) => {
+    await expect(
+      enrollmentGateway(qrSvg).prepareAdminTotp('enrollment_required'),
+    ).rejects.toMatchObject({
+      code: 'admin_onboarding_provider_unavailable',
+      message: 'Authenticator enrollment could not be prepared safely.',
+    });
+  });
+
+  it('rejects hidden or conflicting provider factor inventory', async () => {
+    const factor = {
+      id: '60000000-0000-4000-8000-000000000001',
+      factor_type: 'totp',
+      status: 'verified',
+    };
+    const gateway = new SupabaseAuthGateway(
+      clientWithAuth({
+        mfa: {
+          listFactors: vi.fn().mockResolvedValue({
+            data: { all: [factor], totp: [], phone: [], webauthn: [] },
+            error: null,
+          }),
+        },
+      }),
+    );
+
+    await expect(gateway.prepareAdminTotp('challenge_required')).rejects.toMatchObject({
+      code: 'admin_onboarding_conflict',
+    });
+  });
+
+  it('maps provider MFA preparation throttling to accessible wait guidance', async () => {
+    const gateway = new SupabaseAuthGateway(
+      clientWithAuth({
+        mfa: {
+          listFactors: vi.fn().mockResolvedValue({
+            data: null,
+            error: { status: 429, message: 'restricted provider detail' },
+          }),
+        },
+      }),
+    );
+
+    await expect(gateway.prepareAdminTotp('enrollment_required')).rejects.toMatchObject({
+      code: 'rate_limited',
+      message: 'Too many attempts. Wait before trying again.',
+    });
+  });
 });

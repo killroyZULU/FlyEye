@@ -1,0 +1,121 @@
+import { readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import process from 'node:process';
+
+const scriptsDirectory = path.resolve('scripts');
+const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
+const runtimePattern = /^test-[a-z0-9-]+-runtime\.mjs$/;
+const priority = new Map([
+  ['test-edge-runtime.mjs', 0],
+  ['test-recovery-runtime.mjs', 1],
+]);
+
+const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
+  .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
+  .map((entry) => entry.name)
+  .sort((left, right) => {
+    const leftPriority = priority.get(left) ?? 100;
+    const rightPriority = priority.get(right) ?? 100;
+    return leftPriority - rightPriority || left.localeCompare(right);
+  });
+
+function recoveryTemplateIsReady() {
+  const result = spawnSync(
+    'docker',
+    [
+      'exec',
+      'supabase_auth_flyeye',
+      'sh',
+      '-c',
+      'wget -q -O /dev/null "$GOTRUE_MAILER_TEMPLATES_RECOVERY"',
+    ],
+    {
+      stdio: 'ignore',
+      timeout: 5_000,
+      windowsHide: true,
+    },
+  );
+  return result.status === 0;
+}
+
+async function waitForRecoveryTemplate(attempts) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (recoveryTemplateIsReady()) return true;
+    if (attempt + 1 < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  return false;
+}
+
+async function ensureRecoveryRuntimeReady() {
+  if (await waitForRecoveryTemplate(20)) return;
+
+  const stop = spawnSync(process.execPath, [cliPath, 'stop'], {
+    stdio: 'ignore',
+    timeout: 2 * 60 * 1_000,
+    windowsHide: true,
+  });
+  if (stop.status !== 0) {
+    throw new Error(
+      'Recovery runtime readiness failed: local Supabase lifecycle recovery could not stop cleanly.',
+    );
+  }
+
+  const start = spawnSync(process.execPath, [cliPath, 'start'], {
+    stdio: 'ignore',
+    timeout: 3 * 60 * 1_000,
+    windowsHide: true,
+  });
+  if (start.status !== 0 || !(await waitForRecoveryTemplate(80))) {
+    throw new Error(
+      'Recovery runtime readiness failed: the local Auth template route remained unavailable.',
+    );
+  }
+
+  process.stdout.write('Runtime readiness recovered: local Auth template route.\n');
+}
+
+if (fixtures.length === 0) {
+  process.stderr.write('Runtime matrix failed: no approved runtime fixtures were discovered.\n');
+  process.exit(1);
+}
+
+if (process.argv.includes('--list')) {
+  for (const fixture of fixtures) process.stdout.write(`${fixture}\n`);
+  process.exit(0);
+}
+
+for (const fixture of fixtures) {
+  if (fixture === 'test-recovery-runtime.mjs') {
+    try {
+      await ensureRecoveryRuntimeReady();
+    } catch (error) {
+      process.stderr.write(
+        `${error instanceof Error ? error.message : 'Recovery runtime readiness failed.'}\n`,
+      );
+      process.exit(1);
+    }
+  }
+
+  const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
+    stdio: 'ignore',
+    timeout: 15 * 60 * 1000,
+    windowsHide: true,
+  });
+
+  if (result.status !== 0) {
+    const outcome =
+      result.error?.code === 'ETIMEDOUT' ? 'timeout' : `exit ${result.status ?? 'unknown'}`;
+    process.stderr.write(`Runtime matrix failed: ${fixture} (${outcome}).\n`);
+    process.stderr.write(
+      'Child output was suppressed. Treat cleanup as uncertain until the fixture-specific sanitized diagnostic confirms it.\n',
+    );
+    process.exit(result.status ?? 1);
+  }
+
+  process.stdout.write(`Runtime matrix passed: ${fixture}.\n`);
+}
+
+process.stdout.write(`Runtime matrix passed: ${fixtures.length} fixture(s).\n`);

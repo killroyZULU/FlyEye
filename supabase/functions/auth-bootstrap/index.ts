@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import { z } from 'zod';
 
-import { assuranceLevelSchema, type AssuranceLevel } from '../_shared/access-context.ts';
+import {
+  authenticationEvidenceFromVerifiedToken,
+  classifyCompleteFactorInventory,
+} from '../_shared/authentication-evidence.ts';
 import { createAuthBootstrapHandler } from './handler.ts';
 
 function requiredEnvironment(name: string): string {
@@ -14,41 +16,6 @@ function configuredAllowedOrigin(supabaseUrl: string): string {
   const configured = Deno.env.get('ALLOWED_ORIGIN');
   if (configured) return configured;
   throw new Error(`ALLOWED_ORIGIN is required for ${new URL(supabaseUrl).hostname}.`);
-}
-
-type VerifiedAuthenticationContext = {
-  assuranceLevel: AssuranceLevel;
-  authenticationMethods: string[];
-};
-
-const authenticationMethodReferenceSchema = z
-  .object({
-    method: z.string().trim().min(1).max(64),
-  })
-  .passthrough();
-
-function authenticationContextFromVerifiedToken(
-  accessToken: string,
-): VerifiedAuthenticationContext {
-  const payloadSegment = accessToken.split('.')[1];
-  if (!payloadSegment) throw new Error('The verified token payload is unavailable.');
-
-  const padded = payloadSegment
-    .replaceAll('-', '+')
-    .replaceAll('_', '/')
-    .padEnd(Math.ceil(payloadSegment.length / 4) * 4, '=');
-  const payload = JSON.parse(atob(padded)) as { aal?: unknown; amr?: unknown };
-  const authenticationMethods = z
-    .array(authenticationMethodReferenceSchema)
-    .max(16)
-    .safeParse(payload.amr);
-
-  return {
-    assuranceLevel: assuranceLevelSchema.parse(payload.aal ?? 'aal1'),
-    authenticationMethods: authenticationMethods.success
-      ? [...new Set(authenticationMethods.data.map((reference) => reference.method))]
-      : [],
-  };
 }
 
 const supabaseUrl = requiredEnvironment('SUPABASE_URL');
@@ -69,11 +36,22 @@ Deno.serve(
     authenticate: async (accessToken) => {
       const { data, error } = await publicClient.auth.getUser(accessToken);
       if (error || !data.user) throw new Error('Authentication failed.');
-      const authenticationContext = authenticationContextFromVerifiedToken(accessToken);
+      const authenticationContext = authenticationEvidenceFromVerifiedToken(
+        accessToken,
+        data.user.id,
+      );
       return {
         userId: data.user.id,
-        ...authenticationContext,
+        assuranceLevel: authenticationContext.assuranceLevel,
+        authenticationMethods: authenticationContext.authenticationMethods,
       };
+    },
+    validateAdminFactorState: async (actorUserId) => {
+      const { data, error } = await serverClient.auth.admin.mfa.listFactors({
+        userId: actorUserId,
+      });
+      if (error) throw error;
+      return classifyCompleteFactorInventory(data.factors).kind === 'one_verified_totp';
     },
     resolveAccessContext: async ({ actorUserId, assuranceLevel, selectedOrganizationId }) => {
       const { data, error } = await serverClient.rpc('resolve_auth_access_context', {

@@ -53,6 +53,15 @@ function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
     updateRecoveredPassword: vi.fn().mockResolvedValue(undefined),
     signOutEverywhere: vi.fn().mockResolvedValue(undefined),
     loadAccessContext: vi.fn().mockResolvedValue(context('student_pilot')),
+    loadAdminOnboardingStatus: vi.fn().mockResolvedValue({
+      grants: [],
+      correlationId: '30000000-0000-4000-8000-000000000010',
+    }),
+    startAdminOnboarding: vi.fn(),
+    prepareAdminTotp: vi.fn(),
+    verifyAdminTotp: vi.fn(),
+    completeAdminOnboarding: vi.fn(),
+    cancelAdminOnboarding: vi.fn().mockResolvedValue(undefined),
     getMfaAssurance: vi.fn().mockResolvedValue({ currentLevel: 'aal1', nextLevel: 'aal2' }),
     verifyTotp: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),
@@ -253,11 +262,64 @@ describe('FEAT-001 authentication UI', () => {
     render(<AuthApp gateway={gatewayUnderTest} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Choose your organization' }),
+      await screen.findByRole('heading', { name: 'Choose your access context' }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Second Synthetic School/i }));
 
     expect(await screen.findByText('Second Synthetic School')).toBeInTheDocument();
+  });
+
+  it('routes a grant-only account into first-administrator onboarding', async () => {
+    const bootstrapGrantId = '30000000-0000-4000-8000-000000000011';
+    const organizationId = '20000000-0000-4000-8000-000000000011';
+    const startAdminOnboarding = vi.fn().mockResolvedValue({
+      decision: 'ready',
+      bootstrapGrantId,
+      organizationId,
+      organizationName: 'Synthetic First Admin School',
+      grantVersion: 1,
+      replayed: false,
+      correlationId: '30000000-0000-4000-8000-000000000012',
+      factorState: 'challenge_required',
+    });
+    const gatewayUnderTest = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAccessContext: vi.fn().mockResolvedValue({
+        memberships: [],
+        correlationId: '30000000-0000-4000-8000-000000000013',
+        decision: 'denied',
+        currentAssuranceLevel: 'aal1',
+        selectedOrganizationId: null,
+        organizationIds: [],
+      }),
+      loadAdminOnboardingStatus: vi.fn().mockResolvedValue({
+        grants: [
+          {
+            bootstrapGrantId,
+            organizationId,
+            organizationName: 'Synthetic First Admin School',
+            grantVersion: 1,
+            expiresAt: '2026-07-28T00:30:00Z',
+          },
+        ],
+        correlationId: '30000000-0000-4000-8000-000000000014',
+      }),
+      startAdminOnboarding,
+      prepareAdminTotp: vi.fn().mockResolvedValue({
+        kind: 'challenge',
+        factorId: '60000000-0000-4000-8000-000000000011',
+      }),
+    });
+
+    render(<AuthApp gateway={gatewayUnderTest} />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Verify your authenticator' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Synthetic First Admin School')).toBeInTheDocument();
+    expect(startAdminOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ bootstrapGrantId, organizationId }),
+    );
   });
 
   it('returns to sign in when the session is revoked', async () => {

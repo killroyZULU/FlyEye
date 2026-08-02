@@ -28,45 +28,123 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_onboarding_rate_limit_events: {
+        Row: {
+          action: string;
+          correlation_id: string;
+          id: string;
+          limiter_key_hash: string;
+          network_source_used: boolean;
+          occurred_at: string;
+          outcome: string;
+          retry_after_seconds: number | null;
+          status_code: number;
+        };
+        Insert: {
+          action: string;
+          correlation_id: string;
+          id?: string;
+          limiter_key_hash: string;
+          network_source_used?: boolean;
+          occurred_at?: string;
+          outcome: string;
+          retry_after_seconds?: number | null;
+          status_code: number;
+        };
+        Update: {
+          action?: string;
+          correlation_id?: string;
+          id?: string;
+          limiter_key_hash?: string;
+          network_source_used?: boolean;
+          occurred_at?: string;
+          outcome?: string;
+          retry_after_seconds?: number | null;
+          status_code?: number;
+        };
+        Relationships: [];
+      };
+      admin_onboarding_rate_limit_state: {
+        Row: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Insert: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Update: {
+          action?: string;
+          last_decision_at?: string;
+          last_refill_at?: string;
+          limiter_key_hash?: string;
+          tokens_milli?: number;
+        };
+        Relationships: [];
+      };
       authentication_events: {
         Row: {
+          actor_kind: string;
           actor_subject_id: string | null;
           actor_user_id: string | null;
           correlation_id: string;
           event_name: string;
           id: string;
+          idempotency_key_hash: string | null;
           metadata: Json;
           occurred_at: string;
           organization_id: string | null;
           organization_ids: string[];
           outcome: string;
           reason_code: string;
+          source_code: string | null;
+          source_instance_id: string | null;
+          target_id: string | null;
+          target_kind: string | null;
         };
         Insert: {
+          actor_kind?: string;
           actor_subject_id?: string | null;
           actor_user_id?: string | null;
           correlation_id?: string;
           event_name: string;
           id?: string;
+          idempotency_key_hash?: string | null;
           metadata?: Json;
           occurred_at?: string;
           organization_id?: string | null;
           organization_ids?: string[];
           outcome: string;
           reason_code: string;
+          source_code?: string | null;
+          source_instance_id?: string | null;
+          target_id?: string | null;
+          target_kind?: string | null;
         };
         Update: {
+          actor_kind?: string;
           actor_subject_id?: string | null;
           actor_user_id?: string | null;
           correlation_id?: string;
           event_name?: string;
           id?: string;
+          idempotency_key_hash?: string | null;
           metadata?: Json;
           occurred_at?: string;
           organization_id?: string | null;
           organization_ids?: string[];
           outcome?: string;
           reason_code?: string;
+          source_code?: string | null;
+          source_instance_id?: string | null;
+          target_id?: string | null;
+          target_kind?: string | null;
         };
         Relationships: [
           {
@@ -120,6 +198,81 @@ export type Database = {
             columns: ['role_id'];
             isOneToOne: false;
             referencedRelation: 'roles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      organization_admin_bootstrap_grants: {
+        Row: {
+          authorization_source_code: string;
+          authorization_source_instance_id: string;
+          authorization_source_kind: string;
+          authorized_by_subject_id: string | null;
+          completed_at: string | null;
+          completed_membership_id: string | null;
+          completion_idempotency_key_hash: string | null;
+          created_at: string;
+          eligible_user_id: string;
+          expires_at: string;
+          id: string;
+          issuance_correlation_id: string;
+          issued_at: string;
+          organization_id: string;
+          revoked_at: string | null;
+          status: string;
+          version: number;
+        };
+        Insert: {
+          authorization_source_code?: string;
+          authorization_source_instance_id: string;
+          authorization_source_kind?: string;
+          authorized_by_subject_id?: string | null;
+          completed_at?: string | null;
+          completed_membership_id?: string | null;
+          completion_idempotency_key_hash?: string | null;
+          created_at?: string;
+          eligible_user_id: string;
+          expires_at?: string;
+          id?: string;
+          issuance_correlation_id: string;
+          issued_at?: string;
+          organization_id: string;
+          revoked_at?: string | null;
+          status?: string;
+          version?: number;
+        };
+        Update: {
+          authorization_source_code?: string;
+          authorization_source_instance_id?: string;
+          authorization_source_kind?: string;
+          authorized_by_subject_id?: string | null;
+          completed_at?: string | null;
+          completed_membership_id?: string | null;
+          completion_idempotency_key_hash?: string | null;
+          created_at?: string;
+          eligible_user_id?: string;
+          expires_at?: string;
+          id?: string;
+          issuance_correlation_id?: string;
+          issued_at?: string;
+          organization_id?: string;
+          revoked_at?: string | null;
+          status?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_admin_bootstrap__organization_id_completed_me_fkey';
+            columns: ['organization_id', 'completed_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+          {
+            foreignKeyName: 'organization_admin_bootstrap_grants_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
             referencedColumns: ['id'];
           },
         ];
@@ -284,7 +437,45 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      cancel_organization_admin_onboarding: {
+        Args: {
+          p_actor_user_id: string;
+          p_bootstrap_grant_id: string;
+          p_correlation_id: string;
+          p_idempotency_key_hash: string;
+        };
+        Returns: Json;
+      };
+      complete_first_organization_admin_bootstrap: {
+        Args: {
+          p_actor_subject_id: string;
+          p_actor_user_id: string;
+          p_assurance_level: string;
+          p_authentication_methods: string[];
+          p_bootstrap_grant_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_password_authenticated_at: number;
+          p_session_id: string;
+          p_total_factor_count: number;
+          p_verified_totp_factor_id: string;
+        };
+        Returns: Json;
+      };
+      consume_admin_onboarding_rate_limit: {
+        Args: {
+          p_action: string;
+          p_correlation_id: string;
+          p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
       get_my_access_context: { Args: never; Returns: Json };
+      get_organization_admin_onboarding_status: {
+        Args: { p_actor_user_id: string; p_correlation_id: string };
+        Returns: Json;
+      };
       record_authentication_access_decision: {
         Args: {
           p_actor_subject_id: string;
@@ -306,6 +497,32 @@ export type Database = {
           p_selected_organization_id?: string;
         };
         Returns: Json;
+      };
+      start_organization_admin_onboarding: {
+        Args: {
+          p_actor_user_id: string;
+          p_bootstrap_grant_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+        };
+        Returns: Json;
+      };
+      write_admin_onboarding_event: {
+        Args: {
+          p_actor_subject_id: string;
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_idempotency_key_hash?: string;
+          p_metadata?: Json;
+          p_organization_id: string;
+          p_organization_ids: string[];
+          p_outcome: string;
+          p_reason_code: string;
+          p_target_id: string;
+        };
+        Returns: string;
       };
     };
     Enums: {
