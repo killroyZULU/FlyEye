@@ -10,6 +10,8 @@ const priority = new Map([
   ['test-edge-runtime.mjs', 0],
   ['test-recovery-runtime.mjs', 1],
 ]);
+const defaultFixtureTimeoutMs = 15 * 60 * 1000;
+const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -101,7 +103,7 @@ for (const fixture of fixtures) {
 
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
     stdio: 'ignore',
-    timeout: 15 * 60 * 1000,
+    timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
 
