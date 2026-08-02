@@ -6,7 +6,7 @@ DevSecOps integrates build, test, security, deployment, monitoring, recovery, an
 
 ## 2. Source-control model
 
-Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Use one bounded `feat/*`, `fix/*`, `docs/*`, `chore/*`, or `security/*` branch per task and merge it into stable `main` only through an explicitly authorized pull request. Never push or force-push feature work directly to `main`.
+Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Use one bounded `feat/*`, `fix/*`, `docs/*`, `chore/*`, or `security/*` branch per task. A requested bounded task carries standing authority to commit, push that task branch, and open a review-ready pull request after local verification and separate-agent review. Merge into stable `main` only through an explicit human merge decision. Never push or force-push feature work directly to `main`.
 
 GitHub-enforced branch protection is not available under the current repository plan. Until that changes, the project owner and implementation agent must apply the equivalent manual gate: use a pull request and checklist, require green CI, inspect the final diff and unresolved conversations, keep deployment separate, and obtain explicit authorization before every merge. Add required reviews/CODEOWNERS when additional qualified collaborators join and the repository plan supports the controls.
 
@@ -14,9 +14,34 @@ GitHub-enforced branch protection is not available under the current repository 
 
 The current CI baseline is verification-only. It runs frozen installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, a browser-specific Supabase key scan, a general Git-history secret scan, Playwright tests, dependency audit, local Supabase reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization integration, database lint, and generated database-type drift. It uses synthetic local data, least-privilege read-only repository permissions, and no deployment credentials.
 
+The pipeline exposes the same stable entry points to developers and AI agents:
+
+- `pnpm verify:app` runs the complete application-side quality group;
+- `pnpm verify:database:running` runs reset, SQL/RLS, every automatically
+  discovered `scripts/test-*-runtime.mjs` fixture through a body/output-suppressed
+  runner, database lint, and a non-mutating generated-type comparison against an
+  already running local stack; and
+- GitHub Actions publishes one aggregate `Required quality gate` result after
+  the parallel application and database jobs finish.
+
+Feature runtime fixtures are registered by filename rather than by repeatedly
+editing the workflow. The runtime-matrix runner emits only the fixed fixture
+identifier and pass/fail result; child stdout and stderr are discarded to keep
+credentials, provider payloads, messages, links, QR material, and local stack
+output out of CI logs. A failing fixture is diagnosed locally inside the
+approved delivery envelope using its reviewed sanitizer, never by weakening the
+CI suppression boundary.
+
 The schema-wide pgTAP guard discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails if any lacks enabled RLS. The general scanner uses the MIT-licensed Gitleaks CLI `8.30.1`, pinned by version and official Linux archive SHA-256, on a full Git-history checkout with 100% finding redaction. Gitleaks is feature-complete and receives security-maintenance releases. The separately licensed Gitleaks Action is not used, and the existing browser-specific Supabase key scan remains a distinct defense.
 
 SAST/CodeQL, broader license review, SBOM generation, configuration scanning, staging smoke/DAST, artifact promotion, and deployment remain later pre-pilot gates. They must not be described as passing until implemented and evidenced.
+
+CI optimization must preserve useful parallelism and a stable required-check
+name rather than collapsing all verification into one opaque shell command.
+Application and database jobs may run independently; the aggregate gate fails
+unless both succeed or are explicitly replaced by a reviewed equivalent. Green
+CI plus the local evidence and separate-agent review permits the agent to mark
+the PR ready for merge review. CI cannot merge, deploy, or approve production.
 
 The target release pipeline is:
 

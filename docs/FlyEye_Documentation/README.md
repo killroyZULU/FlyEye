@@ -10,6 +10,10 @@ This repository is the canonical context package for product planning, AI-assist
 
 FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes flight-school dispatch, training assessment, compliance records, and operational reporting while keeping all safety-critical decisions under authorized human control.
 
+Every substantive AI-assisted work update and final response includes a compact
+evidence-based `SDLC progress` strip so the Founder/Product Owner can immediately
+see the current lifecycle phase and next action without completing another form.
+
 ## Start here
 
 1. [Project Overview](00_PROJECT_OVERVIEW.md)
@@ -41,12 +45,16 @@ FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes fl
 | [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
 | [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
 | [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
-| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, Founder/Product Owner local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 gates remain pending |
+| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, Founder/Product Owner local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, production, and FEAT-003 implementation gates remain pending |
 | [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery requirements, corrected local automated evidence, PR #5 merge and CI record, unchanged residual accessibility limitations, and remaining Founder/Product Owner gates |
+| [FEAT-003 Organization Admin and MFA Onboarding](features/FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md) | Bounded first-Organization-Admin bootstrap and TOTP onboarding is `Locally verified; publication pending`; the complete local synthetic matrix, corrected separate-agent review, secret scans, and zero-residue cleanup passed on 2026-08-02, while merge, hosted, real-data, deployment, production, and FEAT-004 gates remain closed |
+| [FEAT-003 Traceability](features/FEAT-003_TRACEABILITY.md) | Approved product/design decisions, amended audit/AMR/time/locking/grant/factor/fixture controls, synthetic two-organization coverage, negative/replay/concurrency/rollback evidence, and explicit local/hosted/real-data/deployment/production gates |
+| [FEAT-003 Competent Human Review Package](features/FEAT-003_QUALIFIED_HUMAN_REVIEW_PACKAGE.md) | Blank, evidence-oriented review questions and attributable records for required database/RLS/privileged-function, security/privacy, accessibility, and operations review; preparation does not complete review or authorize implementation or release |
 | [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
 | [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |
 | [Traceability template](templates/REQUIREMENTS_TRACEABILITY_TEMPLATE.md) | Need-to-requirement-to-test evidence |
 | [Release checklist](templates/PRODUCTION_RELEASE_CHECKLIST.md) | Human-approved production gate |
+| [Portable AI Feature Delivery Playbook](templates/AI_FEATURE_DELIVERY_PLAYBOOK.md) | Reusable authorization-envelope, verification-tier, CI, and prompt model for FlyEye and future applications |
 
 ## Canonical decisions
 
@@ -82,4 +90,12 @@ Any aviation rule must be verified by qualified Philippine ATO personnel before 
 
 ## Working with an AI coding agent
 
-Give the agent this README, the Master Handoff, the relevant requirements, one approved feature specification, and the exact files it may change. Require an analysis and implementation plan before code. Require tests, authorization, tenant isolation, audit behavior, documentation updates, and a diff review for every slice.
+Give the agent this README, the Master Handoff, the relevant requirements, one
+approved feature specification, and one bounded local-delivery authorization
+envelope. Require analysis before code, then let the agent continue through
+routine implementation, diagnosis, in-scope corrections, focused reruns, the
+final matrix, evidence updates, and agent review without one prompt per command.
+Require tenant isolation, audit behavior, documentation updates, and a final
+diff review for every slice. Use the
+[Portable AI Feature Delivery Playbook](templates/AI_FEATURE_DELIVERY_PLAYBOOK.md)
+when starting another repository.

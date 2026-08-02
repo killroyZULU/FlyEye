@@ -5,6 +5,7 @@ Describe the single user or developer outcome this pull request delivers.
 ## Scope
 
 - [ ] The change is bounded to one approved feature, fix, documentation task, or chore.
+- [ ] The bounded outcome and autonomous-delivery boundary are identified.
 - [ ] Unrelated working-tree changes are excluded.
 - [ ] Assumptions, unresolved questions, and known limitations are documented.
 - [ ] No unverified aviation rule or regulatory claim was introduced.
@@ -32,10 +33,13 @@ Describe the single user or developer outcome this pull request delivers.
 - [ ] Local Supabase reset, schema-wide SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.
 - [ ] Dependency audit passes without an unresolved high or critical advisory.
 - [ ] Loading, error, empty, unauthorized, conflict, and success states were considered where applicable.
+- [ ] Focused correction checks and one final matrix were used; unchanged evidence was not rerun without a fingerprint change.
 
-## Human gates
+## Merge and release gates
 
 - [ ] Relevant documentation and traceability are updated.
 - [ ] Security, privacy, tenancy, and aviation limitations are identified for reviewers.
+- [ ] All blocking separate-agent findings and hard stops were resolved and reverified; otherwise this PR remains draft/blocked and is not ready to merge.
+- [ ] This pull request is ready for the human merge decision.
 - [ ] No deployment is included unless separately and explicitly authorized.
 - [ ] Production approval remains a separate human decision.
