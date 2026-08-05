@@ -73,3 +73,7 @@ policy = "per_worker"
 [functions.auth-bootstrap]
 enabled = true
 verify_jwt = true
+
+[functions.organization-admin-onboarding]
+enabled = true
+verify_jwt = true

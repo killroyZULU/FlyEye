@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "environment": "staging",
+  "projectRef": null,
+  "apiOrigin": null,
+  "databaseHost": null,
+  "frontendOrigin": null,
+  "dataClassification": "synthetic-only",
+  "limiterPolicyVersion": "subject-action-v1"
+}

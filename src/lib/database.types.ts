@@ -37,6 +37,7 @@ export type Database = {
           network_source_used: boolean;
           occurred_at: string;
           outcome: string;
+          policy_version: string;
           retry_after_seconds: number | null;
           status_code: number;
         };
@@ -48,6 +49,7 @@ export type Database = {
           network_source_used?: boolean;
           occurred_at?: string;
           outcome: string;
+          policy_version?: string;
           retry_after_seconds?: number | null;
           status_code: number;
         };
@@ -59,6 +61,7 @@ export type Database = {
           network_source_used?: boolean;
           occurred_at?: string;
           outcome?: string;
+          policy_version?: string;
           retry_after_seconds?: number | null;
           status_code?: number;
         };
@@ -223,9 +226,9 @@ export type Database = {
           version: number;
         };
         Insert: {
-          authorization_source_code?: string;
+          authorization_source_code: string;
           authorization_source_instance_id: string;
-          authorization_source_kind?: string;
+          authorization_source_kind: string;
           authorized_by_subject_id?: string | null;
           completed_at?: string | null;
           completed_membership_id?: string | null;

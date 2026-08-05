@@ -129,7 +129,7 @@ export function createAuthBootstrapHandler(
   const createCorrelationId = dependencies.createCorrelationId ?? (() => crypto.randomUUID());
 
   return async (request: Request): Promise<Response> => {
-    const requestOrigin = request.headers.get('origin') ?? allowedOrigin;
+    const requestOrigin = request.headers.get('origin');
 
     if (requestOrigin !== allowedOrigin) {
       return jsonResponse(allowedOrigin, 403, {

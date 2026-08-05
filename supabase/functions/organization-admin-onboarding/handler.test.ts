@@ -51,6 +51,7 @@ function dependencies(
       retryAfterSeconds: null,
       correlationId: CORRELATION_ID,
       networkSourceUsed: false,
+      policyVersion: 'subject-action-v1',
     }),
     recordDenied: vi.fn().mockResolvedValue(undefined),
     status: vi.fn().mockResolvedValue({
@@ -163,6 +164,7 @@ describe('FEAT-003 organization admin onboarding handler', () => {
         retryAfterSeconds: 15,
         correlationId: CORRELATION_ID,
         networkSourceUsed: false,
+        policyVersion: 'subject-action-v1',
       }),
     });
     const response = await createAdminOnboardingHandler(deps)(
@@ -177,6 +179,26 @@ describe('FEAT-003 organization admin onboarding handler', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('15');
     expect(deps.start).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the database limiter policy does not match the Edge contract', async () => {
+    const deps = dependencies({
+      consumeLimit: vi.fn().mockResolvedValue({
+        allowed: true,
+        retryAfterSeconds: null,
+        correlationId: CORRELATION_ID,
+        networkSourceUsed: false,
+        policyVersion: 'unexpected-policy',
+      }),
+    });
+
+    const response = await createAdminOnboardingHandler(deps)(request({ action: 'status' }));
+
+    expect(response.status).toBe(503);
+    expect(await payload(response)).toMatchObject({
+      error: { code: 'admin_onboarding.limiter_unavailable' },
+    });
+    expect(deps.status).not.toHaveBeenCalled();
   });
 
   it('requires password AMR no older than exactly 600 seconds', async () => {

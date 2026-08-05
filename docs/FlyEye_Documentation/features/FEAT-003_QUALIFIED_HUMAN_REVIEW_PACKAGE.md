@@ -9,14 +9,17 @@ acceptance, Git staging, commit, push, or pull-request creation under the
 2026-08-02 autonomous-delivery directive. It may also be used voluntarily for
 additional assurance.
 
-This already-open FEAT-003 task retains its earlier explicit no-staging and
-no-publication boundary. One clear Founder/Product Owner override is required
-before its existing working tree may use the new publication workflow; this is
-a transition exception, not a specialist-review requirement.
+That one-time transition boundary was later lifted: the parent implementation
+was published through PR #7 and merged at
+`00dcfd2239de45b33890bc805ff27a667defabd1` after green CI. The current
+repository hardening follow-up uses the standing bounded delivery envelope;
+its merge remains a separate human decision.
 
 It covers the
 [FEAT-003 Organization Admin and MFA Onboarding specification](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md)
 and its [traceability record](FEAT-003_TRACEABILITY.md).
+The current repository risk controls are specified in
+[FEAT-003 Hosted Synthetic Hardening](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md).
 
 The bounded outcome is first-Organization-Admin onboarding only. It does not
 include normal invitations, member or profile management, general role
@@ -353,8 +356,8 @@ through an attributable amendment and affected re-review.
 | FEAT-003 autonomous delivery | Standing authority covers the bounded local synthetic outcome through a green review-ready pull request; merge remains human-only |
 | Implementation or runtime evidence | Local automated application/database matrices, all three sanitized runtime fixtures, repository/history secret scans, zero-residue cleanup, corrected separate-agent review, and final re-review passed on 2026-08-02 |
 | Local technical publication gate | Completed on 2026-08-02 |
-| Git staging, commit, push, or pull request | Local technical checks are complete, but this already-open task still requires a one-time explicit override of its earlier no-publication boundary |
-| Hosted validation | Not granted |
+| Git staging, commit, push, or pull request | Parent feature published and merged through PR #7; the current bounded hardening slice may proceed through a green review-ready pull request under the standing delivery envelope |
+| Hosted validation | Not granted; the staging manifest remains disabled with no selected provider target or executable hosted issuer |
 | Real-data use or pilot | Blocked |
 | Deployment | Not granted |
 | Production | Not granted |

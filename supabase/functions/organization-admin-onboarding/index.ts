@@ -5,23 +5,12 @@ import {
   authenticationEvidenceFromVerifiedToken,
   completeFactorInventorySchema,
 } from '../_shared/authentication-evidence.ts';
+import { readAdminOnboardingRuntimeConfiguration } from '../_shared/edge-runtime-configuration.ts';
 import {
   createAdminOnboardingHandler,
   type AdminOnboardingAction,
   type LimiterDecision,
 } from './handler.ts';
-
-function requiredEnvironment(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`${name} is required.`);
-  return value;
-}
-
-function configuredAllowedOrigin(): string {
-  const configured = Deno.env.get('ALLOWED_ORIGIN');
-  if (!configured) throw new Error('ALLOWED_ORIGIN is required.');
-  return configured;
-}
 
 const limiterDecisionSchema = z
   .object({
@@ -29,18 +18,17 @@ const limiterDecisionSchema = z
     retryAfterSeconds: z.number().int().min(1).max(60).nullable(),
     correlationId: z.uuid(),
     networkSourceUsed: z.literal(false),
+    policyVersion: z.literal('subject-action-v1'),
   })
   .strict();
 
-const supabaseUrl = requiredEnvironment('SUPABASE_URL');
-const supabasePublishableKey = requiredEnvironment('SUPABASE_ANON_KEY');
-const supabaseServiceRoleKey = requiredEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-const limiterSecret = requiredEnvironment('FEAT003_LIMITER_HMAC_SECRET');
-const allowedOrigin = configuredAllowedOrigin();
-
-if (new TextEncoder().encode(limiterSecret).byteLength < 32) {
-  throw new Error('FEAT003_LIMITER_HMAC_SECRET must contain at least 32 bytes.');
-}
+const {
+  supabaseUrl,
+  supabasePublishableKey,
+  supabaseServiceRoleKey,
+  limiterSecret,
+  allowedOrigin,
+} = readAdminOnboardingRuntimeConfiguration((name) => Deno.env.get(name));
 
 const publicClient = createClient(supabaseUrl, supabasePublishableKey, {
   auth: { persistSession: false, autoRefreshToken: false },

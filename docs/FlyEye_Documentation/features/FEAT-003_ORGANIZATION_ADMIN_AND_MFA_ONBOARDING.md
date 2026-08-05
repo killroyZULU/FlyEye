@@ -2,7 +2,7 @@
 
 ## Status and ownership
 
-- Status: `Locally verified; publication pending` under the 2026-08-02 autonomous-delivery directive; the stabilized target passed the complete local application/database matrix, all three sanitized runtime fixtures, repository/history secret scans, zero-residue cleanup, correction of the separate-agent review finding, and final re-review; merge, hosted, real-data, deployment, production, and FEAT-004 gates remain closed
+- Status: `Merged; hosted validation pending`; PR #7 merged the verified feature into `main` at `00dcfd2239de45b33890bc805ff27a667defabd1`, and post-merge CI run `30752548762` passed Application quality, Local Supabase security, and the Required quality gate; the separate hosted-synthetic hardening slice removes avoidable repository risk while hosted mutation, real data, deployment, production, and FEAT-004 remain closed
 - Documentation baseline: `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66` on 2026-07-27
 - Founder/Product Owner: Approved FEAT-003-DEC-01 through FEAT-003-DEC-05 exactly as written on 2026-07-27; later approved a 30-minute exact local lifetime for FEAT-003-DEC-04, named the CLI-only ephemeral local fixture, authorized the documentation-only independent-design-review amendment recorded below on 2026-07-27, authorized the documentation-only limiter-monitoring evidence correction and staged-review-gate amendment on 2026-07-28, and approved the provisional local-only limiter and operations choices recorded below for documentation-only recording on 2026-07-28
 - Post-amendment verification: Completed as a strictly read-only documentation-consistency review on 2026-07-28 against baseline HEAD `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66` and tracked working-tree fingerprint `95bd2c6fce6f7819725733da692ab827aa0eb85b`; `DOC-STATUS-01` was resolved, all substantive documentation requirements were satisfied, and no documentation conflict remained. This is not implementation/runtime evidence, qualified human review, product acceptance, implementation authorization, Git publication, hosted validation, deployment, or production approval.
@@ -11,7 +11,7 @@
 - Aviation SME: Not required for the bounded identity outcome; required before any later role receives aviation or operational authority
 - Technical owner: FlyEye project
 - Security/privacy/accessibility/operations review: Completed automated evidence and corrected separate-agent review satisfy the local technical publication gate; qualified-human review is risk-triggered for later regulated, hosted, real-data, production, penetration-test, or formal-compliance claims
-- Target release: Green review-ready pull request; merge, hosted validation, real-data use, deployment, and production remain unauthorized
+- Target release: Parent feature merged; the current hardening target is a separate green review-ready pull request. Hosted validation, real-data use, deployment, and production remain unauthorized.
 
 Historical authorization note: this specification originally required a later
 local-synthetic implementation prompt. The 2026-08-02 autonomous-delivery

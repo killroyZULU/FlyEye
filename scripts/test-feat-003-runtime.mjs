@@ -512,6 +512,8 @@ function seedFixture() {
         eligible_user_id,
         issued_at,
         expires_at,
+        authorization_source_kind,
+        authorization_source_code,
         authorization_source_instance_id,
         issuance_correlation_id
       )
@@ -522,6 +524,8 @@ function seedFixture() {
           :'first_admin'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
+          'local_fixture',
+          'feat-003-local-cli-fixture',
           :'source_instance'::uuid,
           :'issuance_one'::uuid
         ),
@@ -531,6 +535,8 @@ function seedFixture() {
           :'race_admin_one'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
+          'local_fixture',
+          'feat-003-local-cli-fixture',
           :'source_instance'::uuid,
           :'issuance_two'::uuid
         ),
@@ -540,6 +546,8 @@ function seedFixture() {
           :'race_admin_two'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
+          'local_fixture',
+          'feat-003-local-cli-fixture',
           :'source_instance'::uuid,
           :'issuance_three'::uuid
         ),
@@ -549,6 +557,8 @@ function seedFixture() {
           :'ui_admin'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
+          'local_fixture',
+          'feat-003-local-cli-fixture',
           :'source_instance'::uuid,
           :'issuance_four'::uuid
         );
@@ -640,23 +650,27 @@ function verifyInjectedIssuanceFailures() {
         ? `
           insert into public.organization_admin_bootstrap_grants (
             id, organization_id, eligible_user_id, issued_at, expires_at,
-            authorization_source_code, authorization_source_instance_id,
+            authorization_source_kind, authorization_source_code,
+            authorization_source_instance_id,
             issuance_correlation_id
           )
           values (
             :'grant_id'::uuid, :'organization_id'::uuid, :'user_id'::uuid,
             transaction_timestamp(), transaction_timestamp() + interval '30 minutes',
-            'invalid-source', :'source_instance'::uuid, :'correlation_id'::uuid
+            'local_fixture', 'invalid-source', :'source_instance'::uuid,
+            :'correlation_id'::uuid
           );
         `
         : `
           insert into public.organization_admin_bootstrap_grants (
             id, organization_id, eligible_user_id, issued_at, expires_at,
+            authorization_source_kind, authorization_source_code,
             authorization_source_instance_id, issuance_correlation_id
           )
           values (
             :'grant_id'::uuid, :'organization_id'::uuid, :'user_id'::uuid,
             transaction_timestamp(), transaction_timestamp() + interval '30 minutes',
+            'local_fixture', 'feat-003-local-cli-fixture',
             :'source_instance'::uuid, :'correlation_id'::uuid
           );
 
@@ -1078,7 +1092,7 @@ try {
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
     environmentPath,
-    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\n`,
+    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\n`,
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },
   );
   edgeProcess = spawn(
