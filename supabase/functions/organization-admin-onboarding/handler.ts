@@ -107,6 +107,7 @@ export type LimiterDecision = {
   retryAfterSeconds: number | null;
   correlationId: string;
   networkSourceUsed: false;
+  policyVersion: 'subject-action-v1';
 };
 
 export type AdminOnboardingDependencies = {
@@ -397,7 +398,8 @@ export function createAdminOnboardingHandler(
 
     if (
       limiterDecision.correlationId !== correlationId ||
-      limiterDecision.networkSourceUsed !== false
+      limiterDecision.networkSourceUsed !== false ||
+      limiterDecision.policyVersion !== 'subject-action-v1'
     ) {
       return jsonResponse(allowedOrigin, 503, {
         error: {

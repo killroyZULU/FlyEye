@@ -101,7 +101,12 @@ Manage schema, RLS, functions, triggers, Storage policy, and security-relevant c
 
 Pin supported versions, use lockfiles, review new packages and licenses, run vulnerability alerts, generate an SBOM per release, protect workflows from untrusted PR execution, pin third-party actions appropriately, and define update SLAs based on severity/exposure.
 
-The development toolchain pins the transitive MIT-licensed `brace-expansion` package to `5.0.8` through a pnpm override. This remains within `minimatch`'s declared `^5.0.5` range and remediates GHSA-mh99-v99m-4gvg without adding a direct application dependency.
+The development toolchain pins the transitive MIT-licensed `brace-expansion`
+package to `5.0.9`, `undici` package to `7.29.0`, and `postcss` package to
+`8.5.23` through pnpm overrides. These patched resolutions remediate
+GHSA-rgw5-rvv9-x895, GHSA-4cwx-7wf7-3272, and GHSA-fxqj-rqcc-2cmp without
+adding direct application dependencies. They affect lint, test, and build
+tooling only; the direct production dependency surface is unchanged.
 
 ## 9. Release process
 

@@ -431,4 +431,16 @@ describe('auth-bootstrap Edge Function handler', () => {
     expect(response.status).toBe(403);
     expect(configured.authenticate).not.toHaveBeenCalled();
   });
+
+  it('rejects requests without an Origin header before authentication', async () => {
+    const configured = dependencies();
+    const missingOriginRequest = request();
+    missingOriginRequest.headers.delete('origin');
+
+    const response = await createAuthBootstrapHandler(configured)(missingOriginRequest);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { code: 'auth.origin_denied' } });
+    expect(configured.authenticate).not.toHaveBeenCalled();
+  });
 });

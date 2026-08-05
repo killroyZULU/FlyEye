@@ -1,6 +1,6 @@
 begin;
 
-select plan(54);
+select plan(60);
 
 select has_table(
   'public',
@@ -182,7 +182,8 @@ from (
     ('81000000-0000-4000-8000-000000000003'::uuid, 'existing-admin-b@example.test'),
     ('81000000-0000-4000-8000-000000000004'::uuid, 'expired-admin-a@example.test'),
     ('81000000-0000-4000-8000-000000000005'::uuid, 'rollback-admin-a@example.test'),
-    ('81000000-0000-4000-8000-000000000006'::uuid, 'inactive-admin-a@example.test')
+    ('81000000-0000-4000-8000-000000000006'::uuid, 'inactive-admin-a@example.test'),
+    ('81000000-0000-4000-8000-000000000007'::uuid, 'staging-fixture@example.test')
 ) as users(user_id, email);
 
 insert into public.organizations (id, name, status)
@@ -191,7 +192,8 @@ values
   ('82000000-0000-4000-8000-000000000002', 'Synthetic Existing Admin School B', 'active'),
   ('82000000-0000-4000-8000-000000000003', 'Synthetic Expired School A', 'active'),
   ('82000000-0000-4000-8000-000000000004', 'Synthetic Rollback School A', 'active'),
-  ('82000000-0000-4000-8000-000000000005', 'Synthetic Inactive School A', 'suspended');
+  ('82000000-0000-4000-8000-000000000005', 'Synthetic Inactive School A', 'suspended'),
+  ('82000000-0000-4000-8000-000000000006', 'Synthetic Staging Provenance School', 'active');
 
 insert into public.organization_memberships (
   id, organization_id, user_id, status, created_by, updated_by
@@ -220,6 +222,8 @@ insert into public.organization_admin_bootstrap_grants (
   eligible_user_id,
   issued_at,
   expires_at,
+  authorization_source_kind,
+  authorization_source_code,
   authorization_source_instance_id,
   issuance_correlation_id
 )
@@ -230,6 +234,8 @@ values
     '81000000-0000-4000-8000-000000000001',
     transaction_timestamp(),
     transaction_timestamp() + interval '30 minutes',
+    'local_fixture',
+    'feat-003-local-cli-fixture',
     '85000000-0000-4000-8000-000000000001',
     '86000000-0000-4000-8000-000000000001'
   ),
@@ -239,6 +245,8 @@ values
     '81000000-0000-4000-8000-000000000002',
     transaction_timestamp(),
     transaction_timestamp() + interval '30 minutes',
+    'local_fixture',
+    'feat-003-local-cli-fixture',
     '85000000-0000-4000-8000-000000000001',
     '86000000-0000-4000-8000-000000000002'
   ),
@@ -248,6 +256,8 @@ values
     '81000000-0000-4000-8000-000000000004',
     transaction_timestamp() - interval '31 minutes',
     transaction_timestamp() - interval '1 minute',
+    'local_fixture',
+    'feat-003-local-cli-fixture',
     '85000000-0000-4000-8000-000000000001',
     '86000000-0000-4000-8000-000000000003'
   ),
@@ -257,6 +267,8 @@ values
     '81000000-0000-4000-8000-000000000005',
     transaction_timestamp(),
     transaction_timestamp() + interval '30 minutes',
+    'local_fixture',
+    'feat-003-local-cli-fixture',
     '85000000-0000-4000-8000-000000000001',
     '86000000-0000-4000-8000-000000000004'
   ),
@@ -266,6 +278,8 @@ values
     '81000000-0000-4000-8000-000000000006',
     transaction_timestamp(),
     transaction_timestamp() + interval '30 minutes',
+    'local_fixture',
+    'feat-003-local-cli-fixture',
     '85000000-0000-4000-8000-000000000001',
     '86000000-0000-4000-8000-000000000005'
   );
@@ -296,6 +310,127 @@ select is(
   ),
   null::uuid,
   'the local fixture does not fabricate a human authorizer'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'organization_admin_bootstrap_grants'
+      and column_name in ('authorization_source_kind', 'authorization_source_code')
+      and column_default is null
+  ),
+  2,
+  'fixture provenance must be supplied explicitly and cannot silently default to local'
+);
+
+insert into public.organization_admin_bootstrap_grants (
+  id,
+  organization_id,
+  eligible_user_id,
+  issued_at,
+  expires_at,
+  authorization_source_kind,
+  authorization_source_code,
+  authorization_source_instance_id,
+  issuance_correlation_id
+)
+values (
+  '84000000-0000-4000-8000-000000000006',
+  '82000000-0000-4000-8000-000000000006',
+  '81000000-0000-4000-8000-000000000007',
+  transaction_timestamp(),
+  transaction_timestamp() + interval '30 minutes',
+  'staging_fixture',
+  'feat-003-staging-synthetic-cli',
+  '85000000-0000-4000-8000-000000000002',
+  '86000000-0000-4000-8000-000000000006'
+);
+
+insert into public.authentication_events (
+  organization_id,
+  organization_ids,
+  actor_kind,
+  event_name,
+  outcome,
+  correlation_id,
+  reason_code,
+  source_code,
+  source_instance_id,
+  target_kind,
+  target_id,
+  metadata
+)
+values (
+  '82000000-0000-4000-8000-000000000006',
+  array['82000000-0000-4000-8000-000000000006'::uuid],
+  'staging_fixture',
+  'admin_bootstrap.grant_issued',
+  'success',
+  '86000000-0000-4000-8000-000000000006',
+  'staging_fixture_grant_issued',
+  'feat-003-staging-synthetic-cli',
+  '85000000-0000-4000-8000-000000000002',
+  'organization_admin_bootstrap_grant',
+  '84000000-0000-4000-8000-000000000006',
+  '{"grantVersion":1}'::jsonb
+);
+
+select is(
+  (
+    select authorization_source_kind || ':' || authorization_source_code
+    from public.organization_admin_bootstrap_grants
+    where id = '84000000-0000-4000-8000-000000000006'
+  ),
+  'staging_fixture:feat-003-staging-synthetic-cli',
+  'dormant staging grant provenance uses one exact non-human source pair'
+);
+select is(
+  (
+    select actor_kind || ':' || source_code
+    from public.authentication_events
+    where correlation_id = '86000000-0000-4000-8000-000000000006'
+  ),
+  'staging_fixture:feat-003-staging-synthetic-cli',
+  'dormant staging issuance audit uses the matching non-human source pair'
+);
+select throws_ok(
+  $$insert into public.organization_admin_bootstrap_grants (
+    organization_id, eligible_user_id, authorization_source_kind,
+    authorization_source_code, authorization_source_instance_id,
+    issuance_correlation_id
+  ) values (
+    '82000000-0000-4000-8000-000000000001',
+    '81000000-0000-4000-8000-000000000001',
+    'staging_fixture', 'feat-003-local-cli-fixture',
+    '85000000-0000-4000-8000-000000000003',
+    '86000000-0000-4000-8000-000000000007'
+  )$$,
+  '23514',
+  null,
+  'mixed staging and local grant provenance is rejected'
+);
+select throws_ok(
+  $$insert into public.authentication_events (
+    organization_id, organization_ids, actor_user_id, actor_subject_id,
+    actor_kind, event_name, outcome, correlation_id, reason_code, source_code,
+    source_instance_id, target_kind, target_id, metadata
+  ) values (
+    '82000000-0000-4000-8000-000000000001',
+    array['82000000-0000-4000-8000-000000000001'::uuid],
+    '81000000-0000-4000-8000-000000000001',
+    '81000000-0000-4000-8000-000000000001',
+    'staging_fixture', 'admin_bootstrap.grant_issued', 'success',
+    '86000000-0000-4000-8000-000000000008',
+    'staging_fixture_grant_issued', 'feat-003-staging-synthetic-cli',
+    '85000000-0000-4000-8000-000000000003',
+    'organization_admin_bootstrap_grant',
+    '84000000-0000-4000-8000-000000000006', '{}'::jsonb
+  )$$,
+  '23514',
+  null,
+  'staging fixture audit cannot fabricate a human actor'
 );
 
 set local role service_role;
@@ -740,6 +875,15 @@ select is(
   )::boolean,
   false,
   'limiter never trusts local IP or forwarded headers'
+);
+select is(
+  public.consume_admin_onboarding_rate_limit(
+    repeat('9', 64),
+    'status',
+    '8a000000-0000-4000-8000-000000000019'
+  ) ->> 'policyVersion',
+  'subject-action-v1',
+  'limiter returns the exact versioned Edge contract'
 );
 
 reset role;

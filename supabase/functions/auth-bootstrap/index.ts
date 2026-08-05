@@ -4,24 +4,11 @@ import {
   authenticationEvidenceFromVerifiedToken,
   classifyCompleteFactorInventory,
 } from '../_shared/authentication-evidence.ts';
+import { readCommonEdgeRuntimeConfiguration } from '../_shared/edge-runtime-configuration.ts';
 import { createAuthBootstrapHandler } from './handler.ts';
 
-function requiredEnvironment(name: string): string {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`${name} is required.`);
-  return value;
-}
-
-function configuredAllowedOrigin(supabaseUrl: string): string {
-  const configured = Deno.env.get('ALLOWED_ORIGIN');
-  if (configured) return configured;
-  throw new Error(`ALLOWED_ORIGIN is required for ${new URL(supabaseUrl).hostname}.`);
-}
-
-const supabaseUrl = requiredEnvironment('SUPABASE_URL');
-const supabasePublishableKey = requiredEnvironment('SUPABASE_ANON_KEY');
-const supabaseServiceRoleKey = requiredEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-const allowedOrigin = configuredAllowedOrigin(supabaseUrl);
+const { supabaseUrl, supabasePublishableKey, supabaseServiceRoleKey, allowedOrigin } =
+  readCommonEdgeRuntimeConfiguration((name) => Deno.env.get(name));
 
 const publicClient = createClient(supabaseUrl, supabasePublishableKey, {
   auth: { persistSession: false, autoRefreshToken: false },
