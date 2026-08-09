@@ -24,12 +24,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-004 Member Invitations specification planning is authorized but no feature specification is approved. FEAT-005 User Management and Basic Profiles and FEAT-006 Role Assignment are also not specified.
+- FEAT-004 Member Invitations has a bounded specification and traceability plan ready for an implementation-authorization decision. FEAT-005 User Management and Basic Profiles and FEAT-006 Role Assignment are not specified.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-FEAT-004 Member Invitations specification planning is the next bounded product task. It must define scope, assumptions, unresolved provider dependencies, authority, tenant isolation, audit, abuse controls, user states, and planned verification without adding implementation or claiming hosted evidence.
+Review the [FEAT-004 Member Invitations specification](features/FEAT-004_MEMBER_INVITATIONS.md) and its [traceability plan](features/FEAT-004_TRACEABILITY.md). Implementation has not begun and requires a separately bounded request after the specification is accepted.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
