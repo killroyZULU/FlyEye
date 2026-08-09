@@ -28,8 +28,8 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 1. FEAT-001 Login and initial RBAC — merged
 2. FEAT-002 Password Recovery — merged
 3. FEAT-003 Organization Admin and MFA Onboarding — merged
-4. FEAT-003 Hosted Synthetic Hardening — merged; exact hosted activation remains a separate decision
-5. FEAT-004 Member Invitations — next planned bounded feature after the hosted-readiness dependency is resolved or explicitly reordered
+4. FEAT-003 Hosted Synthetic Hardening — merged; hosted-readiness planning and activation are deferred under the active governance decision
+5. FEAT-004 Member Invitations — next bounded specification-planning task
 6. FEAT-005 User Management and Basic Profiles
 7. FEAT-006 Role Assignment
 8. Visual-identity checkpoint before larger operational modules
