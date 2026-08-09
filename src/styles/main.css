@@ -24,7 +24,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -33,7 +34,8 @@ button {
 }
 
 button:disabled,
-input:disabled {
+input:disabled,
+select:disabled {
   cursor: wait;
   opacity: 0.7;
 }
@@ -201,7 +203,8 @@ input:disabled {
   font-weight: 750;
 }
 
-.field-group input {
+.field-group input,
+.field-group select {
   width: 100%;
   min-height: 3.15rem;
   padding: 0.8rem 0.9rem;
@@ -215,6 +218,7 @@ input:disabled {
 }
 
 .field-group input:focus-visible,
+.field-group select:focus-visible,
 button:focus-visible {
   outline: 3px solid rgb(37 150 143 / 28%);
   outline-offset: 2px;
@@ -417,6 +421,109 @@ button:focus-visible {
 
 .permission-summary span {
   color: #64757d;
+}
+
+.invitation-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.invitation-panel h2 {
+  margin: 0;
+  color: #0b293b;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 500;
+}
+
+.invitation-panel > p {
+  margin: 0;
+  color: #5f6e77;
+  line-height: 1.6;
+}
+
+.invitation-confirmation {
+  gap: 0.8rem;
+}
+
+.invitation-confirmation h3,
+.invitation-confirmation dl {
+  margin: 0;
+}
+
+.invitation-confirmation dl,
+.invitation-confirmation dl > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.invitation-confirmation dl {
+  gap: 0.7rem;
+}
+
+.invitation-confirmation dt {
+  color: #65767d;
+  font-size: 0.78rem;
+}
+
+.invitation-confirmation dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.invitation-list {
+  display: grid;
+  gap: 0.7rem;
+  max-height: 20rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.invitation-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border: 1px solid #d9e3e3;
+  border-radius: 0.65rem;
+  background: #f8fbfb;
+}
+
+.invitation-list li > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.invitation-list strong {
+  overflow-wrap: anywhere;
+  font-size: 0.83rem;
+}
+
+.invitation-list span {
+  color: #65767d;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.invitation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.invitation-actions button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #abc1c3;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #176c69;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 footer {

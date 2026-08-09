@@ -152,10 +152,7 @@ async function mockSupabase(page, options = {}) {
     });
   });
   await page.route('**/auth/v1/user*', async (route) => {
-    if (route.request().method() !== 'PUT') {
-      await route.fallback();
-      return;
-    }
+    assert.ok(['GET', 'PUT'].includes(route.request().method()));
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -164,6 +161,7 @@ async function mockSupabase(page, options = {}) {
         aud: 'authenticated',
         role: 'authenticated',
         email: 'student@example.test',
+        email_confirmed_at: new Date().toISOString(),
         app_metadata: { provider: 'email', providers: ['email'] },
         user_metadata: {},
         identities: [],
@@ -188,7 +186,9 @@ async function runScenario(browser, viewport, scenario) {
     await page.goto(
       scenario.name === 'recovery'
         ? 'http://127.0.0.1:4173/auth/forgot-password'
-        : 'http://127.0.0.1:4173',
+        : scenario.name === 'invitation'
+          ? `http://127.0.0.1:4173/auth/invitation?invitation=40000000-0000-4000-8000-000000000001&version=2#access_token=${encodeURIComponent(accessToken)}&refresh_token=synthetic-invitation-refresh-token&expires_in=3600&token_type=bearer&type=invite`
+          : 'http://127.0.0.1:4173',
     );
 
     if (scenario.name === 'viewport') {
@@ -261,6 +261,29 @@ async function runScenario(browser, viewport, scenario) {
       return;
     }
 
+    if (scenario.name === 'invitation') {
+      const heading = page.getByRole('heading', { name: 'Review and accept' });
+      await heading.waitFor();
+      assert.equal(
+        await heading.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      assert.equal(new URL(page.url()).search, '');
+      for (const locator of [
+        page.getByLabel('FlyEye password'),
+        page.getByRole('button', { name: 'Accept invitation' }),
+      ]) {
+        assert.equal(
+          await locator.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return rect.top >= 0 && rect.bottom <= globalThis.innerHeight;
+          }),
+          true,
+        );
+      }
+      return;
+    }
+
     await submitLogin(page);
     if (scenario.name === 'student') {
       await page.getByRole('heading', { name: 'Student workspace' }).waitFor();
@@ -287,6 +310,7 @@ const scenarios = [
   { name: 'empty', options: { empty: true } },
   { name: 'viewport', options: {} },
   { name: 'recovery', options: {} },
+  { name: 'invitation', options: {} },
 ];
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
@@ -309,7 +333,7 @@ try {
   } finally {
     await browser.close();
   }
-  process.stdout.write('10 Playwright E2E scenarios passed.\n');
+  process.stdout.write('12 Playwright E2E scenarios passed.\n');
 } finally {
   viteProcess.kill();
 }

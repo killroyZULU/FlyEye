@@ -33,7 +33,7 @@ backend = "postgres"
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:5173"
-additional_redirect_urls = ["http://127.0.0.1:5173/auth/recovery", "http://127.0.0.1:4173/auth/recovery"]
+additional_redirect_urls = ["http://127.0.0.1:5173/auth/recovery", "http://127.0.0.1:4173/auth/recovery", "http://127.0.0.1:5173/auth/invitation", "http://127.0.0.1:4173/auth/invitation"]
 enable_signup = false
 minimum_password_length = 15
 password_requirements = ""
@@ -57,6 +57,14 @@ otp_expiry = 3600
 subject = "Reset your FlyEye password"
 content_path = "./supabase/templates/recovery.html"
 
+[auth.email.template.invite]
+subject = "Your FlyEye school invitation"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Continue your FlyEye school invitation"
+content_path = "./supabase/templates/magic_link.html"
+
 [auth.email.notification.password_changed]
 enabled = true
 subject = "Your FlyEye password was changed"
@@ -75,5 +83,9 @@ enabled = true
 verify_jwt = true
 
 [functions.organization-admin-onboarding]
+enabled = true
+verify_jwt = true
+
+[functions.member-invitations]
 enabled = true
 verify_jwt = true
