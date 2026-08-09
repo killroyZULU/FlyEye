@@ -7,6 +7,7 @@ Entries should normally be no more than 100 words. Do not use this file as an im
 ## Unreleased
 
 - Consolidated active documentation around one canonical home per rule. Added `CURRENT_STATE.md`, the Documentation Standard, automated size/link/duplication checks, and concise agent-writing rules. Removed superseded process chronology and repetitive status prose from active entry-point documents without changing product, security, tenancy, privacy, audit, aviation, or human-authority boundaries.
+- Constrained the existing transitive `nanoid` dependency to patched compatible version `3.3.17` after the required audit reported the zero-size custom-generator denial-of-service advisory. No direct dependency or application behavior was added.
 
 ## 0.4.0 — 2026-08-09
 
