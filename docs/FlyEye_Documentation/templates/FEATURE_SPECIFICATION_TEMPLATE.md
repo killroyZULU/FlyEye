@@ -1,105 +1,82 @@
 # Feature Specification: FEAT-XXX — Name
 
-## Status and ownership
+Follow `DOCUMENTATION_STANDARD.md`. This file defines the stable feature contract; implementation history and test results belong in traceability, Git, pull requests, and CI.
 
-- Status: Draft | Reviewed | Approved | Implemented | Verified | Released
-- Current SDLC phase: Discovery | Specification | Design | Implementation | Verification | Review | PR/CI | Merge | Release
-- Product owner:
-- Aviation SME:
-- Technical owner:
-- Security/privacy reviewers:
-- Target release:
+## Status
 
-## User outcome and problem
+- State: Draft | Approved | Implemented | Verified | Merged
+- Current SDLC phase:
+- Owner:
+- Baseline and task branch:
+- Related requirement/decision IDs:
+
+## User outcome
 
 As a **role**, I want **outcome**, so that **verified value**.
 
 ## Scope
 
-### Included
+Included:
 
 -
 
-### Non-goals
+Non-goals:
 
 -
 
-## Source and assumptions
+## Sources, assumptions, and unresolved questions
 
-| Item | Verified source/owner/version | Status |
+| Item | Source/owner/version | State |
 |---|---|---|
-| Aviation/business rule | | Verified / pending |
+| | | Verified / assumed / unresolved |
 
-Do not implement an unverified safety/regulatory rule as authoritative.
+Do not implement an unverified aviation, aircraft, legal, privacy, or operational rule as authoritative.
 
-## Roles, permissions, and record scope
+## Roles and authority
 
-| Action | Permission | RLS / protected-function organization and assignment rule | Reauthentication |
-|---|---|---|---|
-| | | | |
+| Action | Permission | Tenant/record rule | Direct RLS or protected command | Reauthentication |
+|---|---|---|---|---|
+| | | | | |
 
-## Preconditions and business rules
-
-1.
-
-## Workflow and state transitions
+## Workflow and business rules
 
 ```text
 CurrentState --authorized action--> NewState
 ```
 
-Define invalid, duplicate/idempotent, concurrent, cancellation, and amendment behavior.
+Define preconditions, invalid transitions, idempotency, concurrency, cancellation, amendment, and fail-closed behavior.
 
-## Data and migration
+## Data and server contract
 
-- Entities/fields/constraints/indexes:
-- `organization_id` behavior:
+- Entities, fields, constraints, indexes, and `organization_id` behavior:
 - Classification and retention:
-- Concurrency/versioning:
-- Migration/backfill/rollback or forward-fix:
+- Migration and rollback/forward-fix:
+- Edge Function or PostgreSQL function:
+- Request, response, and stable error families:
+- RLS, grants, Storage, and generated-type impact:
 
-## Data and protected-function contract
-
-- Direct table operation or protected Edge/PostgreSQL function:
-- Method/path or RPC name:
-- Request/response examples:
-- Error codes:
-- Idempotency/concurrency:
-- RLS/grant/Storage policy impact:
-- Generated database type impact:
-
-## UI/UX
+## UI behavior
 
 - Entry point and responsive behavior:
-- Loading, empty, error, unauthorized, offline, conflict, and success states:
-- Accessibility:
-- Source/freshness/AI labels:
+- Loading, empty, error, unauthorized, conflict, offline, and success states:
+- Keyboard, focus, labels, announcements, reflow, and other applicable accessibility behavior:
+- Source, freshness, limitation, and AI labels:
 
-## Validation and safety
+## Audit and observability
 
-- Authoritative server validation:
-- Deterministic calculations/configuration:
-- Human authority/approval:
-- Failure behavior and fallback:
-
-## Audit, notifications, and observability
-
-- Audit event and non-sensitive metadata:
-- Notification recipients/idempotency:
-- Metrics/logs/alerts:
+- Atomic audit event and non-sensitive metadata:
+- Notifications and idempotency:
+- Metrics, logs, alerts, and failure behavior:
 
 ## Security, privacy, and abuse cases
 
-- Cross-tenant direct Data API/list/search/RPC/Edge Function/file/export attempts
-- Unauthorized role/assignment/state
-- Injection, request/file abuse, enumeration, replay/race
-- Sensitive data minimization and log/prompt redaction
+Record only feature-specific controls and link global requirements by ID. Cover cross-tenant direct-ID/list/search/RPC/Edge/file/export attempts, unauthorized role/assignment/state, enumeration, injection, replay/race, request/file abuse, and sensitive-data minimization as applicable.
 
 ## Acceptance criteria
 
-- [ ] Given / when / then criterion
+- [ ] `FEAT-XXX-AC-01` Given / when / then criterion
 
-## Tests and evidence
+## Planned verification
 
 | Test ID | Level | Scenario | Expected result |
 |---|---|---|---|
@@ -107,52 +84,28 @@ Define invalid, duplicate/idempotent, concurrent, cancellation, and amendment be
 
 ## Dependencies
 
-List providers/packages. New dependencies require purpose, maintenance, vulnerability, license, bundle/operations, and alternative assessment.
+List only feature-specific packages or providers. For a new dependency, record purpose, maintenance, vulnerability posture, license, operational/bundle impact, and existing alternative.
 
-## Files allowed to change
+## Change boundary
+
+Allowed areas:
 
 -
 
-## Files not allowed to change
+Excluded areas:
 
-- Authentication/tenancy architecture unless explicitly approved
 - Unrelated modules
+- Architecture or authority changes outside this specification
+- Merge, real data, production deployment, destructive actions, and branch deletion
 
-## Autonomous delivery boundary
+Do not restate the global delivery envelope or hard stops; reference `AGENTS.md`.
 
-A request for this bounded feature authorizes specification refinement,
-implementation, local synthetic verification, in-scope correction, separate
-agent review, documentation, scoped commit/push, a review-ready pull request,
-and CI follow-up through green.
+## Definition of done
 
-- Branch and baseline:
-- Bounded outcome and non-goals:
-- Expected implementation, migration, test, fixture, documentation, and tooling
-  areas:
-- Safe reversible defaults selected by the agent:
-- Material hard-stop conditions:
-- Always excluded: merge, real data, production deployment, destructive Git/data
-  actions, branch deletion, unsupported regulated authority, and unrelated
-  features:
-
-## Verification tiers
-
-- Focused checks for implementation and corrections:
-- Complete feature-specific evidence:
-- One final application/database matrix after the review target stabilizes:
-- Fingerprint/evidence location used to avoid unchanged reruns:
-
-## Definition of Done
-
-- [ ] Requirements and sources approved
-- [ ] Code/SQL migration/RLS/protected-function/client implemented in bounded scope
-- [ ] Unit, component, SQL/RLS, Edge Function, authorization, tenant, E2E, and relevant security tests pass
-- [ ] Service-role key and privileged functions remain server-only and narrowly scoped
-- [ ] Audit/observability and failure paths verified
-- [ ] Accessibility/responsive/offline behavior reviewed as applicable
-- [ ] Docs, traceability, ADR/change log updated
-- [ ] Separate diff review completed
-- [ ] Risk-triggered aviation/legal/production/formal-compliance reviews recorded
-      when inherently required
-- [ ] Scoped branch is committed, pushed, and represented by a green
-      review-ready pull request
+- [ ] Contract, sources, assumptions, and unresolved items are explicit
+- [ ] Data/RLS/protected-command/frontend/audit behavior is implemented in scope
+- [ ] Applicable positive, negative, cross-tenant, concurrency, failure, and accessibility checks pass
+- [ ] Secrets and service-role authority remain server-only
+- [ ] Traceability contains the evidence and limitations
+- [ ] Documentation checks and separate review pass
+- [ ] Scoped branch has a green review-ready pull request

@@ -12,11 +12,14 @@ GitHub-enforced branch protection is not available under the current repository 
 
 ## 3. Pull-request pipeline
 
-The current CI baseline is verification-only. It runs frozen installation, formatting, ESLint, TypeScript, unit/component/handler tests, production build, a browser-specific Supabase key scan, a general Git-history secret scan, Playwright tests, dependency audit, local Supabase reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization integration, database lint, and generated database-type drift. It uses synthetic local data, least-privilege read-only repository permissions, and no deployment credentials.
+The current CI baseline is verification-only. It runs frozen installation, formatting, documentation architecture checks, ESLint, TypeScript, unit/component/handler tests, production build, a browser-specific Supabase key scan, a general Git-history secret scan, Playwright tests, dependency audit, local Supabase reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization integration, database lint, and generated database-type drift. It uses synthetic local data, least-privilege read-only repository permissions, and no deployment credentials.
 
 The pipeline exposes the same stable entry points to developers and AI agents:
 
 - `pnpm verify:app` runs the complete application-side quality group;
+- `pnpm check:docs` validates active-document size budgets, local links,
+  required entry points, prohibited historical/prompt structure, and duplicate
+  long paragraphs;
 - `pnpm verify:database:running` runs reset, SQL/RLS, every automatically
   discovered `scripts/test-*-runtime.mjs` fixture through a body/output-suppressed
   runner, database lint, and a non-mutating generated-type comparison against an
@@ -46,7 +49,7 @@ the PR ready for merge review. CI cannot merge, deploy, or approve production.
 The target release pipeline is:
 
 ```text
-Formatting/lint/type checks
+Formatting/documentation/lint/type checks
  -> React/Vite build
  -> unit/component tests
  -> SQL, RLS, Edge Function, integration and tenant-isolation tests

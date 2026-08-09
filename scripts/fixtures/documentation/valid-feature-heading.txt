@@ -1,0 +1,5 @@
+# Feature Specification: FEAT-099 — Valid Fixture
+
+## Outcome
+
+Valid checker fixture.

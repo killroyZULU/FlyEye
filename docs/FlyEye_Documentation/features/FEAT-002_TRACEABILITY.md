@@ -1,152 +1,70 @@
-# FEAT-002 Requirements Traceability
+# FEAT-002 Traceability
 
-## Status
+## Evidence boundary
 
-This record traces FEAT-002 Password Recovery through the approved specification, the 2026-07-26 pinned local synthetic runtime review, the approved verified-password-AMR amendment, the authorized bounded implementation, the 2026-07-27 post-password-change fail-closed correction, the completed Codex/automated technical review, the focused human desktop recovery walkthrough, the Founder/Product Owner's bounded local MVP acceptance, and the normal PR #5 merge into development `main`. The implementation denies and audits OTP-only bootstrap before organization context, preserves password/AAL/TOTP checks, completes recovery through exact local Auth configuration and Mailpit templates, maps both global-sign-out failure shapes to a terminal fail-closed state, and proves global logout with both clients' old refresh/access paths denied. The participant reported no material accessibility defect in the exercised desktop recovery path; the unexercised human-only behaviors and active CAPTCHA-provider fallback remain accepted local publication limitations. Hosted validation, deployment, real-data use, and production approval remain unauthorized. The later FEAT-003 documentation and bounded local implementation do not change FEAT-002 evidence; FEAT-003 verification, acceptance, publication, and every later release gate remain separate.
+- Feature commit: `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`
+- Merge: PR #5 at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`
+- Closure documentation: PR #6 at `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66`
+- Environment: Pinned local Supabase stack and local browser tests
+- Data: Randomized synthetic `.test` identities and organizations only
+- Review: Separate Codex review and automated evidence; no qualified independent human technical/security/privacy review
 
-## Approval boundary
+Pre-merge CI run `30237389881`, post-merge run `30237614093`, and closure-documentation run `30238931694` passed Application quality and Local Supabase security. CI performed no deployment.
 
-- Founder/Product Owner: Approved the original recorded decisions, completed a Codex-guided owner review, approved the evidence-based verified-password-AMR amendment, and separately authorized the bounded local synthetic implementation on 2026-07-26.
-- Runtime status: Supabase CLI `2.109.1`, GoTrue `v2.192.0`, and `@supabase/supabase-js` `2.110.7` were retained and exercised locally with randomized `example.test` identities and two synthetic organizations. Node `v24.18.0` satisfied the repository's `>=24` engine range. No schema migration, dependency addition/update, or lockfile change was introduced.
-- Codex role: Facilitated the owner review, implemented the bounded local change, reviewed the corrected diff, and ran the final automated verification. This is the bounded-local technical code-review evidence, not qualified independent human review or Founder/Product Owner approval.
-- Qualified independent human technical/security/privacy review: Not performed. The Founder/Product Owner accepted Codex and automated verification as the technical review evidence under the risk-based governance amendment.
-- Aviation SME: Not required unless later scope introduces aviation authority or workflow behavior.
-- The AI-assisted local synthetic implementation was authorized and completed. On 2026-07-27 the Founder/Product Owner separately authorized its scoped publication and normal merge. PR #5 merged retained branch commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897` into development `main` at merge commit `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`. That decision authorized no hosted environment, real data, deployment, production use, or FEAT-003 work. The later FEAT-003 documentation authorization is separate and grants no implementation authority.
-- The review-found defect was corrected, focused affected checks and one final required verification matrix passed, and the detailed evidence is recorded once below. Do not repeat the full matrix while branch, HEAD, complete working-tree hashes, dependencies, configuration, and referenced evidence remain unchanged.
-- Agent review and green automation do not constitute qualified independent human review, product acceptance, Git publication authorization, merge authorization, deployment approval, or production approval.
+## Requirements and results
 
-| Need ID | Source/problem | Requirement ID | Feature/design | Security/privacy/safety control | Planned test IDs/evidence | Current result | Approval |
-|---|---|---|---|---|---|---|---|
-| FEAT-002-01 | A user who forgot a password needs a safe self-service request | Product and Governance Decisions section 5; Security Requirements section 3 | Public request entry, local malformed-email guidance, and generic acknowledgement after any syntactically valid submission | Same visible behavior for eligible, unknown, suspended, banned, deleted, invited-but-unconfirmed, provider-only, rate-limited, CAPTCHA-rejected, and provider-failure cases; no organization lookup | FEAT-002-AC-01, FEAT-002-AC-02; FEAT-002-UNIT-01; FEAT-002-COMP-01; FEAT-002-AUTH-01; FEAT-002-ABUSE-01 | Local UI generic-outcome, malformed/offline, provider-failure, cooldown, and unknown-account non-creation evidence passed; full suspended/banned/deleted/provider-only/timing/CAPTCHA matrix remains pending | Local agent/automated technical review complete; later provider and Founder/Product Owner gates pending |
-| FEAT-002-02 | Public recovery must not create accounts or widen access | IAM-001/002/003; ADR-0005 | Existing verified email/password identity only; no sign-up, membership, role, or tenant mutation | Public sign-up disabled; no user-supplied authority; no application table write | FEAT-002-AC-02, FEAT-002-AC-13; FEAT-002-AUTH-01; FEAT-002-TENANT-01; FEAT-002-REG-01 | Unknown-email local request created no Auth user or application row; no schema/grant/membership/role change occurred | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-03 | Recovery proof must be short-lived, single-use, and safe from automated link prefetch | Product and Governance Decisions section 5; Security Requirements sections 3 and 6 | 3,600-second synthetic expiry; explicit confirmation; version-controlled `TokenHash`/`verifyOtp` recovery template; bounded resend/supersession behavior | Client type fixed to `recovery`; provider alias acceptance is not authorization; invalid/used/expired/replayed/superseded credentials fail closed; every accepted OTP session is restricted from FlyEye bootstrap | FEAT-002-AC-03, FEAT-002-AC-04, FEAT-002-AC-05, FEAT-002-AC-06, FEAT-002-AC-08; FEAT-002-UNIT-03; FEAT-002-AUTH-02; FEAT-002-AUTH-06; FEAT-002-SEC-01; FEAT-002-E2E-01 | Exact template/callback, explicit-confirmation prefetch resistance, fixed client type, provider matrix, replay denial, and OTP-only bootstrap denial passed locally | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-04 | Credential material must not leak through the web application or tooling | IAM-009; Security Requirements sections 5, 6, and 9 | URL scrubbing, in-memory-only handling, safe errors, publishable-key-only browser | No token/password in logs, analytics, DOM, referrer, durable storage, screenshots, application tables, or AI prompts | FEAT-002-AC-06, FEAT-002-AC-07, FEAT-002-AC-14; FEAT-002-UNIT-03; FEAT-002-UNIT-04; FEAT-002-SEC-01; FEAT-002-SCAN-01 | URL scrubbing, fixed parsing, safe errors, build/source secret scan, and minimized runtime output passed; no application schema storage added | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-05 | A recovered user must choose a valid new password | Security Requirements section 3; Supabase Auth password policy | Minimum 15, at least 64 supported, spaces/paste/autofill/password managers, no composition rule, server-authoritative `updateUser` | Supabase remains authoritative; `weak_password` and `same_password` handled safely; breached-password protection gates real-data use | FEAT-002-AC-07, FEAT-002-AC-08; FEAT-002-UNIT-04; FEAT-002-AUTH-03; FEAT-002-E2E-01 | Minimum 15, 64 characters with spaces, no composition rule, `weak_password`, `same_password`, matching, paste/autofill attributes, and server-authoritative update passed locally; breached-password production control remains pending | Local agent/automated technical review complete; real-data and Founder/Product Owner gates pending |
-| FEAT-002-06 | Password reset must end existing sessions and require fresh sign-in | Product and Governance Decisions section 5; Security Requirements section 3 | No-schema design; verified-password-AMR bootstrap gate; global refresh-session revocation, local cleanup, and fresh sign-in | OTP-only sessions denied before organization context; two-client old refresh/JWT/bootstrap/Data API/RPC denial after completion; fresh password session re-enters existing role/AAL/MFA checks | FEAT-002-AC-05, FEAT-002-AC-08, FEAT-002-AC-09, FEAT-002-AC-10; FEAT-002-UNIT-02; FEAT-002-COMP-02; FEAT-002-AUTH-04; FEAT-002-AUTH-06; FEAT-002-E2E-01; FEAT-002-REG-01 | OTP-only denial/audit, password/TOTP compatibility, global logout, both clients' old refresh/Auth/bootstrap/Data API/RPC denial, old-password failure, and fresh-password bootstrap passed locally | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-07 | Partial provider/revocation failure must not create stale or privileged access | NFR-008/010; Security Requirements sections 3 and 15 | Fail-closed recovery state and operation-generation guard | No workspace on uncertainty; local state cleared; no password rollback; bounded safe retry/support path | FEAT-002-AC-10; FEAT-002-UNIT-02; FEAT-002-COMP-02; FEAT-002-AUTH-04 | Focused gateway tests cover resolved and rejected global-sign-out failures; the unexpected post-change component failure clears password/recovery state, loads no organization/workspace, submits the update once, and stays terminally fail closed; live provider-failure injection remains pending | Corrected agent/automated technical review complete; later provider and Founder/Product Owner gates pending |
-| FEAT-002-08 | Security-sensitive credential changes require trustworthy evidence and user notification | IAM-007; REC-001/002/003; Security Requirements section 9 | Supabase Auth audit actions plus existing protected bootstrap-denial audit; version-controlled Mailpit password-changed notification; no schema migration | Pinned actions/fields recorded; `logout` paired with old-token denial; raw full email/IP evidence restricted; notification excludes password, token, organization, membership, role, and restricted data | FEAT-002-AC-11; FEAT-002-AUTH-05; FEAT-002-AUTH-06; FEAT-002-CONFIG-01 | Protected denial audit, pinned Auth action names, tenant-neutral Mailpit notification, minimized evidence, `logout` plus old-token denial, and absence of assumed `token_revoked` passed locally | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-09 | Recovery must resist flooding, bots, enumeration, and quota exhaustion | Security Requirements sections 3, 6, and 10 | 60-second synthetic per-user cooldown, provider-neutral CAPTCHA, duplicate guard, monitoring, future edge/WAF control if justified | Generic response retained under cooldown/provider/CAPTCHA failure; accessible fallback required; production limits await staging evidence | FEAT-002-AC-01, FEAT-002-AC-12; FEAT-002-UNIT-01; FEAT-002-UNIT-02; FEAT-002-COMP-01; FEAT-002-ABUSE-01 | Local 60-second cooldown, duplicate guard, provider-neutral CAPTCHA-token gateway boundary, and generic failure response passed; active CAPTCHA provider, distributed/IP abuse, timing, monitoring, and accessible provider fallback remain pending | Local agent/automated technical review complete; hosted-provider and Founder/Product Owner gates pending |
-| FEAT-002-10 | A multi-school identity must not expose or alter tenant context during recovery | IAM-002/003/010/011; architecture multi-tenancy boundary | Identity-scoped flow with no organization selection, lookup, branding, role routing, or membership write | Cross-tenant and multi-membership tests; no `organization_id` accepted or returned | FEAT-002-AC-13; FEAT-002-TENANT-01; FEAT-002-AUTH-01; FEAT-002-REG-01 | Two-organization multi-membership recovery passed with tenant-neutral UI/email, null/empty organization denial audit, and no membership mutation | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-11 | Recovery must be understandable, accessible, responsive, and safe offline | NFR-003/004; QA Plan sections 2 and 7 | Request, acknowledgement, explicit confirmation, password, invalid, failure, offline, and success states | Keyboard/focus/live-region behavior; no offline queue; secrets not retained; mobile/desktop coverage; CAPTCHA fallback | FEAT-002-AC-15; FEAT-002-COMP-01; FEAT-002-COMP-02; FEAT-002-COMP-03; FEAT-002-E2E-02 | Component and desktop/mobile Playwright evidence passed for labels, live regions, explicit confirmation, offline no-submit, failure, success, and reliable heading-focus transitions; the Founder/Product Owner reported no material accessibility defect in the participant-exercised desktop recovery path; unexercised human-only behavior and active CAPTCHA fallback remain limited | Local automated and scope-limited human desktop evidence recorded; residual accessibility and Founder/Product Owner gates remain |
-| FEAT-002-12 | Auth, email, redirect, rate, session, and notification behavior must be reproducible per environment | NFR-010/011; DevSecOps sections 4, 5, and 7 | Local/preview/production matrix; version-controlled local Auth configuration/templates or reviewed drift-detecting runbook | Exact loopback callbacks and synthetic Mailpit locally; separate environment origins/providers/secrets; hosted choices unresolved; no production data | FEAT-002-AC-03, FEAT-002-AC-11, FEAT-002-AC-12, FEAT-002-AC-14; FEAT-002-CONFIG-01; FEAT-002-SCAN-01 | Pinned local stack accepted version-controlled exact callbacks, templates, expiry, password baseline, cooldown, sender, and notification; hosted environment choices remain unresolved | Local agent/automated technical review complete; hosted, deployment, and production gates pending |
-| FEAT-002-13 | FEAT-002 must not weaken FEAT-001 login, MFA, audit, or tenant isolation | IAM-003/005/007/008/009/010; FEAT-001 specification | Bounded auth-recovery additions plus verified-password-AMR hardening and full identity/security regression | Existing RLS/grants remain deny-by-default; OTP-only sessions cannot bootstrap; password sessions retain role/AAL/MFA checks; no role or operational authority changes | FEAT-002-AC-05, FEAT-002-AC-09, FEAT-002-AC-13, FEAT-002-AC-14; FEAT-002-AUTH-06; FEAT-002-REG-01 | Existing password/TOTP/role/AAL/audit/two-organization/RLS/RPC/frontend regression passed after the AMR gate; no schema/grant/type drift occurred | Local agent/automated technical review complete; Founder/Product Owner gates pending |
-| FEAT-002-14 | Product-direction approval must not be mistaken for implementation or release evidence | QA Plan sections 7 and 9; production release gate | Explicit authorization boundary, risk-based review status, open limitations, and evidence references | No trace result marked passed without reproducible runtime evidence; agent review and green automated checks cannot grant Founder/Product Owner approval | Specification boundary, implementation diff, runtime commands, DoD review, 2026-07-27 Founder/Product Owner decisions, and PR #5 record | Local implementation, agent/automated technical evidence, scope-limited human desktop walkthrough, accepted residual local limitations, bounded local MVP acceptance, and normal merge are recorded | PR #5 normally merged; hosted validation, deployment, real-data, production, and FEAT-003 implementation approvals remain pending. The later FEAT-003 documentation phase is separate. |
-
-## 2026-07-26 through 2026-07-27 pinned local evidence
-
-| Evidence ID | Scope | Redacted result | Trace impact |
+| Requirement ID | Outcome/control | Evidence | Result and limitation |
 |---|---|---|---|
-| FEAT-002-EVID-01 | Recovery token type matrix | `recovery`, `email`, and `magiclink` accepted; `signup`, `invite`, and `email_change` rejected | Replaces wrong-purpose denial as an authorization assumption; application remains fixed to `recovery`, while protected bootstrap must restrict every accepted OTP session |
-| FEAT-002-EVID-02 | Client event and JWT comparison | `recovery` emitted `PASSWORD_RECOVERY`; `email` emitted `SIGNED_IN`; both JWTs had identical claim keys, `aal1`, `amr` method `otp`, and no recovery-purpose claim | Client events cannot authorize tenant/workspace access |
-| FEAT-002-EVID-02A | FEAT-001 AMR compatibility | Password sign-in produced `password`; AAL2 password-plus-TOTP sign-in produced `password` and `totp` | Password-AMR gating preserves the existing password and privileged MFA paths |
-| FEAT-002-EVID-03 | Pre-password protected access before the amendment | Both OTP sessions received HTTP `200` from Auth user lookup and FEAT-001 `auth-bootstrap`; direct table and protected RPC paths received HTTP `403` | Historical gap that required the approved and implemented password-AMR gate |
-| FEAT-002-EVID-04 | Post-change global sign-out | Old refresh received HTTP `400`; old Auth/bootstrap/table/RPC access received `403`/`401`/`403`/`403` | Bounded no-schema refresh/access revocation behavior passed; full two-client implementation regression remains required |
-| FEAT-002-EVID-05 | Auth audit action/field structure | Observed `user_recovery_requested`, `login`, `user_updated_password`, `user_modified`, and `logout`; no `token_revoked`; actor ID/email attribution and table timestamp/IP fields were present | Use `logout` plus old-token denial; restrict raw audit evidence and do not infer missing actions |
-| FEAT-002-EVID-06 | Evidence privacy and cleanup | Only action/field names, match booleans, and HTTP statuses were retained; no token, password, full email, IP value, service-role credential, or raw payload was preserved; temporary harness and synthetic rows were removed | Satisfies the documentation-review minimization boundary; later implementation and accessibility evidence is recorded separately |
-| FEAT-002-EVID-07 | Implemented OTP-only bootstrap denial | Real local `recovery`, `email`, and `magiclink` sessions received HTTP `403` with the bounded reason `authentication_method_not_allowed`; a distinct protected denial audit row for each alias had null/empty organization context | Closes the historical FEAT-001 bootstrap gap without a migration and retains fixed client-side `recovery` handling |
-| FEAT-002-EVID-08 | Implemented recovery and revocation | Exact Mailpit recovery callback, explicit confirmation, replay denial, password-policy errors, 64-character password with spaces, password-changed notification, global `logout`, both clients' old refresh/Auth/bootstrap/Data API/RPC denial, old-password denial, and fresh-password bootstrap passed | Supplies local automated FEAT-002 credential/session/notification evidence without inferring `token_revoked` |
-| FEAT-002-EVID-09 | Implementation regression and tenancy | Clean migration reset, 47 SQL/RLS tests, schema-wide RLS discovery, database lint, generated-type drift check, existing Auth/TOTP/Edge/frontend tests, and two-organization multi-membership recovery passed | Confirms no schema, grant, RLS, generated type, role, AAL, TOTP, or tenant-isolation regression |
-| FEAT-002-EVID-10 | UI and safe-state coverage | Unit/component tests and both 10-scenario desktop/mobile Playwright paths covered generic acknowledgement, malformed/offline input, URL scrubbing, explicit confirmation, invalid link, password errors, fail-closed revocation, fresh-sign-in success, and reliable heading-focus transitions. The Founder/Product Owner then completed the local synthetic desktop request, recovery-link, password-entry, validation-error, completion, and return-to-sign-in path and reported that the exercised keyboard/visual behavior worked as expected | No material accessibility defect was reported in the exercised desktop path; mobile, invalid-link, offline, injected fail-closed, assistive-technology live-region, password-manager/autofill, measured contrast/target-size, 200% zoom/reflow, and active CAPTCHA fallback were not separately recorded as human observations |
-| FEAT-002-EVID-11 | Reviewed post-password-change correction | Gateway tests proved resolved and rejected global-sign-out failures both become `revocation_failed` with local cleanup attempted; an unexpected post-update exception cleared password/recovery state, loaded no organization/workspace, submitted no second update, and displayed only sign-in/support guidance | Closes the bounded review defect in local code and automation; the completed Codex review and final matrix are technical evidence, not qualified independent human review or product acceptance |
-| FEAT-002-EVID-12 | Git publication, merge, and CI | Retained branch commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897` was normally merged through PR #5 into development `main` at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`; pre-merge run `30237389881` and post-merge `main` run `30237614093` passed Application quality and Local Supabase security | Records publication and merge evidence only; no hosted Supabase access, real-data use, deployment, production approval, or qualified independent human technical/security/privacy review is implied |
+| `FEAT-002-01` | Generic self-service request | `AC-01/02`, `UNIT-01`, `COMP-01`, `AUTH-01`, `ABUSE-01` | Partial pass: generic UI, malformed/offline, provider failure, cooldown, and unknown-account non-creation passed; suspended, banned, deleted, invited-unconfirmed, provider-only, timing-distribution, and active-CAPTCHA cases remain pending |
+| `FEAT-002-02` | Recovery creates no account or authority | `AC-02/13`, `AUTH-01`, `TENANT-01`, `REG-01` | Pass locally; no Auth/application record, schema, role, or membership was created |
+| `FEAT-002-03` | Short-lived, single-use, prefetch-safe credential | `AC-03`–`AC-06/08`, `UNIT-03`, `AUTH-02/06`, `SEC-01`, `E2E-01` | Pass locally; reverify on Auth/provider upgrade |
+| `FEAT-002-04` | Credential secrecy | `AC-06/07/14`, `UNIT-03/04`, `SEC-01`, `SCAN-01` | Pass locally; no durable credential path found |
+| `FEAT-002-05` | Server-authoritative password policy | `AC-07/08`, `UNIT-04`, `AUTH-03`, `E2E-01` | Pass locally; breached-password production control pending |
+| `FEAT-002-06` | Revoke old sessions and require fresh sign-in | `AC-05/08/09/10`, `UNIT-02`, `COMP-02`, `AUTH-04/06`, `E2E-01`, `REG-01` | Pass locally; hosted session behavior must be reverified |
+| `FEAT-002-07` | Fail closed on partial provider/revocation failure | `AC-10`, `UNIT-02`, `COMP-02`, `AUTH-04`, `EVID-11` | Corrected tests pass; live hosted failure injection pending |
+| `FEAT-002-08` | Audit and user notification | `AC-11`, `AUTH-05/06`, `CONFIG-01`, `EVID-07/08` | Pass locally; production retention, drains, access, alerting, and ownership unresolved |
+| `FEAT-002-09` | Abuse and enumeration resistance | `AC-01/12`, `UNIT-01/02`, `COMP-01`, `ABUSE-01` | Local cooldown/guards pass; active CAPTCHA, distributed/IP/WAF, timing, and provider accessibility pending |
+| `FEAT-002-10` | Multi-organization isolation | `AC-13`, `TENANT-01`, `AUTH-01`, `REG-01` | Pass locally; no organization or membership state changed |
+| `FEAT-002-11` | Accessible responsive and offline-safe flow | `AC-15`, `COMP-01/02/03`, `E2E-02`, `EVID-10` | Automated/local scope pass; residual human observations listed below |
+| `FEAT-002-12` | Reproducible environment configuration | `AC-03/11/12/14`, `CONFIG-01`, `SCAN-01` | Pass locally; hosted origins, providers, secrets, and settings unresolved |
+| `FEAT-002-13` | Preserve FEAT-001 Auth, RLS, audit, and tenancy | `AC-05/09/13/14`, `AUTH-06`, `REG-01`, full matrix | Pass on recorded target |
+| `FEAT-002-14` | Keep implementation evidence separate from later gates | `EVID-07`–`EVID-12`, PR #5/6, CI | Local implementation and merge evidenced; hosted, real-data, deployment, and production gates remain open |
 
-FEAT-002-EVID-01 through FEAT-002-EVID-06 are reproducible historical observations against commit `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`. FEAT-002-EVID-07 through FEAT-002-EVID-10 were produced from the authorized then-uncommitted implementation on 2026-07-26; FEAT-002-EVID-07, FEAT-002-EVID-08, and FEAT-002-EVID-10 were strengthened and FEAT-002-EVID-11 was added by the 2026-07-27 correction, focused retests, and one final full matrix before publication as `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`. FEAT-002-EVID-12 records the later GitHub publication, normal merge, and CI result. The Codex/automated rows are not qualified independent human review, product acceptance, deployment authorization, or production acceptance.
+## Pinned provider findings
 
-## Unresolved gates
+- GoTrue `v2.192.0` accepted a recovery token through `recovery`, `email`, and `magiclink`; each produced an OTP-only session without a recovery-purpose JWT claim.
+- Direct tenant table/RPC access remained denied. Protected FlyEye bootstrap denied and audited each OTP-only variant because password AMR was absent.
+- Password and password-plus-TOTP sessions retained their normal FEAT-001 paths.
+- Observed Auth actions were `user_recovery_requested`, `login`, `user_updated_password`, `user_modified`, and `logout`. `token_revoked` was not observed and is not claimed.
+- Old refresh tokens and old Auth/bootstrap/Data API/RPC access were denied after password update and global sign-out.
 
-### Recorded implementation-start decisions
+Reverify these findings when the pinned Auth implementation changes.
 
-| Gate | Recorded decision |
-|---|---|
-| Amendment approval | Founder/Product Owner approved the verified-password-AMR bootstrap boundary on 2026-07-26 |
-| Explicit implementation authorization | Founder/Product Owner separately authorized this bounded local synthetic implementation on 2026-07-26 |
-| Version baseline | Supabase CLI `2.109.1`, GoTrue `v2.192.0`, and `@supabase/supabase-js` `2.110.7` remained pinned |
-| Environment boundary | Local randomized synthetic data only; no commit, push, pull request, hosted environment, real data, merge, or deployment was authorized |
+## Stable evidence and automated identifiers
 
-### Completed risk-based technical review
+- `FEAT-002-EVID-01`, `FEAT-002-EVID-02`, `FEAT-002-EVID-02A`, `FEAT-002-EVID-03`, `FEAT-002-EVID-04`, `FEAT-002-EVID-05`, and `FEAT-002-EVID-06` record pinned provider, AMR, access, audit, privacy, and cleanup observations.
+- `FEAT-002-EVID-07` records OTP-only bootstrap denial and protected audit.
+- `FEAT-002-EVID-08` records recovery, password, notification, and old-session/path denial.
+- `FEAT-002-EVID-09` records SQL/RLS, tenancy, generated-type, and FEAT-001 regression evidence.
+- `FEAT-002-EVID-10` records automated UI/browser evidence and the focused desktop walkthrough boundary.
+- `FEAT-002-EVID-11` records corrected terminal post-password-change failure behavior.
+- `FEAT-002-EVID-12` records PR #5 merge and CI publication evidence.
 
-| Gate | Recorded decision or evidence |
-|---|---|
-| Technical review | Completed Codex review plus automated verification satisfies the bounded-local technical code-review gate; it is not qualified independent human review |
-| Correction sequence | The review-found post-password-change defect received focused gateway/component checks, followed by one final required verification matrix on 2026-07-27 |
-| Review target | Published branch `feat/FEAT-002-password-recovery`; feature commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`; pinned dependencies; local configuration; unchanged non-document implementation manifest |
-| Implementation content manifest | SHA-256 `f83d5f93bf46f83f43419423c44953ac165bb4ac4001e5326a520beb3511c34d`, calculated over sorted, newline-terminated `<file SHA-256><two spaces><repository path>` entries for every modified or untracked non-document implementation file |
-| Evidence reuse | Do not rerun the full matrix while the branch, HEAD, implementation manifest, dependencies, configuration, and evidence remain unchanged; later reports reference FEAT-002-EVID-07 through FEAT-002-EVID-11 |
-| Human-review transparency | No qualified independent human technical or security/privacy review was performed |
-| Remaining local human activity | Participant-exercised desktop recovery walkthrough is recorded; unexercised human-only behaviors and active CAPTCHA fallback remain explicit limitations for their applicable future gate |
+Stable automated IDs are `FEAT-002-UNIT-01`, `FEAT-002-UNIT-02`, `FEAT-002-UNIT-03`, `FEAT-002-UNIT-04`, `FEAT-002-COMP-01`, `FEAT-002-COMP-02`, `FEAT-002-COMP-03`, `FEAT-002-AUTH-01`, `FEAT-002-AUTH-02`, `FEAT-002-AUTH-03`, `FEAT-002-AUTH-04`, `FEAT-002-AUTH-05`, `FEAT-002-AUTH-06`, `FEAT-002-ABUSE-01`, `FEAT-002-SEC-01`, `FEAT-002-TENANT-01`, `FEAT-002-E2E-01`, `FEAT-002-E2E-02`, `FEAT-002-CONFIG-01`, `FEAT-002-SCAN-01`, and `FEAT-002-REG-01`.
 
-### Accepted local evidence and remaining future evidence
+## Residual evidence limitations
 
-| Gate | Required evidence |
-|---|---|
-| Recovery credential | Preserve the evidenced 3,600-second expiry, single use, replay, resend/supersession, and provider type matrix; prove prefetch resistance and fixed client-side `recovery` handling |
-| Password policy | 15-character minimum, at-least-64-character support, spaces, paste, autofill, password managers, no composition rule, and safe `weak_password`/`same_password` handling |
-| Session authorization and revocation | Recorded evidence proves every OTP-only `recovery`/`email`/`magiclink` session is denied and audited by bootstrap before password completion, plus two-client old refresh/JWT/bootstrap/Data API/RPC denial after global sign-out and fresh-password success through normal role/AAL/MFA checks; repeat only after a review-target change |
-| Non-enumeration and abuse | Eligible/unknown/suspended/banned/deleted/invited-unconfirmed/provider-only/rate-limited/provider-failure comparison, 60-second cooldown, CAPTCHA outcomes, timing distribution, and accessible fallback |
-| Provider evidence and email | Reproduce pinned Auth actions/fields without raw email/IP values, pair `logout` with old-token denial, verify protected bootstrap-denial audit, and verify version-controlled tenant-neutral Mailpit recovery/password-changed messages |
-| Configuration | Exact loopback callbacks, recovery/security templates, credential expiry, password policy, cooldown, CAPTCHA boundary, session settings, and drift-detection evidence |
-| Stop condition | Any failed or unavailable required credential, session-revocation, audit, security, privacy, or accessibility evidence stops implementation for specification review |
+The Founder/Product Owner exercised the local synthetic desktop request, link, password, validation, completion, and return-to-sign-in flow and reported no material defect in that path. These were not separately recorded as human observations:
 
-### Real-data pilot and production gates
+- mobile and 200% zoom/reflow;
+- assistive-technology live-region behavior;
+- password-manager/autofill behavior;
+- measured contrast and target sizes;
+- injected invalid, offline, and fail-closed states; and
+- active CAPTCHA-provider accessibility.
 
-| Gate | Required decision or evidence |
-|---|---|
-| Hosted environments | Production domain/redirects, hosting, Supabase plan/region/residency, separate resources, costs, and approval |
-| Credentials and delivery | Production SMTP, sender identity/domain, final support address, delivery monitoring, CAPTCHA provider/keys, and contractual/privacy review |
-| Security operations | Breached-password protection, project/IP/WAF limits, timing tolerances, monitoring thresholds, alerts, audit retention/export/log drains/access, alert routing, and ownership |
-| Human recovery | Lost-mailbox recovery, MFA recovery codes, factor replacement, supervised identity proofing, administrator-assisted recovery, and formal account-compromise procedures |
-| Human approvals | Risk-triggered security/privacy/accessibility review where applicable, deployment approval, and production approval with reproducible runtime evidence |
+These limitations were accepted only for the bounded local publication decision. They are not formal accessibility compliance evidence.
 
-## Local implementation evidence boundary
+## Gates preserved
 
-The published feature commit records the owner decision, implementation diff, minimized local runtime outcomes, formatting, link/path inspection, secret scanning, repository checks, agent review, automated test evidence, and the scope-limited human desktop recovery walkthrough. The Founder/Product Owner accepted this local MVP outcome and the documented residual local evidence limitations for the publication and merge decisions. That acceptance and the normal PR #5 merge do not close the listed unexercised human-only accessibility behaviors at later applicable gates, remaining abuse/CAPTCHA/timing evidence, hosted validation, deployment authorization, real-data approval, or production readiness. No qualified independent human technical or security/privacy review was performed.
-
-## Evidence rules
-
-- Update each row with exact commit/build, local or approved environment, Supabase/Auth configuration version, synthetic test data, automated/manual evidence link, tester, date, defects, and reviewer.
-- Do not mark a row “Pass,” “Verified,” or “Approved” merely because this specification is complete or documentation CI is green.
-- Use synthetic accounts from at least two organizations, including one identity with two memberships. Never use production/customer/student data, real credentials, or real recovery emails.
-- Separate agent review plus required automated verification is the default bounded-local technical gate. Never describe agent evidence as qualified independent human review.
-- Escalate material defects, security/privacy/accessibility concerns, specification conflicts, schema/RLS/authority/privileged-function changes, aviation-authoritative or operational-safety behavior, production or real-data proposals, and accessibility behavior automation cannot reliably evaluate.
-- Reuse detailed evidence when the recorded fingerprint is unchanged. After a correction, run focused affected checks and then one final required matrix.
-- Raw `auth.audit_log_entries` rows contain full email and IP evidence and must not be copied into documentation, screenshots, ordinary logs, test snapshots, or AI prompts. Record only minimized field/action names, match booleans, counts, and HTTP outcomes.
-- Product acceptance, Git publication, merge, deployment, and production approval are separate Founder/Product Owner decisions. FEAT-002 product acceptance, publication, and merge are recorded above; deployment and production approval remain ungranted. Aviation-SME approval is required only if later scope introduces aviation authority or workflow behavior.
-
-## Copy-ready focused accessibility and Founder/Product Owner gate record
-
-Use this record for the next step. Do not reproduce the completed technical matrix; reference FEAT-002-EVID-07 through FEAT-002-EVID-11 and the unchanged implementation manifest above.
-
-### Focused human keyboard/visual accessibility walkthrough
-
-- Walkthrough participant: Founder/Product Owner, self-reported observations with Codex guidance.
-- Date, timezone, browser, operating system, viewport/zoom, and input method: 2026-07-27, Asia/Manila; Codex in-app browser on Windows; local synthetic desktop path; keyboard and visual input. Exact browser zoom and assistive-technology configuration were not independently recorded.
-- [x] Exercised the local synthetic desktop request, acknowledgement, recovery-link confirmation, password entry, validation-error, completion, and return-to-sign-in path.
-- [x] Participant reported that the exercised keyboard order, visible focus, headings, labels, descriptions, errors, and recovery/password interactions appeared to work as expected.
-- [x] Recorded only bounded observations and limitations; no credential, recovery token, password, full email address, IP value, or real data was retained.
-- [ ] Invalid-link, offline, injected fail-closed, and mobile layouts were not separately completed as human observations; the unchanged automated evidence remains FEAT-002-EVID-10.
-- [ ] Assistive-technology live-region behavior, password-manager/autofill behavior, measured target sizes and contrast, 200% zoom, and reflow were not independently recorded and remain accepted walkthrough limitations rather than verified human results.
-- [ ] Record active CAPTCHA-provider accessible fallback separately when a provider is selected; it remains outside the current local walkthrough.
-- Walkthrough outcome: complete for the participant-exercised desktop recovery path; no material accessibility defect reported. This is focused human usability/accessibility evidence, not qualified independent human technical or security/privacy review and not product acceptance.
-- Findings or residual limitations:
-  - The initial fresh-password sign-in used `http://127.0.0.1:4173`, while the protected local bootstrap allowed only the repository-configured `http://127.0.0.1:5173`. Authentication succeeded, but the mismatched origin correctly failed closed with a generic access-verification message. The unchanged app was then made available on the configured origin. This was a local walkthrough setup limitation, not an implementation or accessibility correction.
-  - The synthetic recovery identity had no organization membership; it was not expected or authorized to enter a FlyEye role workspace.
-  - The unexercised human-only behaviors listed above and the future active CAPTCHA-provider fallback remain residual accessibility evidence gaps.
-
-### Unchanged technical evidence confirmation
-
-- Repository/branch: `FlyEye` / `feat/FEAT-002-password-recovery`
-- Baseline HEAD: `77fb9cbea5d7caecd55cfd906fe4e3dd1855a70e`
-- Implementation manifest SHA-256: `f83d5f93bf46f83f43419423c44953ac165bb4ac4001e5326a520beb3511c34d`
-- Dependencies/configuration/evidence changed since final matrix: no. The 22-file non-document implementation manifest was recomputed after the walkthrough and remained `f83d5f93bf46f83f43419423c44953ac165bb4ac4001e5326a520beb3511c34d`; no full technical matrix rerun was required.
-- If unchanged, full technical matrix rerun: not required.
-- If changed, stop and define focused checks plus one new final required matrix before relying on prior evidence.
-
-### Founder/Product Owner decisions
-
-- Product acceptance: Granted on 2026-07-27 for the bounded local FEAT-002 MVP outcome recorded in this traceability file and `FEAT-002_PASSWORD_RECOVERY.md`, with the documented residual local evidence limitations accepted only for the current publication decision.
-- Git publication authorization: Granted on 2026-07-27 for one scoped Conventional Commit, push of `feat/FEAT-002-password-recovery` to the existing `origin`, and a draft pull request against `main`.
-- Merge authorization: Granted separately for PR #5; normal merge completed at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`.
-- Hosted validation authorization: Not granted.
-- Deployment approval: Not granted.
-- Real-data and production approval: Not granted.
-- FEAT-003 authorization: Documentation work and the specification were later approved separately on 2026-07-27. Implementation authorization remains ungranted.
+Hosted callbacks, domain, email provider/sender, CAPTCHA, breached-password service, Supabase plan/region/residency, WAF/IP controls, monitoring/alerts, recovery/support procedures, real data, deployment, production, and applicable qualified review remain separate. Agent review and green CI cannot grant them.

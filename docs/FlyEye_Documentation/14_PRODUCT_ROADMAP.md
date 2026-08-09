@@ -25,20 +25,16 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 
 ### Current Stage 1 sequence
 
-1. FEAT-001 login and initial RBAC is implemented on the development baseline and locally demonstrated with synthetic two-organization security tests; human security/privacy review and production approval remain pending.
-2. The verification-only CI quality-gate pull request is merged into `main`, including schema-wide RLS regression coverage and a pinned general repository secret scanner. It performed no deployment.
-3. Record and review the founder-approved product and governance decisions, including universal MFA, tenant-membership isolation, role separation, minor-student safeguards, the anonymous PPL-first pilot, synthetic-data gates, and unresolved hosting choices.
-4. FEAT-002 Password Recovery was normally merged into development `main` through PR #5 at merge commit `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`; retained feature branch commit `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`, pre-merge CI run `30237389881`, and post-merge `main` CI run `30237614093` are recorded in its traceability file. Its completed Codex review and automated matrix are bounded-local technical code-review evidence, not qualified independent human technical or security/privacy review. The accepted residual local accessibility limitations remain unchanged. No hosted validation, deployment, real-data use, or production approval occurred.
-5. The Founder/Product Owner authorized the documentation phase for FEAT-003 Organization Admin and MFA Onboarding from exact development baseline `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66` and approved its first-Organization-Admin-only scope, server-only local synthetic grant path, 10-minute recent-password window, finite-expiry requirement, and fail-closed duplicate-factor behavior on 2026-07-27. The later implementation-readiness decision set the local grant lifetime to 30 minutes from server-recorded issuance with no sliding extension and named a CLI-only ephemeral `scripts/test-feat-003-runtime.mjs` fixture unavailable to browser/application roles. The subsequent bounded local synthetic implementation authorization produced the preserved implementation on `feat/FEAT-003-organization-admin-mfa-onboarding`. Under the 2026-08-02 autonomous-delivery directive its current stage is `Locally verified; publication pending`: the complete local synthetic matrix, corrected separate-agent review, secret scans, and zero-residue cleanup passed. Because this already-open task explicitly prohibited publication, its one transition action is a clear override authorizing staging and publication through a green review-ready pull request; after that, the human decision is merge. FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment remain distinct bounded slices, but a direct request for each carries its complete autonomous delivery through a green review-ready pull request.
-6. Hold a visual-identity checkpoint after the identity/user-management foundation. Establish FlyEye-specific design tokens, reusable components, responsive patterns, and a non-generic reference screen while preserving accessibility and tested workflow behavior.
-7. Move into aircraft, personnel compliance, and dispatch only after the foundation, applicable risk-based human escalations, and Founder/Product Owner gates are complete.
+1. FEAT-001 Login and initial RBAC — merged
+2. FEAT-002 Password Recovery — merged
+3. FEAT-003 Organization Admin and MFA Onboarding — merged
+4. FEAT-003 Hosted Synthetic Hardening — merged; exact hosted activation remains a separate decision
+5. FEAT-004 Member Invitations — next planned bounded feature after the hosted-readiness dependency is resolved or explicitly reordered
+6. FEAT-005 User Management and Basic Profiles
+7. FEAT-006 Role Assignment
+8. Visual-identity checkpoint before larger operational modules
 
-FEAT-002 is merged locally into development `main`. FEAT-003 has a locally
-verified, corrected, separately agent-reviewed working-tree outcome ready for
-autonomous Git publication. FEAT-004 through FEAT-006 reserve planning order
-only. For each requested slice, the delivery agent must define and enforce its
-scope, authority, data, RLS, audit, privacy, abuse, UI-state, and test contract
-without requiring a separate specification-approval form.
+This roadmap records sequence, not live evidence or authorization. See [Current State](CURRENT_STATE.md) for status, dependencies, and later gates. Each requested slice follows the bounded delivery policy in `AGENTS.md`.
 
 ## Stage 2: Dispatch MVP
 

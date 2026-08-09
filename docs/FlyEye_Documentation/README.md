@@ -1,102 +1,60 @@
 # FlyEye Aviation Training Operations Platform
 
-Professional project documentation for a Philippine-built, web-first platform serving general aviation flight schools and Approved Training Organizations (ATOs).
+FlyEye is a multi-tenant, responsive PWA for Philippine flight-school operations and training records. It supports controlled workflows while keeping dispatch, airworthiness, instruction, assessment, and competency decisions with authorized people.
 
-## Purpose
-
-This repository is the canonical context package for product planning, AI-assisted implementation, aviation-domain review, quality assurance, security review, pilot preparation, and handoff to another developer or LLM. It describes a proposed product; it does **not** claim regulatory approval, CAAP certification, or production readiness.
-
-## Product in one sentence
-
-FlyEye is a multi-tenant, responsive Progressive Web App (PWA) that digitizes flight-school dispatch, training assessment, compliance records, and operational reporting while keeping all safety-critical decisions under authorized human control.
-
-Every substantive AI-assisted work update and final response includes a compact
-evidence-based `SDLC progress` strip so the Founder/Product Owner can immediately
-see the current lifecycle phase and next action without completing another form.
+This repository describes a product under development. It does not claim CAAP certification, regulatory approval, customer acceptance, deployment, or production readiness.
 
 ## Start here
 
-1. [Project Overview](00_PROJECT_OVERVIEW.md)
-2. [Master Handoff](01_MASTER_HANDOFF.md)
-3. [Project Charter](02_PROJECT_CHARTER.md)
-4. [Product Requirements / SRS](03_PRODUCT_REQUIREMENTS_SRS.md)
-5. [System Architecture](04_SYSTEM_ARCHITECTURE.md)
-6. [Implementation and AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md)
+1. [Current State](CURRENT_STATE.md) — what is delivered, open, and next
+2. [Master Handoff](01_MASTER_HANDOFF.md) — concise product and delivery orientation
+3. [Product Requirements / SRS](03_PRODUCT_REQUIREMENTS_SRS.md)
+4. [System Architecture](04_SYSTEM_ARCHITECTURE.md)
+5. [Security Requirements](08_SECURITY_REQUIREMENTS.md)
+6. [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md)
+7. The specification and traceability record for the bounded feature
 
-## Document index
+AI contributors must also read the root `AGENTS.md`. Anyone editing Markdown must follow the [Documentation Standard](DOCUMENTATION_STANDARD.md).
 
-| Document | Purpose |
+## Documentation map
+
+| Area | Documents |
 |---|---|
-| [00 Project Overview](00_PROJECT_OVERVIEW.md) | Concise business and product orientation |
-| [01 Master Handoff](01_MASTER_HANDOFF.md) | Full context for a new human or AI collaborator |
-| [02 Project Charter](02_PROJECT_CHARTER.md) | Governance, SMART goals, scope, stakeholders, and gates |
-| [03 Product Requirements (SRS)](03_PRODUCT_REQUIREMENTS_SRS.md) | Functional, non-functional, safety, and acceptance requirements |
-| [04 System Architecture](04_SYSTEM_ARCHITECTURE.md) | Web-first PWA, Supabase platform, tenancy, offline, and hosting design |
-| [05 Database Design](05_DATABASE_DESIGN.md) | Relational model, record control, tenancy, and audit principles |
-| [06 API Specification](06_API_SPECIFICATION.md) | REST conventions, resources, workflows, errors, and authorization |
-| [07 UI/UX Guidelines](07_UI_UX_GUIDELINES.md) | Workflow-first responsive interaction and design-system guidance |
-| [08 Security Requirements](08_SECURITY_REQUIREMENTS.md) | Security controls, threat model, identity, isolation, and incident response |
-| [09 AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md) | Specification-driven vibe coding and vertical-slice workflow |
-| [10 DevSecOps Guide](10_DEVSECOPS_GUIDE.md) | Source control, CI/CD, scanning, environments, release, and monitoring |
-| [11 QA and Test Plan](11_QA_TEST_PLAN.md) | Verification strategy, release gates, test evidence, and defect severity |
-| [12 Privacy and Data Protection](12_PRIVACY_DATA_PROTECTION.md) | Philippine privacy roles, minimization, retention, rights, and AI privacy |
-| [13 Pilot Implementation Plan](13_PILOT_IMPLEMENTATION_PLAN.md) | Controlled flight-school pilot, parallel operation, training, and metrics |
-| [14 Product Roadmap](14_PRODUCT_ROADMAP.md) | Evidence-gated delivery sequence and future modules |
-| [15 Risk Register](15_RISK_REGISTER.md) | Product, technical, safety, security, delivery, and commercial risks |
-| [16 Change Log](16_CHANGE_LOG.md) | Documentation and decision history |
-| [17 Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) | Founder-approved commercial, membership, security, privacy, pilot, hosting, and scope direction |
-| [FEAT-002 Password Recovery](features/FEAT-002_PASSWORD_RECOVERY.md) | Bounded local synthetic implementation, correction, agent review, automated verification, focused human desktop walkthrough, Founder/Product Owner local MVP acceptance, and normal merge through PR #5 are complete; hosted validation, deployment, real-data, and production remain pending |
-| [FEAT-002 Traceability](features/FEAT-002_TRACEABILITY.md) | Password-recovery requirements, corrected local automated evidence, PR #5 merge and CI record, unchanged residual accessibility limitations, and remaining Founder/Product Owner gates |
-| [FEAT-003 Organization Admin and MFA Onboarding](features/FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md) | Bounded first-Organization-Admin bootstrap and TOTP onboarding merged through PR #7 at `00dcfd2239de45b33890bc805ff27a667defabd1`; post-merge CI run `30752548762` passed, while hosted validation, real data, deployment, production, and FEAT-004 remain closed |
-| [FEAT-003 Traceability](features/FEAT-003_TRACEABILITY.md) | Approved product/design decisions, amended audit/AMR/time/locking/grant/factor/fixture controls, synthetic two-organization coverage, negative/replay/concurrency/rollback evidence, and explicit local/hosted/real-data/deployment/production gates |
-| [FEAT-003 Hosted Synthetic Hardening](features/FEAT-003_HOSTED_SYNTHETIC_HARDENING.md) | Locally verified disabled hosted-staging guard, dormant staging provenance, local-only Edge configuration, versioned limiter evidence, and explicit provider/activation/cleanup gates pending publication before FEAT-004 planning |
-| [FEAT-003 Competent Human Review Package](features/FEAT-003_QUALIFIED_HUMAN_REVIEW_PACKAGE.md) | Optional evidence-oriented questions and attributable records for risk-triggered database/RLS/privileged-function, security/privacy, accessibility, and operations review at later hosted, real-data, regulated, formal-compliance, or production gates |
-| [ADR index](adr/README.md) | Accepted architecture decisions and ADR template |
-| [Feature Specification template](templates/FEATURE_SPECIFICATION_TEMPLATE.md) | Required format for every implementation slice |
-| [Traceability template](templates/REQUIREMENTS_TRACEABILITY_TEMPLATE.md) | Need-to-requirement-to-test evidence |
-| [Release checklist](templates/PRODUCTION_RELEASE_CHECKLIST.md) | Human-approved production gate |
-| [Portable AI Feature Delivery Playbook](templates/AI_FEATURE_DELIVERY_PLAYBOOK.md) | Reusable authorization-envelope, verification-tier, CI, and prompt model for FlyEye and future applications |
+| Product | [Overview](00_PROJECT_OVERVIEW.md), [Charter](02_PROJECT_CHARTER.md), [SRS](03_PRODUCT_REQUIREMENTS_SRS.md), [Roadmap](14_PRODUCT_ROADMAP.md) |
+| Technical design | [Architecture](04_SYSTEM_ARCHITECTURE.md), [Database](05_DATABASE_DESIGN.md), [API](06_API_SPECIFICATION.md), [ADRs](adr/README.md) |
+| Quality and risk | [UI/UX](07_UI_UX_GUIDELINES.md), [Security](08_SECURITY_REQUIREMENTS.md), [DevSecOps](10_DEVSECOPS_GUIDE.md), [QA](11_QA_TEST_PLAN.md), [Privacy](12_PRIVACY_DATA_PROTECTION.md), [Risk Register](15_RISK_REGISTER.md) |
+| Delivery | [AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md), [Pilot Plan](13_PILOT_IMPLEMENTATION_PLAN.md), [Change Log](16_CHANGE_LOG.md), [Current State](CURRENT_STATE.md) |
+| Governance | [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md), [Documentation Standard](DOCUMENTATION_STANDARD.md) |
+| Features | [`features/`](features/) specifications, traceability, and feature-specific evidence |
+| Templates | [`templates/`](templates/) for feature specifications, traceability, risk-triggered review, and production release |
 
-## Canonical decisions
+## Canonical architecture
 
-- Product form: responsive web application with PWA capabilities; native mobile is deferred.
-- Frontend: React + TypeScript with Vite and PWA capabilities; add only the UI/form libraries that a validated feature needs.
-- Platform: Supabase Auth, PostgreSQL, private Storage, Row-Level Security, and Edge Functions.
-- Data: relational PostgreSQL records plus private object storage for uploaded/generated files.
-- Architecture: lean backend-as-a-service design with bounded feature modules and authoritative server-side commands.
-- Deployment baseline: managed static frontend hosting plus separate Supabase staging and production projects.
-- Delivery method: hybrid Stage-Gated Agile using contract-first, specification-driven AI implementation.
-- AI policy: advisory only, permission-aware, reviewable, optional, and unable to approve dispatch, airworthiness, or competency.
-- Safety rule: deterministic business rules and authoritative calculations precede AI assistance.
-- Governance: the founder is the unnamed product owner; risk-based agent review is the default bounded-local technical gate, while explicit human escalation and aviation, privacy, security, legal, customer, and production approval duties remain risk- and lifecycle-based.
-- Commercial direction: evolve the capstone into a licensable Philippine flight-school product while customers retain ownership and control of their data.
+- React + TypeScript + Vite responsive PWA
+- Supabase Auth, PostgreSQL, private Storage, Row-Level Security, and Edge Functions
+- Shared tenant schema with `organization_id` and deny-by-default RLS
+- Protected server-side commands for authority-bearing changes and atomic audit evidence
+- Version-controlled SQL migrations and generated database types
+- Managed static frontend hosting with separate staging and production Supabase projects when later approved
+- AI that is optional, permission-aware, minimized, reviewable, and unable to exercise operational authority
 
-The production browser may directly perform only explicitly approved low-risk reads and draft operations under tested Row-Level Security. Dispatch transitions, assessment finalization, role changes, exports, authoritative weight-and-balance, audit-sensitive actions, and AI requests must pass through controlled Edge Functions or reviewed PostgreSQL functions.
-
-See [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md) for the current product-owner decisions and the professional validations that remain outstanding.
+See [ADR-0005](adr/ADR-0005-LEAN-SUPABASE-STACK.md) for the accepted MVP stack.
 
 ## Document authority
 
 When documents conflict, use this order:
 
 1. Approved legal, regulatory, aircraft, and flight-school source material
-2. Approved Architecture Decision Records (ADRs)
-3. Product Requirements / SRS and Security Requirements
+2. Accepted ADRs
+3. SRS and Security Requirements
 4. System Architecture and Database/API specifications
-5. Approved feature specification
-6. Roadmap and handoff narrative
-7. Chat history or AI-generated suggestions
+5. Active Product and Governance Decisions
+6. Approved feature specification
+7. Current State, roadmap, and handoff narrative
+8. Chat history or AI-generated suggestions
 
-Any aviation rule must be verified by qualified Philippine ATO personnel before implementation or production use. Store verified rules as version-controlled configuration or documented deterministic logic, never as an LLM assumption.
+Report conflicts instead of silently selecting weaker behavior. Unverified aviation rules remain unresolved until a qualified source owner validates them.
 
-## Working with an AI coding agent
+## Documentation rule
 
-Give the agent this README, the Master Handoff, the relevant requirements, one
-approved feature specification, and one bounded local-delivery authorization
-envelope. Require analysis before code, then let the agent continue through
-routine implementation, diagnosis, in-scope corrections, focused reruns, the
-final matrix, evidence updates, and agent review without one prompt per command.
-Require tenant isolation, audit behavior, documentation updates, and a final
-diff review for every slice. Use the
-[Portable AI Feature Delivery Playbook](templates/AI_FEATURE_DELIVERY_PLAYBOOK.md)
-when starting another repository.
+One fact has one canonical home. Other documents link to it instead of restating it. Current status belongs in `CURRENT_STATE.md`; implementation history belongs in Git, pull requests, CI, and concise traceability records. Run `pnpm check:docs` before publishing documentation changes.
