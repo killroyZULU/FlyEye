@@ -9,7 +9,8 @@
 - Local/hosted/data boundary: local synthetic implementation and local Mailpit
   provider calls only; no hosted environment, real data, deployment, or
   production
-- Pull request and CI: pending
+- Pull request and CI: [PR #12](https://github.com/killroyZULU/FlyEye/pull/12)
+  is review-ready; required CI quality gate passed on 2026-08-09
 - Known limitations: future organization roles, hosted SMTP/domain/capacity,
   real-data retention, minor-student procedure, universal MFA recovery, and
   formal accessibility evidence remain later gates
@@ -44,7 +45,8 @@
 
 The local stack uses the repository-pinned Supabase JavaScript client `2.110.7`
 and CLI `2.109.1`. Separate technical review passed with no remaining actionable
-findings. Pull request and CI results remain to be recorded.
+findings. PR #12 passed its application, local Supabase security, and aggregate
+required quality gates.
 
 ## Evidence rules
 

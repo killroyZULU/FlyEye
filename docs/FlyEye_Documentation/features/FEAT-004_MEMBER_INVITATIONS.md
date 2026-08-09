@@ -2,8 +2,8 @@
 
 ## Status
 
-- State: Review-ready implementation
-- Current SDLC phase: PR/CI
+- State: Review-ready pull request
+- Current SDLC phase: Merge
 - Owner: Founder/Product Owner
 - Baseline: `main` at PR #11 merge `ed731d429cd5185e5b945c87a13f65987c2d10c7`
 - Task branch: `feat/FEAT-004-member-invitations`
@@ -367,13 +367,13 @@ Excluded areas:
 
 ## Definition of done
 
-- [ ] Contract, sources, assumptions, and later gates remain explicit
-- [ ] Data, RLS, protected commands, frontend, email, audit, limiter, and
+- [x] Contract, sources, assumptions, and later gates remain explicit
+- [x] Data, RLS, protected commands, frontend, email, audit, limiter, and
       cleanup behavior are implemented with synthetic data
-- [ ] Positive, negative, cross-tenant, concurrency, replay, failure,
+- [x] Positive, negative, cross-tenant, concurrency, replay, failure,
       accessibility-supporting, and secret checks pass
-- [ ] Provider links and service-role authority never become FlyEye membership
+- [x] Provider links and service-role authority never become FlyEye membership
       authority
-- [ ] Traceability records exact evidence and limitations
-- [ ] Documentation checks and separate review pass
-- [ ] A scoped implementation branch has a green review-ready pull request
+- [x] Traceability records exact evidence and limitations
+- [x] Documentation checks and separate review pass
+- [x] A scoped implementation branch has a green review-ready pull request
