@@ -4,8 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Database } from '../../../lib/database.types';
 import { SupabaseAuthGateway } from './auth-gateway';
 
-function clientWithAuth(auth: Record<string, unknown>): SupabaseClient<Database> {
-  return { auth } as unknown as SupabaseClient<Database>;
+function clientWithAuth(
+  auth: Record<string, unknown>,
+  functions: Record<string, unknown> = {},
+): SupabaseClient<Database> {
+  return { auth, functions } as unknown as SupabaseClient<Database>;
 }
 
 const syntheticProviderSecret = 'A'.repeat(16);
@@ -280,6 +283,125 @@ describe('FEAT-003 Supabase auth gateway', () => {
     await expect(gateway.prepareAdminTotp('enrollment_required')).rejects.toMatchObject({
       code: 'rate_limited',
       message: 'Too many attempts. Wait before trying again.',
+    });
+  });
+});
+
+describe('FEAT-004 Supabase auth gateway', () => {
+  it('reauthenticates an existing confirmed invitee without changing the password', async () => {
+    const updateUser = vi.fn();
+    const signInWithPassword = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const gateway = new SupabaseAuthGateway(
+      clientWithAuth(
+        {
+          getUser: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                email: 'existing@example.test',
+                email_confirmed_at: '2026-08-09T00:00:00Z',
+              },
+            },
+            error: null,
+          }),
+          updateUser,
+          signInWithPassword,
+        },
+        {
+          invoke: vi.fn().mockResolvedValue({
+            data: {
+              decision: 'prepared',
+              invitationId: '40000000-0000-4000-8000-000000000001',
+              credentialMode: 'existing',
+              version: 2,
+              correlationId: '60000000-0000-4000-8000-000000000001',
+            },
+            error: null,
+          }),
+        },
+      ),
+    );
+
+    await gateway.prepareInvitationCredential('Synthetic-password-004!', {
+      invitationId: '40000000-0000-4000-8000-000000000001',
+      expectedVersion: 2,
+    });
+
+    expect(updateUser).not.toHaveBeenCalled();
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'existing@example.test',
+      password: 'Synthetic-password-004!',
+    });
+  });
+
+  it('establishes a new invited account password before fresh password sign-in', async () => {
+    const updateUser = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const signInWithPassword = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const gateway = new SupabaseAuthGateway(
+      clientWithAuth(
+        {
+          getUser: vi.fn().mockResolvedValue({
+            data: {
+              user: {
+                email: 'new@example.test',
+                email_confirmed_at: '2026-08-09T00:00:00Z',
+                invited_at: '2026-08-09T00:00:00Z',
+              },
+            },
+            error: null,
+          }),
+          updateUser,
+          signInWithPassword,
+        },
+        {
+          invoke: vi.fn().mockResolvedValue({
+            data: {
+              decision: 'prepared',
+              invitationId: '40000000-0000-4000-8000-000000000001',
+              credentialMode: 'new',
+              version: 2,
+              correlationId: '60000000-0000-4000-8000-000000000001',
+            },
+            error: null,
+          }),
+        },
+      ),
+    );
+
+    await gateway.prepareInvitationCredential('Synthetic-password-004!', {
+      invitationId: '40000000-0000-4000-8000-000000000001',
+      expectedVersion: 2,
+    });
+
+    expect(updateUser).toHaveBeenCalledWith({ password: 'Synthetic-password-004!' });
+    expect(updateUser.mock.invocationCallOrder[0]).toBeLessThan(
+      signInWithPassword.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('validates the protected invitation list response', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: {
+        decision: 'listed',
+        organizationId: '20000000-0000-4000-8000-000000000001',
+        invitations: [],
+        roles: [{ code: 'student_pilot', label: 'Student Pilot' }],
+        correlationId: '30000000-0000-4000-8000-000000000001',
+      },
+      error: null,
+    });
+    const gateway = new SupabaseAuthGateway({
+      auth: {},
+      functions: { invoke },
+    } as unknown as SupabaseClient<Database>);
+
+    await expect(
+      gateway.loadMemberInvitations('20000000-0000-4000-8000-000000000001'),
+    ).resolves.toMatchObject({ decision: 'listed', invitations: [] });
+    expect(invoke).toHaveBeenCalledWith('member-invitations', {
+      body: {
+        action: 'list',
+        organizationId: '20000000-0000-4000-8000-000000000001',
+      },
     });
   });
 });

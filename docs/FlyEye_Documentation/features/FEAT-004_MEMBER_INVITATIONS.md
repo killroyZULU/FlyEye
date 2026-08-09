@@ -2,11 +2,11 @@
 
 ## Status
 
-- State: Ready for implementation-authorization decision
-- Current SDLC phase: Specification
+- State: Review-ready pull request
+- Current SDLC phase: Merge
 - Owner: Founder/Product Owner
-- Baseline: `main` at `f1afa5da9008a47c0369f44fb03fde0acf1109b4`
-- Task branch: `docs/feat-004-member-invitations-spec`
+- Baseline: `main` at PR #11 merge `ed731d429cd5185e5b945c87a13f65987c2d10c7`
+- Task branch: `feat/FEAT-004-member-invitations`
 - Evidence plan: [FEAT-004 Traceability](FEAT-004_TRACEABILITY.md)
 - Related requirements: SRS `IAM-001` through `IAM-012`
 
@@ -64,6 +64,7 @@ Non-goals:
 | Create invitation | `membership.invitation.manage` | Selected organization is a validated hint; server derives actor membership and validates the initial role | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Resend invitation | `membership.invitation.manage` | Actor's organization; `pending`, `expired`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Revoke invitation | `membership.invitation.manage` | Actor's organization; `pending`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
+| Prepare acceptance | Verified invited Auth subject | Confirmed Auth email, invitation version, and locked provider-operation class determine new-password setup or existing-password reauthentication | Protected Edge Function and server-only RPC | Valid provider-established Auth session; no FlyEye authority is created |
 | Accept invitation | Verified invited Auth subject | Invitation ID is only a hint; confirmed Auth email must match the locked invitation | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds; role-specific portal MFA remains enforced by `auth-bootstrap` |
 
 The built-in `admin` role initially receives
@@ -121,12 +122,15 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
    `shouldCreateUser: false`; the response to the administrator remains generic.
 8. Provider email links authenticate or identify the recipient but never create
    FlyEye membership by themselves. The invitation callback requires an
-   explicit user action, credential establishment when needed, and a fresh
-   password-authenticated session before acceptance.
+   explicit user action. After the provider session is established, a protected
+   command derives the new-versus-existing credential path from the locked
+   invitation's provider-operation class; callback query values never decide
+   whether a password may be changed. Acceptance still requires a fresh
+   password-authenticated session.
 9. `issued_at` and `expires_at` use PostgreSQL transaction time, with
    `expires_at` exactly one hour after issuance. Equality is expired. Provider
    expiry is defense in depth; FlyEye's locked database state is authoritative.
-   Before list, create, resend, revoke, or accept makes its decision, its
+   Before list, create, resend, revoke, prepare, or accept makes its decision, its
    server-only RPC locks relevant nonterminal rows, changes every elapsed
    `pending` row to `expired`, and writes the expiry audit in the same
    transaction. This materialization permits a new invitation after expiry;
@@ -135,7 +139,10 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
     `delivery_uncertain`, or `issuing` at least 60 seconds old. It atomically
     marks the source invitation superseded with an audit and creates a new
     `issuing` invitation before one new provider call. Any older provider link
-    may authenticate but cannot accept the superseded FlyEye invitation.
+    may authenticate but cannot accept the superseded FlyEye invitation. An
+    expired row cannot be resent after a newer active invitation exists for the
+    same organization and canonical email; that attempt returns an audited
+    non-enumerating conflict.
 11. Revocation is permitted only from `pending`, `delivery_failed`,
     `delivery_uncertain`, or `issuing` at least 60 seconds old. It blocks
     acceptance even if a provider link is still valid. Accepted invitations
@@ -148,9 +155,10 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
 13. Existing membership, concurrent acceptance, changed email, inactive role,
     suspended organization, expired/revoked/superseded invitation, audit
     failure, or provider uncertainty creates no new authority.
-14. Acceptance and state commands use opaque idempotency keys. Same-scope retry
-    returns a safe stable result; a conflicting key or stale version returns a
-    non-enumerating conflict.
+14. Acceptance and state commands use opaque idempotency keys. Issuance replay
+    is bound to action, email, role, source invitation, and source version.
+    Same-scope retry returns a safe stable result; a conflicting key or stale
+    version returns a non-enumerating conflict.
 
 ## Data and server contract
 
@@ -175,8 +183,9 @@ for the three approved initial roles and adds
 `membership.invitation.manage` only to the built-in Organization Admin role.
 
 Protected commands are `list-member-invitations`, `invite-member`,
-`resend-member-invitation`, `revoke-member-invitation`, and
-`accept-member-invitation`. Stable error families include unauthenticated,
+`resend-member-invitation`, `revoke-member-invitation`,
+`prepare-member-invitation-acceptance`, and `accept-member-invitation`.
+Invitation history returns at most the newest 100 records. Stable error families include unauthenticated,
 unauthorized, recent-auth-required, validation-failed, not-found,
 state-conflict, expired, rate-limited, delivery-failed, delivery-uncertain, and
 provider-unavailable. Errors never reveal whether an email already has an Auth
@@ -227,9 +236,12 @@ Local atomic token buckets use a dedicated invitation-limiter secret:
 | `create` | 6 per hour per actor and organization | 2 | No row or provider call after denial |
 | `resend` | 3 per hour per invitation and actor | 1 | Preserve current state |
 | `revoke` | 6 per 60 seconds per actor and organization | 2 | Preserve current state |
+| `prepare` | 6 per 60 seconds per subject and invitation | 2 | Do not expose a credential path or change a password |
 | `accept` | 6 per 60 seconds per subject and invitation | 2 | Create no membership |
 
-Provider quotas and frontend timers are defense in depth only. Hosted
+The server resolves authorized organization or invitation scopes before hashing
+limiter keys. Unauthorized client hints collapse to one actor-and-action denial
+scope instead of creating fresh buckets. Provider quotas and frontend timers are defense in depth only. Hosted
 thresholds, network-source trust, capacity, alert ownership, retention, and
 support remain later environment-specific gates.
 
@@ -355,13 +367,13 @@ Excluded areas:
 
 ## Definition of done
 
-- [ ] Contract, sources, assumptions, and later gates remain explicit
-- [ ] Data, RLS, protected commands, frontend, email, audit, limiter, and
+- [x] Contract, sources, assumptions, and later gates remain explicit
+- [x] Data, RLS, protected commands, frontend, email, audit, limiter, and
       cleanup behavior are implemented with synthetic data
-- [ ] Positive, negative, cross-tenant, concurrency, replay, failure,
+- [x] Positive, negative, cross-tenant, concurrency, replay, failure,
       accessibility-supporting, and secret checks pass
-- [ ] Provider links and service-role authority never become FlyEye membership
+- [x] Provider links and service-role authority never become FlyEye membership
       authority
-- [ ] Traceability records exact evidence and limitations
-- [ ] Documentation checks and separate review pass
-- [ ] A scoped implementation branch has a green review-ready pull request
+- [x] Traceability records exact evidence and limitations
+- [x] Documentation checks and separate review pass
+- [x] A scoped implementation branch has a green review-ready pull request

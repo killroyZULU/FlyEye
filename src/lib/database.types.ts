@@ -159,6 +159,123 @@ export type Database = {
           },
         ];
       };
+      member_invitation_events: {
+        Row: {
+          actor_user_id: string | null;
+          correlation_id: string;
+          event_name: string;
+          id: string;
+          idempotency_key_hash: string | null;
+          invitation_id: string | null;
+          metadata: Json;
+          occurred_at: string;
+          organization_id: string | null;
+          outcome: string;
+          reason_code: string;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          correlation_id: string;
+          event_name: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          invitation_id?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id?: string | null;
+          outcome: string;
+          reason_code: string;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          correlation_id?: string;
+          event_name?: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          invitation_id?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id?: string | null;
+          outcome?: string;
+          reason_code?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_invitation_events_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'member_invitation_events_organization_id_invitation_id_fkey';
+            columns: ['organization_id', 'invitation_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_invitations';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
+      member_invitation_rate_limit_events: {
+        Row: {
+          action: string;
+          correlation_id: string;
+          id: string;
+          limiter_key_hash: string;
+          network_source_used: boolean;
+          occurred_at: string;
+          outcome: string;
+          retry_after_seconds: number | null;
+          status_code: number;
+        };
+        Insert: {
+          action: string;
+          correlation_id: string;
+          id?: string;
+          limiter_key_hash: string;
+          network_source_used?: boolean;
+          occurred_at?: string;
+          outcome: string;
+          retry_after_seconds?: number | null;
+          status_code: number;
+        };
+        Update: {
+          action?: string;
+          correlation_id?: string;
+          id?: string;
+          limiter_key_hash?: string;
+          network_source_used?: boolean;
+          occurred_at?: string;
+          outcome?: string;
+          retry_after_seconds?: number | null;
+          status_code?: number;
+        };
+        Relationships: [];
+      };
+      member_invitation_rate_limit_state: {
+        Row: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Insert: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Update: {
+          action?: string;
+          last_decision_at?: string;
+          last_refill_at?: string;
+          limiter_key_hash?: string;
+          tokens_milli?: number;
+        };
+        Relationships: [];
+      };
       membership_roles: {
         Row: {
           assigned_at: string;
@@ -276,6 +393,131 @@ export type Database = {
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      organization_invitations: {
+        Row: {
+          acceptance_idempotency_key_hash: string | null;
+          accepted_at: string | null;
+          accepted_by: string | null;
+          accepted_membership_id: string | null;
+          correlation_id: string;
+          created_at: string;
+          delivery_attempt_count: number;
+          delivery_operation_id: string | null;
+          delivery_outcome: string | null;
+          email_canonical: string;
+          email_original: string;
+          expired_at: string | null;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          issuance_action: string;
+          issuance_idempotency_key_hash: string;
+          issuance_source_version: number | null;
+          issued_at: string;
+          last_delivery_attempt_at: string | null;
+          organization_id: string;
+          provider_operation_class: string | null;
+          revoked_at: string | null;
+          role_id: string;
+          status: string;
+          superseded_at: string | null;
+          supersedes_invitation_id: string | null;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          acceptance_idempotency_key_hash?: string | null;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          accepted_membership_id?: string | null;
+          correlation_id: string;
+          created_at?: string;
+          delivery_attempt_count?: number;
+          delivery_operation_id?: string | null;
+          delivery_outcome?: string | null;
+          email_canonical: string;
+          email_original: string;
+          expired_at?: string | null;
+          expires_at?: string;
+          id?: string;
+          invited_by: string;
+          issuance_action?: string;
+          issuance_idempotency_key_hash: string;
+          issuance_source_version?: number | null;
+          issued_at?: string;
+          last_delivery_attempt_at?: string | null;
+          organization_id: string;
+          provider_operation_class?: string | null;
+          revoked_at?: string | null;
+          role_id: string;
+          status?: string;
+          superseded_at?: string | null;
+          supersedes_invitation_id?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          acceptance_idempotency_key_hash?: string | null;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          accepted_membership_id?: string | null;
+          correlation_id?: string;
+          created_at?: string;
+          delivery_attempt_count?: number;
+          delivery_operation_id?: string | null;
+          delivery_outcome?: string | null;
+          email_canonical?: string;
+          email_original?: string;
+          expired_at?: string | null;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          issuance_action?: string;
+          issuance_idempotency_key_hash?: string;
+          issuance_source_version?: number | null;
+          issued_at?: string;
+          last_delivery_attempt_at?: string | null;
+          organization_id?: string;
+          provider_operation_class?: string | null;
+          revoked_at?: string | null;
+          role_id?: string;
+          status?: string;
+          superseded_at?: string | null;
+          supersedes_invitation_id?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_invitations_organization_id_accepted_membersh_fkey';
+            columns: ['organization_id', 'accepted_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+          {
+            foreignKeyName: 'organization_invitations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organization_invitations_organization_id_supersedes_invita_fkey';
+            columns: ['organization_id', 'supersedes_invitation_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_invitations';
+            referencedColumns: ['organization_id', 'id'];
+          },
+          {
+            foreignKeyName: 'organization_invitations_role_id_fkey';
+            columns: ['role_id'];
+            isOneToOne: false;
+            referencedRelation: 'roles';
             referencedColumns: ['id'];
           },
         ];
@@ -416,6 +658,7 @@ export type Database = {
           display_name: string;
           id: string;
           is_active: boolean;
+          is_invitation_assignable: boolean;
         };
         Insert: {
           code: string;
@@ -424,6 +667,7 @@ export type Database = {
           display_name: string;
           id?: string;
           is_active?: boolean;
+          is_invitation_assignable?: boolean;
         };
         Update: {
           code?: string;
@@ -432,6 +676,7 @@ export type Database = {
           display_name?: string;
           id?: string;
           is_active?: boolean;
+          is_invitation_assignable?: boolean;
         };
         Relationships: [];
       };
@@ -440,6 +685,40 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_member_invitation: {
+        Args: {
+          p_actor_user_id: string;
+          p_confirmed_email: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_invitation_id: string;
+          p_password_authenticated_at: number;
+        };
+        Returns: Json;
+      };
+      begin_member_invitation: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_email: string;
+          p_idempotency_key_hash: string;
+          p_organization_id: string;
+          p_role_code: string;
+        };
+        Returns: Json;
+      };
+      begin_resend_member_invitation: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_invitation_id: string;
+          p_organization_id: string;
+        };
+        Returns: Json;
+      };
       cancel_organization_admin_onboarding: {
         Args: {
           p_actor_user_id: string;
@@ -448,6 +727,10 @@ export type Database = {
           p_idempotency_key_hash: string;
         };
         Returns: Json;
+      };
+      canonicalize_member_invitation_email: {
+        Args: { p_email: string };
+        Returns: string;
       };
       complete_first_organization_admin_bootstrap: {
         Args: {
@@ -474,9 +757,59 @@ export type Database = {
         };
         Returns: Json;
       };
+      consume_member_invitation_rate_limit: {
+        Args: {
+          p_action: string;
+          p_correlation_id: string;
+          p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
+      finalize_member_invitation_delivery: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_delivery_operation_id: string;
+          p_delivery_outcome: string;
+          p_invitation_id: string;
+          p_provider_operation_class: string;
+        };
+        Returns: Json;
+      };
       get_my_access_context: { Args: never; Returns: Json };
       get_organization_admin_onboarding_status: {
         Args: { p_actor_user_id: string; p_correlation_id: string };
+        Returns: Json;
+      };
+      list_member_invitations: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_organization_id: string;
+        };
+        Returns: Json;
+      };
+      materialize_member_invitation_expiry: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_invitation_id: string;
+          p_organization_id: string;
+        };
+        Returns: number;
+      };
+      member_invitation_actor_is_authorized: {
+        Args: { p_actor_user_id: string; p_organization_id: string };
+        Returns: boolean;
+      };
+      prepare_member_invitation_acceptance: {
+        Args: {
+          p_actor_user_id: string;
+          p_confirmed_email: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_invitation_id: string;
+        };
         Returns: Json;
       };
       record_authentication_access_decision: {
@@ -493,11 +826,43 @@ export type Database = {
         };
         Returns: string;
       };
+      record_member_invitation_denial: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_invitation_id?: string;
+          p_organization_id?: string;
+          p_reason_code: string;
+        };
+        Returns: string;
+      };
       resolve_auth_access_context: {
         Args: {
           p_actor_user_id: string;
           p_assurance_level: string;
           p_selected_organization_id?: string;
+        };
+        Returns: Json;
+      };
+      resolve_member_invitation_limiter_scope: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_confirmed_email: string;
+          p_invitation_id: string;
+          p_organization_id: string;
+        };
+        Returns: string;
+      };
+      revoke_member_invitation: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_invitation_id: string;
+          p_organization_id: string;
         };
         Returns: Json;
       };

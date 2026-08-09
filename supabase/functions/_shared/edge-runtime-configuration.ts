@@ -13,6 +13,13 @@ export type AdminOnboardingRuntimeConfiguration = CommonEdgeRuntimeConfiguration
   runtimeProfile: 'local-synthetic-v1';
 };
 
+export type MemberInvitationRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
+  limiterSecret: string;
+  limiterPolicyVersion: 'invitation-subject-scope-v1';
+  runtimeProfile: 'local-synthetic-v1';
+  invitationRedirectUrl: string;
+};
+
 const loopbackHosts = new Set(['127.0.0.1', '::1', 'localhost']);
 const placeholderPattern = /(change[-_ ]?me|example|placeholder|replace[-_ ]?me|your[-_ ])/i;
 
@@ -151,4 +158,57 @@ export function readAdminOnboardingRuntimeConfiguration(
   }
 
   throw new Error('The FEAT-003 runtime profile is unsupported.');
+}
+
+export function readMemberInvitationRuntimeConfiguration(
+  read: EdgeEnvironmentReader,
+): MemberInvitationRuntimeConfiguration {
+  const common = readCommonEdgeRuntimeConfiguration(read);
+  const runtimeProfile = required(read, 'FLYEYE_RUNTIME_PROFILE');
+  const limiterPolicyVersion = required(read, 'FEAT004_LIMITER_POLICY_VERSION');
+  const dataClassification = required(read, 'FEAT004_DATA_CLASSIFICATION');
+  const limiterSecret = required(read, 'FEAT004_LIMITER_HMAC_SECRET');
+  const configuredRedirect = required(read, 'FEAT004_INVITATION_REDIRECT_URL');
+  const invitationRedirect = new URL(configuredRedirect);
+
+  if (limiterPolicyVersion !== 'invitation-subject-scope-v1') {
+    throw new Error('The FEAT-004 limiter policy is unsupported.');
+  }
+  if (dataClassification !== 'synthetic-only') {
+    throw new Error('FEAT-004 local delivery permits synthetic data only.');
+  }
+  if (
+    new TextEncoder().encode(limiterSecret).byteLength < 32 ||
+    placeholderPattern.test(limiterSecret) ||
+    limiterSecret === common.supabasePublishableKey ||
+    limiterSecret === common.supabaseServiceRoleKey
+  ) {
+    throw new Error('The FEAT-004 limiter secret is invalid.');
+  }
+  if (
+    invitationRedirect.origin !== common.allowedOrigin ||
+    invitationRedirect.pathname !== '/auth/invitation' ||
+    invitationRedirect.search ||
+    invitationRedirect.hash ||
+    invitationRedirect.username ||
+    invitationRedirect.password
+  ) {
+    throw new Error('The FEAT-004 invitation redirect is invalid.');
+  }
+
+  const supabaseHostname = new URL(common.supabaseUrl).hostname;
+  if (
+    runtimeProfile !== 'local-synthetic-v1' ||
+    (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong')
+  ) {
+    throw new Error('The FEAT-004 runtime profile is unsupported.');
+  }
+
+  return {
+    ...common,
+    limiterSecret,
+    limiterPolicyVersion,
+    runtimeProfile,
+    invitationRedirectUrl: invitationRedirect.href,
+  };
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   readAdminOnboardingRuntimeConfiguration,
   readCommonEdgeRuntimeConfiguration,
+  readMemberInvitationRuntimeConfiguration,
 } from './edge-runtime-configuration';
 
 function jwt(role: string): string {
@@ -18,6 +19,10 @@ const localEnvironment = {
   FEAT003_LIMITER_POLICY_VERSION: 'subject-action-v1',
   FEAT003_DATA_CLASSIFICATION: 'synthetic-only',
   FEAT003_LIMITER_HMAC_SECRET: 'local-test-value-with-at-least-32-bytes',
+  FEAT004_LIMITER_POLICY_VERSION: 'invitation-subject-scope-v1',
+  FEAT004_DATA_CLASSIFICATION: 'synthetic-only',
+  FEAT004_LIMITER_HMAC_SECRET: 'separate-invitation-test-secret-at-least-32-bytes',
+  FEAT004_INVITATION_REDIRECT_URL: 'http://127.0.0.1:5173/auth/invitation',
 } as const;
 
 function reader(environment: Record<string, string>) {
@@ -32,6 +37,38 @@ describe('shared Edge runtime configuration', () => {
       runtimeProfile: 'local-synthetic-v1',
       limiterPolicyVersion: 'subject-action-v1',
     });
+  });
+
+  it('accepts the exact local invitation callback and dedicated limiter policy', () => {
+    expect(readMemberInvitationRuntimeConfiguration(reader(localEnvironment))).toMatchObject({
+      invitationRedirectUrl: 'http://127.0.0.1:5173/auth/invitation',
+      limiterPolicyVersion: 'invitation-subject-scope-v1',
+      runtimeProfile: 'local-synthetic-v1',
+    });
+  });
+
+  it.each([
+    ['a foreign callback', 'https://example.test/auth/invitation'],
+    ['a recovery callback', 'http://127.0.0.1:5173/auth/recovery'],
+    ['a callback query', 'http://127.0.0.1:5173/auth/invitation?fallback=true'],
+    ['a callback fragment', 'http://127.0.0.1:5173/auth/invitation#token'],
+  ])('rejects %s for invitations', (_label, invitationRedirect) => {
+    expect(() =>
+      readMemberInvitationRuntimeConfiguration(
+        reader({ ...localEnvironment, FEAT004_INVITATION_REDIRECT_URL: invitationRedirect }),
+      ),
+    ).toThrow('invitation redirect');
+  });
+
+  it('rejects a reused or placeholder invitation limiter secret', () => {
+    expect(() =>
+      readMemberInvitationRuntimeConfiguration(
+        reader({
+          ...localEnvironment,
+          FEAT004_LIMITER_HMAC_SECRET: localEnvironment.SUPABASE_SERVICE_ROLE_KEY,
+        }),
+      ),
+    ).toThrow('limiter secret');
   });
 
   it.each([

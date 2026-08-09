@@ -12,12 +12,15 @@ import type {
   AdminOnboardingStart,
 } from './admin-onboarding';
 import { AdminOnboardingFlow } from './components/AdminOnboardingFlow';
+import { InvitationAcceptanceFlow } from './components/InvitationAcceptanceFlow';
 import { LoginForm } from './components/LoginForm';
+import { MemberInvitationsPanel } from './components/MemberInvitationsPanel';
 import { MfaForm } from './components/MfaForm';
 import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
 import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
 import { RECOVERY_COMPLETE_PATH, RECOVERY_REQUEST_PATH } from './recovery';
+import { INVITATION_PATH } from './member-invitations';
 import {
   AuthGatewayError,
   type AuthGateway,
@@ -50,11 +53,12 @@ type AuthAppProps = {
   gateway: AuthGateway;
 };
 
-type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete';
+type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete' | 'invitation';
 
 function currentAuthRoute(pathname: string): AuthRoute {
   if (pathname === RECOVERY_REQUEST_PATH) return 'recovery-request';
   if (pathname === RECOVERY_COMPLETE_PATH) return 'recovery-complete';
+  if (pathname === INVITATION_PATH) return 'invitation';
   return 'sign-in';
 }
 
@@ -74,6 +78,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
   const [adminGrants, setAdminGrants] = useState<AdminBootstrapGrant[]>([]);
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
+  const [showInvitations, setShowInvitations] = useState(false);
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
 
@@ -124,6 +129,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
         setMemberships([]);
         setAdminGrants([]);
         setAdminOnboardingStart(undefined);
+        setShowInvitations(false);
         setMessage('Your session ended. Sign in to continue.');
         setState('signed-out');
       }
@@ -263,6 +269,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
         setMemberships([]);
         setAdminGrants([]);
         setAdminOnboardingStart(undefined);
+        setShowInvitations(false);
         setMessage(reason);
         setState('signed-out');
       }
@@ -416,6 +423,8 @@ export function AuthApp({ gateway }: AuthAppProps) {
 
           {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
 
+          {route === 'invitation' ? <InvitationAcceptanceFlow gateway={gateway} /> : null}
+
           {route === 'sign-in' &&
           (state === 'checking-session' ||
             state === 'loading-access' ||
@@ -557,7 +566,16 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {route === 'sign-in' && state === 'success' && activeMembership ? (
+          {route === 'sign-in' && state === 'success' && activeMembership && showInvitations ? (
+            <MemberInvitationsPanel
+              gateway={gateway}
+              organizationId={activeMembership.organizationId}
+              organizationName={activeMembership.organizationName}
+              onClose={() => setShowInvitations(false)}
+            />
+          ) : null}
+
+          {route === 'sign-in' && state === 'success' && activeMembership && !showInvitations ? (
             <StatePanel
               eyebrow="Access verified"
               title={landingLabel(activeMembership.role)}
@@ -574,6 +592,15 @@ export function AuthApp({ gateway }: AuthAppProps) {
               <p className="placeholder-note">
                 Workspace features are intentionally outside FEAT-001.
               </p>
+              {activeMembership.permissions.includes('membership.invitation.manage') ? (
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setShowInvitations(true)}
+                >
+                  Manage member invitations
+                </button>
+              ) : null}
               <button className="text-button" type="button" onClick={() => void handleSignOut()}>
                 Sign out
               </button>

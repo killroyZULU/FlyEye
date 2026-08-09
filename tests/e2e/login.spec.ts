@@ -128,10 +128,7 @@ async function mockSupabase(page: Page, options: { invalid?: boolean; empty?: bo
   });
 
   await page.route('**/auth/v1/user*', async (route) => {
-    if (route.request().method() !== 'PUT') {
-      await route.fallback();
-      return;
-    }
+    expect(['GET', 'PUT']).toContain(route.request().method());
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -140,6 +137,7 @@ async function mockSupabase(page: Page, options: { invalid?: boolean; empty?: bo
         aud: 'authenticated',
         role: 'authenticated',
         email: 'student@example.test',
+        email_confirmed_at: new Date().toISOString(),
         app_metadata: { provider: 'email', providers: ['email'] },
         user_metadata: {},
         identities: [],
@@ -262,4 +260,18 @@ test('password recovery requires explicit confirmation and fresh sign-in', async
   for (const heading of ['Student workspace', 'Instructor workspace', 'Administration workspace']) {
     await expect(page.getByRole('heading', { name: heading })).toHaveCount(0);
   }
+});
+
+test('invitation callback requires explicit password-confirmed acceptance', async () => {
+  await page.goto(
+    `/auth/invitation?invitation=40000000-0000-4000-8000-000000000001&version=2#access_token=${encodeURIComponent(accessToken)}&refresh_token=synthetic-invitation-refresh-token&expires_in=3600&token_type=bearer&type=invite`,
+  );
+
+  const heading = page.getByRole('heading', { name: 'Review and accept' });
+  await expect(heading).toBeVisible();
+  await expect(heading).toBeFocused();
+  await expect(page).toHaveURL(/\/auth\/invitation$/);
+  await expect(page.getByLabel('FlyEye password')).toBeInViewport();
+  await expect(page.getByRole('button', { name: 'Accept invitation' })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: /workspace/i })).toHaveCount(0);
 });
