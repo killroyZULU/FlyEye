@@ -52,7 +52,8 @@ Superseded decision processes remain available through Git history. They are not
 - The frontend remains a managed static deployment; the provider is undecided.
 - Separate Supabase staging and production projects, credentials, buckets, and provider secrets are required.
 - Development remains local and synthetic. No production environment or real-data workflow is approved.
-- A hosted synthetic run requires an exact approved target, provider/plan/region, cost ceiling, credentials, fixed frontend origin, monitoring owner, retention, cleanup, and recovery plan.
+- A hosted synthetic run requires an exact approved target, provider/plan/region, cost ceiling, secure credential path, fixed frontend origin, monitoring owner, retention, cleanup, recovery plan, and any applicable risk-triggered qualified review.
+- FEAT-003 hosted-readiness planning is deferred until at least two non-identity-and-access product-workflow features are merged with their applicable local synthetic verification recorded. Login, password recovery, MFA and administrator onboarding, invitations, user/profile administration, and role assignment do not count toward this threshold. Reaching the threshold reopens hosted-readiness planning; it does not authorize a hosted resource, paid plan, credential use, real data, deployment, or production.
 - Production hosting, domain, email, data residency, backup, recovery, monitoring, and cost commitments remain separate decisions.
 
 ## Delivery and review policy
@@ -67,7 +68,9 @@ Superseded decision processes remain available through Git history. They are not
 
 ## Delivery order
 
-Identity and access work precedes the larger operational modules. The near-term sequence is FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment after the FEAT-003 hosted-readiness dependency recorded in [Current State](CURRENT_STATE.md) is resolved or explicitly reordered.
+The Founder/Product Owner has reordered the earlier FEAT-003 hosted-readiness dependency. FEAT-004 Member Invitations specification planning may proceed while hosted activation remains deferred under [Hosting and environments](#hosting-and-environments). FEAT-004 implementation remains a separately bounded delivery decision.
+
+The near-term identity-and-access sequence remains FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment.
 
 After FEAT-002 through FEAT-006, hold a UI design checkpoint before expanding the operational modules. The detailed sequence is maintained in [Product Roadmap](14_PRODUCT_ROADMAP.md).
 

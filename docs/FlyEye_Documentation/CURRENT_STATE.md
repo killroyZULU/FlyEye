@@ -24,14 +24,14 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-004 Member Invitations has roadmap intent but no approved feature specification. FEAT-005 User Management and Basic Profiles and FEAT-006 Role Assignment are also not specified.
+- FEAT-004 Member Invitations specification planning is authorized but no feature specification is approved. FEAT-005 User Management and Basic Profiles and FEAT-006 Role Assignment are also not specified.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Before one hosted synthetic FEAT-003 execution, a separate decision must establish the exact staging provider/project, region and plan, cost ceiling, fixed frontend origin, credential path, monitoring owner, retention and cleanup plan, and any risk-triggered human review. That decision may not be inferred from local configuration.
+FEAT-004 Member Invitations specification planning is the next bounded product task. It must define scope, assumptions, unresolved provider dependencies, authority, tenant isolation, audit, abuse controls, user states, and planned verification without adding implementation or claiming hosted evidence.
 
-FEAT-004 must not begin while the FEAT-003 hosted-readiness decision remains unresolved unless the Founder/Product Owner explicitly changes the dependency order.
+FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
 ## Open decisions requiring external evidence
 
