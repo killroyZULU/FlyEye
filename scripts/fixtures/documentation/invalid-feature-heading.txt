@@ -1,0 +1,3 @@
+# FEAT-099 Notes
+
+This intentionally invalid heading proves the checker rejects feature files that do not use the required contract heading.

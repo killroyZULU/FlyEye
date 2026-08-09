@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-- Status: `Locally verified; publication pending`
+- Status: Merged through PR #8 at `48ba984`
 - Parent feature: FEAT-003 Organization Admin and MFA Onboarding
 - Baseline: remote `main` merge commit
   `00dcfd2239de45b33890bc805ff27a667defabd1`
@@ -10,10 +10,9 @@
   validation decision
 - Data: synthetic identities and organizations only
 
-This hardening slice does not create or configure a Supabase project, select a
+This hardening slice did not create or configure a Supabase project, select a
 paid plan or provider, deploy an application, contact a hosted application
-service, use real or anonymized customer data, authorize production, merge its
-own pull request, or begin FEAT-004.
+service, use customer data, authorize production, or begin FEAT-004.
 
 ## Outcome
 
@@ -159,7 +158,7 @@ acceptance.
 
 ## Remaining later gates
 
-Even after this slice passes locally, hosted validation remains pending until
+Hosted validation remains pending until
 the Founder/Product Owner separately approves the exact staging provider,
 project, region, plan/cost ceiling, fixed frontend origin, environment manifest,
 credential path, monitoring owner, retention/cleanup plan, and one bounded

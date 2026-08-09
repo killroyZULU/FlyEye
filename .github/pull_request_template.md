@@ -27,7 +27,7 @@ Describe the single user or developer outcome this pull request delivers.
 ## Verification
 
 - [ ] Frozen dependency installation passes.
-- [ ] Formatting, ESLint, TypeScript, unit/component/handler tests, and production build pass.
+- [ ] Formatting, documentation architecture, ESLint, TypeScript, unit/component/handler tests, and production build pass.
 - [ ] Browser-specific Supabase and general repository secret scans pass.
 - [ ] Playwright tests pass.
 - [ ] Local Supabase reset, schema-wide SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.
@@ -37,7 +37,7 @@ Describe the single user or developer outcome this pull request delivers.
 
 ## Merge and release gates
 
-- [ ] Relevant documentation and traceability are updated.
+- [ ] Relevant documentation and traceability are updated in their canonical homes without duplicated history or guardrails.
 - [ ] Security, privacy, tenancy, and aviation limitations are identified for reviewers.
 - [ ] All blocking separate-agent findings and hard stops were resolved and reverified; otherwise this PR remains draft/blocked and is not ready to merge.
 - [ ] This pull request is ready for the human merge decision.
