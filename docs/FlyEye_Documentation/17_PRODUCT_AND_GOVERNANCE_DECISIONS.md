@@ -23,7 +23,7 @@ Superseded decision processes remain available through Git history. They are not
 - Organization Admin is an access-administration role. It grants no automatic training, safety, quality, operations, dispatch, assessment, or approval authority.
 - Membership and role changes use protected, audited commands with appropriate reauthentication.
 - Ordinary administration cannot remove or demote the last active Organization Admin.
-- The first Organization Admin uses the protected audited bootstrap implemented by FEAT-003; later members will use a separately specified invitation workflow.
+- The first Organization Admin uses the protected audited FEAT-003 bootstrap; later members use the separately scoped FEAT-004 invitation workflow.
 
 ## Authentication and account recovery
 
@@ -68,9 +68,7 @@ Superseded decision processes remain available through Git history. They are not
 
 ## Delivery order
 
-The Founder/Product Owner has reordered the earlier FEAT-003 hosted-readiness dependency. FEAT-004 Member Invitations specification planning may proceed while hosted activation remains deferred under [Hosting and environments](#hosting-and-environments). FEAT-004 implementation remains a separately bounded delivery decision.
-
-The near-term identity-and-access sequence remains FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment.
+The approved near-term identity-and-access sequence is FEAT-004 Member Invitations, FEAT-005 User Management and Basic Profiles, and FEAT-006 Role Assignment. Hosted activation remains deferred under [Hosting and environments](#hosting-and-environments) and does not interrupt that sequence.
 
 After FEAT-002 through FEAT-006, hold a UI design checkpoint before expanding the operational modules. The detailed sequence is maintained in [Product Roadmap](14_PRODUCT_ROADMAP.md).
 

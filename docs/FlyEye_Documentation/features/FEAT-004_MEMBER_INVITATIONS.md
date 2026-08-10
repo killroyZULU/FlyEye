@@ -1,13 +1,9 @@
 # Feature Specification: FEAT-004 — Member Invitations
 
-## Status
+## Contract references
 
-- State: Review-ready pull request
-- Current SDLC phase: Merge
-- Owner: Founder/Product Owner
 - Baseline: `main` at PR #11 merge `ed731d429cd5185e5b945c87a13f65987c2d10c7`
-- Task branch: `feat/FEAT-004-member-invitations`
-- Evidence plan: [FEAT-004 Traceability](FEAT-004_TRACEABILITY.md)
+- Evidence: [FEAT-004 Traceability](FEAT-004_TRACEABILITY.md)
 - Related requirements: SRS `IAM-001` through `IAM-012`
 
 ## User outcome
@@ -264,60 +260,60 @@ support remain later environment-specific gates.
 
 ## Acceptance criteria
 
-- [ ] `FEAT-004-AC-01` Only an active permitted Organization Admin with current
+- `FEAT-004-AC-01` Only an active permitted Organization Admin with current
       AAL2/TOTP and fresh password AMR can create, resend, or revoke.
-- [ ] `FEAT-004-AC-02` Listing returns only the selected authorized
+- `FEAT-004-AC-02` Listing returns only the selected authorized
       organization's bounded invitation data.
-- [ ] `FEAT-004-AC-03` Exactly one approved active initial role is accepted;
+- `FEAT-004-AC-03` Exactly one approved active initial role is accepted;
       arbitrary, inactive, future-disabled, or multi-role input is denied.
-- [ ] `FEAT-004-AC-04` Future roles remain disabled until a reviewed
+- `FEAT-004-AC-04` Future roles remain disabled until a reviewed
       server-controlled change enables invitation assignment.
-- [ ] `FEAT-004-AC-05` New identities receive the provider invitation path;
+- `FEAT-004-AC-05` New identities receive the provider invitation path;
       existing confirmed identities receive the existing-account path without
       exposing identity existence to the inviter.
-- [ ] `FEAT-004-AC-06` Issuance intent/audit precedes the provider call; the
+- `FEAT-004-AC-06` Issuance intent/audit precedes the provider call; the
       locked post-provider state/audit transaction is atomic and idempotent;
       confirmed failure leaves non-accepting `issuing`; and transport uncertainty
       is resolved from database state without assuming commit or rollback.
-- [ ] `FEAT-004-AC-07` Validity is exactly one hour by database time; equality
+- `FEAT-004-AC-07` Validity is exactly one hour by database time; equality
       and later are expired, relevant commands materialize expiry atomically,
       and a new invitation can be created after the previous one expires.
-- [ ] `FEAT-004-AC-08` Resend accepts only the specified state/cooldown set,
+- `FEAT-004-AC-08` Resend accepts only the specified state/cooldown set,
       supersedes the old invitation, makes one new provider call, and prevents
       old links from creating membership.
-- [ ] `FEAT-004-AC-09` Revocation accepts only the specified state/cooldown set
+- `FEAT-004-AC-09` Revocation accepts only the specified state/cooldown set
       and prevents acceptance without changing an already accepted member.
-- [ ] `FEAT-004-AC-10` A provider link alone cannot create membership or role
+- `FEAT-004-AC-10` A provider link alone cannot create membership or role
       authority.
-- [ ] `FEAT-004-AC-11` Acceptance requires matching confirmed Auth email,
+- `FEAT-004-AC-11` Acceptance requires matching confirmed Auth email,
       verified subject, fresh password AMR, and the exact locked invitation.
-- [ ] `FEAT-004-AC-12` Acceptance atomically creates one active membership, one
+- `FEAT-004-AC-12` Acceptance atomically creates one active membership, one
       initial role, accepted state, and audit evidence.
-- [ ] `FEAT-004-AC-13` Audit, constraint, organization, role, membership, or
+- `FEAT-004-AC-13` Audit, constraint, organization, role, membership, or
       concurrency failure rolls back all FlyEye authority.
-- [ ] `FEAT-004-AC-14` Same- and cross-invitation races create at most one
+- `FEAT-004-AC-14` Same- and cross-invitation races create at most one
       organization membership for the subject.
-- [ ] `FEAT-004-AC-15` Same email in separate organizations remains isolated and
+- `FEAT-004-AC-15` Same email in separate organizations remains isolated and
       may produce independent memberships only through independent acceptance.
-- [ ] `FEAT-004-AC-16` Existing membership, wrong account, changed email, stale
+- `FEAT-004-AC-16` Existing membership, wrong account, changed email, stale
       version, expired, revoked, superseded, and unknown IDs fail without
       enumeration.
-- [ ] `FEAT-004-AC-17` Email canonicalization is identical in server and
+- `FEAT-004-AC-17` Email canonicalization is identical in server and
       database paths; whitespace/case variants cannot bypass uniqueness, and
       provider-specific alias rewriting is not used.
-- [ ] `FEAT-004-AC-18` Role-specific MFA and portal permission are revalidated by
+- `FEAT-004-AC-18` Role-specific MFA and portal permission are revalidated by
       `auth-bootstrap` after acceptance; invitation never grants aviation or
       operational authority.
-- [ ] `FEAT-004-AC-19` Rate-limit, provider, offline, and delivery uncertainty
+- `FEAT-004-AC-19` Rate-limit, provider, offline, and delivery uncertainty
       create no bypass, duplicate mutation, or unsafe retry.
-- [ ] `FEAT-004-AC-20` Required responsive and accessibility states are covered
+- `FEAT-004-AC-20` Required responsive and accessibility states are covered
       with human-only limitations explicit.
-- [ ] `FEAT-004-AC-21` Source, build, logs, evidence, and history contain no
+- `FEAT-004-AC-21` Source, build, logs, evidence, and history contain no
       invitation token, Auth credential, real identity, service key, or provider
       message body.
-- [ ] `FEAT-004-AC-22` FEAT-001 through FEAT-003 Auth, recovery, MFA, RLS,
+- `FEAT-004-AC-22` FEAT-001 through FEAT-003 Auth, recovery, MFA, RLS,
       tenancy, audit, and browser behavior remain green.
-- [ ] `FEAT-004-AC-23` Local synthetic evidence does not claim hosted email,
+- `FEAT-004-AC-23` Local synthetic evidence does not claim hosted email,
       real-data, deployment, production, minor-student, or universal-MFA
       readiness.
 
@@ -350,30 +346,3 @@ support remain later environment-specific gates.
 No new package or paid provider is planned. The feature uses the pinned
 Supabase client/CLI, PostgreSQL, Edge Functions, local SMTP capture, and existing
 test stack. Hosted SMTP remains separately gated.
-
-## Change boundary
-
-Allowed areas:
-
-- One version-controlled migration, generated database types, invitation Edge
-  Functions/shared contracts, Auth callback and administration UI, local email
-  templates/configuration, focused fixtures/tests, and canonical evidence
-
-Excluded areas:
-
-- FEAT-005 member administration, FEAT-006 general role assignment, profiles,
-  operational modules, bulk tools, architecture replacement, hosted mutation,
-  real data, deployment, production, destructive cleanup, and branch deletion
-
-## Definition of done
-
-- [x] Contract, sources, assumptions, and later gates remain explicit
-- [x] Data, RLS, protected commands, frontend, email, audit, limiter, and
-      cleanup behavior are implemented with synthetic data
-- [x] Positive, negative, cross-tenant, concurrency, replay, failure,
-      accessibility-supporting, and secret checks pass
-- [x] Provider links and service-role authority never become FlyEye membership
-      authority
-- [x] Traceability records exact evidence and limitations
-- [x] Documentation checks and separate review pass
-- [x] A scoped implementation branch has a green review-ready pull request

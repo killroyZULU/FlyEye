@@ -164,4 +164,4 @@ project, region, plan/cost ceiling, fixed frontend origin, environment manifest,
 credential path, monitoring owner, retention/cleanup plan, and one bounded
 synthetic execution. Qualified review is risk-triggered against that exact
 environment and evidence. Real data, deployment to production, production
-approval, branch deletion, and FEAT-004 remain separate.
+approval, and branch deletion remain separate.
