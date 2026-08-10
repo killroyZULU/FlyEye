@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-09
-- Last verified merged baseline: PR #11 merge `ed731d4`
+- Last updated: 2026-08-10
+- Last verified merged baseline: PR #12 merge `558e8e6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -15,7 +15,7 @@ This file is the sole active project-status summary. Replace stale entries; do n
 | FEAT-002 Password Recovery | Merged through PR #5; closure documentation through PR #6 | Hosted email/provider behavior, remaining accessibility evidence, real-data approval, deployment, and production remain open |
 | FEAT-003 Organization Admin and MFA Onboarding | Merged through PR #7 | Hosted synthetic validation, provider activation, real data, deployment, and production remain open |
 | FEAT-003 Hosted Synthetic Hardening | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free | No staging provider/project, credentials, paid plan, executable hosted issuer, or hosted run is authorized or configured |
-| FEAT-004 Member Invitations | Review-ready PR #12 has complete local matrices, a separate technical review pass, and green required CI | Merge, hosted email, real data, deployment, and production remain open |
+| FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -25,12 +25,11 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-004 Member Invitations is published as a review-ready pull request with green CI for the local synthetic scope. FEAT-005 User Management and Basic Profiles and FEAT-006 Role Assignment are not specified.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Review [FEAT-004 PR #12](https://github.com/killroyZULU/FlyEye/pull/12) and decide whether to merge it. Merge remains a separate Founder/Product Owner decision.
+Specify FEAT-005 User Management and Basic Profiles as the next bounded product outcome. Keep general role changes in FEAT-006 and aviation licence, medical, qualification, and currency records in later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

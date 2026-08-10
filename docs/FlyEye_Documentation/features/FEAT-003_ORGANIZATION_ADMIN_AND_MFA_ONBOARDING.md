@@ -6,7 +6,7 @@
 - Outcome: Protected first-Organization-Admin bootstrap and TOTP onboarding
 - Evidence: [FEAT-003 Traceability](FEAT-003_TRACEABILITY.md)
 - Hosted safeguards: [FEAT-003 Hosted Synthetic Hardening](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md), merged through PR #8
-- Later gates: Exact hosted target and run, real data, deployment, production, FEAT-004 invitations, FEAT-005 user management, and FEAT-006 role assignment
+- Later gates: Exact hosted target and run, real data, deployment, production, FEAT-005 user management, and FEAT-006 role assignment
 
 This is the stable feature contract. Approval chronology, command logs, and detailed test output belong in Git, pull requests, CI, and traceability.
 

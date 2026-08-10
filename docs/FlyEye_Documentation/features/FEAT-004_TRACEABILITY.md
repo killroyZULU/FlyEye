@@ -2,7 +2,8 @@
 
 ## Evidence boundary
 
-- Reviewed target: implementation branch `feat/FEAT-004-member-invitations`
+- Reviewed target: implementation head `0a108c4`, merged through PR #12 at
+  `558e8e6`
 - Baseline: `main` at PR #11 merge
   `ed731d429cd5185e5b945c87a13f65987c2d10c7`
 - Verification date: 2026-08-09
@@ -10,7 +11,7 @@
   provider calls only; no hosted environment, real data, deployment, or
   production
 - Pull request and CI: [PR #12](https://github.com/killroyZULU/FlyEye/pull/12)
-  is review-ready; required CI quality gate passed on 2026-08-09
+  merged on 2026-08-09 after the required CI quality gate passed
 - Known limitations: future organization roles, hosted SMTP/domain/capacity,
   real-data retention, minor-student procedure, universal MFA recovery, and
   formal accessibility evidence remain later gates
@@ -45,16 +46,4 @@
 
 The local stack uses the repository-pinned Supabase JavaScript client `2.110.7`
 and CLI `2.109.1`. Separate technical review passed with no remaining actionable
-findings. PR #12 passed its application, local Supabase security, and aggregate
-required quality gates.
-
-## Evidence rules
-
-- Do not mark a row `Pass` until the implementation target and reproducible
-  evidence exist.
-- Keep local synthetic, hosted synthetic, real-data, deployment, and production
-  claims separate.
-- Record provider versions, exact callback configuration, sanitized fixture
-  outcomes, and zero-residue cleanup for the reviewed implementation.
-- Agent review and green CI are technical evidence, not qualified independent
-  human review, product acceptance, or production approval.
+findings.
