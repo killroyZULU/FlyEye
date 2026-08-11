@@ -3,7 +3,7 @@
 ## Contract references
 
 - Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
-- State: Local implementation, verification, and independent review complete; PR/CI pending
+- State: Implementation, verification, independent review, and PR #15 CI complete; merge pending
 - Owner: Founder/Product Owner
 - Task branch: `feat/FEAT-005-user-management-profiles`
 - Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
@@ -376,4 +376,4 @@ Excluded areas:
 - [x] Service-role authority and all personal values remain appropriately bounded
 - [x] Traceability records reproducible evidence and limitations
 - [x] Documentation checks and separate-agent review pass
-- [ ] Scoped branch has a green review-ready pull request
+- [x] Scoped branch has a green review-ready pull request

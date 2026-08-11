@@ -25,12 +25,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 User Management and Basic Profiles is implemented, verified, and independently reviewed on `feat/FEAT-005-user-management-profiles`; PR/CI publication remains in progress.
+- FEAT-005 User Management and Basic Profiles is implemented, verified, independently reviewed, and green on review-ready PR #15; merge remains a separate decision.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Complete PR/CI publication for [FEAT-005 User Management and Basic Profiles](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) using its [traceability record](features/FEAT-005_TRACEABILITY.md). General role changes stay in FEAT-006, while aviation licence, medical, qualification, and currency records remain later compliance work.
+Merge [FEAT-005 User Management and Basic Profiles](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) only with explicit authorization, then specify FEAT-006 Role Assignment from the merged baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

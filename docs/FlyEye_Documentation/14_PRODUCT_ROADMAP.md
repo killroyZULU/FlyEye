@@ -30,7 +30,7 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 3. FEAT-003 Organization Admin and MFA Onboarding — merged
 4. FEAT-003 Hosted Synthetic Hardening — merged; hosted-readiness planning and activation are deferred under the active governance decision
 5. FEAT-004 Member Invitations — merged
-6. FEAT-005 User Management and Basic Profiles — locally implemented, verified, and independently reviewed; PR/CI pending
+6. FEAT-005 User Management and Basic Profiles — green review-ready PR #15; merge pending
 7. FEAT-006 Role Assignment — next planned specification after FEAT-005 merge
 8. Visual-identity checkpoint before larger operational modules
 

@@ -4,17 +4,17 @@
 
 - Specification: [FEAT-005 User Management and Basic Profiles](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md)
 - Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
-- Reviewed target: verified task-branch worktree pending publication
+- Reviewed target: review-ready PR #15 on `feat/FEAT-005-user-management-profiles`
 - Verification date: 2026-08-11
 - Local/hosted/data boundary: local synthetic only; no hosted target, real data,
   deployment, or production evidence
-- Pull request and CI: pending publication
+- Pull request and CI: PR #15; required checks passed on 2026-08-11
 - Known limitations: merge, formal accessibility review, qualified
   privacy/retention review, hosted validation, rejoining after revocation, and
   production readiness remain pending
 
-This record covers the verified local synthetic implementation. Publication,
-CI, merge, hosted, real-data, and production evidence remain separate gates.
+This record covers the verified local synthetic implementation and review-ready
+PR. Merge, hosted, real-data, and production evidence remain separate gates.
 
 ## Requirements and results
 
