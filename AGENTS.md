@@ -1,6 +1,6 @@
 # FlyEye AI Development Instructions
 
-FlyEye is a multi-tenant Philippine flight-school operations and training PWA.
+FlyEye is a Philippine flight-school operations and training PWA with one isolated deployment per school and internal organization-scoped security controls.
 
 ## Read before changing anything
 
@@ -41,7 +41,7 @@ A direct request to build, fix, document, or continue a bounded outcome authoriz
 2. Define or refine the smallest coherent specification. Record assumptions, unresolved questions, scope, non-goals, risks, affected files, and required data/RLS/function/frontend/audit/test/doc changes.
 3. Create or continue the task branch from current `main`; preserve unrelated work.
 4. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
-5. Add positive, negative-authorization, and two-organization isolation tests where tenant data or protected commands are involved.
+5. Add positive, negative-authorization, and cross-school isolation tests where school-owned data or protected commands are involved; use rollback-only database fixtures or separate isolated test deployments for School A/School B cases.
 6. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
 7. Obtain a separate agent review of the stable target. Correct in-scope findings and reverify affected behavior.
 8. Update only the canonical documentation and evidence required by the task.

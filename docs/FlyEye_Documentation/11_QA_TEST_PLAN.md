@@ -27,7 +27,7 @@ Prove that FlyEye performs approved workflows correctly, protects tenant and per
 
 ## 3. Test environments and data
 
-Automated tests use isolated synthetic tenants and deterministic data in local or dedicated test Supabase environments. Staging contains realistic but synthetic/anonymized scenarios. Production data is not copied into development. Test data must include at least two organizations, overlapping names/IDs, multiple roles, expired/current documents, concurrent revisions, boundary calculations, and adversarial files/text.
+Automated tests use synthetic data in local or dedicated test Supabase environments. Committed runtime fixtures obey the one-school deployment invariant. Cross-school adversarial cases use rollback-only database transactions or separate isolated test deployments. Test data also covers overlapping names/IDs, multiple roles, expired/current documents, concurrent revisions, boundary calculations, and adversarial files/text. Production data is not copied into development.
 
 ## 4. Critical scenarios
 

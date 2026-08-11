@@ -45,7 +45,7 @@ The initial market is Philippine general aviation flight schools and ATOs. The p
 
 - Philippine market and terminology focus
 - Local support and peso-based commercial model
-- Configurable school workflows rather than hard-coded custom forks
+- Configurable school workflows from one versioned product, deployed to an isolated environment for each school
 - Mobile-friendly and weak-connectivity-aware operation
 - Auditable record state, revision, and approval history
 - Human-supervised AI assistance layered over structured data
@@ -71,4 +71,3 @@ All numerical targets are provisional until discovery establishes baselines and 
 > Build deterministic operational reliability first, structured training data second, and AI third.
 
 See [Project Charter](02_PROJECT_CHARTER.md), [Product Requirements](03_PRODUCT_REQUIREMENTS_SRS.md), and [Product Roadmap](14_PRODUCT_ROADMAP.md).
-

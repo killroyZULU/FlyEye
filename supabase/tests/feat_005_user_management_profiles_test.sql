@@ -1,5 +1,8 @@
 begin;
 
+set constraints organizations_single_school_deployment_key deferred;
+set constraints organization_memberships_single_school_user_key deferred;
+
 select plan(73);
 
 select has_table('public', 'organization_member_profiles', 'FEAT-005 profile table exists');

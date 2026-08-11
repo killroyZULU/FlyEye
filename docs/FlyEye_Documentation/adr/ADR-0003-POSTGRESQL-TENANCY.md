@@ -1,6 +1,6 @@
 # ADR-0003: PostgreSQL shared-schema multi-tenancy
 
-- Status: Accepted; amended by ADR-0005
+- Status: Superseded by ADR-0006
 - Date: 2026-07-17
 
 ## Context
@@ -8,6 +8,8 @@
 FlyEye data is relational and report/audit heavy. Early customers should share a managed deployment without the operational cost of one database per school, but cross-school exposure is a critical risk.
 
 > Amendment note: [ADR-0005](ADR-0005-LEAN-SUPABASE-STACK.md) keeps shared-schema PostgreSQL and makes Supabase Row-Level Security the primary database-enforced tenant boundary, supplemented by protected functions and tests.
+
+> Supersession note: [ADR-0006](ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md) replaces shared multi-school hosting with one isolated deployment per school while retaining internal organization scoping and RLS.
 
 ## Decision
 

@@ -235,16 +235,14 @@ async function createSyntheticUsers() {
 function seedAccess() {
   psql(`
     insert into public.organizations (id, name) values
-      ('${organizationA}', 'Runtime School A ${runId}'),
-      ('${organizationB}', 'Runtime School B ${runId}');
+      ('${organizationA}', 'Runtime Flight School ${runId}');
 
     with memberships(id, organization_id, user_id, status, role_code) as (
       values
         ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.student.id}'::uuid, 'active', 'student_pilot'),
         ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.instructor.id}'::uuid, 'active', 'instructor_pilot'),
-        ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.mixed.id}'::uuid, 'active', 'student_pilot'),
-        ('${randomUUID()}'::uuid, '${organizationB}'::uuid, '${users.mixed.id}'::uuid, 'active', 'admin'),
-        ('${randomUUID()}'::uuid, '${organizationB}'::uuid, '${users.suspended.id}'::uuid, 'suspended', 'student_pilot'),
+        ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.mixed.id}'::uuid, 'active', 'admin'),
+        ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.suspended.id}'::uuid, 'suspended', 'student_pilot'),
         ('${randomUUID()}'::uuid, '${organizationA}'::uuid, '${users.revoked.id}'::uuid, 'revoked', 'student_pilot')
     ), inserted as (
       insert into public.organization_memberships (id, organization_id, user_id, status)
@@ -287,10 +285,10 @@ async function cleanup() {
       .map((user) => `'${user.id}'::uuid`)
       .join(', ')});
     delete from public.organization_member_profiles
-    where organization_id in ('${organizationA}', '${organizationB}');
-    delete from public.membership_roles where organization_id in ('${organizationA}', '${organizationB}');
-    delete from public.organization_memberships where organization_id in ('${organizationA}', '${organizationB}');
-    delete from public.organizations where id in ('${organizationA}', '${organizationB}');
+    where organization_id = '${organizationA}';
+    delete from public.membership_roles where organization_id = '${organizationA}';
+    delete from public.organization_memberships where organization_id = '${organizationA}';
+    delete from public.organizations where id = '${organizationA}';
     commit;
   `);
   assert.equal(
@@ -354,9 +352,11 @@ try {
     outcome: 'success',
     reason: 'access_context_granted',
   });
-  const crossTenant = await context(student.token, { organizationId: organizationB });
-  assert.equal(crossTenant.decision, 'denied');
-  assert.equal(crossTenant.memberships.length, 0);
+  const schoolSelection = await invoke(
+    student.token,
+    JSON.stringify({ organizationId: organizationB }),
+  );
+  assert.equal(schoolSelection.status, 422);
 
   const directList = await fetch(`${apiUrl}/rest/v1/organizations?select=id`, {
     headers: { apikey: publishableKey, authorization: `Bearer ${student.token}` },
@@ -392,20 +392,15 @@ try {
     false,
   );
   const instructorAal2Session = await promoteToAal2(instructor.client);
-  const instructorAal2 = await context(instructorAal2Session.token, {
-    organizationId: organizationA,
-  });
+  const instructorAal2 = await context(instructorAal2Session.token);
   assert.equal(instructorAal2.decision, 'granted');
 
   const mixed = await signIn(users.mixed);
-  const mixedAal1 = await context(mixed.token);
-  assert.equal(mixedAal1.memberships.length, 2);
-  assert.equal(mixedAal1.memberships[0].accessStatus, 'granted');
-  assert.equal(mixedAal1.memberships[1].accessStatus, 'mfa_required');
-  const adminAal1 = await context(mixed.token, { organizationId: organizationB });
+  const adminAal1 = await context(mixed.token);
+  assert.equal(adminAal1.memberships.length, 1);
   assert.equal(adminAal1.decision, 'mfa_required');
   const mixedAal2Session = await promoteToAal2(mixed.client);
-  const adminAal2 = await context(mixedAal2Session.token, { organizationId: organizationB });
+  const adminAal2 = await context(mixedAal2Session.token);
   assert.equal(adminAal2.decision, 'granted');
   assert.equal(adminAal2.memberships[0].role, 'admin');
 
@@ -437,7 +432,7 @@ try {
   await runFrontendIntegration(instructorAal2Session.secret);
 
   process.stdout.write(
-    'Actual local frontend, Auth, TOTP, Edge Runtime, AAL, tenant, RPC, body-limit, and audit integration checks passed.\n',
+    'Actual local frontend, Auth, TOTP, Edge Runtime, AAL, school-boundary, RPC, body-limit, and audit integration checks passed.\n',
   );
 } finally {
   await cleanup();

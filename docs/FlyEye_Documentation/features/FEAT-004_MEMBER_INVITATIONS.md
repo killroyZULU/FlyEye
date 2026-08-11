@@ -25,7 +25,7 @@ Included:
 - One-hour invitation validity and fail-closed delivery uncertainty
 - Atomic membership, initial-role, invitation-state, and audit changes on
   acceptance
-- Local synthetic email capture and two-organization verification
+- Local synthetic email capture and forged-school verification
 
 Non-goals:
 
@@ -56,8 +56,8 @@ Non-goals:
 
 | Action | Permission | Tenant/record rule | Execution boundary | Reauthentication |
 |---|---|---|---|---|
-| List invitations | `membership.invitation.manage` | Active membership in the selected organization; return that organization only | Protected Edge Function and server-only RPC | Current password-authenticated AAL2/TOTP session |
-| Create invitation | `membership.invitation.manage` | Selected organization is a validated hint; server derives actor membership and validates the initial role | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
+| List invitations | `membership.invitation.manage` | Active membership in the deployment school; return that school only | Protected Edge Function and server-only RPC | Current password-authenticated AAL2/TOTP session |
+| Create invitation | `membership.invitation.manage` | Organization ID is a resource hint; server derives actor membership and validates the initial role | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Resend invitation | `membership.invitation.manage` | Actor's organization; `pending`, `expired`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Revoke invitation | `membership.invitation.manage` | Actor's organization; `pending`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Prepare acceptance | Verified invited Auth subject | Confirmed Auth email, invitation version, and locked provider-operation class determine new-password setup or existing-password reauthentication | Protected Edge Function and server-only RPC | Valid provider-established Auth session; no FlyEye authority is created |
@@ -248,15 +248,16 @@ support remain later environment-specific gates.
 - Cross-tenant list, ID, email, resend, revoke, and acceptance attempts return
   safe denials without confirming hidden state.
 - Direct table/RPC calls by browser roles, user-metadata roles, arbitrary role
-  IDs, stale organization selection, replay, races, mixed-case duplicate email,
+  IDs, forged organization hints, replay, races, mixed-case duplicate email,
   and inviter/invitee role confusion are adversarial test cases.
 - Email-link prefetch or tracking may authenticate or consume a provider token
   but cannot accept FlyEye membership without an explicit action and fresh
   password AMR.
 - Service-role credentials remain only in the protected Edge runtime. Delivery,
   database, limiter, and audit uncertainty fail closed.
-- Synthetic `.test` identities in at least two organizations are the only local
-  fixture data. Minor status and real identity information are prohibited.
+- Synthetic `.test` identities in one committed school, plus forged IDs and
+  rollback-only cross-school cases, are the only local fixture data. Minor
+  status and real identity information are prohibited.
 
 ## Acceptance criteria
 
@@ -314,7 +315,7 @@ support remain later environment-specific gates.
 - `FEAT-004-AC-22` FEAT-001 through FEAT-003 Auth, recovery, MFA, RLS,
       tenancy, audit, and browser behavior remain green.
 - `FEAT-004-AC-23` Local synthetic evidence does not claim hosted email,
-      real-data, deployment, production, minor-student, or universal-MFA
+      real-data, deployment, production, minor-student, or privileged-MFA
       readiness.
 
 ## Planned verification

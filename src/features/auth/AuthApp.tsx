@@ -6,11 +6,7 @@ import {
   type AccessMembership,
   type LoginRequest,
 } from '../../lib/access-context';
-import type {
-  AdminBootstrapGrant,
-  AdminOnboardingComplete,
-  AdminOnboardingStart,
-} from './admin-onboarding';
+import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboarding';
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
 import { AdminOnboardingFlow } from './components/AdminOnboardingFlow';
@@ -34,7 +30,6 @@ type AuthState =
   | 'signed-out'
   | 'signing-in'
   | 'loading-access'
-  | 'selecting-context'
   | 'starting-admin-onboarding'
   | 'admin-onboarding'
   | 'mfa-required'
@@ -76,8 +71,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
   const route = currentAuthRoute(window.location.pathname);
   const [state, setState] = useState<AuthState>('checking-session');
   const [message, setMessage] = useState<string>();
-  const [memberships, setMemberships] = useState<AccessMembership[]>([]);
-  const [adminGrants, setAdminGrants] = useState<AdminBootstrapGrant[]>([]);
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
   const [workspaceView, setWorkspaceView] = useState<
@@ -130,8 +123,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
       invalidateOperations();
       if (mountedRef.current) {
         setActiveMembership(undefined);
-        setMemberships([]);
-        setAdminGrants([]);
         setAdminOnboardingStart(undefined);
         setWorkspaceView('home');
         setMessage('Your session ended. Sign in to continue.');
@@ -149,61 +140,58 @@ export function AuthApp({ gateway }: AuthAppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateway, route]);
 
-  async function loadAccess(
-    selectedOrganizationId?: string,
-    includeAdminOnboarding = selectedOrganizationId === undefined,
-  ) {
+  async function loadAccess() {
     const operation = beginOperation();
     setState('loading-access');
     setMessage(undefined);
 
     try {
-      const response = await gateway.loadAccessContext(selectedOrganizationId);
+      const response = await gateway.loadAccessContext();
       if (!operationIsCurrent(operation)) return;
       const organizationIds = response.memberships.map((membership) => membership.organizationId);
-      if (new Set(organizationIds).size !== organizationIds.length) {
-        setMessage('Duplicate organization access was detected. Contact your administrator.');
+      if (
+        response.memberships.length > 1 ||
+        new Set(organizationIds).size !== organizationIds.length
+      ) {
+        setMessage('More than one school access context was detected. Contact your administrator.');
         setState('conflict');
         return;
       }
 
       let grants: AdminBootstrapGrant[] = [];
-      if (includeAdminOnboarding) {
-        try {
-          const onboardingStatus = await gateway.loadAdminOnboardingStatus();
-          if (!operationIsCurrent(operation)) return;
-          grants = onboardingStatus.grants;
-        } catch (error) {
-          if (!operationIsCurrent(operation)) return;
-          if (response.memberships.length === 0) {
-            const safe = safeError(error);
-            if (safe.code === 'admin_onboarding_recent_authentication_required') {
-              await returnToPassword(safe.message);
-              return;
-            }
-            setMessage(safe.message);
-            setState(
-              safe.code === 'admin_onboarding_conflict' ||
-                safe.code === 'admin_onboarding_not_available'
-                ? 'conflict'
-                : 'error',
-            );
+      try {
+        const onboardingStatus = await gateway.loadAdminOnboardingStatus();
+        if (!operationIsCurrent(operation)) return;
+        grants = onboardingStatus.grants;
+      } catch (error) {
+        if (!operationIsCurrent(operation)) return;
+        if (response.memberships.length === 0) {
+          const safe = safeError(error);
+          if (safe.code === 'admin_onboarding_recent_authentication_required') {
+            await returnToPassword(safe.message);
             return;
           }
-
-          // Onboarding discovery fails closed without blocking an existing membership.
-          grants = [];
+          setMessage(safe.message);
+          setState(
+            safe.code === 'admin_onboarding_conflict' ||
+              safe.code === 'admin_onboarding_not_available'
+              ? 'conflict'
+              : 'error',
+          );
+          return;
         }
+
+        // Onboarding discovery fails closed without blocking an existing membership.
+        grants = [];
       }
 
-      setMemberships(response.memberships);
-      setAdminGrants(grants);
-      if (!selectedOrganizationId && response.memberships.length + grants.length > 1) {
-        setState('selecting-context');
+      if (response.memberships.length + grants.length > 1) {
+        setMessage('More than one school access context was detected. Contact your administrator.');
+        setState('conflict');
         return;
       }
 
-      if (!selectedOrganizationId && response.memberships.length === 0) {
+      if (response.memberships.length === 0) {
         const grant = grants[0];
         if (grant) {
           await beginAdminOnboarding(grant, operation);
@@ -216,15 +204,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
       const membership = response.memberships[0];
       if (!membership) {
         setState('empty');
-        return;
-      }
-      if (
-        selectedOrganizationId &&
-        (response.selectedOrganizationId !== selectedOrganizationId ||
-          membership.organizationId !== selectedOrganizationId)
-      ) {
-        setMessage('The selected organization could not be revalidated.');
-        setState('unauthorized');
         return;
       }
       await authorizeMembership(membership, operation);
@@ -270,8 +249,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
     } finally {
       if (mountedRef.current) {
         setActiveMembership(undefined);
-        setMemberships([]);
-        setAdminGrants([]);
         setAdminOnboardingStart(undefined);
         setWorkspaceView('home');
         setMessage(reason);
@@ -280,17 +257,14 @@ export function AuthApp({ gateway }: AuthAppProps) {
     }
   }
 
-  function handleAdminOnboardingCompleted(result: AdminOnboardingComplete) {
+  function handleAdminOnboardingCompleted() {
     setAdminOnboardingStart(undefined);
-    setAdminGrants([]);
-    void loadAccess(result.organizationId, false);
+    void loadAccess();
   }
 
   function handleAdminOnboardingCancelled() {
     invalidateOperations();
     setActiveMembership(undefined);
-    setMemberships([]);
-    setAdminGrants([]);
     setAdminOnboardingStart(undefined);
     setWorkspaceView('home');
     setMessage('Administrator onboarding was cancelled. Sign in to begin again.');
@@ -370,13 +344,12 @@ export function AuthApp({ gateway }: AuthAppProps) {
     try {
       await gateway.verifyTotp(code);
       if (!operationIsCurrent(operation)) return;
-      const selectedOrganizationId = activeMembership?.organizationId;
-      if (!selectedOrganizationId) {
-        setMessage('Your selected organization is no longer available.');
+      if (!activeMembership?.organizationId) {
+        setMessage('Your school access is no longer available.');
         setState('unauthorized');
         return;
       }
-      await loadAccess(selectedOrganizationId);
+      await loadAccess();
     } catch (error) {
       if (!operationIsCurrent(operation)) return;
       const safe = safeError(error);
@@ -392,8 +365,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
     } finally {
       if (mountedRef.current) {
         setActiveMembership(undefined);
-        setMemberships([]);
-        setAdminGrants([]);
         setAdminOnboardingStart(undefined);
         setWorkspaceView('home');
         setMessage(undefined);
@@ -459,41 +430,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
                 Accounts are invitation-only. Contact your school administrator if you need access.
               </p>
             </>
-          ) : null}
-
-          {route === 'sign-in' && state === 'selecting-context' ? (
-            <StatePanel eyebrow="School access" title="Choose your access context">
-              <p>
-                Select an existing membership or an eligible first-administrator onboarding context.
-              </p>
-              <div className="organization-list">
-                {memberships.map((membership) => (
-                  <button
-                    className="organization-option"
-                    type="button"
-                    key={membership.membershipId}
-                    onClick={() => void loadAccess(membership.organizationId, false)}
-                  >
-                    <strong>{membership.organizationName}</strong>
-                    <span>{landingLabel(membership.role)}</span>
-                  </button>
-                ))}
-                {adminGrants.map((grant) => (
-                  <button
-                    className="organization-option"
-                    type="button"
-                    key={grant.bootstrapGrantId}
-                    onClick={() => void beginAdminOnboarding(grant)}
-                  >
-                    <strong>{grant.organizationName}</strong>
-                    <span>Set up the first Organization Admin</span>
-                  </button>
-                ))}
-              </div>
-              <button className="text-button" type="button" onClick={() => void handleSignOut()}>
-                Sign out
-              </button>
-            </StatePanel>
           ) : null}
 
           {route === 'sign-in' && state === 'admin-onboarding' && adminOnboardingStart ? (

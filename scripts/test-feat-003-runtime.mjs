@@ -427,12 +427,7 @@ async function createUsers() {
 function seedFixture() {
   const variables = {
     organization_a: organizations.a,
-    organization_b: organizations.b,
-    organization_race: organizations.race,
-    organization_ui: organizations.ui,
     first_admin: users.firstAdmin.id,
-    attacker: users.attacker.id,
-    existing_admin: users.existingAdmin.id,
     race_admin_one: users.raceAdminOne.id,
     race_admin_two: users.raceAdminTwo.id,
     ui_admin: users.uiAdmin.id,
@@ -440,8 +435,6 @@ function seedFixture() {
     race_grant_one: grants.raceOne,
     race_grant_two: grants.raceTwo,
     ui_grant: grants.ui,
-    first_membership: randomUUID(),
-    existing_membership: randomUUID(),
     source_instance: sourceInstanceId,
     issuance_one: randomUUID(),
     issuance_two: randomUUID(),
@@ -455,56 +448,7 @@ function seedFixture() {
 
       insert into public.organizations (id, name)
       values
-        (:'organization_a'::uuid, 'FEAT-003 Synthetic School A'),
-        (:'organization_b'::uuid, 'FEAT-003 Synthetic School B'),
-        (:'organization_race'::uuid, 'FEAT-003 Synthetic Race School'),
-        (:'organization_ui'::uuid, 'FEAT-003 Synthetic Browser School');
-
-      insert into public.organization_memberships (
-        id, organization_id, user_id, status, created_by, updated_by
-      )
-      values
-        (
-          :'first_membership'::uuid,
-          :'organization_b'::uuid,
-          :'first_admin'::uuid,
-          'active',
-          :'first_admin'::uuid,
-          :'first_admin'::uuid
-        ),
-        (
-          :'existing_membership'::uuid,
-          :'organization_b'::uuid,
-          :'existing_admin'::uuid,
-          'active',
-          :'existing_admin'::uuid,
-          :'existing_admin'::uuid
-        );
-
-      insert into public.membership_roles (
-        organization_id, membership_id, role_id, assigned_by
-      )
-      select
-        mapping.organization_id,
-        mapping.membership_id,
-        role.id,
-        mapping.assigned_by
-      from (
-        values
-          (
-            :'organization_b'::uuid,
-            :'first_membership'::uuid,
-            'student_pilot'::text,
-            :'first_admin'::uuid
-          ),
-          (
-            :'organization_b'::uuid,
-            :'existing_membership'::uuid,
-            'admin'::text,
-            :'existing_admin'::uuid
-          )
-      ) mapping(organization_id, membership_id, role_code, assigned_by)
-      join public.roles role on role.code = mapping.role_code;
+        (:'organization_a'::uuid, 'FEAT-003 Synthetic Flight School');
 
       insert into public.organization_admin_bootstrap_grants (
         id,
@@ -531,7 +475,7 @@ function seedFixture() {
         ),
         (
           :'race_grant_one'::uuid,
-          :'organization_race'::uuid,
+          :'organization_a'::uuid,
           :'race_admin_one'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
@@ -542,7 +486,7 @@ function seedFixture() {
         ),
         (
           :'race_grant_two'::uuid,
-          :'organization_race'::uuid,
+          :'organization_a'::uuid,
           :'race_admin_two'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
@@ -553,7 +497,7 @@ function seedFixture() {
         ),
         (
           :'ui_grant'::uuid,
-          :'organization_ui'::uuid,
+          :'organization_a'::uuid,
           :'ui_admin'::uuid,
           transaction_timestamp(),
           transaction_timestamp() + interval '30 minutes',
@@ -876,6 +820,36 @@ async function runBrowserOnboarding() {
   }
 }
 
+function clearCompletedScenario(grantId, userId) {
+  psql(
+    `
+      begin;
+      delete from public.authentication_events
+      where target_id = :'grant_id'::uuid
+         or actor_subject_id = :'user_id'::uuid;
+      delete from public.organization_admin_bootstrap_grants
+      where id = :'grant_id'::uuid;
+      delete from public.organization_member_profiles
+      where membership_id in (
+        select id from public.organization_memberships
+        where organization_id = :'organization_id'::uuid
+          and user_id = :'user_id'::uuid
+      );
+      delete from public.membership_roles
+      where membership_id in (
+        select id from public.organization_memberships
+        where organization_id = :'organization_id'::uuid
+          and user_id = :'user_id'::uuid
+      );
+      delete from public.organization_memberships
+      where organization_id = :'organization_id'::uuid
+        and user_id = :'user_id'::uuid;
+      commit;
+    `,
+    { grant_id: grantId, organization_id: organizations.a, user_id: userId },
+  );
+}
+
 async function cleanup() {
   const userIds = Object.values(users).map((user) => user.id);
   const userVariables = Object.fromEntries(userIds.map((id, index) => [`user_${index}`, id]));
@@ -1121,7 +1095,7 @@ try {
   });
   await waitForEdgeRuntime();
 
-  enterStage('first-admin-status', 'first-admin status and tenant isolation');
+  enterStage('first-admin-status', 'first-admin status and school-boundary denial');
   const firstAdminAal1 = await signIn(users.firstAdmin);
   const firstStatus = await onboarding(firstAdminAal1.session.access_token, {
     action: 'status',
@@ -1139,17 +1113,12 @@ try {
   assert.equal(firstStatus.payload.grants[0].bootstrapGrantId, grants.first);
   assert.equal(firstStatus.payload.grants[0].organizationId, organizations.a);
 
-  stage = 'first-admin pre-completion membership';
+  stage = 'first-admin pre-completion access';
   const initialContext = await bootstrap(firstAdminAal1.session.access_token);
   const initialMemberships = Array.isArray(initialContext.payload?.memberships)
     ? initialContext.payload.memberships
     : [];
-  if (
-    initialContext.status !== 200 ||
-    initialMemberships.length !== 1 ||
-    initialMemberships[0]?.organizationId !== organizations.b ||
-    initialMemberships[0]?.role !== 'student_pilot'
-  ) {
+  if (initialContext.status !== 200 || initialMemberships.length !== 0) {
     const safeCode =
       typeof initialContext.payload?.error?.code === 'string'
         ? initialContext.payload.error.code
@@ -1243,15 +1212,31 @@ try {
   }
   assert.equal(firstComplete.payload.decision, 'completed');
   enterStage('first-admin-bootstrap', 'first-admin final bootstrap');
-  const finalContext = await bootstrap(firstAdminAal2.session.access_token, organizations.a);
+  const finalContext = await bootstrap(firstAdminAal2.session.access_token);
   assert.equal(finalContext.status, 200);
   assert.equal(finalContext.payload.decision, 'granted');
   assert.equal(finalContext.payload.memberships[0].role, 'admin');
 
+  enterStage('first-replay-recovery', 'first-admin completion limiter recovery');
+  for (let elapsed = 0; elapsed < 60; elapsed += 15) {
+    await new Promise((resolve) => setTimeout(resolve, 15_000));
+  }
+  enterStage('first-completion-replay', 'first-admin completion replay');
+  const firstReplay = await onboarding(firstAdminAal2.session.access_token, {
+    action: 'complete',
+    bootstrapGrantId: grants.first,
+    expectedVersion: 1,
+    idempotencyKey: firstCompleteKey,
+  });
+  assert.equal(firstReplay.status, 200);
+  assert.equal(firstReplay.payload.decision, 'already_completed');
+  clearCompletedScenario(grants.first, users.firstAdmin.id);
+
   enterStage('browser-onboarding', 'real browser onboarding and accessibility');
   await runBrowserOnboarding();
+  clearCompletedScenario(grants.ui, users.uiAdmin.id);
 
-  enterStage('completion-race', 'organization-serialized completion race');
+  enterStage('completion-race', 'single-school serialized completion race');
   const [raceOne, raceTwo] = await Promise.all([
     createVerifiedRaceActor(users.raceAdminOne),
     createVerifiedRaceActor(users.raceAdminTwo),
@@ -1296,7 +1281,7 @@ try {
         and membership.status = 'active'
         and role.code = 'admin';
     `,
-    { organization_id: organizations.race },
+    { organization_id: organizations.a },
     true,
   );
   assert.equal(raceMembershipCount, '1');
@@ -1346,16 +1331,7 @@ try {
   const recoveredStatus = await limiterRequests.status();
   assert.notEqual(recoveredStatus.status, 429);
 
-  enterStage('completion-replay', 'completion replay after limiter recovery');
-  const firstReplay = await onboarding(firstAdminAal2.session.access_token, {
-    action: 'complete',
-    bootstrapGrantId: grants.first,
-    expectedVersion: 1,
-    idempotencyKey: firstCompleteKey,
-  });
-  assert.equal(firstReplay.status, 200);
-  assert.equal(firstReplay.payload.decision, 'already_completed');
-
+  enterStage('race-completion-replay', 'winning race replay after limiter recovery');
   const winningRaceIndex = raceResults.findIndex((result) => result.status === 200);
   const winningRaceActor = [raceOne, raceTwo][winningRaceIndex];
   const winningRaceGrant = [grants.raceOne, grants.raceTwo][winningRaceIndex];
@@ -1438,7 +1414,7 @@ try {
   reportDiagnostic('fixture-assertions', 'passed');
 
   process.stdout.write(
-    'FEAT-003 sanitized local fixture, Auth/TOTP/Edge, tenant, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
+    'FEAT-003 sanitized local fixture, Auth/TOTP/Edge/browser, school-boundary, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
   );
 } catch {
   process.stderr.write(`FEAT-003 runtime evidence failed at sanitized stage: ${stage}.\n`);

@@ -2,7 +2,7 @@
 
 ## 1. Architecture decision
 
-FlyEye will use a **lean React/TypeScript PWA backed by Supabase**. This replaces the earlier separate ASP.NET Core/Azure application design for the MVP. The relational, multi-tenant, auditable data model remains; the infrastructure and language surface are reduced.
+FlyEye will use a **lean React/TypeScript PWA backed by Supabase**. This replaces the earlier separate ASP.NET Core/Azure application design for the MVP. The relational, organization-scoped, auditable data model remains; the infrastructure and language surface are reduced.
 
 The architecture targets one pilot school and early commercial adoption without requiring a separately hosted custom API, container platform, or multiple programming languages.
 
@@ -25,7 +25,7 @@ Desktop / Tablet / Mobile Browser / Installed PWA
                  Audit and domain records
 ```
 
-The frontend is deployed on a managed static host. The provider, production domain, Supabase plan, and region remain undecided pending privacy, residency, latency, recovery, support, and cost review. Staging and production use separate Supabase projects and separate frontend deployments.
+The frontend is deployed on a managed static host. The provider, production domain, Supabase plan, and region remain undecided pending privacy, residency, latency, recovery, support, and cost review. Each school and lifecycle environment uses a separate frontend deployment and Supabase project.
 
 ## 3. Recommended MVP stack
 
@@ -91,26 +91,26 @@ AI Assistance
 
 The repository should mirror these bounded areas in frontend features, Edge Functions, migrations, tests, and documentation. A feature must not write another module’s tables casually; shared mutations are formal commands or reviewed database functions.
 
-## 6. Multi-tenancy
+## 6. Deployment and school isolation
 
-Initial model: one Supabase project and one shared PostgreSQL schema per environment. Tenant-owned rows contain `organization_id`.
+Each flight school receives an isolated frontend deployment and Supabase project. The same versioned codebase and migrations serve every deployment; customer-specific source forks are not the operating model. Within a deployment, the PostgreSQL schema contains at most one organization, each user has at most one membership, and school-owned rows retain `organization_id`.
 
 Required defenses:
 
 - Every exposed tenant table has RLS enabled and deny-by-default policies.
 - Membership is stored server-side and joined/checked in RLS; client metadata is not trusted as authorization.
-- A person may have separate memberships in multiple organizations; every membership keeps its own tenant and role context, and explicit organization selection never grants cross-tenant access.
+- Authentication bootstrap derives the one school from server-controlled records and rejects organization-selection hints.
 - Policies distinguish `select`, `insert`, `update`, and `delete` and include `WITH CHECK` conditions.
 - Protected functions set or verify organization context rather than accepting it as authority from the request body.
 - Database constraints prevent cross-organization relationships where practical.
 - Storage paths and policies include the organization and record scope.
-- Cross-tenant list, direct-ID, search, RPC, Edge Function, file, report, and export tests are release-blocking.
+- Cross-school list, direct-ID, search, RPC, Edge Function, file, report, and export tests are release-blocking and use rollback-only fixtures or separate test deployments.
 - Views exposed to clients must honor RLS and must not accidentally run with unsafe definer privileges.
 - Service-role access is limited to narrowly scoped server functions and operational automation.
 
 ## 7. Authentication and permissions
 
-Use Supabase Auth with invitation-only account creation. MFA is mandatory for every user before a real-data pilot or production access. TOTP is the initial method, with recovery codes, audited factor replacement, supervised recovery, and throttling required before production. Application permissions are stored in PostgreSQL membership/role tables; user-editable metadata is never an authorization source.
+Use Supabase Auth with invitation-only account creation. Administrators, instructors, and future authority-bearing roles or actions require TOTP/AAL2 until a stronger approved method is available. Student portal access may use password-authenticated AAL1 for non-privileged actions. Email links/codes verify mailbox control or recovery but do not replace privileged MFA. Recovery codes, audited factor replacement, supervised recovery, and throttling remain required before production. Application permissions are stored in PostgreSQL membership/role tables; user-editable metadata is never an authorization source.
 
 One role per organization membership remains the initial default. Organization Admin controls approved account and access administration but receives no automatic training, safety, quality, operations, dispatch, assessment, or approval authority. Later roles and any multiple-role assignment require an approved permission and separation-of-duties matrix.
 

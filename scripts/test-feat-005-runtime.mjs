@@ -34,7 +34,6 @@ const organizationB = randomUUID();
 const adminMembership = randomUUID();
 const adminTwoMembership = randomUUID();
 const memberMembershipA = randomUUID();
-const memberMembershipB = randomUUID();
 const limiterKeys = new Set();
 let edgeProcess;
 let temporaryDirectory;
@@ -214,7 +213,7 @@ async function cleanup() {
       psql(`
         begin;
         delete from public.member_administration_events
-        where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid)
+        where organization_id = '${organizationA}'::uuid
            or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
         delete from public.member_administration_rate_limit_events
         ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
@@ -223,13 +222,13 @@ async function cleanup() {
         delete from public.authentication_events
         where actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
         delete from public.organization_member_profiles
-        where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+        where organization_id = '${organizationA}'::uuid;
         delete from public.membership_roles
-        where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+        where organization_id = '${organizationA}'::uuid;
         delete from public.organization_memberships
-        where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+        where organization_id = '${organizationA}'::uuid;
         delete from public.organizations
-        where id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+        where id = '${organizationA}'::uuid;
         commit;
       `);
     } catch (error) {
@@ -248,17 +247,17 @@ async function cleanup() {
     try {
       const residue = psql(`
         select
-          (select count(*) from public.organizations where id in ('${organizationA}'::uuid, '${organizationB}'::uuid))
+          (select count(*) from public.organizations where id = '${organizationA}'::uuid)
           + (select count(*) from public.organization_memberships where id in (
               '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
-              '${memberMembershipA}'::uuid, '${memberMembershipB}'::uuid
+              '${memberMembershipA}'::uuid
             ))
           + (select count(*) from public.organization_member_profiles where membership_id in (
               '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
-              '${memberMembershipA}'::uuid, '${memberMembershipB}'::uuid
+              '${memberMembershipA}'::uuid
             ))
           + (select count(*) from public.member_administration_events
-             where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid)
+             where organization_id = '${organizationA}'::uuid
                 or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid))
           + (select count(*) from public.member_administration_rate_limit_events
              ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
@@ -299,22 +298,19 @@ try {
   psql(`
     begin;
     insert into public.organizations (id, name, status) values
-      ('${organizationA}', 'Synthetic FEAT-005 School A', 'active'),
-      ('${organizationB}', 'Synthetic FEAT-005 School B', 'active');
+      ('${organizationA}', 'Synthetic FEAT-005 Flight School', 'active');
     insert into public.organization_memberships (
       id, organization_id, user_id, status, created_by, updated_by
     ) values
       ('${adminMembership}', '${organizationA}', '${adminA.id}', 'active', '${adminA.id}', '${adminA.id}'),
       ('${adminTwoMembership}', '${organizationA}', '${adminTwo.id}', 'active', '${adminA.id}', '${adminA.id}'),
-      ('${memberMembershipA}', '${organizationA}', '${member.id}', 'active', '${adminA.id}', '${adminA.id}'),
-      ('${memberMembershipB}', '${organizationB}', '${member.id}', 'active', '${adminA.id}', '${adminA.id}');
+      ('${memberMembershipA}', '${organizationA}', '${member.id}', 'active', '${adminA.id}', '${adminA.id}');
     insert into public.membership_roles (organization_id, membership_id, role_id, assigned_by)
     select mapping.organization_id, mapping.membership_id, role.id, mapping.assigned_by
     from (values
       ('${organizationA}'::uuid, '${adminMembership}'::uuid, 'admin', '${adminA.id}'::uuid),
       ('${organizationA}'::uuid, '${adminTwoMembership}'::uuid, 'admin', '${adminA.id}'::uuid),
-      ('${organizationA}'::uuid, '${memberMembershipA}'::uuid, 'student_pilot', '${adminA.id}'::uuid),
-      ('${organizationB}'::uuid, '${memberMembershipB}'::uuid, 'student_pilot', '${adminA.id}'::uuid)
+      ('${organizationA}'::uuid, '${memberMembershipA}'::uuid, 'student_pilot', '${adminA.id}'::uuid)
     ) mapping(organization_id, membership_id, role_code, assigned_by)
     join public.roles role on role.code = mapping.role_code;
     commit;
@@ -448,11 +444,11 @@ try {
   );
 
   trackLimit(adminA.id, 'list', adminA.id);
-  const crossTenant = await invoke(adminSession.session.access_token, {
+  const forgedSchool = await invoke(adminSession.session.access_token, {
     action: 'list',
     organizationId: organizationB,
   });
-  assert.equal(crossTenant.response.status, 404);
+  assert.equal(forgedSchool.response.status, 404);
 
   trackLimit(member.id, 'list', member.id);
   const aal1Directory = await invoke(memberSignIn.session.access_token, {
@@ -484,12 +480,6 @@ try {
     membershipId: memberMembershipA,
   });
   assert.equal(suspendedAccess.response.status, 404);
-  assert.equal(
-    psql(
-      `select status from public.organization_memberships where id = '${memberMembershipB}'::uuid;`,
-    ),
-    'active',
-  );
 
   trackLimit(adminTwo.id, 'reactivate', organizationA);
   const reactivation = await invoke(adminTwoSession.session.access_token, {
@@ -584,7 +574,7 @@ try {
   );
 
   process.stdout.write(
-    'Local FEAT-005 Auth, TOTP, Edge, profile, tenant, status, concurrency, audit, and cleanup checks passed.\n',
+    'Local FEAT-005 Auth, TOTP, Edge, profile, school-boundary, status, concurrency, audit, and cleanup checks passed.\n',
   );
 } finally {
   await cleanup();

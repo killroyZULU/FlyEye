@@ -6,7 +6,7 @@
 - Post-merge CI: run `30752548762` passed all required jobs
 - Hosted-hardening merge: PR #8 at `48ba984`
 - Environment: Local Supabase, Edge runtime, and local browser only
-- Data: Randomized `.test` identities in at least two synthetic organizations
+- Data: Historical evidence used multiple synthetic organizations; FIX-006 runtime evidence uses one synthetic school and rollback-only cross-school fixtures
 - Review: Automated verification plus separate agent review and correction; no hosted, real-data, production, or qualified-regulated claim
 
 Detailed output and chronology remain in Git, PR #7, PR #8, CI, and reviewed scripts.
@@ -16,12 +16,12 @@ Detailed output and chronology remain in Git, PR #7, PR #8, CI, and reviewed scr
 | Requirement ID | Outcome/control | Evidence | Result and boundary |
 |---|---|---|---|
 | `FEAT-003-01` | Controlled first administrator before invitations | `DEC-02/04`, `AMD-01`, `AC-01/02/11/13/23/24/25`, SQL/RPC/Edge/fixture | Pass locally; production issuance unresolved |
-| `FEAT-003-02` | First-admin-only MFA without weakening universal MFA | `DEC-01`, `AC-20/21/22`, `REG-01` | Pass for bounded scope; universal MFA/recovery gates remain |
+| `FEAT-003-02` | First-admin privileged MFA | `DEC-01`, `AC-20/21/22`, `REG-01` | Pass for bounded scope; recovery gates remain |
 | `FEAT-003-03` | TOTP possession without secret leakage | `AC-04/05/19`, `UNIT-05`, `AUTH-01`, `SCAN-01` | Pass locally; hosted/formal review not claimed |
 | `FEAT-003-04` | No silent duplicate-factor enrollment | `DEC-05`, `AC-07/08`, `UNIT-04`, `AUTH-03`, `COMP-04` | Pass locally; conflict fails closed |
 | `FEAT-003-05` | Invalid/cancelled/stale/failed flow creates no authority | `AMD-01`, `AC-06/09/10/18/29/30`, component/Auth/security tests | Pass locally; no unproven factor deletion |
 | `FEAT-003-06` | Fresh password plus current TOTP evidence | `DEC-03`, `AMD-01`, `AC-02/05/11/14/26/30`, `UNIT-03`, `EDGE-01`, security runtime | Pass locally at exact 600-second boundary |
-| `FEAT-003-07` | Multi-organization selection cannot widen access | `AC-03`, `COMP-03`, `RLS-02`, `TENANT-01`, `E2E-02` | Pass locally across two organizations |
+| `FEAT-003-07` | Forged school context cannot widen access | `AC-03`, `COMP-03`, `RLS-02`, `TENANT-01`, `E2E-02`, FIX-006 | Historical and amended local evidence pass |
 | `FEAT-003-08` | Organization Admin remains administrative only | `AC-15`, scope review, `REG-01` | Pass; no operational or aviation authority |
 | `FEAT-003-09` | Atomic attributable completion | `AMD-01`, `AC-11/13/25`, `RPC-01/03`, `AUDIT-01` | Pass locally; audit failure rolls back |
 | `FEAT-003-10` | Concurrent attempts create at most one first admin | `AC-12/27`, `RPC-04`, `SEC-02` | Pass locally for same/different grants and replay |

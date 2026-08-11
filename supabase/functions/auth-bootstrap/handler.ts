@@ -7,7 +7,7 @@ import {
 } from '../_shared/access-context.ts';
 
 const MAX_REQUEST_BYTES = 2048;
-const requestSchema = z.object({ organizationId: z.uuid().optional() }).strict();
+const requestSchema = z.object({}).strict();
 
 export type AuthenticatedActor = {
   userId: string;
@@ -34,7 +34,6 @@ export type AuthBootstrapDependencies = {
   resolveAccessContext: (input: {
     actorUserId: string;
     assuranceLevel: AssuranceLevel;
-    selectedOrganizationId?: string;
   }) => Promise<unknown>;
   recordDecision: (decision: AuditDecision) => Promise<void>;
   createCorrelationId?: () => string;
@@ -221,7 +220,6 @@ export function createAuthBootstrapHandler(
       rawContext = await dependencies.resolveAccessContext({
         actorUserId: actor.userId,
         assuranceLevel: actor.assuranceLevel,
-        selectedOrganizationId: parsedRequest.data.organizationId,
       });
     } catch {
       const correlationId = createCorrelationId();
@@ -261,8 +259,7 @@ export function createAuthBootstrapHandler(
     const context = parsedContext.data;
     const success = context.decision === 'granted';
     const organizationId =
-      context.selectedOrganizationId ??
-      (context.organizationIds.length === 1 ? context.organizationIds[0]! : null);
+      context.organizationIds.length === 1 ? context.organizationIds[0]! : null;
 
     const grantedAdmin = context.memberships.some(
       (membership) => membership.role === 'admin' && membership.accessStatus === 'granted',
@@ -351,7 +348,6 @@ export function createAuthBootstrapHandler(
         metadata: {
           membershipCount: context.memberships.length,
           currentAssuranceLevel: context.currentAssuranceLevel,
-          organizationSelection: parsedRequest.data.organizationId !== undefined,
         },
       });
     } catch {

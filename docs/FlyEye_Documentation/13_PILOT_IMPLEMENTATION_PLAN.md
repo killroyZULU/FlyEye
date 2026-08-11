@@ -47,7 +47,7 @@ Measure at least 20 representative records where feasible: preparation time, rev
 
 Separate sessions for students, instructors, operations, training management, quality/admin, and support. Cover responsibilities, source/freshness, record states, returns/amendments, offline limitations, security/MFA, privacy, incident reporting, AI limitations if enabled, and what remains the official process.
 
-MFA is required for every pilot user before real-data access. TOTP is the initial method; production-ready recovery codes, factor replacement, supervised recovery, and support procedures must be rehearsed before the pilot.
+TOTP/AAL2 is required for administrators, instructors, and authority-bearing pilot actions before real-data access. Non-privileged student portal access may use password-authenticated AAL1. Production-ready recovery codes, factor replacement, supervised recovery, and support procedures must be rehearsed before the pilot.
 
 ## 7. Support and incident operations
 

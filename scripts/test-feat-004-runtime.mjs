@@ -205,16 +205,16 @@ async function cleanup() {
   psql(`
     begin;
     delete from public.member_invitation_events
-    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    where organization_id = '${organizationA}'::uuid;
     delete from public.organization_invitations
-    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    where organization_id = '${organizationA}'::uuid;
     delete from public.organization_member_profiles
-    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    where organization_id = '${organizationA}'::uuid;
     delete from public.membership_roles
-    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    where organization_id = '${organizationA}'::uuid;
     delete from public.organization_memberships
-    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
-    delete from public.organizations where id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    where organization_id = '${organizationA}'::uuid;
+    delete from public.organizations where id = '${organizationA}'::uuid;
     ${correlationValues ? `delete from public.member_invitation_rate_limit_events where correlation_id in (${correlationValues});` : ''}
     ${limiterValues ? `delete from public.member_invitation_rate_limit_state where limiter_key_hash in (${limiterValues});` : ''}
     commit;
@@ -255,9 +255,7 @@ try {
   psql(`
     begin;
     insert into public.organizations (id, name, status)
-    values
-      ('${organizationA}', 'Synthetic Runtime School A ${runId}', 'active'),
-      ('${organizationB}', 'Synthetic Runtime School B ${runId}', 'active');
+    values ('${organizationA}', 'Synthetic Runtime Flight School ${runId}', 'active');
     insert into public.organization_memberships (
       id, organization_id, user_id, status, created_by, updated_by
     ) values (
@@ -492,18 +490,18 @@ try {
   );
 
   limiterKeys.add(limiterHash(admin.id, 'list', '00000000-0000-0000-0000-000000000000'));
-  const crossTenant = await invoke(aal2Data.session.access_token, {
+  const forgedSchool = await invoke(aal2Data.session.access_token, {
     action: 'list',
     organizationId: organizationB,
   });
-  assert.equal(crossTenant.response.status, 404);
+  assert.equal(forgedSchool.response.status, 404);
   const { error: directReadError } = await recipientClient
     .from('organization_invitations')
     .select('*');
   assert.ok(directReadError);
 
   process.stdout.write(
-    'Local FEAT-004 new/existing Auth, TOTP, Edge, Mailpit, explicit acceptance, tenant isolation, and cleanup checks passed.\n',
+    'Local FEAT-004 new/existing Auth, TOTP, Edge, Mailpit, explicit acceptance, school-boundary, and cleanup checks passed.\n',
   );
 } finally {
   await cleanup();

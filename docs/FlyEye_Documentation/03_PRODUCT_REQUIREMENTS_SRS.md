@@ -8,7 +8,7 @@ Priority uses Must, Should, Could, and Won't for the MVP.
 
 ## 2. System context
 
-FlyEye is a multi-tenant PWA used by flight-school students, instructors, operations, training management, quality/safety, and administrators. The server is authoritative. External providers may supply email, file scanning, weather/NOTAM information, and optional AI assistance.
+FlyEye is a single-school PWA used by that school's students, instructors, operations, training management, quality/safety, and administrators. Each school uses an isolated application and data deployment from the same versioned product. The server is authoritative. External providers may supply email, file scanning, weather/NOTAM information, and optional AI assistance.
 
 ## 3. Functional requirements
 
@@ -20,12 +20,12 @@ FlyEye is a multi-tenant PWA used by flight-school students, instructors, operat
 | IAM-002 | The system shall derive organization membership from authenticated server-side records. | Must |
 | IAM-003 | Row-Level Security and protected server-side functions shall enforce permission, organization, record assignment, and allowed-state checks. | Must |
 | IAM-004 | Authorized administrators shall invite, suspend, reactivate, and review members. | Must |
-| IAM-005 | Every user shall use MFA before real-data pilot or production access. | Must |
+| IAM-005 | Administrators, instructors, and any role or action with privileged, instructional, approval, safety, configuration, export, or access-management authority shall use phishing-resistant MFA where supported or TOTP/AAL2 before real-data access; student portal AAL1 access may be allowed for non-privileged actions. | Must |
 | IAM-006 | Privileged actions shall require recent authentication where risk warrants it. | Should |
 | IAM-007 | Security-sensitive account events shall be logged and alertable. | Must |
 | IAM-008 | Every tenant-owned table exposed through the Supabase Data API shall use deny-by-default Row-Level Security with tested action-specific policies. | Must |
 | IAM-009 | Supabase service-role credentials shall never be delivered to browser code and shall be restricted to protected operational functions. | Must |
-| IAM-010 | A person may hold separate memberships in multiple organizations, with independent roles and explicit organization selection that never widens cross-tenant access. | Must |
+| IAM-010 | Each school shall use an isolated frontend and Supabase project containing at most one organization and at most one membership per user; the application shall derive school context without an organization selector while retaining `organization_id` isolation controls. | Must |
 | IAM-011 | Organization administration shall not automatically grant operational, training, safety, quality, dispatch, assessment, or approval authority. | Must |
 | IAM-012 | The system shall prevent removal or demotion of an organization's last active administrator through ordinary administration workflows. | Must |
 

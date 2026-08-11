@@ -1,6 +1,6 @@
 # FlyEye Aviation Training Operations Platform
 
-FlyEye is a multi-tenant, responsive PWA for Philippine flight-school operations and training records. It supports controlled workflows while keeping dispatch, airworthiness, instruction, assessment, and competency decisions with authorized people.
+FlyEye is a responsive PWA for one Philippine flight school per isolated deployment. It supports controlled operations and training records while keeping dispatch, airworthiness, instruction, assessment, and competency decisions with authorized people.
 
 This repository describes a product under development. It does not claim CAAP certification, regulatory approval, customer acceptance, deployment, or production readiness.
 
@@ -32,13 +32,13 @@ AI contributors must also read the root `AGENTS.md`. Anyone editing Markdown mus
 
 - React + TypeScript + Vite responsive PWA
 - Supabase Auth, PostgreSQL, private Storage, Row-Level Security, and Edge Functions
-- Shared tenant schema with `organization_id` and deny-by-default RLS
+- One isolated frontend and Supabase project per school, with internal `organization_id` scoping and deny-by-default RLS
 - Protected server-side commands for authority-bearing changes and atomic audit evidence
 - Version-controlled SQL migrations and generated database types
 - Managed static frontend hosting with separate staging and production Supabase projects when later approved
 - AI that is optional, permission-aware, minimized, reviewable, and unable to exercise operational authority
 
-See [ADR-0005](adr/ADR-0005-LEAN-SUPABASE-STACK.md) for the accepted MVP stack.
+See [ADR-0005](adr/ADR-0005-LEAN-SUPABASE-STACK.md) for the MVP stack and [ADR-0006](adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md) for deployment isolation.
 
 ## Document authority
 

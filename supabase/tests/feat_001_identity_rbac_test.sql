@@ -1,5 +1,8 @@
 begin;
 
+set constraints organizations_single_school_deployment_key deferred;
+set constraints organization_memberships_single_school_user_key deferred;
+
 select plan(45);
 
 select has_table('public', 'organizations', 'organizations table exists');
@@ -308,10 +311,10 @@ select lives_ok(
     '10000000-0000-4000-8000-000000000006',
     'authentication.access_context_loaded', 'success',
     '80000000-0000-4000-8000-000000000001', null,
-    array['20000000-0000-4000-8000-000000000001'::uuid, '20000000-0000-4000-8000-000000000002'::uuid],
-    'access_context_granted', '{"membershipCount":2}'
+    array['20000000-0000-4000-8000-000000000001'::uuid],
+    'access_context_granted', '{"membershipCount":1}'
   )$$,
-  'Server records one multi-organization access decision'
+  'Server records one single-school access decision'
 );
 reset role;
 select is(
@@ -334,8 +337,8 @@ select is(
     from public.authentication_events
     where correlation_id = '80000000-0000-4000-8000-000000000001'
   ),
-  2,
-  'Multi-organization audit evidence preserves both organization IDs'
+  1,
+  'Single-school audit evidence preserves the resolved organization ID'
 );
 select throws_ok(
   $$insert into public.authentication_events (

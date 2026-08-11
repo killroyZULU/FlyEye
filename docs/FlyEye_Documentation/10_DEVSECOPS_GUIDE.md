@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-DevSecOps integrates build, test, security, deployment, monitoring, recovery, and evidence into normal delivery. It is mandatory because AI-generated code, multi-tenant sensitive data, and aviation-adjacent workflows make late security testing inadequate.
+DevSecOps integrates build, test, security, deployment, monitoring, recovery, and evidence into normal delivery. It is mandatory because AI-generated code, isolated school data, and aviation-adjacent workflows make late security testing inadequate.
 
 ## 2. Source-control model
 

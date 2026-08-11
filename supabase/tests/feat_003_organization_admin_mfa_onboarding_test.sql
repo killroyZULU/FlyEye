@@ -1,5 +1,8 @@
 begin;
 
+set constraints organizations_single_school_deployment_key deferred;
+set constraints organization_memberships_single_school_user_key deferred;
+
 select plan(60);
 
 select has_table(

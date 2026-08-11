@@ -96,7 +96,7 @@ export interface AuthGateway {
   verifyRecoveryCredential(tokenHash: string): Promise<void>;
   updateRecoveredPassword(password: string): Promise<void>;
   signOutEverywhere(): Promise<void>;
-  loadAccessContext(organizationId?: string): Promise<AccessContextResponse>;
+  loadAccessContext(): Promise<AccessContextResponse>;
   loadAdminOnboardingStatus(): Promise<AdminOnboardingStatus>;
   startAdminOnboarding(grant: AdminBootstrapGrant): Promise<AdminOnboardingStart>;
   prepareAdminTotp(factorState: AdminOnboardingStart['factorState']): Promise<TotpPreparation>;
@@ -661,9 +661,9 @@ export class SupabaseAuthGateway implements AuthGateway {
     );
   }
 
-  async loadAccessContext(organizationId?: string): Promise<AccessContextResponse> {
+  async loadAccessContext(): Promise<AccessContextResponse> {
     const invocation: unknown = await this.client.functions.invoke('auth-bootstrap', {
-      body: organizationId ? { organizationId } : {},
+      body: {},
     });
     if (typeof invocation !== 'object' || invocation === null) {
       throw new AuthGatewayError(
