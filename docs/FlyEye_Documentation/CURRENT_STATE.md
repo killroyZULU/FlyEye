@@ -1,7 +1,7 @@
 # Current State
 
 - Last updated: 2026-08-11
-- Last verified merged baseline: PR #14 merge `4d8cbba`
+- Last verified merged baseline: PR #15 merge `a3a39ca`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -16,6 +16,7 @@ This file is the sole active project-status summary. Replace stale entries; do n
 | FEAT-003 Organization Admin and MFA Onboarding | Merged through PR #7 | Hosted synthetic validation, provider activation, real data, deployment, and production remain open |
 | FEAT-003 Hosted Synthetic Hardening | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free | No staging provider/project, credentials, paid plan, executable hosted issuer, or hosted run is authorized or configured |
 | FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
+| FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; a forward correction for incomplete-profile directory responses is locally verified | Correction PR/CI and merge, formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -25,12 +26,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 User Management and Basic Profiles is implemented, verified, independently reviewed, and green on review-ready PR #15; merge remains a separate decision.
+- FEAT-005 User Management and Basic Profiles is merged; its independently reviewed incomplete-profile directory correction must pass PR/CI before FEAT-006 begins.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Merge [FEAT-005 User Management and Basic Profiles](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) only with explicit authorization, then specify FEAT-006 Role Assignment from the merged baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
+Finish the review-ready correction for [FEAT-005 User Management and Basic Profiles](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md), merge it only with explicit authorization, then specify FEAT-006 Role Assignment from the corrected baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

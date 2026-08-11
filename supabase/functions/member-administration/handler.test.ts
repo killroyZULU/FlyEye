@@ -197,6 +197,33 @@ describe('FEAT-005 member administration handler', () => {
     });
   });
 
+  it('returns incomplete profiles with an explicit nullable display name', async () => {
+    const incompleteSummary = {
+      ...summary,
+      displayName: null,
+      profileComplete: false,
+    };
+    const response = await createMemberAdministrationHandler(
+      dependencies({
+        list: vi.fn().mockResolvedValue({
+          decision: 'listed',
+          organizationId: ORGANIZATION_ID,
+          members: [incompleteSummary],
+          hasMore: false,
+          correlationId: CORRELATION_ID,
+        }),
+      }),
+    )(request({ action: 'list', organizationId: ORGANIZATION_ID }));
+
+    expect(response.status).toBe(200);
+    expect(await payload(response)).toEqual({
+      decision: 'listed',
+      organizationId: ORGANIZATION_ID,
+      members: [incompleteSummary],
+      correlationId: CORRELATION_ID,
+    });
+  });
+
   it('binds pagination to the normalized search request', async () => {
     const deps = dependencies();
     const response = await createMemberAdministrationHandler(deps)(
