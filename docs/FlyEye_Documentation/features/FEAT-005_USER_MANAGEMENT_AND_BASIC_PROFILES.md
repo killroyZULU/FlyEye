@@ -3,7 +3,7 @@
 ## Contract references
 
 - Baseline: merged through PR #15 at `a3a39ca68d86748728e49a2b39c81828bb8bb658`
-- State: Delivered; forward incomplete-profile directory correction is locally verified, independently reviewed, and awaiting PR/CI
+- State: Delivered; forward incomplete-profile directory correction is locally verified, independently reviewed, and green on PR #16 with merge pending
 - Owner: Founder/Product Owner
 - Correction branch: `fix/FIX-005-incomplete-profile-list-contract`
 - Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
