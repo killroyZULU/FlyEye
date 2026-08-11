@@ -1,7 +1,7 @@
 # Current State
 
 - Last updated: 2026-08-10
-- Last verified merged baseline: PR #12 merge `558e8e6`
+- Last verified merged baseline: PR #13 merge `4d6bc6c`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -25,11 +25,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
+- FEAT-005 User Management and Basic Profiles has a review-ready bounded specification and prospective traceability plan. Implementation has not begun.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Specify FEAT-005 User Management and Basic Profiles as the next bounded product outcome. Keep general role changes in FEAT-006 and aviation licence, medical, qualification, and currency records in later compliance work.
+Review the [FEAT-005 User Management and Basic Profiles specification](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) and its [traceability plan](features/FEAT-005_TRACEABILITY.md). Implementation remains separately gated. General role changes stay in FEAT-006, while aviation licence, medical, qualification, and currency records remain later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
