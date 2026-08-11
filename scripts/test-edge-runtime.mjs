@@ -197,6 +197,7 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await studentPage.getByLabel('Password', { exact: true }).fill(password);
       await studentPage.getByRole('button', { name: 'Sign in securely' }).click();
       await studentPage.getByRole('heading', { name: 'Student workspace' }).waitFor();
+      await studentPage.waitForLoadState('networkidle');
       await studentPage.close();
 
       const instructorPage = await browser.newPage();
@@ -208,6 +209,7 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await instructorPage.getByLabel('Verification code').fill(currentTotp(instructorTotpSecret));
       await instructorPage.getByRole('button', { name: 'Verify and continue' }).click();
       await instructorPage.getByRole('heading', { name: 'Instructor workspace' }).waitFor();
+      await instructorPage.waitForLoadState('networkidle');
       await instructorPage.close();
     } finally {
       await browser.close();
@@ -284,6 +286,8 @@ async function cleanup() {
     where actor_subject_id in (${Object.values(users)
       .map((user) => `'${user.id}'::uuid`)
       .join(', ')});
+    delete from public.organization_member_profiles
+    where organization_id in ('${organizationA}', '${organizationB}');
     delete from public.membership_roles where organization_id in ('${organizationA}', '${organizationB}');
     delete from public.organization_memberships where organization_id in ('${organizationA}', '${organizationB}');
     delete from public.organizations where id in ('${organizationA}', '${organizationB}');

@@ -2,10 +2,10 @@
 
 ## Contract references
 
-- Baseline: `main` at PR #13 merge `4d6bc6cf97710348e6b59790c6e5bc5ce71c8e23`
-- State: Review-ready specification; implementation not started
+- Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
+- State: Implementation, verification, independent review, and PR #15 CI complete; merge pending
 - Owner: Founder/Product Owner
-- Task branch: `docs/feat-005-user-management-profiles-spec`
+- Task branch: `feat/FEAT-005-user-management-profiles`
 - Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002` through `IAM-012`, `REC-001` through
   `REC-003`, `NFR-004`, `NFR-008`, and `NFR-009`
@@ -370,10 +370,10 @@ Excluded areas:
 
 ## Definition of done
 
-- [ ] Contract, sources, assumptions, and unresolved items remain explicit
-- [ ] Data, RLS, protected commands, UI, audit, and rate limits are implemented
-- [ ] Positive, negative, cross-tenant, concurrency, failure, and accessibility-supporting checks pass
-- [ ] Service-role authority and all personal values remain appropriately bounded
-- [ ] Traceability records reproducible evidence and limitations
-- [ ] Documentation checks and separate-agent review pass
-- [ ] Scoped branch has a green review-ready pull request
+- [x] Contract, sources, assumptions, and unresolved items remain explicit
+- [x] Data, RLS, protected commands, UI, audit, and rate limits are implemented
+- [x] Positive, negative, cross-tenant, concurrency, failure, and accessibility-supporting checks pass
+- [x] Service-role authority and all personal values remain appropriately bounded
+- [x] Traceability records reproducible evidence and limitations
+- [x] Documentation checks and separate-agent review pass
+- [x] Scoped branch has a green review-ready pull request

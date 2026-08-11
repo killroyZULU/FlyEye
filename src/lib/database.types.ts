@@ -159,6 +159,117 @@ export type Database = {
           },
         ];
       };
+      member_administration_events: {
+        Row: {
+          actor_user_id: string | null;
+          correlation_id: string;
+          event_name: string;
+          id: string;
+          idempotency_key_hash: string | null;
+          metadata: Json;
+          occurred_at: string;
+          organization_id: string | null;
+          outcome: string;
+          reason_code: string;
+          target_membership_id: string | null;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          correlation_id: string;
+          event_name: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id?: string | null;
+          outcome: string;
+          reason_code: string;
+          target_membership_id?: string | null;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          correlation_id?: string;
+          event_name?: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id?: string | null;
+          outcome?: string;
+          reason_code?: string;
+          target_membership_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_administration_events_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'member_administration_events_organization_id_target_member_fkey';
+            columns: ['organization_id', 'target_membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
+      member_administration_rate_limit_events: {
+        Row: {
+          action_group: string;
+          correlation_id: string;
+          id: string;
+          limiter_key_hash: string;
+          metadata: Json;
+          occurred_at: string;
+          outcome: string;
+          retry_after_seconds: number | null;
+        };
+        Insert: {
+          action_group: string;
+          correlation_id: string;
+          id?: string;
+          limiter_key_hash: string;
+          metadata?: Json;
+          occurred_at?: string;
+          outcome: string;
+          retry_after_seconds?: number | null;
+        };
+        Update: {
+          action_group?: string;
+          correlation_id?: string;
+          id?: string;
+          limiter_key_hash?: string;
+          metadata?: Json;
+          occurred_at?: string;
+          outcome?: string;
+          retry_after_seconds?: number | null;
+        };
+        Relationships: [];
+      };
+      member_administration_rate_limit_state: {
+        Row: {
+          action_group: string;
+          limiter_key_hash: string;
+          tokens: number;
+          updated_at: string;
+        };
+        Insert: {
+          action_group: string;
+          limiter_key_hash: string;
+          tokens: number;
+          updated_at: string;
+        };
+        Update: {
+          action_group?: string;
+          limiter_key_hash?: string;
+          tokens?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       member_invitation_events: {
         Row: {
           actor_user_id: string | null;
@@ -522,6 +633,60 @@ export type Database = {
           },
         ];
       };
+      organization_member_profiles: {
+        Row: {
+          contact_number: string | null;
+          created_at: string;
+          created_by: string | null;
+          display_name: string | null;
+          id: string;
+          membership_id: string;
+          organization_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+        };
+        Insert: {
+          contact_number?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          display_name?: string | null;
+          id?: string;
+          membership_id: string;
+          organization_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Update: {
+          contact_number?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          display_name?: string | null;
+          id?: string;
+          membership_id?: string;
+          organization_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'organization_member_profiles_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organization_member_profiles_organization_id_membership_id_fkey';
+            columns: ['organization_id', 'membership_id'];
+            isOneToOne: true;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
       organization_memberships: {
         Row: {
           created_at: string;
@@ -732,6 +897,19 @@ export type Database = {
         Args: { p_email: string };
         Returns: string;
       };
+      change_organization_member_status: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_organization_id: string;
+          p_reason_code: string;
+          p_target_membership_id: string;
+        };
+        Returns: Json;
+      };
       complete_first_organization_admin_bootstrap: {
         Args: {
           p_actor_subject_id: string;
@@ -750,6 +928,14 @@ export type Database = {
         Returns: Json;
       };
       consume_admin_onboarding_rate_limit: {
+        Args: {
+          p_action: string;
+          p_correlation_id: string;
+          p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
+      consume_member_administration_rate_limit: {
         Args: {
           p_action: string;
           p_correlation_id: string;
@@ -777,8 +963,25 @@ export type Database = {
         Returns: Json;
       };
       get_my_access_context: { Args: never; Returns: Json };
+      get_my_member_profile: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_membership_id: string;
+        };
+        Returns: Json;
+      };
       get_organization_admin_onboarding_status: {
         Args: { p_actor_user_id: string; p_correlation_id: string };
+        Returns: Json;
+      };
+      get_organization_member: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_organization_id: string;
+          p_target_membership_id: string;
+        };
         Returns: Json;
       };
       list_member_invitations: {
@@ -786,6 +989,19 @@ export type Database = {
           p_actor_user_id: string;
           p_correlation_id: string;
           p_organization_id: string;
+        };
+        Returns: Json;
+      };
+      list_organization_members: {
+        Args: {
+          p_actor_user_id: string;
+          p_before_created_at?: string;
+          p_before_membership_id?: string;
+          p_correlation_id: string;
+          p_limit?: number;
+          p_organization_id: string;
+          p_search?: string;
+          p_status?: string;
         };
         Returns: Json;
       };
@@ -798,9 +1014,21 @@ export type Database = {
         };
         Returns: number;
       };
+      member_administration_actor_is_authorized: {
+        Args: {
+          p_actor_user_id: string;
+          p_organization_id: string;
+          p_permission_code: string;
+        };
+        Returns: boolean;
+      };
       member_invitation_actor_is_authorized: {
         Args: { p_actor_user_id: string; p_organization_id: string };
         Returns: boolean;
+      };
+      member_status_reason_options: {
+        Args: { p_action: string };
+        Returns: Json;
       };
       prepare_member_invitation_acceptance: {
         Args: {
@@ -826,6 +1054,17 @@ export type Database = {
         };
         Returns: string;
       };
+      record_member_administration_denial: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_organization_id?: string;
+          p_reason_code: string;
+          p_target_membership_id?: string;
+        };
+        Returns: string;
+      };
       record_member_invitation_denial: {
         Args: {
           p_actor_user_id: string;
@@ -837,6 +1076,10 @@ export type Database = {
         };
         Returns: string;
       };
+      required_member_profile_assurance: {
+        Args: { p_actor_user_id: string; p_membership_id: string };
+        Returns: string;
+      };
       resolve_auth_access_context: {
         Args: {
           p_actor_user_id: string;
@@ -844,6 +1087,15 @@ export type Database = {
           p_selected_organization_id?: string;
         };
         Returns: Json;
+      };
+      resolve_member_administration_limiter_scope: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_membership_id?: string;
+          p_organization_id?: string;
+        };
+        Returns: string;
       };
       resolve_member_invitation_limiter_scope: {
         Args: {
@@ -876,6 +1128,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      update_my_member_profile: {
+        Args: {
+          p_actor_user_id: string;
+          p_contact_number: string;
+          p_correlation_id: string;
+          p_display_name: string;
+          p_expected_version: number;
+          p_membership_id: string;
+        };
+        Returns: Json;
+      };
       write_admin_onboarding_event: {
         Args: {
           p_actor_subject_id: string;
@@ -889,6 +1152,20 @@ export type Database = {
           p_outcome: string;
           p_reason_code: string;
           p_target_id: string;
+        };
+        Returns: string;
+      };
+      write_member_administration_event: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_idempotency_key_hash?: string;
+          p_metadata?: Json;
+          p_organization_id: string;
+          p_outcome: string;
+          p_reason_code: string;
+          p_target_membership_id: string;
         };
         Returns: string;
       };

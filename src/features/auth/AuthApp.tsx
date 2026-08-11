@@ -11,6 +11,8 @@ import type {
   AdminOnboardingComplete,
   AdminOnboardingStart,
 } from './admin-onboarding';
+import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
+import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
 import { AdminOnboardingFlow } from './components/AdminOnboardingFlow';
 import { InvitationAcceptanceFlow } from './components/InvitationAcceptanceFlow';
 import { LoginForm } from './components/LoginForm';
@@ -78,7 +80,9 @@ export function AuthApp({ gateway }: AuthAppProps) {
   const [adminGrants, setAdminGrants] = useState<AdminBootstrapGrant[]>([]);
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
-  const [showInvitations, setShowInvitations] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<
+    'home' | 'invitations' | 'members' | 'profile'
+  >('home');
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
 
@@ -129,7 +133,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
         setMemberships([]);
         setAdminGrants([]);
         setAdminOnboardingStart(undefined);
-        setShowInvitations(false);
+        setWorkspaceView('home');
         setMessage('Your session ended. Sign in to continue.');
         setState('signed-out');
       }
@@ -269,7 +273,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
         setMemberships([]);
         setAdminGrants([]);
         setAdminOnboardingStart(undefined);
-        setShowInvitations(false);
+        setWorkspaceView('home');
         setMessage(reason);
         setState('signed-out');
       }
@@ -288,6 +292,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
     setMemberships([]);
     setAdminGrants([]);
     setAdminOnboardingStart(undefined);
+    setWorkspaceView('home');
     setMessage('Administrator onboarding was cancelled. Sign in to begin again.');
     setState('signed-out');
   }
@@ -390,6 +395,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
         setMemberships([]);
         setAdminGrants([]);
         setAdminOnboardingStart(undefined);
+        setWorkspaceView('home');
         setMessage(undefined);
         setState('signed-out');
       }
@@ -418,7 +424,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
       </section>
 
       <section className="auth-panel" aria-label="Account access">
-        <div className="auth-card">
+        <div className={`auth-card${workspaceView !== 'home' ? ' auth-card--workspace' : ''}`}>
           {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
 
           {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
@@ -566,16 +572,47 @@ export function AuthApp({ gateway }: AuthAppProps) {
             </StatePanel>
           ) : null}
 
-          {route === 'sign-in' && state === 'success' && activeMembership && showInvitations ? (
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
+          workspaceView === 'invitations' ? (
             <MemberInvitationsPanel
               gateway={gateway}
               organizationId={activeMembership.organizationId}
               organizationName={activeMembership.organizationName}
-              onClose={() => setShowInvitations(false)}
+              onClose={() => setWorkspaceView('home')}
             />
           ) : null}
 
-          {route === 'sign-in' && state === 'success' && activeMembership && !showInvitations ? (
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
+          workspaceView === 'members' ? (
+            <MemberAdministrationPanel
+              gateway={gateway}
+              organizationId={activeMembership.organizationId}
+              organizationName={activeMembership.organizationName}
+              currentMembershipId={activeMembership.membershipId}
+              onClose={() => setWorkspaceView('home')}
+              onRequirePassword={(reason) => void returnToPassword(reason)}
+            />
+          ) : null}
+
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
+          workspaceView === 'profile' ? (
+            <MemberProfilePanel
+              gateway={gateway}
+              membershipId={activeMembership.membershipId}
+              onClose={() => setWorkspaceView('home')}
+            />
+          ) : null}
+
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
+          workspaceView === 'home' ? (
             <StatePanel
               eyebrow="Access verified"
               title={landingLabel(activeMembership.role)}
@@ -596,11 +633,27 @@ export function AuthApp({ gateway }: AuthAppProps) {
                 <button
                   className="primary-button"
                   type="button"
-                  onClick={() => setShowInvitations(true)}
+                  onClick={() => setWorkspaceView('invitations')}
                 >
                   Manage member invitations
                 </button>
               ) : null}
+              {activeMembership.permissions.includes('membership.member.review') ? (
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setWorkspaceView('members')}
+                >
+                  Manage organization members
+                </button>
+              ) : null}
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => setWorkspaceView('profile')}
+              >
+                View my basic profile
+              </button>
               <button className="text-button" type="button" onClick={() => void handleSignOut()}>
                 Sign out
               </button>

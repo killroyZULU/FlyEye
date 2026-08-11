@@ -3,53 +3,51 @@
 ## Evidence boundary
 
 - Specification: [FEAT-005 User Management and Basic Profiles](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md)
-- Baseline: `main` at PR #13 merge `4d6bc6cf97710348e6b59790c6e5bc5ce71c8e23`
-- Reviewed target: pending implementation
-- Verification date: pending
+- Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
+- Reviewed target: review-ready PR #15 on `feat/FEAT-005-user-management-profiles`
+- Verification date: 2026-08-11
 - Local/hosted/data boundary: local synthetic only; no hosted target, real data,
   deployment, or production evidence
-- Pull request and CI: pending
-- Known limitations: implementation, formal accessibility review, qualified
+- Pull request and CI: PR #15; required checks passed on 2026-08-11
+- Known limitations: merge, formal accessibility review, qualified
   privacy/retention review, hosted validation, rejoining after revocation, and
   production readiness remain pending
 
-This record is prospective until implementation evidence exists. Do not mark a
-row `Pass` from specification review alone.
+This record covers the verified local synthetic implementation and review-ready
+PR. Merge, hosted, real-data, and production evidence remain separate gates.
 
-## Requirements and planned results
+## Requirements and results
 
-| Requirement/AC ID | Design or control | Planned test/evidence ID | Result | Limitation or later gate |
+| Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
 |---|---|---|---|---|
-| `IAM-002/003/008/010`, `AC-01/02/03` | Active-organization and server-derived membership checks, bounded stable list/search, deny-by-default RLS | `EDGE-01`, `RLS-01`, `TENANT-01`, `PAGE-01` | Pending | Local two-organization and suspended-organization evidence required |
-| `IAM-004`, `AC-08/10/11` | Protected suspension, reactivation, and organization-only terminal revocation with exact action-specific reason-code allowlists | `UNIT-01`, `RPC-02`, `EDGE-01`, `AUTH-01`, `E2E-01` | Pending | Rejoining after revocation is outside scope |
-| `IAM-006`, `AC-08` | Fresh password AMR and AAL2/TOTP for status changes | `EDGE-01`, `AUTH-01`, `SEC-01` | Pending | Hosted authentication behavior later |
-| `IAM-007`, `REC-001/002/003`, `AC-01/13/16/17` | Atomic append-only status, profile, directory-access, denial, and conflict evidence with minimized metadata; audit failure returns no directory data | `SQL-01`, `RPC-01/02/04`, `SEC-01` | Pending | Monitoring/retention ownership later |
-| `IAM-009`, `AC-15/16` | Service-role authority remains in protected runtime; direct browser writes denied | `RLS-01`, `EDGE-01`, `SEC-01` | Pending | Hosted secret-path evidence later |
-| `IAM-010`, `AC-03/04/09/11` | Independent organization profiles and membership effects | `TENANT-01`, `AUTH-01` | Pending | Real-data controller review later |
-| `IAM-011`, `AC-07/09/10/11` | Profile/status changes never add or alter role/operational authority | `SQL-01`, `RPC-01/02`, `REG-01` | Pending | FEAT-006 separately gated |
-| `IAM-012`, `AC-12` | Self-action denial and transactional last-active-admin protection | `RPC-03`, `TENANT-01`, `SEC-01` | Pending | Permission matrix remains later qualified gate |
-| `NFR-004`, `AC-18` | Responsive, keyboard, focus, label, announcement, contrast, and reflow support | `COMP-01/02/03`, `E2E-01`, `A11Y-01` | Pending | Formal accessibility review later |
-| `NFR-008`, `AC-02/03/12/14/15/17` | Active-organization, tenant, stable pagination, state, concurrency, replay, rate-limit, audit-failure, and direct-access controls | `RLS-01`, `RPC-02/03/04`, `EDGE-01`, `TENANT-01`, `PAGE-01`, `SEC-01` | Pending | Hosted abuse thresholds later |
-| `NFR-009`, `AC-04/05/06/07/16/20` | Minimal fields, no invented identity, value-free audit/logs, synthetic-only evidence | `SQL-01`, `RPC-01`, `SEC-01`, `FIXTURE-01` | Pending | Qualified purpose/retention/correction review before real data |
-| `AC-04/05/06/07` | Own-profile completion/update, current read-only email and role, incomplete-profile backfill | `UNIT-01`, `COMP-02`, `SQL-01`, `RPC-01`, `EDGE-01` | Pending | No legal-identity verification claim |
-| `AC-08/10/11/12/13/14` | Exact per-action reason-code allowlists, stable locking, expected version, idempotency, atomic audit, and race handling | `UNIT-01`, `RPC-02/03`, `SEC-01` | Pending | Representative concurrent evidence required |
-| `AC-19` | FEAT-001 through FEAT-004 behavior remains unchanged | `REG-01` | Pending | Complete final matrix required |
-| `AC-20` | Evidence boundary prevents hosted, real-data, retention, deployment, or production claims | `FIXTURE-01`, final diff/evidence review | Pending | Separate lifecycle decisions remain required |
+| `IAM-002/003/008/010`, `AC-01/02/03` | Active-organization and server-derived membership checks, bounded stable list/search, deny-by-default RLS | `EDGE-01`, `RLS-01`, `TENANT-01`, `PAGE-01` | Pass | Local two-organization and suspended-organization evidence passed |
+| `IAM-004`, `AC-08/10/11` | Protected suspension, reactivation, and organization-only terminal revocation with exact action-specific reason-code allowlists | `UNIT-01`, `RPC-02`, `EDGE-01`, `AUTH-01`, `E2E-01` | Pass | Rejoining after revocation is outside scope |
+| `IAM-006`, `AC-08` | Fresh password AMR and AAL2/TOTP for status changes | `EDGE-01`, `AUTH-01`, `SEC-01` | Pass | Hosted authentication behavior later |
+| `IAM-007`, `REC-001/002/003`, `AC-01/13/16/17` | Atomic append-only status, profile, directory-access, denial, and conflict evidence with minimized metadata; audit failure returns no directory data | `SQL-01`, `RPC-01/02/04`, `SEC-01` | Pass | Monitoring/retention ownership later |
+| `IAM-009`, `AC-15/16` | Service-role authority remains in protected runtime; direct browser writes denied | `RLS-01`, `EDGE-01`, `SEC-01` | Pass | Hosted secret-path evidence later |
+| `IAM-010`, `AC-03/04/09/11` | Independent organization profiles and membership effects | `TENANT-01`, `AUTH-01` | Pass | Real-data controller review later |
+| `IAM-011`, `AC-07/09/10/11` | Profile/status changes never add or alter role/operational authority | `SQL-01`, `RPC-01/02`, `REG-01` | Pass | FEAT-006 separately gated |
+| `IAM-012`, `AC-12` | Self-action denial and transactional last-active-admin protection | `RPC-03`, `TENANT-01`, `SEC-01` | Pass | Permission matrix remains later qualified gate |
+| `NFR-004`, `AC-18` | Responsive, keyboard, focus, label, announcement, contrast, and reflow support | `COMP-01/02/03`, `E2E-01`, `A11Y-01` | Pass for automated local scope | Formal accessibility review later |
+| `NFR-008`, `AC-02/03/12/14/15/17` | Active-organization, tenant, stable pagination, state, concurrency, replay, rate-limit, audit-failure, and direct-access controls | `RLS-01`, `RPC-02/03/04`, `EDGE-01`, `TENANT-01`, `PAGE-01`, `SEC-01` | Pass | Hosted abuse thresholds later |
+| `NFR-009`, `AC-04/05/06/07/16/20` | Minimal fields, no invented identity, value-free audit/logs, synthetic-only evidence | `SQL-01`, `RPC-01`, `SEC-01`, `FIXTURE-01` | Pass | Qualified purpose/retention/correction review before real data |
+| `AC-04/05/06/07` | Own-profile completion/update, current read-only email and role, incomplete-profile backfill | `UNIT-01`, `COMP-02`, `SQL-01`, `RPC-01`, `EDGE-01` | Pass | No legal-identity verification claim |
+| `AC-08/10/11/12/13/14` | Exact per-action reason-code allowlists, stable locking, expected version, idempotency, atomic audit, and race handling | `UNIT-01`, `RPC-02/03`, `SEC-01` | Pass | Representative concurrent evidence passed |
+| `AC-19` | FEAT-001 through FEAT-004 behavior remains unchanged | `REG-01` | Pass | Complete five-fixture runtime matrix passed |
+| `AC-20` | Evidence boundary prevents hosted, real-data, retention, deployment, or production claims | `FIXTURE-01`, final diff/evidence review | Pass | Separate lifecycle decisions remain required |
 
-## Planned reproducible evidence
+## Reproducible evidence
 
-| Evidence | Expected record |
+| Evidence | Result |
 |---|---|
-| Focused component/unit checks | Exact command, commit, file/test count, result |
-| FEAT-005 SQL/RLS/RPC suite | Migration reset, pgTAP count, active/suspended organization, tenant, directory-audit failure, and concurrency results |
-| FEAT-005 Edge handler suite | JWT/origin/schema/AMR/AAL/permission/failure results |
-| FEAT-005 local runtime fixture | Real Auth/TOTP, two organizations, state effects, cleanup |
-| Desktop/mobile browser suite | Member administration, stable pagination, and own-profile scenarios |
-| `pnpm verify:app` | Complete application quality result and dependency audit |
-| Database verification matrix | Clean reset, all SQL tests, runtime fixtures, lint, generated-type result |
-| Secret and privacy scan | No secrets, tokens, real identities, or prohibited profile values |
-| Residue query | Zero unintended FEAT-005 Auth, organization, membership, profile, and event residue |
-| Separate-agent review | Stable-target findings and correction outcome |
+| `pnpm test` | 21 files and 209 unit/component/Edge tests passed |
+| `pnpm test:sql` | 5 files and 236 pgTAP tests passed after a clean migration reset |
+| `node scripts/test-feat-005-runtime.mjs` | Local Auth/TOTP, two organizations, profile and status effects, race handling, privacy, and zero-residue cleanup passed |
+| `pnpm test:e2e` | 16 desktop/mobile scenarios passed, including own profile and member administration |
+| `pnpm verify:app` | Formatting, docs, lint, types, tests, build, secret scan, E2E, and dependency audit passed |
+| `pnpm test:runtime` | All five runtime fixtures passed with verified local lifecycle isolation |
+| Database lint and generated types | No schema warnings; generated types are current |
+| Separate-agent review | Pass; initial findings corrected and final focused re-review found no material findings |
 
 ## Evidence rules
 

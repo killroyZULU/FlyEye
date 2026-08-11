@@ -178,6 +178,15 @@ function confirmationUrl(message) {
 
 async function stopEdge() {
   if (!edgeProcess || edgeProcess.exitCode !== null) return;
+  const stopped = new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 5_000);
+    const finish = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    edgeProcess.once('exit', finish);
+    edgeProcess.once('error', finish);
+  });
   if (process.platform === 'win32') {
     spawnSync('taskkill.exe', ['/pid', String(edgeProcess.pid), '/t', '/f'], {
       stdio: 'ignore',
@@ -186,6 +195,7 @@ async function stopEdge() {
   } else {
     edgeProcess.kill('SIGTERM');
   }
+  await stopped;
 }
 
 async function cleanup() {
@@ -197,6 +207,8 @@ async function cleanup() {
     delete from public.member_invitation_events
     where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
     delete from public.organization_invitations
+    where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
+    delete from public.organization_member_profiles
     where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
     delete from public.membership_roles
     where organization_id in ('${organizationA}'::uuid, '${organizationB}'::uuid);
@@ -290,6 +302,9 @@ try {
       'FEAT004_DATA_CLASSIFICATION=synthetic-only',
       `FEAT004_LIMITER_HMAC_SECRET=${limiterSecret}`,
       `FEAT004_INVITATION_REDIRECT_URL=${origin}/auth/invitation`,
+      'FEAT005_LIMITER_POLICY_VERSION=member-administration-subject-scope-v1',
+      'FEAT005_DATA_CLASSIFICATION=synthetic-only',
+      `FEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}`,
       '',
     ].join('\n'),
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },

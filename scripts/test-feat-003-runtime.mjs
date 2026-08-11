@@ -916,6 +916,13 @@ async function cleanup() {
       );
       delete from public.organization_admin_bootstrap_grants
       where authorization_source_instance_id = :'source_instance'::uuid;
+      delete from public.organization_member_profiles
+      where organization_id in (
+        :'organization_a'::uuid,
+        :'organization_b'::uuid,
+        :'organization_race'::uuid,
+        :'organization_ui'::uuid
+      );
       delete from public.organization_memberships
       where organization_id in (
         :'organization_a'::uuid,
@@ -1092,7 +1099,7 @@ try {
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
     environmentPath,
-    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\n`,
+    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_POLICY_VERSION=invitation-subject-scope-v1\nFEAT004_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT004_INVITATION_REDIRECT_URL=${origin}/auth/invitation\nFEAT005_LIMITER_POLICY_VERSION=member-administration-subject-scope-v1\nFEAT005_DATA_CLASSIFICATION=synthetic-only\nFEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\n`,
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },
   );
   edgeProcess = spawn(

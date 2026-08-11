@@ -7,6 +7,18 @@ import {
 } from '../../../lib/access-context';
 import type { Database } from '../../../lib/database.types';
 import {
+  memberDetailResultSchema,
+  memberListSchema,
+  memberProfileResultSchema,
+  memberStatusResultSchema,
+  type MemberDetail,
+  type MemberList,
+  type MemberProfile,
+  type MemberStatus,
+  type MemberStatusAction,
+  type MemberStatusResult,
+} from '../../members/member-administration';
+import {
   adminOnboardingCompleteSchema,
   adminOnboardingStartSchema,
   adminOnboardingStatusSchema,
@@ -44,6 +56,14 @@ export type AuthGatewayErrorCode =
   | 'member_invitation_delivery_failed'
   | 'member_invitation_delivery_uncertain'
   | 'member_invitation_unavailable'
+  | 'member_administration_not_found'
+  | 'member_administration_validation_failed'
+  | 'member_administration_state_conflict'
+  | 'member_administration_last_administrator'
+  | 'member_administration_self_action'
+  | 'member_administration_recent_authentication_required'
+  | 'member_administration_assurance_required'
+  | 'member_administration_unavailable'
   | 'mfa_invalid'
   | 'mfa_enrollment_required'
   | 'recovery_invalid'
@@ -114,6 +134,28 @@ export interface AuthGateway {
     expectedVersion: number;
     idempotencyKey: string;
   }): Promise<InvitationMutation>;
+  loadOrganizationMembers(request: {
+    organizationId: string;
+    status?: MemberStatus;
+    search?: string;
+    cursor?: string;
+  }): Promise<MemberList>;
+  loadOrganizationMember(organizationId: string, membershipId: string): Promise<MemberDetail>;
+  loadMyMemberProfile(membershipId: string): Promise<MemberProfile>;
+  updateMyMemberProfile(request: {
+    membershipId: string;
+    displayName: string;
+    contactNumber: string;
+    expectedVersion: number;
+  }): Promise<MemberProfile>;
+  changeOrganizationMemberStatus(request: {
+    organizationId: string;
+    membershipId: string;
+    action: MemberStatusAction;
+    reasonCode: string;
+    expectedVersion: number;
+    idempotencyKey: string;
+  }): Promise<MemberStatusResult>;
   getMfaAssurance(): Promise<MfaAssurance>;
   verifyTotp(code: string): Promise<void>;
   signOut(): Promise<void>;
@@ -1050,6 +1092,159 @@ export class SupabaseAuthGateway implements AuthGateway {
     idempotencyKey: string;
   }): Promise<InvitationMutation> {
     return this.mutateMemberInvitation({ action: 'accept', ...request });
+  }
+
+  private async invokeMemberAdministration(body: Record<string, unknown>): Promise<unknown> {
+    const invocation: unknown = await this.client.functions.invoke('member-administration', {
+      body,
+    });
+    if (typeof invocation !== 'object' || invocation === null) {
+      throw new AuthGatewayError(
+        'member_administration_unavailable',
+        'Member administration is temporarily unavailable.',
+      );
+    }
+
+    const data: unknown = Reflect.get(invocation, 'data');
+    const error: unknown = Reflect.get(invocation, 'error');
+    if (!error) return data;
+
+    const details = await edgeErrorDetails(error);
+    switch (details.code) {
+      case 'member_administration.rate_limited':
+        throw new AuthGatewayError(
+          'rate_limited',
+          details.retryAfterSeconds
+            ? `Wait ${details.retryAfterSeconds} seconds before trying again.`
+            : 'Too many member requests. Wait before trying again.',
+        );
+      case 'member_administration.not_found':
+        throw new AuthGatewayError(
+          'member_administration_not_found',
+          'The requested member information is not available.',
+        );
+      case 'member_administration.validation_failed':
+      case 'member_administration.invalid_request':
+        throw new AuthGatewayError(
+          'member_administration_validation_failed',
+          'The member request is invalid.',
+        );
+      case 'member_administration.state_conflict':
+        throw new AuthGatewayError(
+          'member_administration_state_conflict',
+          'The member information changed. Refresh and try again.',
+        );
+      case 'member_administration.last_administrator':
+        throw new AuthGatewayError(
+          'member_administration_last_administrator',
+          'At least one active Organization Admin must remain.',
+        );
+      case 'member_administration.self_action':
+        throw new AuthGatewayError(
+          'member_administration_self_action',
+          'You cannot change your own membership status.',
+        );
+      case 'member_administration.recent_authentication_required':
+        throw new AuthGatewayError(
+          'member_administration_recent_authentication_required',
+          'Sign in with your password again to continue.',
+        );
+      case 'member_administration.authentication_assurance_required':
+        throw new AuthGatewayError(
+          'member_administration_assurance_required',
+          'Verify your authenticator to continue.',
+        );
+      default:
+        throw new AuthGatewayError(
+          'member_administration_unavailable',
+          'Member administration is temporarily unavailable.',
+        );
+    }
+  }
+
+  async loadOrganizationMembers(request: {
+    organizationId: string;
+    status?: MemberStatus;
+    search?: string;
+    cursor?: string;
+  }): Promise<MemberList> {
+    const parsed = memberListSchema.safeParse(
+      await this.invokeMemberAdministration({ action: 'list', ...request }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'The member list could not be verified.',
+      );
+    }
+    return parsed.data;
+  }
+
+  async loadOrganizationMember(
+    organizationId: string,
+    membershipId: string,
+  ): Promise<MemberDetail> {
+    const parsed = memberDetailResultSchema.safeParse(
+      await this.invokeMemberAdministration({ action: 'detail', organizationId, membershipId }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'The member detail could not be verified.',
+      );
+    }
+    return parsed.data.member;
+  }
+
+  async loadMyMemberProfile(membershipId: string): Promise<MemberProfile> {
+    const parsed = memberProfileResultSchema.safeParse(
+      await this.invokeMemberAdministration({ action: 'get_profile', membershipId }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'Your profile could not be verified.',
+      );
+    }
+    return parsed.data.profile;
+  }
+
+  async updateMyMemberProfile(request: {
+    membershipId: string;
+    displayName: string;
+    contactNumber: string;
+    expectedVersion: number;
+  }): Promise<MemberProfile> {
+    const parsed = memberProfileResultSchema.safeParse(
+      await this.invokeMemberAdministration({ action: 'update_profile', ...request }),
+    );
+    if (!parsed.success || parsed.data.decision !== 'updated') {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'Your profile result could not be verified.',
+      );
+    }
+    return parsed.data.profile;
+  }
+
+  async changeOrganizationMemberStatus(request: {
+    organizationId: string;
+    membershipId: string;
+    action: MemberStatusAction;
+    reasonCode: string;
+    expectedVersion: number;
+    idempotencyKey: string;
+  }): Promise<MemberStatusResult> {
+    const parsed = memberStatusResultSchema.safeParse(
+      await this.invokeMemberAdministration(request),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'The membership result could not be verified.',
+      );
+    }
+    return parsed.data;
   }
 
   async getMfaAssurance(): Promise<MfaAssurance> {
