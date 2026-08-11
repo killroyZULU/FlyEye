@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   createMemberAdministrationHandler,
+  MemberAdministrationAuditWriteError,
   type MemberAdministrationDependencies,
 } from './handler.ts';
 
@@ -36,6 +37,17 @@ const summary = {
   createdAt: '2026-08-11T00:00:00Z',
 };
 
+const statusReasonOptions = [
+  { action: 'suspend' as const, code: 'temporary_access_hold', label: 'Temporary access hold' },
+  { action: 'suspend' as const, code: 'administrative_review', label: 'Administrative review' },
+  { action: 'revoke' as const, code: 'membership_ended', label: 'Membership ended' },
+  {
+    action: 'revoke' as const,
+    code: 'membership_created_in_error',
+    label: 'Membership created in error',
+  },
+];
+
 const profile = {
   organizationId: ORGANIZATION_ID,
   organizationName: 'Synthetic Flight School',
@@ -66,6 +78,7 @@ function dependencies(
       policyVersion: 'member-administration-subject-scope-v1',
     }),
     recordDenied: vi.fn().mockResolvedValue(undefined),
+    reportAuditFailure: vi.fn(),
     decodeCursor: vi.fn().mockResolvedValue({
       createdAt: '2026-08-10T00:00:00Z',
       membershipId: MEMBERSHIP_ID,
@@ -81,7 +94,12 @@ function dependencies(
     detail: vi.fn().mockResolvedValue({
       decision: 'found',
       organizationId: ORGANIZATION_ID,
-      member: { ...summary, contactNumber: null, updatedAt: '2026-08-11T00:00:00Z' },
+      member: {
+        ...summary,
+        contactNumber: null,
+        statusReasonOptions,
+        updatedAt: '2026-08-11T00:00:00Z',
+      },
       correlationId: CORRELATION_ID,
     }),
     getProfile: vi.fn().mockResolvedValue({
@@ -179,6 +197,15 @@ describe('FEAT-005 member administration handler', () => {
     });
   });
 
+  it('binds pagination to the normalized search request', async () => {
+    const deps = dependencies();
+    const response = await createMemberAdministrationHandler(deps)(
+      request({ action: 'list', organizationId: ORGANIZATION_ID, search: '  SYNTHETIC  ' }),
+    );
+    expect(response.status).toBe(200);
+    expect(deps.list).toHaveBeenCalledWith(expect.objectContaining({ search: 'synthetic' }));
+  });
+
   it('fails closed when a successful database response is not bound to the request', async () => {
     const deps = dependencies({
       list: vi.fn().mockResolvedValue({
@@ -193,6 +220,37 @@ describe('FEAT-005 member administration handler', () => {
       request({ action: 'list', organizationId: ORGANIZATION_ID }),
     );
     expect(response.status).toBe(503);
+  });
+
+  it('emits a minimized signal when a mandatory success audit write fails', async () => {
+    const deps = dependencies({
+      list: vi.fn().mockRejectedValue(new MemberAdministrationAuditWriteError()),
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({ action: 'list', organizationId: ORGANIZATION_ID }),
+    );
+    expect(response.status).toBe(503);
+    expect(deps.reportAuditFailure).toHaveBeenCalledWith({
+      action: 'list',
+      correlationId: CORRELATION_ID,
+    });
+  });
+
+  it('emits a minimized signal when a mandatory denial audit write fails', async () => {
+    const deps = dependencies({
+      authenticate: vi
+        .fn()
+        .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
+      recordDenied: vi.fn().mockRejectedValue(new MemberAdministrationAuditWriteError()),
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({ action: 'list', organizationId: ORGANIZATION_ID }),
+    );
+    expect(response.status).toBe(503);
+    expect(deps.reportAuditFailure).toHaveBeenCalledWith({
+      action: 'list',
+      correlationId: CORRELATION_ID,
+    });
   });
 
   it('rejects a cursor that is not bound to the current query', async () => {

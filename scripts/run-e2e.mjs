@@ -185,6 +185,24 @@ async function mockSupabase(page, options = {}) {
         member: {
           ...targetMember,
           contactNumber: '+63 900 000 0000',
+          statusReasonOptions: [
+            {
+              action: 'suspend',
+              code: 'temporary_access_hold',
+              label: 'Temporary access hold',
+            },
+            {
+              action: 'suspend',
+              code: 'administrative_review',
+              label: 'Administrative review',
+            },
+            { action: 'revoke', code: 'membership_ended', label: 'Membership ended' },
+            {
+              action: 'revoke',
+              code: 'membership_created_in_error',
+              label: 'Membership created in error',
+            },
+          ],
           updatedAt: '2026-08-11T00:00:00Z',
         },
         correlationId,

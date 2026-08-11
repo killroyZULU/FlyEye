@@ -1,11 +1,32 @@
 begin;
 
-select plan(68);
+select plan(72);
 
 select has_table('public', 'organization_member_profiles', 'FEAT-005 profile table exists');
 select has_table('public', 'member_administration_events', 'FEAT-005 audit table exists');
 select has_table('public', 'member_administration_rate_limit_state', 'FEAT-005 limiter state exists');
 select has_table('public', 'member_administration_rate_limit_events', 'FEAT-005 limiter evidence exists');
+select has_trigger(
+  'public',
+  'organization_memberships',
+  'organization_membership_create_profile',
+  'Membership inserts are protected by the profile-creation trigger before backfill reconciliation'
+);
+select is(
+  public.member_status_reason_options('suspend'),
+  '[{"action":"suspend","code":"temporary_access_hold","label":"Temporary access hold"},{"action":"suspend","code":"administrative_review","label":"Administrative review"}]'::jsonb,
+  'Suspend UI options and command validation share one server mapping'
+);
+select is(
+  public.member_status_reason_options('reactivate'),
+  '[{"action":"reactivate","code":"hold_resolved","label":"Hold resolved"},{"action":"reactivate","code":"suspension_corrected","label":"Suspension corrected"}]'::jsonb,
+  'Reactivate UI options and command validation share one server mapping'
+);
+select is(
+  public.member_status_reason_options('revoke'),
+  '[{"action":"revoke","code":"membership_ended","label":"Membership ended"},{"action":"revoke","code":"membership_created_in_error","label":"Membership created in error"}]'::jsonb,
+  'Revoke UI options and command validation share one server mapping'
+);
 select is(
   (
     select count(*)::integer from pg_class
@@ -574,7 +595,7 @@ select throws_ok(
     'suspend', 'administrative_review', 1, repeat('7', 64),
     'a4000000-0000-4000-8000-000000000020'
   )$$,
-  'P0001', 'synthetic FEAT-005 audit failure',
+  'P5005', 'Member administration audit write failed.',
   'Mandatory status audit failure aborts the protected command'
 );
 select is(
@@ -623,7 +644,7 @@ select throws_ok(
     'a2000000-0000-4000-8000-000000000001',
     'a4000000-0000-4000-8000-000000000022'
   )$$,
-  'P0001', 'synthetic FEAT-005 read/profile audit failure',
+  'P5005', 'Member administration audit write failed.',
   'Directory data is not returned when its mandatory access audit fails'
 );
 select is(
@@ -639,7 +660,7 @@ select throws_ok(
     'Synthetic Admin', '', 1,
     'a4000000-0000-4000-8000-000000000023'
   )$$,
-  'P0001', 'synthetic FEAT-005 read/profile audit failure',
+  'P5005', 'Member administration audit write failed.',
   'Profile audit failure aborts the profile update'
 );
 select is(

@@ -1026,6 +1026,10 @@ export type Database = {
         Args: { p_actor_user_id: string; p_organization_id: string };
         Returns: boolean;
       };
+      member_status_reason_options: {
+        Args: { p_action: string };
+        Returns: Json;
+      };
       prepare_member_invitation_acceptance: {
         Args: {
           p_actor_user_id: string;
@@ -1148,6 +1152,20 @@ export type Database = {
           p_outcome: string;
           p_reason_code: string;
           p_target_id: string;
+        };
+        Returns: string;
+      };
+      write_member_administration_event: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_idempotency_key_hash?: string;
+          p_metadata?: Json;
+          p_organization_id: string;
+          p_outcome: string;
+          p_reason_code: string;
+          p_target_membership_id: string;
         };
         Returns: string;
       };

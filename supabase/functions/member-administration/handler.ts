@@ -8,7 +8,15 @@ import {
 const MAX_REQUEST_BYTES = 8192;
 const idempotencyKeySchema = z.string().regex(/^[0-9a-f]{32,128}$/);
 const memberStatusSchema = z.enum(['active', 'suspended', 'revoked']);
-const searchSchema = z.string().trim().min(2).max(80);
+const searchSchema = z.string().trim().toLowerCase().min(2).max(80);
+const statusActionSchema = z.enum(['suspend', 'reactivate', 'revoke']);
+const statusReasonOptionSchema = z
+  .object({
+    action: statusActionSchema,
+    code: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    label: z.string().min(2).max(80),
+  })
+  .strict();
 const contactNumberSchema = z
   .string()
   .trim()
@@ -74,6 +82,7 @@ const memberSummarySchema = z
 const memberDetailSchema = memberSummarySchema
   .extend({
     contactNumber: z.string().max(32).nullable(),
+    statusReasonOptions: z.array(statusReasonOptionSchema).max(4),
     updatedAt: z.string().min(1).max(80),
   })
   .strict();
@@ -168,6 +177,13 @@ export type AdministrationLimiterDecision = {
   policyVersion: 'member-administration-subject-scope-v1';
 };
 
+export class MemberAdministrationAuditWriteError extends Error {
+  constructor() {
+    super('Member administration audit write failed.');
+    this.name = 'MemberAdministrationAuditWriteError';
+  }
+}
+
 export type MemberAdministrationDependencies = {
   allowedOrigin: string;
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
@@ -195,6 +211,10 @@ export type MemberAdministrationDependencies = {
     organizationId: string | null;
     membershipId: string | null;
   }) => Promise<void>;
+  reportAuditFailure: (input: {
+    action: MemberAdministrationAction;
+    correlationId: string;
+  }) => void;
   decodeCursor: (
     cursor: string,
     status: string | null,
@@ -367,8 +387,22 @@ async function auditFailure(
       ...hints,
     });
     return true;
-  } catch {
+  } catch (error) {
+    if (error instanceof MemberAdministrationAuditWriteError)
+      reportAuditFailure(dependencies, request.action, correlationId);
     return false;
+  }
+}
+
+function reportAuditFailure(
+  dependencies: MemberAdministrationDependencies,
+  action: MemberAdministrationAction,
+  correlationId: string,
+): void {
+  try {
+    dependencies.reportAuditFailure({ action, correlationId });
+  } catch {
+    // The protected operation remains fail closed even when telemetry is unavailable.
   }
 }
 
@@ -718,7 +752,10 @@ export function createMemberAdministrationHandler(
         return failure(origin, 'service_unavailable', correlationId);
       }
       return failure(origin, safeDecision, correlationId);
-    } catch {
+    } catch (error) {
+      if (error instanceof MemberAdministrationAuditWriteError) {
+        reportAuditFailure(dependencies, parsed.data.action, correlationId);
+      }
       return failure(origin, 'service_unavailable', correlationId);
     }
   };

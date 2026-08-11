@@ -8,6 +8,7 @@ import {
   type AdministrationLimiterDecision,
   type CursorBoundary,
   type MemberAdministrationAction,
+  MemberAdministrationAuditWriteError,
 } from './handler.ts';
 import { createMemberCursorCodec } from './cursor.ts';
 
@@ -56,6 +57,7 @@ const cursorCodec = await createMemberCursorCodec(configuration.limiterSecret);
 
 async function rpc(name: string, parameters: Record<string, unknown>): Promise<unknown> {
   const { data, error } = await serverClient.rpc(name, parameters);
+  if (error?.code === 'P5005') throw new MemberAdministrationAuditWriteError();
   if (error) throw error;
   return data;
 }
@@ -112,6 +114,15 @@ Deno.serve(
         p_organization_id: organizationId,
         p_target_membership_id: membershipId,
       }).then(() => undefined),
+    reportAuditFailure: ({ action, correlationId }) => {
+      console.error(
+        JSON.stringify({
+          event: 'member_administration.audit_write_failed',
+          action,
+          correlationId,
+        }),
+      );
+    },
     decodeCursor: (cursor, status, search): Promise<CursorBoundary> =>
       cursorCodec.decode(cursor, status, search),
     encodeCursor: (boundary, status, search) => cursorCodec.encode(boundary, status, search),

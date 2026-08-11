@@ -40,8 +40,8 @@ CI, merge, hosted, real-data, and production evidence remain separate gates.
 
 | Evidence | Result |
 |---|---|
-| `pnpm test` | 21 files and 204 unit/component/Edge tests passed |
-| `pnpm test:sql` | 5 files and 232 pgTAP tests passed after a clean migration reset |
+| `pnpm test` | 21 files and 209 unit/component/Edge tests passed |
+| `pnpm test:sql` | 5 files and 236 pgTAP tests passed after a clean migration reset |
 | `node scripts/test-feat-005-runtime.mjs` | Local Auth/TOTP, two organizations, profile and status effects, race handling, privacy, and zero-residue cleanup passed |
 | `pnpm test:e2e` | 16 desktop/mobile scenarios passed, including own profile and member administration |
 | `pnpm verify:app` | Formatting, docs, lint, types, tests, build, secret scan, E2E, and dependency audit passed |

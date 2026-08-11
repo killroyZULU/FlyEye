@@ -370,10 +370,10 @@ Excluded areas:
 
 ## Definition of done
 
-- [ ] Contract, sources, assumptions, and unresolved items remain explicit
-- [ ] Data, RLS, protected commands, UI, audit, and rate limits are implemented
-- [ ] Positive, negative, cross-tenant, concurrency, failure, and accessibility-supporting checks pass
-- [ ] Service-role authority and all personal values remain appropriately bounded
-- [ ] Traceability records reproducible evidence and limitations
+- [x] Contract, sources, assumptions, and unresolved items remain explicit
+- [x] Data, RLS, protected commands, UI, audit, and rate limits are implemented
+- [x] Positive, negative, cross-tenant, concurrency, failure, and accessibility-supporting checks pass
+- [x] Service-role authority and all personal values remain appropriately bounded
+- [x] Traceability records reproducible evidence and limitations
 - [x] Documentation checks and separate-agent review pass
 - [ ] Scoped branch has a green review-ready pull request

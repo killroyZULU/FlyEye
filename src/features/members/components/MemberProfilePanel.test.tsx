@@ -79,10 +79,47 @@ describe('MemberProfilePanel', () => {
     await screen.findByText('member@example.test');
     await user.type(screen.getByLabelText('Display name'), 'X');
     await user.click(screen.getByRole('button', { name: 'Save profile' }));
-    const validationError = await screen.findByText('Enter 2 to 80 characters.');
+    const validationError = await screen.findByRole('link', {
+      name: 'Enter 2 to 80 characters.',
+    });
     expect(validationError).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveFocus();
-    expect(screen.getByLabelText('Display name')).toHaveValue('X');
+    const displayName = screen.getByLabelText('Display name');
+    expect(displayName).toHaveValue('X');
+    expect(displayName).toHaveAttribute('aria-invalid', 'true');
+    await user.click(validationError);
+    expect(displayName).toHaveFocus();
+    expect(gatewayUnderTest.updateMyMemberProfile).not.toHaveBeenCalled();
+  });
+
+  it('links an invalid contact number to its field without clearing either value', async () => {
+    const gatewayUnderTest = gateway();
+    const user = userEvent.setup();
+    render(
+      <MemberProfilePanel
+        gateway={gatewayUnderTest.value}
+        membershipId={profile.membershipId}
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText('member@example.test');
+    await user.type(screen.getByLabelText('Display name'), 'Synthetic Member');
+    await user.type(screen.getByLabelText('Contact number (optional)'), 'invalid-contact');
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    const validationError = await screen.findByRole('link', {
+      name: 'Use only digits, spaces, +, -, parentheses, and periods.',
+    });
+    const contactNumber = screen.getByLabelText('Contact number (optional)');
+    expect(screen.getByRole('alert')).toHaveFocus();
+    expect(contactNumber).toHaveValue('invalid-contact');
+    expect(contactNumber).toHaveAttribute('aria-invalid', 'true');
+    expect(contactNumber).toHaveAttribute(
+      'aria-describedby',
+      'member-contact-number-guidance member-contact-number-error',
+    );
+    await user.click(validationError);
+    expect(contactNumber).toHaveFocus();
     expect(gatewayUnderTest.updateMyMemberProfile).not.toHaveBeenCalled();
   });
 });

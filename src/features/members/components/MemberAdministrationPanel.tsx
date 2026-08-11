@@ -4,7 +4,6 @@ import { AuthGatewayError, type AuthGateway } from '../../auth/services/auth-gat
 import {
   createMemberIdempotencyKey,
   memberSearchSchema,
-  statusReasonOptions,
   type MemberDetail,
   type MemberStatus,
   type MemberStatusAction,
@@ -39,10 +38,8 @@ function resultingStatus(action: MemberStatusAction): MemberStatus {
   return 'revoked';
 }
 
-function availableActions(status: MemberStatus): MemberStatusAction[] {
-  if (status === 'active') return ['suspend', 'revoke'];
-  if (status === 'suspended') return ['reactivate', 'revoke'];
-  return [];
+function availableActions(member: MemberDetail): MemberStatusAction[] {
+  return [...new Set(member.statusReasonOptions.map((option) => option.action))];
 }
 
 export function MemberAdministrationPanel({
@@ -79,7 +76,7 @@ export function MemberAdministrationPanel({
     }
   }, [confirmation]);
 
-  async function loadMembers(cursor?: string, append = false) {
+  async function loadMembers(cursor?: string, append = false): Promise<boolean> {
     const sequence = ++requestSequence.current;
     setBusy(true);
     setMessage(undefined);
@@ -90,12 +87,14 @@ export function MemberAdministrationPanel({
         search,
         cursor,
       });
-      if (!mounted.current || sequence !== requestSequence.current) return;
+      if (!mounted.current || sequence !== requestSequence.current) return false;
       setMembers((current) => (append ? [...current, ...result.members] : result.members));
       setNextCursor(result.nextCursor);
       if (!append) setSelected(undefined);
+      return true;
     } catch (error) {
       if (mounted.current && sequence === requestSequence.current) setMessage(safeMessage(error));
+      return false;
     } finally {
       if (mounted.current && sequence === requestSequence.current) setBusy(false);
     }
@@ -142,7 +141,11 @@ export function MemberAdministrationPanel({
   }
 
   function beginStatusAction(action: MemberStatusAction, member: MemberDetail) {
-    const firstReason = statusReasonOptions[action][0];
+    const firstReason = member.statusReasonOptions.find((option) => option.action === action);
+    if (!firstReason) {
+      setMessage('This membership action is no longer available. Refresh and try again.');
+      return;
+    }
     confirmationReturnAction.current = action;
     setConfirmation({
       action,
@@ -174,9 +177,14 @@ export function MemberAdministrationPanel({
       if (!mounted.current) return;
       setConfirmation(undefined);
       setSelected(undefined);
-      await loadMembers();
+      const refreshed = await loadMembers();
       if (mounted.current) {
-        setMessage(`Membership ${resultingStatus(confirmation.action)} successfully.`);
+        const completed = `Membership ${resultingStatus(confirmation.action)} successfully.`;
+        setMessage(
+          refreshed
+            ? completed
+            : `${completed} The refreshed member list is unavailable; retry the list before another action.`,
+        );
       }
     } catch (error) {
       if (!mounted.current) return;
@@ -193,7 +201,11 @@ export function MemberAdministrationPanel({
     }
   }
 
-  const reasonOptions = confirmation ? statusReasonOptions[confirmation.action] : [];
+  const reasonOptions = confirmation
+    ? confirmation.member.statusReasonOptions.filter(
+        (option) => option.action === confirmation.action,
+      )
+    : [];
 
   return (
     <section className="member-workspace" aria-labelledby="members-heading">
@@ -211,12 +223,7 @@ export function MemberAdministrationPanel({
       </div>
 
       {confirmation ? (
-        <div
-          className="confirmation-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="status-confirmation-heading"
-        >
+        <section className="confirmation-card" aria-labelledby="status-confirmation-heading">
           <span className="eyebrow">Confirm membership change</span>
           <h3 id="status-confirmation-heading" tabIndex={-1} ref={confirmationHeading}>
             {confirmation.action === 'revoke'
@@ -285,7 +292,7 @@ export function MemberAdministrationPanel({
               Cancel
             </button>
           </div>
-        </div>
+        </section>
       ) : null}
 
       {!confirmation ? (
@@ -414,7 +421,7 @@ export function MemberAdministrationPanel({
                 </p>
               ) : (
                 <div className="button-row">
-                  {availableActions(selected.status).map((action) => (
+                  {availableActions(selected).map((action) => (
                     <button
                       className={action === 'revoke' ? 'danger-button' : 'primary-button'}
                       type="button"

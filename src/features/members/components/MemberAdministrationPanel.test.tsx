@@ -21,6 +21,17 @@ const summary = {
   createdAt: '2026-08-11T00:00:00Z',
 };
 
+const statusReasonOptions = [
+  { action: 'suspend' as const, code: 'temporary_access_hold', label: 'Temporary access hold' },
+  { action: 'suspend' as const, code: 'administrative_review', label: 'Administrative review' },
+  { action: 'revoke' as const, code: 'membership_ended', label: 'Membership ended' },
+  {
+    action: 'revoke' as const,
+    code: 'membership_created_in_error',
+    label: 'Membership created in error',
+  },
+];
+
 function gateway() {
   const loadOrganizationMembers = vi
     .fn<AuthGateway['loadOrganizationMembers']>()
@@ -33,6 +44,7 @@ function gateway() {
   const loadOrganizationMember = vi.fn<AuthGateway['loadOrganizationMember']>().mockResolvedValue({
     ...summary,
     contactNumber: null,
+    statusReasonOptions,
     updatedAt: '2026-08-11T00:00:00Z',
   });
   const changeOrganizationMemberStatus = vi
@@ -55,6 +67,7 @@ function gateway() {
       changeOrganizationMemberStatus,
     } as unknown as AuthGateway,
     loadOrganizationMembers,
+    loadOrganizationMember,
     changeOrganizationMemberStatus,
   };
 }
@@ -80,6 +93,8 @@ describe('MemberAdministrationPanel', () => {
     await user.click(suspendButton);
     expect(screen.getByText('Preserved role')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'suspend this membership?' })).toHaveFocus();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to workspace' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     const restoredSuspendButton = screen.getByRole('button', { name: 'suspend membership' });
     await waitFor(() => expect(restoredSuspendButton).toHaveFocus());
@@ -96,6 +111,33 @@ describe('MemberAdministrationPanel', () => {
       expectedVersion: 1,
     });
     expect(statusRequest?.idempotencyKey).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it('reports a successful mutation when the post-action list refresh fails', async () => {
+    const gatewayUnderTest = gateway();
+    const user = userEvent.setup();
+    render(
+      <MemberAdministrationPanel
+        gateway={gatewayUnderTest.value}
+        organizationId={organizationId}
+        organizationName="Synthetic Flight School"
+        currentMembershipId={currentMembershipId}
+        onClose={vi.fn()}
+        onRequirePassword={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: /Synthetic Student/ }));
+    await screen.findByRole('heading', { name: 'Synthetic Student' });
+    gatewayUnderTest.loadOrganizationMembers.mockRejectedValueOnce(new Error('refresh failed'));
+    await user.click(screen.getByRole('button', { name: 'suspend membership' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm suspend' }));
+
+    expect(
+      await screen.findByText(
+        'Membership suspended successfully. The refreshed member list is unavailable; retry the list before another action.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('validates search before requesting directory data', async () => {

@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 export const memberStatusSchema = z.enum(['active', 'suspended', 'revoked']);
+export const memberStatusActionSchema = z.enum(['suspend', 'reactivate', 'revoke']);
+export const statusReasonOptionSchema = z
+  .object({
+    action: memberStatusActionSchema,
+    code: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    label: z.string().min(2).max(80),
+  })
+  .strict();
 export const memberSummarySchema = z
   .object({
     membershipId: z.uuid(),
@@ -19,6 +27,7 @@ export const memberSummarySchema = z
 export const memberDetailSchema = memberSummarySchema
   .extend({
     contactNumber: z.string().max(32).nullable(),
+    statusReasonOptions: z.array(statusReasonOptionSchema).max(4),
     updatedAt: z.string().min(1).max(80),
   })
   .strict();
@@ -97,27 +106,12 @@ export const profileFormSchema = z.object({
 
 export const memberSearchSchema = z.string().trim().min(2).max(80);
 
-export const statusReasonOptions = {
-  suspend: [
-    { code: 'temporary_access_hold', label: 'Temporary access hold' },
-    { code: 'administrative_review', label: 'Administrative review' },
-  ],
-  reactivate: [
-    { code: 'hold_resolved', label: 'Hold resolved' },
-    { code: 'suspension_corrected', label: 'Suspension corrected' },
-  ],
-  revoke: [
-    { code: 'membership_ended', label: 'Membership ended' },
-    { code: 'membership_created_in_error', label: 'Membership created in error' },
-  ],
-} as const;
-
 export type MemberStatus = z.infer<typeof memberStatusSchema>;
 export type MemberSummary = z.infer<typeof memberSummarySchema>;
 export type MemberDetail = z.infer<typeof memberDetailSchema>;
 export type MemberList = z.infer<typeof memberListSchema>;
 export type MemberProfile = z.infer<typeof memberProfileSchema>;
-export type MemberStatusAction = keyof typeof statusReasonOptions;
+export type MemberStatusAction = z.infer<typeof memberStatusActionSchema>;
 export type MemberStatusResult = z.infer<typeof memberStatusResultSchema>;
 
 export function createMemberIdempotencyKey(): string {

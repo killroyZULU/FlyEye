@@ -132,26 +132,6 @@ revoke all on table public.member_administration_events from public, anon, authe
 revoke all on table public.member_administration_rate_limit_state from public, anon, authenticated;
 revoke all on table public.member_administration_rate_limit_events from public, anon, authenticated;
 
-insert into public.organization_member_profiles (
-  organization_id,
-  membership_id,
-  display_name,
-  contact_number,
-  version,
-  created_by,
-  updated_by
-)
-select
-  membership.organization_id,
-  membership.id,
-  null,
-  null,
-  1,
-  membership.created_by,
-  membership.created_by
-from public.organization_memberships membership
-on conflict (organization_id, membership_id) do nothing;
-
 create or replace function public.create_organization_member_profile()
 returns trigger
 language plpgsql
@@ -181,6 +161,96 @@ revoke all on function public.create_organization_member_profile()
 create trigger organization_membership_create_profile
 after insert on public.organization_memberships
 for each row execute function public.create_organization_member_profile();
+
+-- Install the insert trigger before reconciling existing rows so memberships
+-- created while this migration waits on concurrent work cannot miss a profile.
+insert into public.organization_member_profiles (
+  organization_id,
+  membership_id,
+  display_name,
+  contact_number,
+  version,
+  created_by,
+  updated_by
+)
+select
+  membership.organization_id,
+  membership.id,
+  null,
+  null,
+  1,
+  membership.created_by,
+  membership.created_by
+from public.organization_memberships membership
+on conflict (organization_id, membership_id) do nothing;
+
+create or replace function public.member_status_reason_options(p_action text)
+returns jsonb
+language sql
+immutable
+set search_path = pg_catalog, public
+as $$
+  select case p_action
+    when 'suspend' then jsonb_build_array(
+      jsonb_build_object('action', 'suspend', 'code', 'temporary_access_hold', 'label', 'Temporary access hold'),
+      jsonb_build_object('action', 'suspend', 'code', 'administrative_review', 'label', 'Administrative review')
+    )
+    when 'reactivate' then jsonb_build_array(
+      jsonb_build_object('action', 'reactivate', 'code', 'hold_resolved', 'label', 'Hold resolved'),
+      jsonb_build_object('action', 'reactivate', 'code', 'suspension_corrected', 'label', 'Suspension corrected')
+    )
+    when 'revoke' then jsonb_build_array(
+      jsonb_build_object('action', 'revoke', 'code', 'membership_ended', 'label', 'Membership ended'),
+      jsonb_build_object('action', 'revoke', 'code', 'membership_created_in_error', 'label', 'Membership created in error')
+    )
+    else '[]'::jsonb
+  end;
+$$;
+
+revoke all on function public.member_status_reason_options(text)
+  from public, anon, authenticated;
+
+create or replace function public.write_member_administration_event(
+  p_organization_id uuid,
+  p_actor_user_id uuid,
+  p_target_membership_id uuid,
+  p_event_name text,
+  p_outcome text,
+  p_reason_code text,
+  p_correlation_id uuid,
+  p_idempotency_key_hash text default null,
+  p_metadata jsonb default '{}'::jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_event_id uuid;
+begin
+  insert into public.member_administration_events (
+    organization_id, actor_user_id, target_membership_id,
+    event_name, outcome, reason_code, correlation_id,
+    idempotency_key_hash, metadata
+  ) values (
+    p_organization_id, p_actor_user_id, p_target_membership_id,
+    p_event_name, p_outcome, p_reason_code, p_correlation_id,
+    p_idempotency_key_hash, p_metadata
+  ) returning id into v_event_id;
+  return v_event_id;
+exception
+  when unique_violation then
+    raise;
+  when others then
+    raise exception using
+      errcode = 'P5005',
+      message = 'Member administration audit write failed.';
+end;
+$$;
+
+revoke all on function public.write_member_administration_event(uuid, uuid, uuid, text, text, text, uuid, text, jsonb)
+  from public, anon, authenticated;
 
 create or replace function public.member_administration_actor_is_authorized(
   p_actor_user_id uuid,
@@ -448,16 +518,13 @@ begin
     where organization_id = v_organization_id and id = p_target_membership_id;
   end if;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, target_membership_id,
-    event_name, outcome, reason_code, correlation_id
-  ) values (
+  select public.write_member_administration_event(
     v_organization_id, v_actor_user_id, v_target_membership_id,
     p_event_name,
     case when p_event_name = 'member_administration.conflicted' then 'conflict' else 'denied' end,
     p_reason_code,
     p_correlation_id
-  ) returning id into v_event_id;
+  ) into v_event_id;
   return v_event_id;
 end;
 $$;
@@ -567,12 +634,10 @@ begin
   into v_members, v_count, v_has_more, v_next_created_at, v_next_membership_id
   from page;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, event_name, outcome,
-    reason_code, correlation_id, metadata
-  ) values (
-    p_organization_id, p_actor_user_id, 'member_directory.listed', 'success',
-    'member_directory_listed', p_correlation_id,
+  perform public.write_member_administration_event(
+    p_organization_id, p_actor_user_id, null,
+    'member_directory.listed', 'success', 'member_directory_listed', p_correlation_id,
+    null,
     jsonb_build_object('resultCount', v_count, 'statusFiltered', p_status is not null, 'searchApplied', v_search is not null)
   );
 
@@ -631,6 +696,19 @@ begin
     'membershipVersion', membership.version,
     'profileVersion', profile.version,
     'profileComplete', profile.display_name is not null,
+    'statusReasonOptions', case
+      when membership.user_id = p_actor_user_id
+        or not public.member_administration_actor_is_authorized(
+          p_actor_user_id,
+          p_organization_id,
+          'membership.member.manage_status'
+        ) then '[]'::jsonb
+      when membership.status = 'active' then
+        public.member_status_reason_options('suspend') || public.member_status_reason_options('revoke')
+      when membership.status = 'suspended' then
+        public.member_status_reason_options('reactivate') || public.member_status_reason_options('revoke')
+      else '[]'::jsonb
+    end,
     'createdAt', membership.created_at,
     'updatedAt', membership.updated_at
   ) into v_member
@@ -650,12 +728,9 @@ begin
     return jsonb_build_object('decision', 'not_found', 'correlationId', p_correlation_id);
   end if;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, target_membership_id,
-    event_name, outcome, reason_code, correlation_id, metadata
-  ) values (
+  perform public.write_member_administration_event(
     p_organization_id, p_actor_user_id, p_target_membership_id,
-    'member_directory.viewed', 'success', 'member_directory_viewed', p_correlation_id, '{}'::jsonb
+    'member_directory.viewed', 'success', 'member_directory_viewed', p_correlation_id
   );
 
   return jsonb_build_object(
@@ -726,10 +801,7 @@ begin
     return jsonb_build_object('decision', 'not_found', 'correlationId', p_correlation_id);
   end if;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, target_membership_id,
-    event_name, outcome, reason_code, correlation_id
-  ) values (
+  perform public.write_member_administration_event(
     v_organization_id, p_actor_user_id, p_membership_id,
     'member_profile.viewed', 'success', 'member_profile_viewed', p_correlation_id
   );
@@ -835,12 +907,10 @@ begin
   join public.roles role on role.id = membership_role.role_id
   where membership.id = p_membership_id;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, target_membership_id,
-    event_name, outcome, reason_code, correlation_id, metadata
-  ) values (
+  perform public.write_member_administration_event(
     v_profile.organization_id, p_actor_user_id, p_membership_id,
     'member_profile.updated', 'success', 'member_profile_updated', p_correlation_id,
+    null,
     jsonb_build_object('changedFields', v_changed_fields, 'priorVersion', p_expected_version, 'newVersion', v_profile.version)
   );
 
@@ -906,11 +976,19 @@ begin
     return jsonb_build_object('decision', 'validation_failed', 'correlationId', p_correlation_id);
   end if;
 
-  if p_action = 'suspend' and p_reason_code in ('temporary_access_hold', 'administrative_review') then
+  if not exists (
+    select 1
+    from jsonb_array_elements(public.member_status_reason_options(p_action)) option
+    where option ->> 'code' = p_reason_code
+  ) then
+    return jsonb_build_object('decision', 'validation_failed', 'correlationId', p_correlation_id);
+  end if;
+
+  if p_action = 'suspend' then
     v_event_name := 'member_status.suspended'; v_new_status := 'suspended';
-  elsif p_action = 'reactivate' and p_reason_code in ('hold_resolved', 'suspension_corrected') then
+  elsif p_action = 'reactivate' then
     v_event_name := 'member_status.reactivated'; v_new_status := 'active';
-  elsif p_action = 'revoke' and p_reason_code in ('membership_ended', 'membership_created_in_error') then
+  elsif p_action = 'revoke' then
     v_event_name := 'member_status.revoked'; v_new_status := 'revoked';
   else
     return jsonb_build_object('decision', 'validation_failed', 'correlationId', p_correlation_id);
@@ -1033,28 +1111,51 @@ begin
     end if;
   end if;
 
-  update public.organization_memberships
-  set status = v_new_status,
-      version = version + 1,
-      updated_at = now(),
-      updated_by = p_actor_user_id
-  where id = v_target.id
-  returning * into v_target;
+  begin
+    update public.organization_memberships
+    set status = v_new_status,
+        version = version + 1,
+        updated_at = now(),
+        updated_by = p_actor_user_id
+    where id = v_target.id
+    returning * into v_target;
 
-  insert into public.member_administration_events (
-    organization_id, actor_user_id, target_membership_id,
-    event_name, outcome, reason_code, correlation_id, idempotency_key_hash, metadata
-  ) values (
-    p_organization_id, p_actor_user_id, p_target_membership_id,
-    v_event_name, 'success', p_reason_code, p_correlation_id, p_idempotency_key_hash,
-    jsonb_build_object(
-      'priorStatus', v_prior_status,
-      'newStatus', v_new_status,
-      'priorVersion', p_expected_version,
-      'newVersion', v_target.version,
-      'roleCode', v_target_role_code
-    )
-  );
+    perform public.write_member_administration_event(
+      p_organization_id, p_actor_user_id, p_target_membership_id,
+      v_event_name, 'success', p_reason_code, p_correlation_id, p_idempotency_key_hash,
+      jsonb_build_object(
+        'priorStatus', v_prior_status,
+        'newStatus', v_new_status,
+        'priorVersion', p_expected_version,
+        'newVersion', v_target.version,
+        'roleCode', v_target_role_code
+      )
+    );
+  exception
+    when unique_violation then
+      select * into v_existing
+      from public.member_administration_events event
+      where event.organization_id = p_organization_id
+        and event.actor_user_id = p_actor_user_id
+        and event.event_name = v_event_name
+        and event.idempotency_key_hash = p_idempotency_key_hash;
+
+      if found
+         and v_existing.target_membership_id = p_target_membership_id
+         and v_existing.reason_code = p_reason_code
+         and (v_existing.metadata ->> 'priorVersion')::bigint = p_expected_version then
+        return jsonb_build_object(
+          'decision', v_new_status,
+          'membershipId', p_target_membership_id,
+          'organizationId', p_organization_id,
+          'status', v_new_status,
+          'version', (v_existing.metadata ->> 'newVersion')::bigint,
+          'replayed', true,
+          'correlationId', p_correlation_id
+        );
+      end if;
+      return jsonb_build_object('decision', 'state_conflict', 'correlationId', p_correlation_id);
+  end;
 
   return jsonb_build_object(
     'decision', v_new_status,

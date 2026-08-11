@@ -9,6 +9,14 @@ type MemberProfilePanelProps = {
   onClose: () => void;
 };
 
+type ProfileField = 'displayName' | 'contactNumber';
+type ProfileError = { field: ProfileField; message: string };
+
+const profileFieldIds: Record<ProfileField, string> = {
+  displayName: 'member-display-name',
+  contactNumber: 'member-contact-number',
+};
+
 function safeMessage(error: unknown): string {
   return error instanceof AuthGatewayError
     ? error.message
@@ -21,7 +29,7 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
   const [contactNumber, setContactNumber] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<ProfileError[]>([]);
   const mounted = useRef(true);
   const validationSummary = useRef<HTMLDivElement>(null);
 
@@ -56,7 +64,20 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
     event.preventDefault();
     const parsed = profileFormSchema.safeParse({ displayName, contactNumber });
     if (!parsed.success) {
-      setErrors([...new Set(parsed.error.issues.map((issue) => issue.message))]);
+      const nextErrors = parsed.error.issues.flatMap((issue) => {
+        const field = issue.path[0];
+        return field === 'displayName' || field === 'contactNumber'
+          ? [{ field, message: issue.message } satisfies ProfileError]
+          : [];
+      });
+      setErrors(
+        nextErrors.filter(
+          (error, index) =>
+            nextErrors.findIndex(
+              (candidate) => candidate.field === error.field && candidate.message === error.message,
+            ) === index,
+        ),
+      );
       setMessage('Review the highlighted profile fields.');
       return;
     }
@@ -87,6 +108,13 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
       if (mounted.current) setBusy(false);
     }
   }
+
+  function focusProfileField(field: ProfileField) {
+    document.getElementById(profileFieldIds[field])?.focus();
+  }
+
+  const displayNameError = errors.find((error) => error.field === 'displayName');
+  const contactNumberError = errors.find((error) => error.field === 'contactNumber');
 
   return (
     <section className="member-workspace" aria-labelledby="profile-heading">
@@ -120,7 +148,17 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
               <strong>Review your profile</strong>
               <ul>
                 {errors.map((error) => (
-                  <li key={error}>{error}</li>
+                  <li key={`${error.field}:${error.message}`}>
+                    <a
+                      href={`#${profileFieldIds[error.field]}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        focusProfileField(error.field);
+                      }}
+                    >
+                      {error.message}
+                    </a>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -151,11 +189,19 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
               value={displayName}
               maxLength={80}
               disabled={busy}
-              aria-invalid={errors.some((error) => error.includes('2 to 80'))}
+              aria-invalid={Boolean(displayNameError)}
+              aria-describedby={`member-display-name-guidance${displayNameError ? ' member-display-name-error' : ''}`}
               onChange={(event) => setDisplayName(event.target.value)}
               autoComplete="name"
             />
-            <span className="field-guidance">Required, 2 to 80 characters.</span>
+            <span className="field-guidance" id="member-display-name-guidance">
+              Required, 2 to 80 characters.
+            </span>
+            {displayNameError ? (
+              <span className="field-error" id="member-display-name-error">
+                {displayNameError.message}
+              </span>
+            ) : null}
           </div>
 
           <div className="field-group">
@@ -166,12 +212,19 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
               value={contactNumber}
               maxLength={32}
               disabled={busy}
+              aria-invalid={Boolean(contactNumberError)}
+              aria-describedby={`member-contact-number-guidance${contactNumberError ? ' member-contact-number-error' : ''}`}
               onChange={(event) => setContactNumber(event.target.value)}
               autoComplete="tel"
             />
-            <span className="field-guidance">
+            <span className="field-guidance" id="member-contact-number-guidance">
               Administrative convenience only; it is not verified or used for sign-in.
             </span>
+            {contactNumberError ? (
+              <span className="field-error" id="member-contact-number-error">
+                {contactNumberError.message}
+              </span>
+            ) : null}
           </div>
 
           <button className="primary-button" type="submit" disabled={busy}>

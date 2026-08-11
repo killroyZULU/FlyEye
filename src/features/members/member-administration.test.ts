@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   memberSearchSchema,
   profileFormSchema,
-  statusReasonOptions,
+  statusReasonOptionSchema,
 } from './member-administration';
 
 describe('FEAT-005 member administration contracts', () => {
@@ -28,17 +28,20 @@ describe('FEAT-005 member administration contracts', () => {
     expect(memberSearchSchema.safeParse('a').success).toBe(false);
   });
 
-  it('keeps reason codes exact and action-specific', () => {
-    expect(statusReasonOptions.suspend.map((item) => item.code)).toEqual([
-      'temporary_access_hold',
-      'administrative_review',
-    ]);
-    expect(statusReasonOptions.reactivate.map((item) => item.code)).not.toContain(
-      'temporary_access_hold',
-    );
-    expect(statusReasonOptions.revoke.map((item) => item.code)).toEqual([
-      'membership_ended',
-      'membership_created_in_error',
-    ]);
+  it('validates bounded server-provided reason options', () => {
+    expect(
+      statusReasonOptionSchema.safeParse({
+        action: 'suspend',
+        code: 'temporary_access_hold',
+        label: 'Temporary access hold',
+      }).success,
+    ).toBe(true);
+    expect(
+      statusReasonOptionSchema.safeParse({
+        action: 'delete',
+        code: 'temporary_access_hold',
+        label: 'Temporary access hold',
+      }).success,
+    ).toBe(false);
   });
 });
