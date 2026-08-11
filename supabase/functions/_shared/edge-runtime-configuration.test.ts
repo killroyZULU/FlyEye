@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   readAdminOnboardingRuntimeConfiguration,
   readCommonEdgeRuntimeConfiguration,
+  readMemberAdministrationRuntimeConfiguration,
   readMemberInvitationRuntimeConfiguration,
 } from './edge-runtime-configuration';
 
@@ -23,6 +24,9 @@ const localEnvironment = {
   FEAT004_DATA_CLASSIFICATION: 'synthetic-only',
   FEAT004_LIMITER_HMAC_SECRET: 'separate-invitation-test-secret-at-least-32-bytes',
   FEAT004_INVITATION_REDIRECT_URL: 'http://127.0.0.1:5173/auth/invitation',
+  FEAT005_LIMITER_POLICY_VERSION: 'member-administration-subject-scope-v1',
+  FEAT005_DATA_CLASSIFICATION: 'synthetic-only',
+  FEAT005_LIMITER_HMAC_SECRET: 'separate-member-admin-test-secret-at-least-32-bytes',
 } as const;
 
 function reader(environment: Record<string, string>) {
@@ -45,6 +49,25 @@ describe('shared Edge runtime configuration', () => {
       limiterPolicyVersion: 'invitation-subject-scope-v1',
       runtimeProfile: 'local-synthetic-v1',
     });
+  });
+
+  it('accepts the dedicated local member-administration limiter policy', () => {
+    expect(readMemberAdministrationRuntimeConfiguration(reader(localEnvironment))).toMatchObject({
+      limiterPolicyVersion: 'member-administration-subject-scope-v1',
+      runtimeProfile: 'local-synthetic-v1',
+      allowedOrigin: 'http://127.0.0.1:5173',
+    });
+  });
+
+  it.each([
+    ['a reused secret', localEnvironment.SUPABASE_SERVICE_ROLE_KEY],
+    ['a placeholder secret', 'replace-me-with-a-member-admin-secret'],
+  ])('rejects %s for member administration', (_label, limiterSecret) => {
+    expect(() =>
+      readMemberAdministrationRuntimeConfiguration(
+        reader({ ...localEnvironment, FEAT005_LIMITER_HMAC_SECRET: limiterSecret }),
+      ),
+    ).toThrow('limiter secret');
   });
 
   it.each([

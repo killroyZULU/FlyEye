@@ -228,6 +228,8 @@ async function cleanup() {
     );
     delete from public.membership_roles
     where membership_id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
+    delete from public.organization_member_profiles
+    where membership_id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
     delete from public.organization_memberships
     where id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
     delete from public.organizations

@@ -89,3 +89,7 @@ verify_jwt = true
 [functions.member-invitations]
 enabled = true
 verify_jwt = true
+
+[functions.member-administration]
+enabled = true
+verify_jwt = true

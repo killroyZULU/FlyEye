@@ -39,6 +39,37 @@ const studentContext = {
   organizationIds: ['20000000-0000-4000-8000-000000000001'],
 };
 
+const adminContext = {
+  ...studentContext,
+  memberships: [
+    {
+      ...studentContext.memberships[0],
+      role: 'admin',
+      permissions: [
+        'portal.admin.access',
+        'membership.invitation.manage',
+        'membership.member.review',
+        'membership.member.manage_status',
+      ],
+      requiredAssuranceLevel: 'aal2',
+    },
+  ],
+  currentAssuranceLevel: 'aal2',
+};
+
+const targetMember = {
+  membershipId: '10000000-0000-4000-8000-000000000002',
+  displayName: 'Synthetic Member',
+  email: 'member@example.test',
+  roleCode: 'student_pilot',
+  roleLabel: 'Student Pilot',
+  status: 'active',
+  membershipVersion: 1,
+  profileVersion: 1,
+  profileComplete: true,
+  createdAt: '2026-08-11T00:00:00Z',
+};
+
 function base64Url(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -105,7 +136,9 @@ async function mockSupabase(page, options = {}) {
       body: JSON.stringify(
         options.empty
           ? { ...studentContext, memberships: [], decision: 'denied', organizationIds: [] }
-          : studentContext,
+          : options.admin
+            ? adminContext
+            : studentContext,
       ),
     });
   });
@@ -119,6 +152,62 @@ async function mockSupabase(page, options = {}) {
         grants: [],
         correlationId: '30000000-0000-4000-8000-000000000010',
       }),
+    });
+  });
+  await page.route('**/functions/v1/member-administration', async (route) => {
+    const body = route.request().postDataJSON();
+    const correlationId = '30000000-0000-4000-8000-000000000020';
+    const organizationId = '20000000-0000-4000-8000-000000000001';
+    const ownMembershipId = '10000000-0000-4000-8000-000000000001';
+    const ownProfile = {
+      organizationId,
+      organizationName: 'Synthetic Flight School',
+      membershipId: ownMembershipId,
+      displayName: body.action === 'update_profile' ? body.displayName : 'Synthetic Student',
+      contactNumber: body.action === 'update_profile' ? body.contactNumber || null : null,
+      email: 'student@example.test',
+      roleCode: options.admin ? 'admin' : 'student_pilot',
+      roleLabel: options.admin ? 'Organization Admin' : 'Student Pilot',
+      status: 'active',
+      version: body.action === 'update_profile' ? 2 : 1,
+      complete: true,
+    };
+    const responses = {
+      list: {
+        decision: 'listed',
+        organizationId,
+        members: [targetMember],
+        correlationId,
+      },
+      detail: {
+        decision: 'found',
+        organizationId,
+        member: {
+          ...targetMember,
+          contactNumber: '+63 900 000 0000',
+          updatedAt: '2026-08-11T00:00:00Z',
+        },
+        correlationId,
+      },
+      get_profile: { decision: 'found', profile: ownProfile, correlationId },
+      update_profile: { decision: 'updated', profile: ownProfile, correlationId },
+      suspend: {
+        decision: 'suspended',
+        membershipId: targetMember.membershipId,
+        organizationId,
+        status: 'suspended',
+        roleCode: targetMember.roleCode,
+        roleLabel: targetMember.roleLabel,
+        version: 2,
+        replayed: false,
+        correlationId,
+      },
+    };
+    assert.ok(Object.hasOwn(responses, body.action));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responses[body.action]),
     });
   });
   await page.route('**/auth/v1/logout*', async (route) => route.fulfill({ status: 204, body: '' }));
@@ -298,6 +387,22 @@ async function runScenario(browser, viewport, scenario) {
     } else if (scenario.name === 'empty') {
       await page.getByRole('heading', { name: 'Your account is not assigned' }).waitFor();
       await page.getByRole('button', { name: 'Return to sign in' }).click();
+    } else if (scenario.name === 'profile') {
+      await page.getByRole('button', { name: 'View my basic profile' }).click();
+      await page.getByRole('heading', { name: 'My basic profile' }).waitFor();
+      await page.getByLabel('Display name').fill('Updated Synthetic Student');
+      await page.getByLabel('Contact number (optional)').fill('+63 917 000 0000');
+      await page.getByRole('button', { name: 'Save profile' }).click();
+      await page.getByText('Your organization profile was saved.').waitFor();
+    } else if (scenario.name === 'members') {
+      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
+      await page.getByRole('button', { name: 'Manage organization members' }).click();
+      await page.getByRole('heading', { name: 'Organization members' }).waitFor();
+      await page.getByRole('button', { name: /Synthetic Member/ }).click();
+      await page.getByRole('button', { name: 'suspend membership' }).click();
+      await page.getByRole('heading', { name: 'suspend this membership?' }).waitFor();
+      await page.getByRole('button', { name: 'Confirm suspend' }).click();
+      await page.getByText('Membership suspended successfully.').waitFor();
     }
   } finally {
     await page.close();
@@ -311,6 +416,8 @@ const scenarios = [
   { name: 'viewport', options: {} },
   { name: 'recovery', options: {} },
   { name: 'invitation', options: {} },
+  { name: 'profile', options: {} },
+  { name: 'members', options: { admin: true } },
 ];
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
@@ -333,7 +440,7 @@ try {
   } finally {
     await browser.close();
   }
-  process.stdout.write('12 Playwright E2E scenarios passed.\n');
+  process.stdout.write(`${scenarios.length * viewports.length} Playwright E2E scenarios passed.\n`);
 } finally {
   viteProcess.kill();
 }

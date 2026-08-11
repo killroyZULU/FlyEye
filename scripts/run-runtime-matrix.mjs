@@ -53,9 +53,7 @@ async function waitForRecoveryTemplate(attempts) {
   return false;
 }
 
-async function ensureRecoveryRuntimeReady() {
-  if (await waitForRecoveryTemplate(20)) return;
-
+async function restartLocalRuntime() {
   const stop = spawnSync(process.execPath, [cliPath, 'stop'], {
     stdio: 'ignore',
     timeout: 2 * 60 * 1_000,
@@ -63,7 +61,7 @@ async function ensureRecoveryRuntimeReady() {
   });
   if (stop.status !== 0) {
     throw new Error(
-      'Recovery runtime readiness failed: local Supabase lifecycle recovery could not stop cleanly.',
+      'Runtime readiness failed: local Supabase lifecycle recovery could not stop cleanly.',
     );
   }
 
@@ -74,11 +72,16 @@ async function ensureRecoveryRuntimeReady() {
   });
   if (start.status !== 0 || !(await waitForRecoveryTemplate(80))) {
     throw new Error(
-      'Recovery runtime readiness failed: the local Auth template route remained unavailable.',
+      'Runtime readiness failed: the local Auth template route remained unavailable.',
     );
   }
 
   process.stdout.write('Runtime readiness recovered: local Auth template route.\n');
+}
+
+async function ensureTemplateRuntimeReady() {
+  if (await waitForRecoveryTemplate(20)) return;
+  await restartLocalRuntime();
 }
 
 if (fixtures.length === 0) {
@@ -92,12 +95,26 @@ if (process.argv.includes('--list')) {
 }
 
 for (const fixture of fixtures) {
-  if (fixture === 'test-recovery-runtime.mjs') {
+  if (fixture === 'test-feat-005-runtime.mjs') {
     try {
-      await ensureRecoveryRuntimeReady();
+      await restartLocalRuntime();
     } catch (error) {
       process.stderr.write(
-        `${error instanceof Error ? error.message : 'Recovery runtime readiness failed.'}\n`,
+        `${error instanceof Error ? error.message : 'Runtime readiness failed.'}\n`,
+      );
+      process.exit(1);
+    }
+  }
+  if (
+    fixture === 'test-edge-runtime.mjs' ||
+    fixture === 'test-recovery-runtime.mjs' ||
+    fixture === 'test-feat-004-runtime.mjs'
+  ) {
+    try {
+      await ensureTemplateRuntimeReady();
+    } catch (error) {
+      process.stderr.write(
+        `${error instanceof Error ? error.message : 'Runtime readiness failed.'}\n`,
       );
       process.exit(1);
     }
@@ -129,6 +146,10 @@ for (const fixture of fixtures) {
   }
 
   process.stdout.write(`Runtime matrix passed: ${fixture}.\n`);
+  if (fixture !== fixtures.at(-1)) {
+    // Local Edge workers can keep answering preflight briefly after their process exits.
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
 }
 
 process.stdout.write(`Runtime matrix passed: ${fixtures.length} fixture(s).\n`);
