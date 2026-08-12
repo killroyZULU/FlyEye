@@ -3,9 +3,9 @@
 ## Contract references
 
 - Baseline: merged through PR #15 at `a3a39ca68d86748728e49a2b39c81828bb8bb658`
-- State: Delivered; forward incomplete-profile directory correction is locally verified, independently reviewed, and green on PR #16 with merge pending
+- State: Delivered; forward incomplete-profile directory correction merged through PR #16 at `b63b6a0`
 - Owner: Founder/Product Owner
-- Correction branch: `fix/FIX-005-incomplete-profile-list-contract`
+- Correction: [PR #16](https://github.com/killroyZULU/FlyEye/pull/16)
 - Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002` through `IAM-012`, `REC-001` through
   `REC-003`, `NFR-004`, `NFR-008`, and `NFR-009`

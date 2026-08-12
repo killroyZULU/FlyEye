@@ -4,18 +4,17 @@
 
 - Specification: [FEAT-005 User Management and Basic Profiles](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md)
 - Baseline: `main` at PR #15 merge `a3a39ca68d86748728e49a2b39c81828bb8bb658`
-- Reviewed target: review-ready PR #16 on `fix/FIX-005-incomplete-profile-list-contract`
+- Reviewed target: PR #16 head `d415e09`, merged at `b63b6a0`
 - Verification date: 2026-08-11
 - Local/hosted/data boundary: local synthetic only; no hosted target, real data,
   deployment, or production evidence
-- Pull request and CI: PR #15 merged; PR #16 required checks passed on 2026-08-11
-- Known limitations: correction merge, formal accessibility review, qualified
+- Pull request and CI: PR #15 and [PR #16](https://github.com/killroyZULU/FlyEye/pull/16) merged; PR #16 required checks passed on 2026-08-11
+- Known limitations: formal accessibility review, qualified
   privacy/retention review, hosted validation, rejoining after revocation, and
   production readiness remain pending
 
 This record covers the merged feature and its independently reviewed forward
-correction on a green review-ready PR. Correction merge, hosted, real-data,
-and production evidence remain separate gates.
+correction. Hosted, real-data, and production evidence remain separate gates.
 
 ## Requirements and results
 
