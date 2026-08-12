@@ -3,18 +3,19 @@
 ## Evidence boundary
 
 - Specification: [FEAT-005 User Management and Basic Profiles](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md)
-- Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
-- Reviewed target: review-ready PR #15 on `feat/FEAT-005-user-management-profiles`
+- Baseline: `main` at PR #15 merge `a3a39ca68d86748728e49a2b39c81828bb8bb658`
+- Reviewed target: review-ready PR #16 on `fix/FIX-005-incomplete-profile-list-contract`
 - Verification date: 2026-08-11
 - Local/hosted/data boundary: local synthetic only; no hosted target, real data,
   deployment, or production evidence
-- Pull request and CI: PR #15; required checks passed on 2026-08-11
-- Known limitations: merge, formal accessibility review, qualified
+- Pull request and CI: PR #15 merged; PR #16 required checks passed on 2026-08-11
+- Known limitations: correction merge, formal accessibility review, qualified
   privacy/retention review, hosted validation, rejoining after revocation, and
   production readiness remain pending
 
-This record covers the verified local synthetic implementation and review-ready
-PR. Merge, hosted, real-data, and production evidence remain separate gates.
+This record covers the merged feature and its independently reviewed forward
+correction on a green review-ready PR. Correction merge, hosted, real-data,
+and production evidence remain separate gates.
 
 ## Requirements and results
 
@@ -40,14 +41,14 @@ PR. Merge, hosted, real-data, and production evidence remain separate gates.
 
 | Evidence | Result |
 |---|---|
-| `pnpm test` | 21 files and 209 unit/component/Edge tests passed |
-| `pnpm test:sql` | 5 files and 236 pgTAP tests passed after a clean migration reset |
+| `pnpm test` | 21 files and 210 unit/component/Edge tests passed |
+| `pnpm test:sql` | 5 files and 237 pgTAP tests passed after a clean migration reset |
 | `node scripts/test-feat-005-runtime.mjs` | Local Auth/TOTP, two organizations, profile and status effects, race handling, privacy, and zero-residue cleanup passed |
 | `pnpm test:e2e` | 16 desktop/mobile scenarios passed, including own profile and member administration |
 | `pnpm verify:app` | Formatting, docs, lint, types, tests, build, secret scan, E2E, and dependency audit passed |
 | `pnpm test:runtime` | All five runtime fixtures passed with verified local lifecycle isolation |
 | Database lint and generated types | No schema warnings; generated types are current |
-| Separate-agent review | Pass; initial findings corrected and final focused re-review found no material findings |
+| Separate-agent review | Pass; PR #15 findings were corrected, and the forward correction review found no actionable findings |
 
 ## Evidence rules
 

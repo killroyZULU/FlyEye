@@ -1,6 +1,6 @@
 begin;
 
-select plan(72);
+select plan(73);
 
 select has_table('public', 'organization_member_profiles', 'FEAT-005 profile table exists');
 select has_table('public', 'member_administration_events', 'FEAT-005 audit table exists');
@@ -248,6 +248,14 @@ select is(
     'a4000000-0000-4000-8000-000000000001'
   )->>'decision'), 'found', 'An active member can read only the own selected profile'
 );
+select ok(
+  (public.list_organization_members(
+    'a1000000-0000-4000-8000-000000000001',
+    'a2000000-0000-4000-8000-000000000001',
+    'a4000000-0000-4000-8000-000000000035'
+  )->'members') @> '[{"membershipId":"a3000000-0000-4000-8000-000000000003","displayName":null,"profileComplete":false}]'::jsonb,
+  'Directory results preserve required nullable fields for incomplete profiles'
+);
 select is(
   (public.get_my_member_profile(
     'a1000000-0000-4000-8000-000000000003',
@@ -309,7 +317,7 @@ select is(
 select is(
   (select count(*)::integer from public.member_administration_events
    where event_name = 'member_directory.listed' and organization_id = 'a2000000-0000-4000-8000-000000000001'),
-  3, 'Every successful directory response has atomic minimized access evidence'
+  4, 'Every successful directory response has atomic minimized access evidence'
 );
 select is(
   (public.get_organization_member(
@@ -651,7 +659,7 @@ select is(
   (select count(*)::integer from public.member_administration_events
    where event_name = 'member_directory.listed'
      and organization_id = 'a2000000-0000-4000-8000-000000000001'),
-  7, 'Failed directory audit creates no false-success evidence'
+  8, 'Failed directory audit creates no false-success evidence'
 );
 select throws_ok(
   $$select public.update_my_member_profile(

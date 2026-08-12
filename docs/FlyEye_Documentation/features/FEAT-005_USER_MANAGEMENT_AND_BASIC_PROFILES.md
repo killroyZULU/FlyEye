@@ -2,10 +2,10 @@
 
 ## Contract references
 
-- Baseline: `main` at PR #14 merge `4d8cbba0a40f9413a180b40b120cb67447351212`
-- State: Implementation, verification, independent review, and PR #15 CI complete; merge pending
+- Baseline: merged through PR #15 at `a3a39ca68d86748728e49a2b39c81828bb8bb658`
+- State: Delivered; forward incomplete-profile directory correction is locally verified, independently reviewed, and green on PR #16 with merge pending
 - Owner: Founder/Product Owner
-- Task branch: `feat/FEAT-005-user-management-profiles`
+- Correction branch: `fix/FIX-005-incomplete-profile-list-contract`
 - Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002` through `IAM-012`, `REC-001` through
   `REC-003`, `NFR-004`, `NFR-008`, and `NFR-009`
