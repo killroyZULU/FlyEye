@@ -47,8 +47,6 @@ const aliasUsers = [
 }));
 const organizationId = randomUUID();
 const membershipId = randomUUID();
-const secondOrganizationId = randomUUID();
-const secondMembershipId = randomUUID();
 const originalPassword = `Original synthetic ${randomBytes(18).toString('base64url')}`;
 const recoveredPassword = `${'synthetic password with spaces '.repeat(2)}ok`;
 const startedAt = new Date().toISOString();
@@ -227,13 +225,13 @@ async function cleanup() {
       ${aliasUsers.map((aliasUser) => `'${aliasUser.id}'::uuid`).join(',\n      ')}
     );
     delete from public.membership_roles
-    where membership_id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
+    where membership_id = '${membershipId}'::uuid;
     delete from public.organization_member_profiles
-    where membership_id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
+    where membership_id = '${membershipId}'::uuid;
     delete from public.organization_memberships
-    where id in ('${membershipId}'::uuid, '${secondMembershipId}'::uuid);
+    where id = '${membershipId}'::uuid;
     delete from public.organizations
-    where id in ('${organizationId}'::uuid, '${secondOrganizationId}'::uuid);
+    where id = '${organizationId}'::uuid;
   `);
   await adminClient.auth.admin.deleteUser(user.id);
   for (const aliasUser of aliasUsers) {
@@ -261,33 +259,19 @@ try {
 
   psql(`
     insert into public.organizations (id, name)
-    values
-      ('${organizationId}'::uuid, 'FEAT-002 Synthetic School A ${runId}'),
-      ('${secondOrganizationId}'::uuid, 'FEAT-002 Synthetic School B ${runId}');
+    values ('${organizationId}'::uuid, 'FEAT-002 Synthetic Flight School ${runId}');
 
     insert into public.organization_memberships (id, organization_id, user_id, status)
-    values
-      (
-        '${membershipId}'::uuid,
-        '${organizationId}'::uuid,
-        '${user.id}'::uuid,
-        'active'
-      ),
-      (
-        '${secondMembershipId}'::uuid,
-        '${secondOrganizationId}'::uuid,
-        '${user.id}'::uuid,
-        'active'
-      );
+    values (
+      '${membershipId}'::uuid,
+      '${organizationId}'::uuid,
+      '${user.id}'::uuid,
+      'active'
+    );
 
     insert into public.membership_roles (organization_id, membership_id, role_id)
-    select memberships.organization_id, memberships.membership_id, roles.id
-    from (
-      values
-        ('${organizationId}'::uuid, '${membershipId}'::uuid),
-        ('${secondOrganizationId}'::uuid, '${secondMembershipId}'::uuid)
-    ) as memberships(organization_id, membership_id)
-    cross join public.roles roles
+    select '${organizationId}'::uuid, '${membershipId}'::uuid, roles.id
+    from public.roles roles
     where roles.code = 'student_pilot';
   `);
 
@@ -320,8 +304,7 @@ try {
   const recoveryMessage = await waitForMail('Reset your FlyEye password');
   const { tokenHash, url } = recoveryLink(recoveryMessage);
   const recoveryMailContent = `${recoveryMessage.HTML ?? recoveryMessage.html ?? ''} ${recoveryMessage.Text ?? recoveryMessage.text ?? ''}`;
-  assert.equal(recoveryMailContent.includes(`Synthetic School A ${runId}`), false);
-  assert.equal(recoveryMailContent.includes(`Synthetic School B ${runId}`), false);
+  assert.equal(recoveryMailContent.includes(`Synthetic Flight School ${runId}`), false);
   assert.equal(recoveryMailContent.includes('student_pilot'), false);
   assert.equal(url.origin, origin);
   assert.equal(url.pathname, '/auth/recovery');
@@ -376,8 +359,7 @@ try {
   const passwordChangedContent = `${passwordChangedMessage.HTML ?? passwordChangedMessage.html ?? ''} ${passwordChangedMessage.Text ?? passwordChangedMessage.text ?? ''}`;
   assert.equal(passwordChangedContent.includes(recoveredPassword), false);
   assert.equal(passwordChangedContent.includes('token_hash'), false);
-  assert.equal(passwordChangedContent.includes(`Synthetic School A ${runId}`), false);
-  assert.equal(passwordChangedContent.includes(`Synthetic School B ${runId}`), false);
+  assert.equal(passwordChangedContent.includes(`Synthetic Flight School ${runId}`), false);
 
   const { error: logoutError } = await recoveryClient.auth.signOut({ scope: 'global' });
   if (logoutError) throw logoutError;

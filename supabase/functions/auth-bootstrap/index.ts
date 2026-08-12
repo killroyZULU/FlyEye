@@ -40,11 +40,11 @@ Deno.serve(
       if (error) throw error;
       return classifyCompleteFactorInventory(data.factors).kind === 'one_verified_totp';
     },
-    resolveAccessContext: async ({ actorUserId, assuranceLevel, selectedOrganizationId }) => {
+    resolveAccessContext: async ({ actorUserId, assuranceLevel }) => {
       const { data, error } = await serverClient.rpc('resolve_auth_access_context', {
         p_actor_user_id: actorUserId,
         p_assurance_level: assuranceLevel,
-        p_selected_organization_id: selectedOrganizationId ?? null,
+        p_selected_organization_id: null,
       });
       if (error) throw error;
       return data;

@@ -8,9 +8,10 @@ ADRs preserve durable decisions so future developers and AI agents do not repeat
 |---|---|---|
 | [ADR-0001](ADR-0001-WEB-FIRST-PWA.md) | Accepted; amended by ADR-0005 | Responsive web-first PWA; native mobile later if justified |
 | [ADR-0002](ADR-0002-MODULAR-MONOLITH.md) | Superseded by ADR-0005 | Earlier ASP.NET Core modular-monolith decision |
-| [ADR-0003](ADR-0003-POSTGRESQL-TENANCY.md) | Accepted; amended by ADR-0005 | PostgreSQL shared schema with Supabase RLS isolation |
+| [ADR-0003](ADR-0003-POSTGRESQL-TENANCY.md) | Superseded by ADR-0006 | Earlier shared multi-school PostgreSQL tenancy decision |
 | [ADR-0004](ADR-0004-AI-HUMAN-AUTHORITY.md) | Accepted | AI is optional advisory assistance under human authority |
 | [ADR-0005](ADR-0005-LEAN-SUPABASE-STACK.md) | Accepted | Lean React/TypeScript + Supabase MVP stack |
+| [ADR-0006](ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md) | Accepted | One isolated deployment per flight school; internal organization scoping retained |
 | [Template](ADR-TEMPLATE.md) | Template | Format for future decisions |
 
 ## Rules

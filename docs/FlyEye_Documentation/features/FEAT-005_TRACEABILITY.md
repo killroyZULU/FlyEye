@@ -21,12 +21,12 @@ and production evidence remain separate gates.
 
 | Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
 |---|---|---|---|---|
-| `IAM-002/003/008/010`, `AC-01/02/03` | Active-organization and server-derived membership checks, bounded stable list/search, deny-by-default RLS | `EDGE-01`, `RLS-01`, `TENANT-01`, `PAGE-01` | Pass | Local two-organization and suspended-organization evidence passed |
+| `IAM-002/003/008/010`, `AC-01/02/03` | Single-school and server-derived membership checks, bounded stable list/search, deny-by-default RLS | `EDGE-01`, `RLS-01`, `TENANT-01`, `PAGE-01`, FIX-006 | Pass | Local forged-school and suspended-school evidence passed |
 | `IAM-004`, `AC-08/10/11` | Protected suspension, reactivation, and organization-only terminal revocation with exact action-specific reason-code allowlists | `UNIT-01`, `RPC-02`, `EDGE-01`, `AUTH-01`, `E2E-01` | Pass | Rejoining after revocation is outside scope |
 | `IAM-006`, `AC-08` | Fresh password AMR and AAL2/TOTP for status changes | `EDGE-01`, `AUTH-01`, `SEC-01` | Pass | Hosted authentication behavior later |
 | `IAM-007`, `REC-001/002/003`, `AC-01/13/16/17` | Atomic append-only status, profile, directory-access, denial, and conflict evidence with minimized metadata; audit failure returns no directory data | `SQL-01`, `RPC-01/02/04`, `SEC-01` | Pass | Monitoring/retention ownership later |
 | `IAM-009`, `AC-15/16` | Service-role authority remains in protected runtime; direct browser writes denied | `RLS-01`, `EDGE-01`, `SEC-01` | Pass | Hosted secret-path evidence later |
-| `IAM-010`, `AC-03/04/09/11` | Independent organization profiles and membership effects | `TENANT-01`, `AUTH-01` | Pass | Real-data controller review later |
+| `IAM-010`, `AC-03/04/09/11` | Deployment-school profiles and membership effects | `TENANT-01`, `AUTH-01`, FIX-006 | Pass | Real-data controller review later |
 | `IAM-011`, `AC-07/09/10/11` | Profile/status changes never add or alter role/operational authority | `SQL-01`, `RPC-01/02`, `REG-01` | Pass | FEAT-006 separately gated |
 | `IAM-012`, `AC-12` | Self-action denial and transactional last-active-admin protection | `RPC-03`, `TENANT-01`, `SEC-01` | Pass | Permission matrix remains later qualified gate |
 | `NFR-004`, `AC-18` | Responsive, keyboard, focus, label, announcement, contrast, and reflow support | `COMP-01/02/03`, `E2E-01`, `A11Y-01` | Pass for automated local scope | Formal accessibility review later |
@@ -43,7 +43,7 @@ and production evidence remain separate gates.
 |---|---|
 | `pnpm test` | 21 files and 210 unit/component/Edge tests passed |
 | `pnpm test:sql` | 5 files and 237 pgTAP tests passed after a clean migration reset |
-| `node scripts/test-feat-005-runtime.mjs` | Local Auth/TOTP, two organizations, profile and status effects, race handling, privacy, and zero-residue cleanup passed |
+| `node scripts/test-feat-005-runtime.mjs` | Local Auth/TOTP, one school, forged-school denial, profile/status effects, race handling, privacy, and zero-residue cleanup passed |
 | `pnpm test:e2e` | 16 desktop/mobile scenarios passed, including own profile and member administration |
 | `pnpm verify:app` | Formatting, docs, lint, types, tests, build, secret scan, E2E, and dependency audit passed |
 | `pnpm test:runtime` | All five runtime fixtures passed with verified local lifecycle isolation |

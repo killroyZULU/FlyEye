@@ -11,27 +11,29 @@ This file is the sole active project-status summary. Replace stale entries; do n
 
 | Outcome | Repository state | Remaining boundary |
 |---|---|---|
-| FEAT-001 Login and initial RBAC | Merged into `main` | Universal MFA, invitations, user administration, hosted validation, and production readiness remain later work |
+| FEAT-001 Login and initial RBAC | Merged into `main`; FIX-006 removes school selection and preserves Student AAL1 plus Instructor/Admin TOTP/AAL2 | FIX-006 verification/merge, hosted validation, and production readiness remain later work |
 | FEAT-002 Password Recovery | Merged through PR #5; closure documentation through PR #6 | Hosted email/provider behavior, remaining accessibility evidence, real-data approval, deployment, and production remain open |
 | FEAT-003 Organization Admin and MFA Onboarding | Merged through PR #7 | Hosted synthetic validation, provider activation, real data, deployment, and production remain open |
 | FEAT-003 Hosted Synthetic Hardening | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free | No staging provider/project, credentials, paid plan, executable hosted issuer, or hosted run is authorized or configured |
 | FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
-| FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; the forward correction is independently reviewed and green on PR #16 | Correction merge, formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
+| FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; the forward correction is independently reviewed and green on PR #16; FIX-006 is locally verified and independently reviewed | PR #16 and FIX-006 publication/merge, formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
 ## Current product boundary
 
 - React, TypeScript, Vite PWA, and Supabase remain the approved MVP stack.
+- Each flight school uses a separate frontend and Supabase/cloud/data deployment from the same versioned product; the application has no school selector.
+- Student non-privileged access may use password-authenticated AAL1; instructors, administrators, and authority-bearing actions require TOTP/AAL2.
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 User Management and Basic Profiles is merged; its independently reviewed incomplete-profile directory correction is green on PR #16 and must merge before FEAT-006 begins.
+- FEAT-005 User Management and Basic Profiles is merged; PR #16 and the single-school FIX-006 revision must merge with green required checks before FEAT-006 begins.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Finish the review-ready correction for [FEAT-005 User Management and Basic Profiles](features/FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md), merge it only with explicit authorization, then specify FEAT-006 Role Assignment from the corrected baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
+Finish and merge PR #16 and [FIX-006](features/FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_AMENDMENT.md) only with explicit authorization, then specify FEAT-006 Role Assignment from the corrected single-school baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

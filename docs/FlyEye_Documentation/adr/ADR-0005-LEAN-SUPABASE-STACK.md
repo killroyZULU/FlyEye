@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-19
 - Supersedes: ADR-0002
-- Amends: ADR-0001 and ADR-0003
+- Amends: ADR-0001 and ADR-0003; tenancy portion amended by ADR-0006
 
 ## Context
 
@@ -66,4 +66,3 @@ Direct browser access is permitted only for explicitly approved low-risk reads a
 ## Revisit triggers
 
 Consider a dedicated API when protected functions become difficult to govern, long-running work or integrations require durable orchestration, regulatory/customer requirements demand a distinct service boundary, a larger engineering team forms, or measured performance/cost warrants it.
-

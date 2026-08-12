@@ -29,7 +29,7 @@ Included:
 - Preservation of the membership role and profile during status changes
 - Last-active-Organization-Admin, self-action, tenancy, audit, concurrency, and
   reauthentication controls
-- Local synthetic desktop/mobile and two-organization verification
+- Local synthetic desktop/mobile and forged-school verification
 
 Non-goals:
 
@@ -67,9 +67,9 @@ authority.
 
 | Action | Permission | Tenant/record rule | Execution boundary | Reauthentication |
 |---|---|---|---|---|
-| List, search, and review members | `membership.member.review` | Active administrator membership in the selected active organization; return that organization only | Protected Edge Function and atomic server-only RPC | Current AAL2/TOTP session |
-| View own profile | Active membership | Exact authenticated subject and membership in the selected active organization | Protected Edge Function and server-only RPC | Current authenticated session and applicable portal MFA |
-| Update own profile | Active membership | Exact authenticated subject and membership in the selected active organization; no role or status fields accepted | Protected Edge Function and atomic server-only RPC | Current authenticated session and applicable portal MFA |
+| List, search, and review members | `membership.member.review` | Active administrator membership in the deployment's active school; return that school only | Protected Edge Function and atomic server-only RPC | Current AAL2/TOTP session |
+| View own profile | Active membership | Exact authenticated subject and membership in the deployment school | Protected Edge Function and server-only RPC | Current authenticated session and applicable portal MFA |
+| Update own profile | Active membership | Exact authenticated subject and membership in the deployment school; no role or status fields accepted | Protected Edge Function and atomic server-only RPC | Current authenticated session and applicable portal MFA |
 | Suspend member | `membership.member.manage_status` | Same active organization; target active; actor cannot target self or last active administrator | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Reactivate member | `membership.member.manage_status` | Same active organization; target suspended; preserved role must remain active | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
 | Revoke member | `membership.member.manage_status` | Same active organization; target active or suspended; actor cannot target self or last active administrator | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
@@ -78,7 +78,7 @@ The built-in `admin` role initially receives both permissions. Browser roles
 receive no direct membership-status, profile-audit, or administration-event
 table mutation authority. Profile ownership and administrator authority are
 derived from server-controlled membership records, not JWT metadata, request
-roles, email, or selected organization alone.
+roles, email, or request-supplied organization alone.
 
 ## Workflow and business rules
 
@@ -267,7 +267,8 @@ retention, alert ownership, and support remain environment-specific gates.
 - Search input is data, never dynamic SQL. Logs and audit exclude query text and
   all profile values.
 - Service-role credentials remain server-only. Synthetic `.test` identities in
-  at least two organizations are the only fixtures.
+  one committed school plus forged IDs and rollback-only cross-school cases are
+  the only fixtures.
 
 ## Acceptance criteria
 
@@ -336,7 +337,7 @@ retention, alert ownership, and support remain environment-specific gates.
 | `FEAT-005-RPC-03` | SQL/RPC | Self-action and last-admin concurrent races | At least one active administrator remains |
 | `FEAT-005-RPC-04` | SQL/RPC | Directory list/detail audit success and injected audit failure | Data returns only with committed minimized access event |
 | `FEAT-005-EDGE-01` | Edge | JWT, origin, body, active organization, AAL2, fresh password, permission, lookup failure | Protected commands fail closed |
-| `FEAT-005-TENANT-01` | Runtime | Same subject in two organizations; cross-tenant list/search/IDs | No leakage; independent membership effects |
+| `FEAT-005-TENANT-01` | Runtime/SQL | Forged school list/search/IDs and rollback-only cross-school access | No leakage or cross-school effect |
 | `FEAT-005-AUTH-01` | Runtime | Active, suspended, reactivated, and revoked sessions | Server access tracks membership state immediately |
 | `FEAT-005-PAGE-01` | Integration | Profile/email change and new/status-changed rows between cursor pages | Stable tuple order, valid filter behavior, no mutable-key duplication |
 | `FEAT-005-E2E-01` | Browser | Admin review/status flow and member profile on desktop/mobile | End-to-end approved behavior |

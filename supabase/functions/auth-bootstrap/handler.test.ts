@@ -181,7 +181,6 @@ describe('auth-bootstrap Edge Function handler', () => {
     expect(configured.resolveAccessContext).toHaveBeenCalledWith({
       actorUserId,
       assuranceLevel: 'aal2',
-      selectedOrganizationId: undefined,
     });
   });
 
@@ -216,22 +215,15 @@ describe('auth-bootstrap Edge Function handler', () => {
     );
   });
 
-  it('passes organization selection only as a resolver hint', async () => {
-    const resolveAccessContext = vi.fn().mockResolvedValue({
-      ...validContext,
-      selectedOrganizationId: organizationId,
-    });
+  it('rejects organization selection in a single-school deployment', async () => {
+    const resolveAccessContext = vi.fn().mockResolvedValue(validContext);
     const configured = dependencies({ resolveAccessContext });
     const response = await createAuthBootstrapHandler(configured)(
       request(JSON.stringify({ organizationId })),
     );
 
-    expect(response.status).toBe(200);
-    expect(resolveAccessContext).toHaveBeenCalledWith({
-      actorUserId,
-      assuranceLevel: 'aal1',
-      selectedOrganizationId: organizationId,
-    });
+    expect(response.status).toBe(422);
+    expect(resolveAccessContext).not.toHaveBeenCalled();
   });
 
   it('rejects client-supplied role, permission, and metadata fields', async () => {

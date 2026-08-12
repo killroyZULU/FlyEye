@@ -25,12 +25,12 @@ export type AccessMembership = z.infer<typeof accessMembershipSchema>;
 
 export const accessContextResponseSchema = z
   .object({
-    memberships: z.array(accessMembershipSchema),
+    memberships: z.array(accessMembershipSchema).max(1),
     correlationId: z.uuid(),
     decision: accessStatusSchema,
     currentAssuranceLevel: assuranceLevelSchema,
-    selectedOrganizationId: z.uuid().nullable(),
-    organizationIds: z.array(z.uuid()),
+    selectedOrganizationId: z.null(),
+    organizationIds: z.array(z.uuid()).max(1),
   })
   .strict()
   .superRefine((context, refinement) => {
@@ -50,18 +50,6 @@ export const accessContextResponseSchema = z
         code: 'custom',
         message: 'Organization context must exactly match unique memberships.',
         path: ['organizationIds'],
-      });
-    }
-
-    if (
-      context.selectedOrganizationId !== null &&
-      (context.memberships.length !== 1 ||
-        context.memberships[0]?.organizationId !== context.selectedOrganizationId)
-    ) {
-      refinement.addIssue({
-        code: 'custom',
-        message: 'Selected organization must resolve to exactly one membership.',
-        path: ['selectedOrganizationId'],
       });
     }
 

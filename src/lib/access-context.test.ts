@@ -74,6 +74,40 @@ describe('access context contracts', () => {
     expect(requiresMfa('admin')).toBe(true);
   });
 
+  it('rejects more than one school context', () => {
+    const organizationId = '20000000-0000-4000-8000-000000000001';
+    const secondOrganizationId = '20000000-0000-4000-8000-000000000002';
+    const baseMembership = {
+      membershipId: '10000000-0000-4000-8000-000000000001',
+      organizationId,
+      organizationName: 'Synthetic Flight School',
+      role: 'student_pilot',
+      permissions: ['portal.student.access'],
+      membershipVersion: 1,
+      requiredAssuranceLevel: 'aal1',
+      accessStatus: 'granted',
+    } as const;
+
+    const parsed = accessContextResponseSchema.safeParse({
+      memberships: [
+        baseMembership,
+        {
+          ...baseMembership,
+          membershipId: '10000000-0000-4000-8000-000000000002',
+          organizationId: secondOrganizationId,
+          organizationName: 'Unexpected Second School',
+        },
+      ],
+      correlationId: '30000000-0000-4000-8000-000000000001',
+      decision: 'granted',
+      currentAssuranceLevel: 'aal1',
+      selectedOrganizationId: null,
+      organizationIds: [organizationId, secondOrganizationId],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
   it('maps approved roles to safe landing labels', () => {
     expect(landingLabel('student_pilot')).toBe('Student workspace');
     expect(landingLabel('instructor_pilot')).toBe('Instructor workspace');

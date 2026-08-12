@@ -22,8 +22,8 @@ As an invited Student Pilot, Instructor Pilot, or Admin, I want to sign in secur
 - Server-derived organization membership, role, and permissions
 - Student Pilot, Instructor Pilot, and Admin role codes
 - Server-side AAL2 enforcement for Instructor Pilot and Admin access
-- Multiple-organization selection when the user has multiple active memberships
-- Loading, empty, error, unauthorized, conflict, MFA, organization-selection, and success states
+- One server-derived school context; ambiguous or multiple memberships fail closed
+- Loading, empty, error, unauthorized, conflict, MFA, and success states
 - Deny-by-default RLS with no direct browser table grants
 - Protected Edge Function and PostgreSQL access-context function
 - Audit-gated final authentication event for every completed protected access-context decision
@@ -44,7 +44,7 @@ As an invited Student Pilot, Instructor Pilot, or Admin, I want to sign in secur
 |---|---|---|
 | Invitation-only accounts | SRS IAM-001 | Verified product requirement |
 | Server-derived membership and authorization | SRS IAM-002/003; ADR-0005 | Verified architecture requirement |
-| Initial Instructor/Admin MFA and later universal-MFA target | Security Requirements section 3; Product and Governance Decisions section 5 | FEAT-001 implements privileged-role MFA only; universal enrollment, recovery, support, and enforcement remain pending |
+| Role-based MFA | Security Requirements section 3; ADR-0006 | Student non-privileged AAL1 is allowed; Instructor/Admin require TOTP/AAL2 |
 | Student/Instructor/Admin initial roles | Product-owner FEAT-001 task, 2026-07-19 | Approved for initial access routing |
 | Management pilots may use Admin grouping | Product-owner FEAT-001 task, 2026-07-19 | Approved only as an initial grouping |
 | CFI/Head of Training operational permissions | Qualified ATO SME and permission-matrix owner | Pending SME confirmation |
@@ -59,7 +59,7 @@ No aviation authority is inferred from a role label. The initial permissions gra
 | Enter Student workspace | `portal.student.access` | Active membership assigned `student_pilot` | Current authenticated session |
 | Enter Instructor workspace | `portal.instructor.access` | Active membership assigned `instructor_pilot` | AAL2 MFA required |
 | Enter Admin workspace | `portal.admin.access` | Active membership assigned `admin` | AAL2 MFA required |
-| Read access context | `auth-bootstrap` plus server-only resolver/audit RPCs | Actor and AAL come from the verified JWT; an optional organization selection is revalidated | Valid user JWT; AAL is enforced per returned membership |
+| Read access context | `auth-bootstrap` plus server-only resolver/audit RPCs | Actor, school, role, and AAL come from verified server records; selection input is rejected | Valid user JWT; AAL is enforced for the sole membership |
 
 ## Preconditions and business rules
 
@@ -78,8 +78,7 @@ No aviation authority is inferred from a role label. The initial permissions gra
 ```text
 CheckingSession -> SignedOut | LoadingAccess
 SignedOut -> SigningIn -> SignedOut | LoadingAccess
-LoadingAccess -> Empty | Conflict | OrganizationSelection | MfaRequired | Unauthorized | Success
-OrganizationSelection -> LoadingAccess -> MfaRequired | Unauthorized | Success
+LoadingAccess -> Empty | Conflict | MfaRequired | Unauthorized | Success
 MfaRequired -> VerifyingMfa -> LoadingAccess -> MfaRequired | Unauthorized | Success
 Any authenticated state -> SignedOut on sign-out/session revocation
 ```
@@ -101,7 +100,7 @@ Membership activation, suspension, reactivation, role assignment, and role remov
 ## Data and protected-function contract
 
 - Edge Function: `POST /functions/v1/auth-bootstrap`
-- Request: strict JSON object with only optional `organizationId`; the value is a selection hint and is re-derived against the verified actor's active memberships
+- Request: strict empty JSON object; organization-selection fields are rejected
 - Edge JWT verification: explicitly enabled in `supabase/config.toml`; the function also resolves the Auth user before using the verified JWT AAL claim
 - PostgreSQL resolver: server-only `public.resolve_auth_access_context(...)`
 - PostgreSQL audit writer: server-only `public.record_authentication_access_decision(...)`
@@ -117,7 +116,7 @@ Membership activation, suspension, reactivation, role assignment, and role remov
 - Accessible email/password and TOTP inputs
 - No public registration, role selector, or pre-authentication organization selector
 - Generic non-enumerating credential error
-- Explicit session checking, loading, empty, error, unauthorized, conflict, organization selection, MFA, and success states
+- Explicit session checking, loading, empty, error, unauthorized, conflict, MFA, and success states
 - Role workspaces remain labelled placeholders until separately approved features exist
 - Authentication requires connectivity
 
@@ -133,9 +132,9 @@ Membership activation, suspension, reactivation, role assignment, and role remov
 
 - Protected access decisions create one server-side authentication event and correlation ID after response validation.
 - `actor_subject_id` retains the Auth UUID as a pseudonymous attribution snapshot if the Auth user is later removed; it does not copy email or mutable profile data.
-- `organization_id` records a selected/single organization and `organization_ids` records the complete resolved multi-organization context.
+- `organization_id` records the sole resolved organization and `organization_ids` contains at most that same organization.
 - Database constraints enforce valid event-name/outcome and reason-code combinations.
-- Metadata contains only membership count, current assurance level, and whether organization selection occurred; no password, token, email, or authorization internals are recorded.
+- Metadata contains only bounded membership count and current assurance level; no password, token, email, or authorization internals are recorded.
 - Supabase Auth remains the source for password and MFA authentication logs.
 - Notifications are not part of FEAT-001.
 
@@ -159,7 +158,7 @@ Membership activation, suspension, reactivation, role assignment, and role remov
 - [x] Anonymous and authenticated browser roles have no direct RBAC table access. Migration inspection and live SQL/RLS execution pass.
 - [x] Cross-tenant access-context tests return only the actor's organization.
 - [x] Every completed protected access-context invocation writes exactly one final event; runtime contract rejection records denied rather than success, and audit failure blocks access.
-- [x] Loading, error, unauthorized, conflict, organization-selection, MFA, and success states are covered.
+- [x] Loading, error, unauthorized, conflict, MFA, and success states are covered.
 - [x] No service-role key exists in browser code.
 - [x] Final remediation formatting, lint, type checking, 32 unit/component/Edge-handler tests, 45 SQL/RLS tests, actual local Auth/TOTP/Edge/browser integration, 8 Playwright E2E scenarios, database lint, dependency audit, production build, generated-type hash comparison, and source/build secret scans pass on 2026-07-19.
 
@@ -196,7 +195,7 @@ Packages are pinned in `package.json`; all selected packages reported an MIT or 
 
 - CFI, Head of Training, and other management authority requires an approved permission matrix and aviation-SME review.
 - MFA enrollment/recovery is not implemented.
-- Student users remain allowed at AAL1 in FEAT-001. The later product-owner decision requiring MFA for every user before real-data pilot or production access is not yet implemented.
+- Student users remain allowed at AAL1 for non-privileged access under IAM-005 and ADR-0006. Instructor/Admin access remains TOTP/AAL2.
 - Password recovery is not implemented.
 - Role and membership administration are not implemented.
 - Local Supabase uses ports `55320` through `55328`; optional local analytics is disabled.

@@ -23,7 +23,7 @@ Included:
 - Recent password authentication at onboarding start and completion
 - TOTP enrollment or challenge, strict factor inventory, AAL2 verification, safe cancellation, and stale-session handling
 - Atomic membership creation, built-in `admin` role assignment, grant consumption, and audit
-- Multi-organization selection with server revalidation and two-organization isolation
+- Single-school bootstrap with forged-school denial and no school selector
 - Per-action abuse controls, privacy-minimized monitoring evidence, and required UI/accessibility states
 
 Non-goals:
@@ -152,7 +152,7 @@ A removed factor may leave a completed membership, but final provider/bootstrap 
 
 ## UI and accessibility
 
-Required states include loading, no eligibility, organization selection, unauthorized, recent-auth required, enrollment, manual secret, verification, challenge, rate-limited wait, offline, duplicate/mixed factor conflict, cancellation, cleanup uncertainty, concurrent conflict, provider/database failure, stale operation, success, and final bootstrap denial.
+Required states include loading, no eligibility, unauthorized, recent-auth required, enrollment, manual secret, verification, challenge, rate-limited wait, offline, duplicate/mixed factor conflict, cancellation, cleanup uncertainty, concurrent conflict, provider/database failure, stale operation, success, and final bootstrap denial.
 
 The UI must support keyboard operation, deterministic focus/heading changes, labelled fields, error summaries and live announcements, paste/autofill, responsive mobile/tablet/desktop layout, 200% reflow, contrast and target-size review, QR/manual alternatives, duplicate-submit guards, and explicit wait/retry/recovery guidance. No secret or protected action is queued offline.
 
@@ -175,7 +175,7 @@ Evidence covers allowed, rate-limited, unavailable, recovered, rapid, replayed, 
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.
 - `FEAT-003-AC-02` Anonymous, OTP-only, stale, wrong-subject, expired, revoked, consumed, and unknown input fails without enumeration or authority.
-- `FEAT-003-AC-03` Organization selection is an opaque hint and cannot cross tenants.
+- `FEAT-003-AC-03` The protected grant derives the sole school and forged school context cannot grant authority.
 - `FEAT-003-AC-04` No-factor start creates exactly one in-memory unverified TOTP.
 - `FEAT-003-AC-05` Successful verification refreshes to current AAL2 with password and TOTP AMR before completion.
 - `FEAT-003-AC-06` Invalid code, rate limit, offline, or provider uncertainty creates no membership and shows accessible guidance.
@@ -190,7 +190,7 @@ Evidence covers allowed, rate-limited, unavailable, recovered, rapid, replayed, 
 - `FEAT-003-AC-15` Admin access implies no operational or aviation authority.
 - `FEAT-003-AC-16` Existing active admin causes conflict without modifying that admin.
 - `FEAT-003-AC-17` Required responsive and accessibility behavior is evidenced with human-only limitations explicit.
-- `FEAT-003-AC-18` Offline, refresh, sign-out, session/factor change, stale operation, or organization switch cannot restore authority or queue secrets.
+- `FEAT-003-AC-18` Offline, refresh, sign-out, session/factor change, or stale operation cannot restore authority or queue secrets.
 - `FEAT-003-AC-19` Source, build, logs, evidence, and history contain no secrets, real identities, tokens, or restricted provider data.
 - `FEAT-003-AC-20` FEAT-001 and FEAT-002 security, Auth, tenant, recovery, and browser regressions remain green.
 - `FEAT-003-AC-21` Local technical publication evidence is complete; merge and later lifecycle gates remain separate.
@@ -207,6 +207,6 @@ Evidence covers allowed, rate-limited, unavailable, recovered, rapid, replayed, 
 
 ## Verification and remaining gates
 
-Stable test families and exact results are maintained in [FEAT-003 Traceability](FEAT-003_TRACEABILITY.md). They include unit/component, SQL/RLS/RPC, Edge/abuse, monitoring, local Auth, tenant, security, audit, browser/E2E, accessibility, configuration, secret, regression, and fixture coverage with randomized `.test` identities in at least two organizations.
+Stable test families and exact results are maintained in [FEAT-003 Traceability](FEAT-003_TRACEABILITY.md). Current committed runtime fixtures use one synthetic school; rollback-only SQL tests retain adversarial cross-school coverage under ADR-0006.
 
 Local values and fixtures are not hosted or production evidence. Before a hosted run, real-data pilot, or production claim, resolve the exact provider/project, region/plan/cost, origin, credentials, trusted network source, thresholds/capacity, monitoring/alerts/retention/ownership, issuance authority, cleanup/recovery, notifications/support, factor recovery/replacement, incident process, accessibility evidence, and any risk-triggered qualified review.

@@ -40,6 +40,6 @@ pnpm test:edge-runtime
 pnpm db:types
 ```
 
-`test:edge-runtime` refuses non-loopback Supabase URLs. It creates ephemeral synthetic users and two synthetic organizations, tests public-signup/anonymous/invalid-JWT denial, real password/TOTP/AAL flows, suspended/revoked membership denial, tenant isolation, organization selection, direct RPC/table denial, body limits, audit cardinality, and real browser Student/Instructor flows, then removes its test data.
+`test:edge-runtime` refuses non-loopback Supabase URLs. It creates ephemeral synthetic users and one synthetic school, tests public-signup/anonymous/invalid-JWT denial, real password/TOTP/AAL flows, suspended/revoked membership denial, forged school selection, ambiguous context, direct RPC/table denial, body limits, audit cardinality, and real browser Student/Instructor flows, then removes its test data.
 
 The local integration harness is automated evidence, not an independent penetration test or production-readiness approval.

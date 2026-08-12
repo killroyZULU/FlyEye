@@ -20,7 +20,6 @@ function context(
   accessStatus: 'granted' | 'mfa_required' | 'denied' = role === 'student_pilot'
     ? 'granted'
     : 'mfa_required',
-  selectedOrganizationId: string | null = null,
 ): AccessContextResponse {
   const organizationId = '20000000-0000-4000-8000-000000000001';
   return {
@@ -39,7 +38,7 @@ function context(
     correlationId: '30000000-0000-4000-8000-000000000001',
     decision: accessStatus,
     currentAssuranceLevel: accessStatus === 'granted' && role !== 'student_pilot' ? 'aal2' : 'aal1',
-    selectedOrganizationId,
+    selectedOrganizationId: null,
     organizationIds: [organizationId],
   };
 }
@@ -146,16 +145,10 @@ describe('FEAT-001 authentication UI', () => {
   });
 
   it('requires MFA for an instructor before showing success', async () => {
-    const loadAccessContext = vi.fn((organizationId?: string) =>
-      Promise.resolve(
-        context(
-          'instructor_pilot',
-          ['portal.instructor.access'],
-          organizationId ? 'granted' : 'mfa_required',
-          organizationId ?? null,
-        ),
-      ),
-    );
+    const loadAccessContext = vi
+      .fn()
+      .mockResolvedValueOnce(context('instructor_pilot'))
+      .mockResolvedValueOnce(context('instructor_pilot', ['portal.instructor.access'], 'granted'));
     const gatewayUnderTest = gateway({
       loadAccessContext,
     });
@@ -171,7 +164,7 @@ describe('FEAT-001 authentication UI', () => {
       await screen.findByRole('heading', { name: 'Instructor workspace' }),
     ).toBeInTheDocument();
     expect(gatewayUnderTest.verifyTotp).toHaveBeenCalledWith('123456');
-    expect(loadAccessContext).toHaveBeenLastCalledWith('20000000-0000-4000-8000-000000000001');
+    expect(loadAccessContext).toHaveBeenLastCalledWith();
   });
 
   it('denies privileged access when no verified MFA factor can reach AAL2', async () => {
@@ -241,7 +234,7 @@ describe('FEAT-001 authentication UI', () => {
     ).toBeInTheDocument();
   });
 
-  it('supports selecting among legitimate organizations', async () => {
+  it('fails closed instead of offering multiple school contexts', async () => {
     const multiOrganizationContext = context('student_pilot');
     multiOrganizationContext.memberships.push({
       membershipId: '10000000-0000-4000-8000-000000000002',
@@ -256,28 +249,17 @@ describe('FEAT-001 authentication UI', () => {
     multiOrganizationContext.organizationIds.push('20000000-0000-4000-8000-000000000002');
     const gatewayUnderTest = gateway({
       hasSession: vi.fn().mockResolvedValue(true),
-      loadAccessContext: vi.fn((organizationId?: string) => {
-        if (!organizationId) return Promise.resolve(multiOrganizationContext);
-        const selected = multiOrganizationContext.memberships.find(
-          (membership) => membership.organizationId === organizationId,
-        )!;
-        return Promise.resolve({
-          ...multiOrganizationContext,
-          memberships: [selected],
-          selectedOrganizationId: organizationId,
-          organizationIds: [organizationId],
-        });
-      }),
+      loadAccessContext: vi.fn().mockResolvedValue(multiOrganizationContext),
     });
-    const user = userEvent.setup();
     render(<AuthApp gateway={gatewayUnderTest} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Choose your access context' }),
+      await screen.findByRole('heading', { name: 'Administrator review is required' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Second Synthetic School/i }));
-
-    expect(await screen.findByText('Second Synthetic School')).toBeInTheDocument();
+    expect(screen.queryByText('Second Synthetic School')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Second Synthetic School/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('routes a grant-only account into first-administrator onboarding', async () => {

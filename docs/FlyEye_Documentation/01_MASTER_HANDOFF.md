@@ -6,7 +6,7 @@ This is the concise orientation for a new product, engineering, security, privac
 
 ## Product direction
 
-FlyEye modernizes fragmented, manual, and audit-heavy flight-school workflows. It is a web-first, multi-tenant SaaS product delivered as a responsive PWA for desktop, tablet, and mobile use.
+FlyEye modernizes fragmented, manual, and audit-heavy flight-school workflows. It is a web-first product delivered as a responsive PWA for desktop, tablet, and mobile use, with one isolated application and data deployment per flight school.
 
 The MVP sequence covers:
 
@@ -28,7 +28,7 @@ Exact CAAP, PCAR, aircraft, and school requirements must be verified from curren
 | Client | React + TypeScript responsive PWA built with Vite |
 | Platform | Supabase PostgreSQL, Auth, private Storage, RLS, and Edge Functions |
 | Authority | Edge Functions or reviewed PostgreSQL functions for protected commands and calculations |
-| Tenancy | Shared schema; `organization_id`; deny-by-default RLS on exposed tenant tables |
+| School isolation | Separate deployment per school; internal `organization_id`; deny-by-default RLS on exposed tables |
 | Delivery | Version-controlled SQL migrations, generated types, protected `main`, focused CI, manual production approval |
 | AI | Provider-independent, minimized, structured, logged, human-reviewed, and non-authoritative |
 
@@ -50,8 +50,8 @@ Weight and balance uses deterministic server-side decimal logic verified against
 
 ## Security, privacy, and evidence
 
-- Accounts are invitation-based; MFA is required for every user before real-data pilot or production access.
-- Tenant isolation is enforced at the database boundary and tested with positive, negative, and two-organization scenarios.
+- Accounts are invitation-based; administrators, instructors, and authority-bearing actions require TOTP/AAL2, while non-privileged student portal access may use password-authenticated AAL1.
+- Each school has an isolated deployment; internal school scoping is enforced at the database boundary and cross-school attacks remain negative-tested.
 - Protected state changes create audit evidence atomically and fail closed if required evidence cannot be written.
 - Supabase service-role and provider secrets stay in protected server/CI stores and never enter browser code, examples, prompts, or logs.
 - Operational files remain private and require validated upload, authorized access, and separate object-recovery evidence.
