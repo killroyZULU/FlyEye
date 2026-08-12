@@ -30,8 +30,8 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 3. FEAT-003 Organization Admin and MFA Onboarding — merged
 4. FEAT-003 Hosted Synthetic Hardening — merged; hosted-readiness planning and activation are deferred under the active governance decision
 5. FEAT-004 Member Invitations — merged
-6. FEAT-005 User Management and Basic Profiles — merged through PR #15; forward correction is green on PR #16 with merge pending
-7. FEAT-006 Role Assignment — next planned specification after the FEAT-005 correction merges
+6. FEAT-005 User Management and Basic Profiles — merged through PR #15; correction PR #16 and single-school FIX-006 PR #17 merged
+7. FEAT-006 Role Assignment — next planned specification
 8. Visual-identity checkpoint before larger operational modules
 
 This roadmap records sequence, not live evidence or authorization. See [Current State](CURRENT_STATE.md) for status, dependencies, and later gates. Each requested slice follows the bounded delivery policy in `AGENTS.md`.

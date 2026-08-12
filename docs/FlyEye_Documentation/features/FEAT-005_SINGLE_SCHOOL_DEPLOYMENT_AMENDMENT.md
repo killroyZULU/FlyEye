@@ -2,8 +2,8 @@
 
 ## Status
 
-- State: Locally verified; publication pending
-- Current SDLC phase: PR/CI
+- State: Merged through PR #17 at `a162e0c`
+- Current SDLC phase: Merge complete
 - Owner: Founder/Product Owner
 - Baseline and task branch: PR #16 head `d415e09`; `fix/FIX-006-single-school-deployment`
 - Related requirements/decisions: IAM-002/003/005/008/010; ADR-0006
@@ -68,7 +68,7 @@ Non-goals:
 - [x] `FIX-006-AC-04` The application exposes no school-selection UI.
 - [x] `FIX-006-AC-05` Student AAL1 remains allowed; Instructor/Admin require TOTP/AAL2.
 - [x] `FIX-006-AC-06` Existing organization scoping, RLS, protected authority, audit, and negative boundary tests remain.
-- [ ] `FIX-006-AC-07` Applicable app/database verification, separate review, PR, and CI are green; local verification and review pass, while PR/CI remain pending.
+- [x] `FIX-006-AC-07` Applicable app/database verification, separate review, PR, and CI are green.
 
 ## Planned verification
 
@@ -90,4 +90,4 @@ Excluded: unrelated features, hosted or production resources, real data, FEAT-00
 - [x] Stable contract and ADR are recorded.
 - [x] Data, server, frontend, and focused tests are implemented.
 - [x] Full local verification and separate review pass.
-- [ ] Scoped commit, review-ready pull request, and required CI are green.
+- [x] Scoped commit, review-ready pull request, and required CI are green.
