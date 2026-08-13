@@ -93,3 +93,7 @@ verify_jwt = true
 [functions.member-administration]
 enabled = true
 verify_jwt = true
+
+[functions.member-mfa]
+enabled = true
+verify_jwt = true

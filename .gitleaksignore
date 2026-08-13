@@ -2,3 +2,4 @@
 7d591d208bff30f04309d1e5387a4939cdf1c0f1:docs/FlyEye_Documentation/features/FEAT-002_PASSWORD_RECOVERY.md:generic-api-key:103
 19afca315b87d1a3a98f22979eb9cf10ce400720:supabase/functions/member-invitations/handler.test.ts:generic-api-key:12
 30853ce0df298173e8a665cf372f78506b8da4f5:supabase/functions/member-administration/handler.test.ts:generic-api-key:14
+a5bb9a69de70c0ac672d8489b34efaa21cf80d79:supabase/functions/member-mfa/handler.test.ts:generic-api-key:14

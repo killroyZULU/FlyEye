@@ -61,6 +61,20 @@ function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
     verifyAdminTotp: vi.fn(),
     completeAdminOnboarding: vi.fn(),
     cancelAdminOnboarding: vi.fn().mockResolvedValue(undefined),
+    loadMemberMfaStatus: vi.fn().mockResolvedValue({
+      decision: 'available',
+      organizationId: '20000000-0000-4000-8000-000000000001',
+      organizationName: 'Synthetic Flight School',
+      membershipId: '10000000-0000-4000-8000-000000000001',
+      ready: false,
+      factorState: 'enrollment_required',
+      correlationId: '30000000-0000-4000-8000-000000000020',
+    }),
+    startMemberMfaEnrollment: vi.fn(),
+    prepareMemberTotp: vi.fn(),
+    verifyMemberTotp: vi.fn(),
+    completeMemberMfaEnrollment: vi.fn(),
+    cancelMemberMfaEnrollment: vi.fn(),
     loadMemberInvitations: vi.fn(),
     createMemberInvitation: vi.fn(),
     resendMemberInvitation: vi.fn(),
@@ -167,7 +181,7 @@ describe('FEAT-001 authentication UI', () => {
     expect(loadAccessContext).toHaveBeenLastCalledWith();
   });
 
-  it('denies privileged access when no verified MFA factor can reach AAL2', async () => {
+  it('routes a privileged member without TOTP to self-service enrollment', async () => {
     const gatewayUnderTest = gateway({
       loadAccessContext: vi.fn().mockResolvedValue(context('admin')),
       getMfaAssurance: vi.fn().mockResolvedValue({ currentLevel: 'aal1', nextLevel: 'aal1' }),
@@ -176,9 +190,10 @@ describe('FEAT-001 authentication UI', () => {
     await signIn(gatewayUnderTest);
 
     expect(
-      await screen.findByRole('heading', { name: 'You cannot enter this workspace' }),
+      await screen.findByRole('heading', { name: 'Set up an authenticator' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/verified authenticator is required/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Begin secure setup' })).toBeInTheDocument();
+    expect(gatewayUnderTest.loadMemberMfaStatus).toHaveBeenCalledOnce();
   });
 
   it('does not show success when membership is revoked while MFA is completing', async () => {

@@ -14,6 +14,7 @@ import { InvitationAcceptanceFlow } from './components/InvitationAcceptanceFlow'
 import { LoginForm } from './components/LoginForm';
 import { MemberInvitationsPanel } from './components/MemberInvitationsPanel';
 import { MfaForm } from './components/MfaForm';
+import { MemberMfaEnrollmentFlow } from './components/MemberMfaEnrollmentFlow';
 import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
 import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
@@ -32,6 +33,7 @@ type AuthState =
   | 'loading-access'
   | 'starting-admin-onboarding'
   | 'admin-onboarding'
+  | 'member-mfa-enrollment'
   | 'mfa-required'
   | 'verifying-mfa'
   | 'empty'
@@ -74,7 +76,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
   const [workspaceView, setWorkspaceView] = useState<
-    'home' | 'invitations' | 'members' | 'profile'
+    'home' | 'invitations' | 'members' | 'profile' | 'security'
   >('home');
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
@@ -308,8 +310,8 @@ export function AuthApp({ gateway }: AuthAppProps) {
       if (!operationIsCurrent(operation)) return;
 
       if (assurance.nextLevel !== 'aal2') {
-        setMessage('A verified authenticator is required. Contact your administrator.');
-        setState('unauthorized');
+        setMessage(undefined);
+        setState('member-mfa-enrollment');
         return;
       }
 
@@ -441,6 +443,16 @@ export function AuthApp({ gateway }: AuthAppProps) {
             />
           ) : null}
 
+          {route === 'sign-in' && state === 'member-mfa-enrollment' ? (
+            <MemberMfaEnrollmentFlow
+              gateway={gateway}
+              requiredForAccess
+              onCompleted={() => void loadAccess()}
+              onClose={() => void handleSignOut()}
+              onRequirePassword={(reason) => void returnToPassword(reason)}
+            />
+          ) : null}
+
           {route === 'sign-in' && (state === 'mfa-required' || state === 'verifying-mfa') ? (
             <MfaForm
               busy={state === 'verifying-mfa'}
@@ -548,6 +560,18 @@ export function AuthApp({ gateway }: AuthAppProps) {
           {route === 'sign-in' &&
           state === 'success' &&
           activeMembership &&
+          workspaceView === 'security' ? (
+            <MemberMfaEnrollmentFlow
+              gateway={gateway}
+              onCompleted={() => setWorkspaceView('home')}
+              onClose={() => setWorkspaceView('home')}
+              onRequirePassword={(reason) => void returnToPassword(reason)}
+            />
+          ) : null}
+
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
           workspaceView === 'home' ? (
             <StatePanel
               eyebrow="Access verified"
@@ -589,6 +613,13 @@ export function AuthApp({ gateway }: AuthAppProps) {
                 onClick={() => setWorkspaceView('profile')}
               >
                 View my basic profile
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => setWorkspaceView('security')}
+              >
+                Manage authenticator security
               </button>
               <button className="text-button" type="button" onClick={() => void handleSignOut()}>
                 Sign out

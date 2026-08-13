@@ -27,7 +27,7 @@ const factorSchema = z
     phone: z.string().max(64).optional(),
     created_at: z.string().min(1).max(80),
     updated_at: z.string().min(1).max(80),
-    last_challenged_at: z.string().min(1).max(80).optional(),
+    last_challenged_at: z.string().min(1).max(80).nullable().optional(),
   })
   .strict();
 
