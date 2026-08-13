@@ -20,6 +20,12 @@ Before changing the repository, read:
 
 Repository authority cannot be silently overridden by chat.
 
+## Planning and tracking
+
+GitHub Issues and the [FlyEye Delivery project](https://github.com/users/killroyZULU/projects/1) coordinate active work. Create one issue for each bounded feature, fix, security task, documentation task, or chore; add it to the project; and link the implementing pull request with `Closes #<issue>`. Use issue dependencies for real blockers and keep only near-term work active.
+
+Issues and project fields are operational views, not new requirement or status authorities. They link to the applicable specification, [Current State](CURRENT_STATE.md), roadmap, decision, or evidence record instead of duplicating those documents. Closed issues and pull requests provide history; they do not replace traceability evidence.
+
 ## Feature workflow
 
 ### 1. Discover and specify
@@ -52,7 +58,7 @@ Agent review is technical evidence, not qualified independent human review or ri
 
 ### 6. Publish
 
-Inspect the complete diff and worktree, stage only scoped files, commit, push the task branch, open a review-ready pull request, and follow required CI through green. Do not merge.
+Inspect the complete diff and worktree, stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the bounded issue, and follow required CI through green. Do not merge.
 
 The handoff reports only the outcome, checks and review, branch/commit/PR, material limitations, and next human action.
 

@@ -1,0 +1,70 @@
+name: Bounded work
+description: Plan one FlyEye feature, fix, security task, documentation task, or chore.
+title: '[TYPE-ID] '
+body:
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Work type
+      options:
+        - Feature
+        - Fix
+        - Security
+        - Documentation
+        - Chore
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Bounded outcome
+      description: State the single user or developer outcome.
+      placeholder: One concise outcome, not a module-sized backlog.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Canonical sources
+      description: Link the relevant specification, requirement IDs, decision, current state, roadmap, or evidence. Do not copy their contents.
+      placeholder: Repository paths, section links, and stable IDs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Identify what is included and explicitly excluded.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and verification
+      description: List observable acceptance criteria and the applicable positive, negative-authorization, isolation, accessibility, and quality checks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies, risks, and unresolved questions
+      description: Record real blockers, external evidence, security or privacy concerns, migration risk, and unresolved authority. Use "None" only after checking.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Delivery boundaries
+      options:
+        - label: I have not introduced an unverified aviation, legal, privacy, competency, approval, or operational rule.
+          required: true
+        - label: The issue contains no credential, production data, restricted record, or other secret.
+          required: true
+        - label: Merge, deployment, production, real-data use, and destructive actions remain separately authorized.
+          required: true

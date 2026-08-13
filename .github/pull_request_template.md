@@ -2,9 +2,14 @@
 
 Describe the single user or developer outcome this pull request delivers.
 
+## Linked issue
+
+Closes #
+
 ## Scope
 
 - [ ] The change is bounded to one approved feature, fix, documentation task, or chore.
+- [ ] The linked issue is in the FlyEye Delivery project and links to canonical requirements where applicable.
 - [ ] The bounded outcome and autonomous-delivery boundary are identified.
 - [ ] Unrelated working-tree changes are excluded.
 - [ ] Assumptions, unresolved questions, and known limitations are documented.
