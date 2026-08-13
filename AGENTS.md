@@ -39,13 +39,14 @@ A direct request to build, fix, document, or continue a bounded outcome authoriz
 
 1. Inspect the implementation, current branch, and working tree.
 2. Define or refine the smallest coherent specification. Record assumptions, unresolved questions, scope, non-goals, risks, affected files, and required data/RLS/function/frontend/audit/test/doc changes.
-3. Create or continue the task branch from current `main`; preserve unrelated work.
-4. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
-5. Add positive, negative-authorization, and cross-school isolation tests where school-owned data or protected commands are involved; use rollback-only database fixtures or separate isolated test deployments for School A/School B cases.
-6. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
-7. Obtain a separate agent review of the stable target. Correct in-scope findings and reverify affected behavior.
-8. Update only the canonical documentation and evidence required by the task.
-9. Inspect and stage only scoped files, commit, push the task branch, open a review-ready pull request, and follow CI through green.
+3. Create or confirm the bounded GitHub issue and add it to the FlyEye Delivery project. Link canonical requirements instead of copying them into the issue.
+4. Create or continue the task branch from current `main`; preserve unrelated work.
+5. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
+6. Add positive, negative-authorization, and cross-school isolation tests where school-owned data or protected commands are involved; use rollback-only database fixtures or separate isolated test deployments for School A/School B cases.
+7. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
+8. Obtain a separate agent review of the stable target. Correct in-scope findings and reverify affected behavior.
+9. Update only the canonical documentation and evidence required by the task.
+10. Inspect and stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the issue, and follow CI through green.
 
 Do not claim completion when required checks fail. The detailed workflow lives in `09_AI_DEVELOPMENT_GUIDE.md` and `10_DEVSECOPS_GUIDE.md`; do not copy it into feature documents.
 

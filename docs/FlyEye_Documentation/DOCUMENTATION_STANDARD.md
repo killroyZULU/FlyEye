@@ -14,6 +14,7 @@ The governing rule is **one fact, one canonical home**. Other documents link to 
 | Architecture decisions | Accepted ADRs, summarized by `04_SYSTEM_ARCHITECTURE.md` | Feature evidence |
 | Security controls | `08_SECURITY_REQUIREMENTS.md` | Repeated feature disclaimers |
 | Active product-owner decisions | `17_PRODUCT_AND_GOVERNANCE_DECISIONS.md` | Feature chronology |
+| Active work coordination | GitHub Issues and the FlyEye Delivery project | Requirements, durable decisions, or detailed evidence |
 | Current project and feature state | `CURRENT_STATE.md` | Durable requirements or architecture |
 | Bounded feature contract | Feature specification | Change log or handoff |
 | Requirement-to-test result | Feature traceability record | Feature specification narrative |
@@ -37,6 +38,7 @@ The governing rule is **one fact, one canonical home**. Other documents link to 
 12. Do not add generic introductions, conclusions, benefits lists, or “best practice” prose that does not change a FlyEye decision.
 13. Do not create a new Markdown file when an existing canonical document can own the information cleanly.
 14. Do not update unrelated documents merely to make a change appear comprehensive.
+15. Keep issues operational: link to canonical requirements, record only the bounded outcome, scope, acceptance, dependencies, and current coordination state, and close through the linked pull request.
 
 ## Size and structure budgets
 

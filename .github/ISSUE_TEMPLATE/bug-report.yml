@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible FlyEye defect without restricted data or secrets.
+title: '[BUG] '
+labels:
+  - bug
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Bounded correction
+      description: State the behavior that should be restored.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Give the smallest repeatable steps using synthetic data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed and expected behavior
+      description: Include sanitized errors and expected behavior. Do not paste credentials, tokens, provider payloads, or restricted records.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Canonical sources and affected boundary
+      description: Link relevant requirements or specifications and identify security, tenancy, privacy, audit, aviation, accessibility, migration, or data impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Regression verification
+      description: List the focused regression plus applicable authorization, isolation, and final quality checks.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Report safety
+      options:
+        - label: This report uses synthetic data and contains no credential, restricted record, or secret.
+          required: true
