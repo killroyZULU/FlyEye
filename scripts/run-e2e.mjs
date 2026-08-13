@@ -136,9 +136,19 @@ async function mockSupabase(page, options = {}) {
       body: JSON.stringify(
         options.empty
           ? { ...studentContext, memberships: [], decision: 'denied', organizationIds: [] }
-          : options.admin
-            ? adminContext
-            : studentContext,
+          : options.privilegedMissingMfa
+            ? {
+                ...adminContext,
+                memberships: adminContext.memberships.map((membership) => ({
+                  ...membership,
+                  accessStatus: 'mfa_required',
+                })),
+                decision: 'mfa_required',
+                currentAssuranceLevel: 'aal1',
+              }
+            : options.admin
+              ? adminContext
+              : studentContext,
       ),
     });
   });
@@ -151,6 +161,23 @@ async function mockSupabase(page, options = {}) {
       body: JSON.stringify({
         grants: [],
         correlationId: '30000000-0000-4000-8000-000000000010',
+      }),
+    });
+  });
+  await page.route('**/functions/v1/member-mfa', async (route) => {
+    const body = route.request().postDataJSON();
+    assert.equal(body.action, 'status');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: 'available',
+        organizationId: studentContext.memberships[0].organizationId,
+        organizationName: studentContext.memberships[0].organizationName,
+        membershipId: studentContext.memberships[0].membershipId,
+        ready: !options.privilegedMissingMfa,
+        factorState: options.privilegedMissingMfa ? 'enrollment_required' : 'challenge_required',
+        correlationId: '30000000-0000-4000-8000-000000000030',
       }),
     });
   });
@@ -412,6 +439,25 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByLabel('Contact number (optional)').fill('+63 917 000 0000');
       await page.getByRole('button', { name: 'Save profile' }).click();
       await page.getByText('Your organization profile was saved.').waitFor();
+    } else if (scenario.name === 'security') {
+      await page.getByRole('button', { name: 'Manage authenticator security' }).click();
+      const heading = page.getByRole('heading', { name: 'Authenticator is ready' });
+      await heading.waitFor();
+      assert.equal(
+        await heading.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      assert.equal(await page.getByText(/does not change your role/i).count(), 1);
+      assert.equal(await page.getByRole('button', { name: 'Return to workspace' }).count(), 1);
+    } else if (scenario.name === 'privileged-security') {
+      const heading = page.getByRole('heading', { name: 'Set up an authenticator' });
+      await heading.waitFor();
+      assert.equal(
+        await heading.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      assert.equal(await page.getByText(/does not change your role/i).count(), 1);
+      assert.equal(await page.getByRole('button', { name: 'Begin secure setup' }).count(), 1);
     } else if (scenario.name === 'members') {
       await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
       await page.getByRole('button', { name: 'Manage organization members' }).click();
@@ -435,6 +481,8 @@ const scenarios = [
   { name: 'recovery', options: {} },
   { name: 'invitation', options: {} },
   { name: 'profile', options: {} },
+  { name: 'security', options: {} },
+  { name: 'privileged-security', options: { privilegedMissingMfa: true } },
   { name: 'members', options: { admin: true } },
 ];
 const viewports = [

@@ -387,6 +387,174 @@ export type Database = {
         };
         Relationships: [];
       };
+      member_mfa_enrollment_operations: {
+        Row: {
+          bind_idempotency_key_hash: string | null;
+          cancel_idempotency_key_hash: string | null;
+          cancelled_at: string | null;
+          complete_idempotency_key_hash: string | null;
+          completed_at: string | null;
+          created_at: string;
+          expires_at: string;
+          factor_reference_hash: string | null;
+          id: string;
+          membership_id: string;
+          organization_id: string;
+          start_idempotency_key_hash: string;
+          status: string;
+          subject_user_id: string;
+          version: number;
+        };
+        Insert: {
+          bind_idempotency_key_hash?: string | null;
+          cancel_idempotency_key_hash?: string | null;
+          cancelled_at?: string | null;
+          complete_idempotency_key_hash?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          factor_reference_hash?: string | null;
+          id?: string;
+          membership_id: string;
+          organization_id: string;
+          start_idempotency_key_hash: string;
+          status: string;
+          subject_user_id: string;
+          version?: number;
+        };
+        Update: {
+          bind_idempotency_key_hash?: string | null;
+          cancel_idempotency_key_hash?: string | null;
+          cancelled_at?: string | null;
+          complete_idempotency_key_hash?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          factor_reference_hash?: string | null;
+          id?: string;
+          membership_id?: string;
+          organization_id?: string;
+          start_idempotency_key_hash?: string;
+          status?: string;
+          subject_user_id?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_mfa_enrollment_operati_organization_id_membership_i_fkey';
+            columns: ['organization_id', 'membership_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+          {
+            foreignKeyName: 'member_mfa_enrollment_operations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      member_mfa_rate_limit_events: {
+        Row: {
+          action: string;
+          correlation_id: string;
+          id: string;
+          limiter_key_hash: string;
+          occurred_at: string;
+          outcome: string;
+          retry_after_seconds: number | null;
+        };
+        Insert: {
+          action: string;
+          correlation_id: string;
+          id?: string;
+          limiter_key_hash: string;
+          occurred_at?: string;
+          outcome: string;
+          retry_after_seconds?: number | null;
+        };
+        Update: {
+          action?: string;
+          correlation_id?: string;
+          id?: string;
+          limiter_key_hash?: string;
+          occurred_at?: string;
+          outcome?: string;
+          retry_after_seconds?: number | null;
+        };
+        Relationships: [];
+      };
+      member_mfa_rate_limit_state: {
+        Row: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Insert: {
+          action: string;
+          last_decision_at: string;
+          last_refill_at: string;
+          limiter_key_hash: string;
+          tokens_milli: number;
+        };
+        Update: {
+          action?: string;
+          last_decision_at?: string;
+          last_refill_at?: string;
+          limiter_key_hash?: string;
+          tokens_milli?: number;
+        };
+        Relationships: [];
+      };
+      member_mfa_readiness: {
+        Row: {
+          factor_reference_hash: string;
+          membership_id: string;
+          organization_id: string;
+          subject_user_id: string;
+          updated_at: string;
+          verified_at: string;
+          version: number;
+        };
+        Insert: {
+          factor_reference_hash: string;
+          membership_id: string;
+          organization_id: string;
+          subject_user_id: string;
+          updated_at?: string;
+          verified_at: string;
+          version?: number;
+        };
+        Update: {
+          factor_reference_hash?: string;
+          membership_id?: string;
+          organization_id?: string;
+          subject_user_id?: string;
+          updated_at?: string;
+          verified_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_mfa_readiness_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'member_mfa_readiness_organization_id_membership_id_fkey';
+            columns: ['organization_id', 'membership_id'];
+            isOneToOne: true;
+            referencedRelation: 'organization_memberships';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
       membership_roles: {
         Row: {
           assigned_at: string;
@@ -887,6 +1055,29 @@ export type Database = {
         };
         Returns: Json;
       };
+      bind_member_mfa_factor: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_factor_reference_hash: string;
+          p_idempotency_key_hash: string;
+          p_operation_id: string;
+        };
+        Returns: Json;
+      };
+      cancel_member_mfa_enrollment: {
+        Args: {
+          p_actor_user_id: string;
+          p_cleanup_outcome: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_factor_reference_hash: string;
+          p_idempotency_key_hash: string;
+          p_operation_id: string;
+        };
+        Returns: Json;
+      };
       cancel_organization_admin_onboarding: {
         Args: {
           p_actor_user_id: string;
@@ -930,6 +1121,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      complete_member_mfa_enrollment: {
+        Args: {
+          p_actor_user_id: string;
+          p_assurance_level: string;
+          p_authentication_methods: string[];
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_factor_reference_hash: string;
+          p_idempotency_key_hash: string;
+          p_operation_id: string;
+          p_password_authenticated_at: number;
+          p_session_id: string;
+        };
+        Returns: Json;
+      };
       consume_admin_onboarding_rate_limit: {
         Args: {
           p_action: string;
@@ -954,6 +1160,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      consume_member_mfa_rate_limit: {
+        Args: {
+          p_action: string;
+          p_correlation_id: string;
+          p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
       finalize_member_invitation_delivery: {
         Args: {
           p_actor_user_id: string;
@@ -962,6 +1176,14 @@ export type Database = {
           p_delivery_outcome: string;
           p_invitation_id: string;
           p_provider_operation_class: string;
+        };
+        Returns: Json;
+      };
+      get_member_mfa_status: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_factor_reference_hash: string;
         };
         Returns: Json;
       };
@@ -1028,6 +1250,14 @@ export type Database = {
       member_invitation_actor_is_authorized: {
         Args: { p_actor_user_id: string; p_organization_id: string };
         Returns: boolean;
+      };
+      member_mfa_active_context: {
+        Args: { p_actor_user_id: string };
+        Returns: {
+          membership_id: string;
+          organization_id: string;
+          organization_name: string;
+        }[];
       };
       member_status_reason_options: {
         Args: { p_action: string };
@@ -1121,6 +1351,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      start_member_mfa_enrollment: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_factor_reference_hash: string;
+          p_idempotency_key_hash: string;
+        };
+        Returns: Json;
+      };
       start_organization_admin_onboarding: {
         Args: {
           p_actor_user_id: string;
@@ -1169,6 +1408,21 @@ export type Database = {
           p_outcome: string;
           p_reason_code: string;
           p_target_membership_id: string;
+        };
+        Returns: string;
+      };
+      write_member_mfa_event: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_idempotency_key_hash?: string;
+          p_membership_id?: string;
+          p_metadata?: Json;
+          p_operation_id?: string;
+          p_organization_id?: string;
+          p_outcome: string;
+          p_reason_code: string;
         };
         Returns: string;
       };

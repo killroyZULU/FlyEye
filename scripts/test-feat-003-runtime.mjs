@@ -1073,7 +1073,7 @@ try {
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
     environmentPath,
-    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_POLICY_VERSION=invitation-subject-scope-v1\nFEAT004_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT004_INVITATION_REDIRECT_URL=${origin}/auth/invitation\nFEAT005_LIMITER_POLICY_VERSION=member-administration-subject-scope-v1\nFEAT005_DATA_CLASSIFICATION=synthetic-only\nFEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\n`,
+    `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_POLICY_VERSION=invitation-subject-scope-v1\nFEAT004_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT004_INVITATION_REDIRECT_URL=${origin}/auth/invitation\nFEAT005_LIMITER_POLICY_VERSION=member-administration-subject-scope-v1\nFEAT005_DATA_CLASSIFICATION=synthetic-only\nFEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT006_LIMITER_POLICY_VERSION=member-mfa-subject-action-v1\nFEAT006_DATA_CLASSIFICATION=synthetic-only\nFEAT006_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\n`,
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },
   );
   edgeProcess = spawn(

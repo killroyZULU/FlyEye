@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-12
-- Last verified merged baseline: PR #17 merge `a162e0c`
+- Last updated: 2026-08-13
+- Last verified merged baseline: PR #23 merge `25f4ddd`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -28,12 +28,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 Role Assignment may begin as the next bounded specification from this baseline.
+- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 uses an approved staggered boundary. Slice A self-service initial TOTP enrollment is implemented, verified locally, and independently reviewed on `feat/FEAT-006-member-totp-enrollment`; PR/CI remain pending. Slice B role assignment has not started.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Specify FEAT-006 Role Assignment from the corrected single-school baseline. Aviation licence, medical, qualification, and currency records remain later compliance work.
+Complete PR/CI for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice A. Begin dependent Slice B role assignment only after the Slice A baseline decision. Aviation licence, medical, qualification, and currency records remain later compliance work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

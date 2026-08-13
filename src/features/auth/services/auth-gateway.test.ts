@@ -287,6 +287,127 @@ describe('FEAT-003 Supabase auth gateway', () => {
   });
 });
 
+describe('FEAT-006A Supabase auth gateway', () => {
+  const start = {
+    decision: 'ready' as const,
+    operationId: '30000000-0000-4000-8000-000000000001',
+    organizationId: '40000000-0000-4000-8000-000000000001',
+    organizationName: 'Synthetic Flight School',
+    membershipId: '50000000-0000-4000-8000-000000000001',
+    operationVersion: 1,
+    replayed: false,
+    factorState: 'enrollment_required' as const,
+    correlationId: '70000000-0000-4000-8000-000000000001',
+  };
+
+  function memberEnrollmentGateway(unenrollError: unknown = null) {
+    const unenroll = vi.fn().mockResolvedValue({ data: {}, error: unenrollError });
+    const invoke = vi.fn().mockResolvedValue({ data: { decision: 'unexpected' }, error: null });
+    const gateway = new SupabaseAuthGateway(
+      clientWithAuth(
+        {
+          mfa: {
+            listFactors: vi.fn().mockResolvedValue({
+              data: { all: [], totp: [], phone: [], webauthn: [] },
+              error: null,
+            }),
+            enroll: vi.fn().mockResolvedValue({
+              data: {
+                id: '60000000-0000-4000-8000-000000000001',
+                type: 'totp',
+                totp: {
+                  qr_code:
+                    'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black"/></svg>',
+                  secret: syntheticProviderSecret,
+                  uri: syntheticProviderUri,
+                },
+              },
+              error: null,
+            }),
+            unenroll,
+          },
+        },
+        { invoke },
+      ),
+    );
+    return { gateway, invoke, unenroll };
+  }
+
+  it('retains a newly enrolled factor when a binding outcome cannot be reconciled', async () => {
+    const { gateway, unenroll } = memberEnrollmentGateway();
+
+    await expect(
+      gateway.prepareMemberTotp({ ...start }, '0123456789abcdef0123456789abcdef'),
+    ).rejects.toMatchObject({ code: 'member_mfa_cleanup_uncertain' });
+    expect(unenroll).not.toHaveBeenCalled();
+  });
+
+  it('accepts a lost bind response only when status proves the same bound operation', async () => {
+    const { gateway, invoke, unenroll } = memberEnrollmentGateway();
+    invoke.mockRejectedValueOnce(new Error('lost response')).mockResolvedValueOnce({
+      data: {
+        decision: 'available',
+        organizationId: start.organizationId,
+        organizationName: start.organizationName,
+        membershipId: start.membershipId,
+        ready: false,
+        operationState: 'bound',
+        operationId: start.operationId,
+        operationVersion: 2,
+        factorState: 'resume_required',
+        correlationId: start.correlationId,
+      },
+      error: null,
+    });
+    const mutableStart = { ...start };
+
+    await expect(
+      gateway.prepareMemberTotp(mutableStart, '0123456789abcdef0123456789abcdef'),
+    ).resolves.toMatchObject({
+      kind: 'enrollment',
+      factorId: '60000000-0000-4000-8000-000000000001',
+    });
+    expect(mutableStart.operationVersion).toBe(2);
+    expect(unenroll).not.toHaveBeenCalled();
+  });
+
+  it.each(['unverified', 'verified'] as const)(
+    'resumes the database-proven bound %s factor without creating or rebinding one',
+    async (status) => {
+      const boundFactor = {
+        id: '60000000-0000-4000-8000-000000000001',
+        factor_type: 'totp',
+        status,
+      };
+      const enroll = vi.fn();
+      const invoke = vi.fn();
+      const gateway = new SupabaseAuthGateway(
+        clientWithAuth(
+          {
+            mfa: {
+              listFactors: vi.fn().mockResolvedValue({
+                data: { all: [boundFactor], totp: [boundFactor], phone: [], webauthn: [] },
+                error: null,
+              }),
+              enroll,
+            },
+          },
+          { invoke },
+        ),
+      );
+
+      await expect(
+        gateway.prepareMemberTotp(
+          { ...start, operationVersion: 2, factorState: 'challenge_required' },
+          '0123456789abcdef0123456789abcdef',
+        ),
+      ).resolves.toEqual({ kind: 'challenge', factorId: boundFactor.id });
+      expect(enroll).not.toHaveBeenCalled();
+      expect(invoke).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe('FEAT-004 Supabase auth gateway', () => {
   it('reauthenticates an existing confirmed invitee without changing the password', async () => {
     const updateUser = vi.fn();

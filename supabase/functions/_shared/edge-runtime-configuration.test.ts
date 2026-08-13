@@ -5,6 +5,7 @@ import {
   readCommonEdgeRuntimeConfiguration,
   readMemberAdministrationRuntimeConfiguration,
   readMemberInvitationRuntimeConfiguration,
+  readMemberMfaRuntimeConfiguration,
 } from './edge-runtime-configuration';
 
 function jwt(role: string): string {
@@ -27,6 +28,9 @@ const localEnvironment = {
   FEAT005_LIMITER_POLICY_VERSION: 'member-administration-subject-scope-v1',
   FEAT005_DATA_CLASSIFICATION: 'synthetic-only',
   FEAT005_LIMITER_HMAC_SECRET: 'separate-member-admin-test-secret-at-least-32-bytes',
+  FEAT006_LIMITER_POLICY_VERSION: 'member-mfa-subject-action-v1',
+  FEAT006_DATA_CLASSIFICATION: 'synthetic-only',
+  FEAT006_LIMITER_HMAC_SECRET: 'separate-member-mfa-test-secret-at-least-32-bytes',
 } as const;
 
 function reader(environment: Record<string, string>) {
@@ -57,6 +61,25 @@ describe('shared Edge runtime configuration', () => {
       runtimeProfile: 'local-synthetic-v1',
       allowedOrigin: 'http://127.0.0.1:5173',
     });
+  });
+
+  it('accepts the dedicated local member-MFA limiter policy', () => {
+    expect(readMemberMfaRuntimeConfiguration(reader(localEnvironment))).toMatchObject({
+      limiterPolicyVersion: 'member-mfa-subject-action-v1',
+      runtimeProfile: 'local-synthetic-v1',
+      allowedOrigin: 'http://127.0.0.1:5173',
+    });
+  });
+
+  it.each([
+    ['a reused secret', localEnvironment.SUPABASE_SERVICE_ROLE_KEY],
+    ['a placeholder secret', 'replace-me-with-a-member-mfa-secret'],
+  ])('rejects %s for member MFA', (_label, limiterSecret) => {
+    expect(() =>
+      readMemberMfaRuntimeConfiguration(
+        reader({ ...localEnvironment, FEAT006_LIMITER_HMAC_SECRET: limiterSecret }),
+      ),
+    ).toThrow('limiter secret');
   });
 
   it.each([

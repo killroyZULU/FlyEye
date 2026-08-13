@@ -26,6 +26,12 @@ export type MemberAdministrationRuntimeConfiguration = CommonEdgeRuntimeConfigur
   runtimeProfile: 'local-synthetic-v1';
 };
 
+export type MemberMfaRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
+  limiterSecret: string;
+  limiterPolicyVersion: 'member-mfa-subject-action-v1';
+  runtimeProfile: 'local-synthetic-v1';
+};
+
 const loopbackHosts = new Set(['127.0.0.1', '::1', 'localhost']);
 const placeholderPattern = /(change[-_ ]?me|example|placeholder|replace[-_ ]?me|your[-_ ])/i;
 
@@ -249,6 +255,41 @@ export function readMemberAdministrationRuntimeConfiguration(
     (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong')
   ) {
     throw new Error('The FEAT-005 runtime profile is unsupported.');
+  }
+
+  return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };
+}
+
+export function readMemberMfaRuntimeConfiguration(
+  read: EdgeEnvironmentReader,
+): MemberMfaRuntimeConfiguration {
+  const common = readCommonEdgeRuntimeConfiguration(read);
+  const runtimeProfile = required(read, 'FLYEYE_RUNTIME_PROFILE');
+  const limiterPolicyVersion = required(read, 'FEAT006_LIMITER_POLICY_VERSION');
+  const dataClassification = required(read, 'FEAT006_DATA_CLASSIFICATION');
+  const limiterSecret = required(read, 'FEAT006_LIMITER_HMAC_SECRET');
+
+  if (limiterPolicyVersion !== 'member-mfa-subject-action-v1') {
+    throw new Error('The FEAT-006 limiter policy is unsupported.');
+  }
+  if (dataClassification !== 'synthetic-only') {
+    throw new Error('FEAT-006 local delivery permits synthetic data only.');
+  }
+  if (
+    new TextEncoder().encode(limiterSecret).byteLength < 32 ||
+    placeholderPattern.test(limiterSecret) ||
+    limiterSecret === common.supabasePublishableKey ||
+    limiterSecret === common.supabaseServiceRoleKey
+  ) {
+    throw new Error('The FEAT-006 limiter secret is invalid.');
+  }
+
+  const supabaseHostname = new URL(common.supabaseUrl).hostname;
+  if (
+    runtimeProfile !== 'local-synthetic-v1' ||
+    (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong')
+  ) {
+    throw new Error('The FEAT-006 runtime profile is unsupported.');
   }
 
   return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };
