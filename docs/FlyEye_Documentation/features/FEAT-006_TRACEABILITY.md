@@ -4,11 +4,11 @@
 
 - Reviewed target: Local verified working tree on
   `feat/FEAT-006-member-totp-enrollment`
-- Slice A target: Issue #24; independent technical review clear; commit and PR pending
+- Slice A target: Issue #24; independent technical review clear; PR #25 open
 - Slice B target: Pending Slice A stable pull-request boundary
 - Verification date: 2026-08-13
 - Local/hosted/data boundary: Local synthetic verification only
-- Pull requests and CI: Pending
+- Pull requests and CI: PR #25 open; CI pending
 - Known limitations: Slice A has no hosted validation, real-data authority,
   factor recovery/replacement, formal accessibility review, deployment, or
   production approval. Slice B is not implemented.

@@ -3,10 +3,10 @@
 ## Status
 
 - State: Approved for staggered local delivery
-- Current SDLC phase: Slice A local verification and independent technical review complete; PR/CI pending
+- Current SDLC phase: Slice A review-ready PR #25 open; CI pending
 - Owner: Founder/Product Owner
 - Baseline: `main` at PR #23 merge `25f4ddd`
-- Planned Slice A branch: `feat/FEAT-006-member-totp-enrollment`
+- Slice A branch/PR: `feat/FEAT-006-member-totp-enrollment`; PR #25
 - Planned Slice B branch: `feat/FEAT-006-role-assignment`
 - Evidence plan: [FEAT-006 Traceability](FEAT-006_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002`, `IAM-003`, `IAM-005`–`IAM-012`,
