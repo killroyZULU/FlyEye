@@ -5,10 +5,10 @@
 - Reviewed target: Local verified working tree on
   `feat/FEAT-006-role-assignment`
 - Slice A target: Issue #24; merged through PR #25 at `835b9dc`
-- Slice B target: Issue #26; independent technical review clear
+- Slice B target: Issue #26; independent technical review clear; PR #27 open
 - Verification date: 2026-08-14
 - Local/hosted/data boundary: Local synthetic verification only
-- Pull requests and CI: Slice A PR #25 merged; Slice B PR pending
+- Pull requests and CI: Slice A PR #25 merged; Slice B PR #27 open, CI pending
 - Known limitations: No hosted validation, real-data authority, factor
   recovery/replacement, formal accessibility review, qualified aviation role
   matrix, deployment, or production approval
@@ -38,7 +38,7 @@ establish hosted, production, qualified aviation, or customer readiness.
 | `IAM-011`, `FEAT-006B-AC-02/03/07` | Three explicit portal roles with centralized labels, assurance, and workspace permissions; no operational or aviation authority | SQL metadata/grant assertions; access-context tests | Local pass | Additional roles and qualified permission matrix remain later |
 | `IAM-012`, `FEAT-006B-AC-04` | Shared deterministic admin locks and last-active-admin rule | SQL negatives; concurrent live role/status runtime | Local pass | Hosted concurrency evidence remains later |
 | `NFR-004`, `FEAT-006B-AC-08` | Responsive keyboard/focus role confirmation, offline, reauthentication, MFA, conflict, last-admin, rate-limit, service-failure, and success states | Component tests; 20 desktop/mobile E2E scenarios | Local supporting pass | 200% reflow and formal accessibility review remain later |
-| `NFR-008/010`, `FEAT-006B-AC-08` | Complete quality/security matrices with generated types and cleanup | 253 app tests; 326 SQL tests; seven runtime fixtures; schema lint and type drift | Local pass; independent review clear; Slice B CI pending | PR and CI evidence pending |
+| `NFR-008/010`, `FEAT-006B-AC-08` | Complete quality/security matrices with generated types and cleanup | 253 app tests; 326 SQL tests; seven runtime fixtures; schema lint and type drift | Local pass; independent review clear; PR #27 CI pending | CI evidence pending |
 
 ## Evidence rules
 

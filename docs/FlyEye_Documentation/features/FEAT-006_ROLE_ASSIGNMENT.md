@@ -3,11 +3,11 @@
 ## Status
 
 - State: Slice A merged; Slice B implemented and locally verified
-- Current SDLC phase: Slice B review complete; PR/CI publication
+- Current SDLC phase: Slice B review-ready PR #27 open; CI pending
 - Owner: Founder/Product Owner
 - Baseline: `main` at Slice A PR #25 merge `835b9dc`
 - Slice A: merged through PR #25
-- Slice B: Issue #26; `feat/FEAT-006-role-assignment`; PR pending
+- Slice B: Issue #26; `feat/FEAT-006-role-assignment`; PR #27
 - Evidence plan: [FEAT-006 Traceability](FEAT-006_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002`, `IAM-003`, `IAM-005`–`IAM-012`,
   `REC-001`–`REC-003`, and `NFR-004`, `NFR-008`, `NFR-010`
