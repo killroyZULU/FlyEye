@@ -3,7 +3,7 @@
 ## Status
 
 - State: Slice A merged; Slice B implemented and locally verified
-- Current SDLC phase: Slice B review-ready PR #27 open; CI pending
+- Current SDLC phase: Slice B review-ready PR #27 open; required CI green
 - Owner: Founder/Product Owner
 - Baseline: `main` at Slice A PR #25 merge `835b9dc`
 - Slice A: merged through PR #25
@@ -327,4 +327,4 @@ production behavior remains excluded.
 - [x] Secrets and service-role authority remain server-only
 - [x] Traceability contains reviewed evidence and limitations per slice
 - [x] Documentation checks and separate-agent review pass
-- [ ] Each scoped slice has a green review-ready pull request
+- [x] Each scoped slice has a green review-ready pull request

@@ -28,12 +28,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 Slice A self-service member TOTP enrollment is merged through PR #25 at `835b9dc`. Slice B protected role assignment is implemented, locally verified, and independently reviewed on `feat/FEAT-006-role-assignment` for Issue #26; review-ready PR #27 is open with CI pending.
+- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 Slice A self-service member TOTP enrollment is merged through PR #25 at `835b9dc`. Slice B protected role assignment is implemented, locally verified, and independently reviewed on `feat/FEAT-006-role-assignment` for Issue #26; review-ready PR #27 is open with required CI green.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Follow CI and obtain the human merge decision for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice B PR #27. Aviation licence, medical, qualification, currency records, and additional school-validated roles remain later work requiring external workflow and authority evidence.
+Obtain the human merge decision for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice B PR #27. Aviation licence, medical, qualification, currency records, and additional school-validated roles remain later work requiring external workflow and authority evidence.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
