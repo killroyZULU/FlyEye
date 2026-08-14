@@ -42,12 +42,6 @@ type AuthState =
   | 'error'
   | 'success';
 
-const permissionForRole = {
-  student_pilot: 'portal.student.access',
-  instructor_pilot: 'portal.instructor.access',
-  admin: 'portal.admin.access',
-} as const;
-
 type AuthAppProps = {
   gateway: AuthGateway;
 };
@@ -276,7 +270,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
   async function authorizeMembership(membership: AccessMembership, operation: number) {
     if (!operationIsCurrent(operation)) return;
     setActiveMembership(membership);
-    const requiredPermission = permissionForRole[membership.role];
+    const requiredPermission = membership.workspacePermission;
     if (!membership.permissions.includes(requiredPermission)) {
       setMessage('Your assigned role does not include access to its FlyEye workspace.');
       setState('unauthorized');
@@ -290,16 +284,11 @@ export function AuthApp({ gateway }: AuthAppProps) {
     }
 
     if (membership.accessStatus === 'granted') {
-      if (requiresMfa(membership.role) && membership.requiredAssuranceLevel !== 'aal2') {
-        setMessage('Privileged access returned an invalid assurance requirement.');
-        setState('conflict');
-        return;
-      }
       setState('success');
       return;
     }
 
-    if (!requiresMfa(membership.role) || membership.requiredAssuranceLevel !== 'aal2') {
+    if (!requiresMfa(membership)) {
       setMessage('Your access information needs administrator review.');
       setState('conflict');
       return;
@@ -575,7 +564,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
           workspaceView === 'home' ? (
             <StatePanel
               eyebrow="Access verified"
-              title={landingLabel(activeMembership.role)}
+              title={landingLabel(activeMembership.role, activeMembership.roleLabel)}
               tone="success"
             >
               <p>

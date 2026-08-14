@@ -10,10 +10,12 @@ import {
   memberDetailResultSchema,
   memberListSchema,
   memberProfileResultSchema,
+  memberRoleResultSchema,
   memberStatusResultSchema,
   type MemberDetail,
   type MemberList,
   type MemberProfile,
+  type MemberRoleResult,
   type MemberStatus,
   type MemberStatusAction,
   type MemberStatusResult,
@@ -70,6 +72,7 @@ export type AuthGatewayErrorCode =
   | 'member_administration_state_conflict'
   | 'member_administration_last_administrator'
   | 'member_administration_self_action'
+  | 'member_administration_target_mfa_not_ready'
   | 'member_administration_recent_authentication_required'
   | 'member_administration_assurance_required'
   | 'member_administration_unavailable'
@@ -184,6 +187,14 @@ export interface AuthGateway {
     expectedVersion: number;
     idempotencyKey: string;
   }): Promise<MemberStatusResult>;
+  changeOrganizationMemberRole(request: {
+    organizationId: string;
+    membershipId: string;
+    roleCode: string;
+    reasonCode: 'responsibility_changed' | 'assignment_corrected';
+    expectedVersion: number;
+    idempotencyKey: string;
+  }): Promise<MemberRoleResult>;
   getMfaAssurance(): Promise<MfaAssurance>;
   verifyTotp(code: string): Promise<void>;
   signOut(): Promise<void>;
@@ -1437,7 +1448,12 @@ export class SupabaseAuthGateway implements AuthGateway {
       case 'member_administration.self_action':
         throw new AuthGatewayError(
           'member_administration_self_action',
-          'You cannot change your own membership status.',
+          'You cannot apply this change to your own membership.',
+        );
+      case 'member_administration.target_mfa_not_ready':
+        throw new AuthGatewayError(
+          'member_administration_target_mfa_not_ready',
+          'The selected privileged role requires the member to verify an authenticator first.',
         );
       case 'member_administration.recent_authentication_required':
         throw new AuthGatewayError(
@@ -1537,6 +1553,26 @@ export class SupabaseAuthGateway implements AuthGateway {
       throw new AuthGatewayError(
         'member_administration_state_conflict',
         'The membership result could not be verified.',
+      );
+    }
+    return parsed.data;
+  }
+
+  async changeOrganizationMemberRole(request: {
+    organizationId: string;
+    membershipId: string;
+    roleCode: string;
+    reasonCode: 'responsibility_changed' | 'assignment_corrected';
+    expectedVersion: number;
+    idempotencyKey: string;
+  }): Promise<MemberRoleResult> {
+    const parsed = memberRoleResultSchema.safeParse(
+      await this.invokeMemberAdministration({ action: 'assign_role', ...request }),
+    );
+    if (!parsed.success) {
+      throw new AuthGatewayError(
+        'member_administration_state_conflict',
+        'The role assignment result could not be verified.',
       );
     }
     return parsed.data;

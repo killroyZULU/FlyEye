@@ -26,6 +26,8 @@ const studentContext = {
       organizationId: '20000000-0000-4000-8000-000000000001',
       organizationName: 'Synthetic Flight School',
       role: 'student_pilot',
+      roleLabel: 'Student Pilot',
+      workspacePermission: 'portal.student.access',
       permissions: ['portal.student.access'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',
@@ -45,11 +47,14 @@ const adminContext = {
     {
       ...studentContext.memberships[0],
       role: 'admin',
+      roleLabel: 'Organization Admin',
+      workspacePermission: 'portal.admin.access',
       permissions: [
         'portal.admin.access',
         'membership.invitation.manage',
         'membership.member.review',
         'membership.member.manage_status',
+        'membership.role.assign',
       ],
       requiredAssuranceLevel: 'aal2',
     },
@@ -230,6 +235,14 @@ async function mockSupabase(page, options = {}) {
               label: 'Membership created in error',
             },
           ],
+          roleOptions: [
+            { code: 'instructor_pilot', label: 'Instructor Pilot', requiresMfa: true },
+            { code: 'admin', label: 'Organization Admin', requiresMfa: true },
+          ],
+          roleReasonOptions: [
+            { code: 'responsibility_changed', label: 'Responsibility changed' },
+            { code: 'assignment_corrected', label: 'Assignment corrected' },
+          ],
           updatedAt: '2026-08-11T00:00:00Z',
         },
         correlationId,
@@ -243,6 +256,16 @@ async function mockSupabase(page, options = {}) {
         status: 'suspended',
         roleCode: targetMember.roleCode,
         roleLabel: targetMember.roleLabel,
+        version: 2,
+        replayed: false,
+        correlationId,
+      },
+      assign_role: {
+        decision: 'changed',
+        organizationId,
+        membershipId: targetMember.membershipId,
+        roleCode: 'instructor_pilot',
+        roleLabel: 'Instructor Pilot',
         version: 2,
         replayed: false,
         correlationId,
@@ -462,6 +485,12 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
       await page.getByRole('button', { name: 'Manage organization members' }).click();
       await page.getByRole('heading', { name: 'Organization members' }).waitFor();
+      await page.getByRole('button', { name: /Synthetic Member/ }).click();
+      await page.getByRole('button', { name: 'Change FlyEye role' }).click();
+      await page.getByRole('heading', { name: "Replace this member's FlyEye role?" }).waitFor();
+      await page.getByText(/does not verify aviation qualification/i).waitFor();
+      await page.getByRole('button', { name: 'Confirm role change' }).click();
+      await page.getByText('Role changed to Instructor Pilot successfully.').waitFor();
       await page.getByRole('button', { name: /Synthetic Member/ }).click();
       await page.getByRole('button', { name: 'suspend membership' }).click();
       await page.getByRole('heading', { name: 'suspend this membership?' }).waitFor();

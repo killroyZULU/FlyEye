@@ -8,6 +8,8 @@ import {
 
 const ORIGIN = 'http://127.0.0.1:5173';
 const USER_ID = '10000000-0000-4000-8000-000000000001';
+const TARGET_USER_ID = '10000000-0000-4000-8000-000000000002';
+const FACTOR_ID = '60000000-0000-4000-8000-000000000001';
 const SESSION_ID = '20000000-0000-4000-8000-000000000001';
 const ORGANIZATION_ID = '30000000-0000-4000-8000-000000000001';
 const MEMBERSHIP_ID = '40000000-0000-4000-8000-000000000001';
@@ -47,6 +49,14 @@ const statusReasonOptions = [
     label: 'Membership created in error',
   },
 ];
+const roleOptions = [
+  { code: 'instructor_pilot', label: 'Instructor Pilot', requiresMfa: true },
+  { code: 'admin', label: 'Organization Admin', requiresMfa: true },
+];
+const roleReasonOptions = [
+  { code: 'responsibility_changed' as const, label: 'Responsibility changed' },
+  { code: 'assignment_corrected' as const, label: 'Assignment corrected' },
+];
 
 const profile = {
   organizationId: ORGANIZATION_ID,
@@ -70,6 +80,16 @@ function dependencies(
     authenticate: vi.fn().mockResolvedValue(actor),
     resolveLimitScope: vi.fn().mockResolvedValue(ORGANIZATION_ID),
     resolveProfileAssurance: vi.fn().mockResolvedValue('aal1'),
+    listFactors: vi.fn().mockResolvedValue([
+      {
+        id: FACTOR_ID,
+        friendly_name: 'Synthetic authenticator',
+        factor_type: 'totp',
+        status: 'verified',
+        created_at: '2026-08-13T00:00:00Z',
+        updated_at: '2026-08-13T00:00:00Z',
+      },
+    ]),
     consumeLimit: vi.fn().mockResolvedValue({
       allowed: true,
       retryAfterSeconds: null,
@@ -98,6 +118,8 @@ function dependencies(
         ...summary,
         contactNumber: null,
         statusReasonOptions,
+        roleOptions,
+        roleReasonOptions,
         updatedAt: '2026-08-11T00:00:00Z',
       },
       correlationId: CORRELATION_ID,
@@ -119,6 +141,25 @@ function dependencies(
       status: 'suspended',
       roleCode: 'student_pilot',
       roleLabel: 'Student Pilot',
+      version: 2,
+      replayed: false,
+      correlationId: CORRELATION_ID,
+    }),
+    resolveRoleContext: vi.fn().mockResolvedValue({
+      decision: 'authorized',
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      targetUserId: TARGET_USER_ID,
+      newRoleCode: 'instructor_pilot',
+      requiresMfa: true,
+      correlationId: CORRELATION_ID,
+    }),
+    changeRole: vi.fn().mockResolvedValue({
+      decision: 'changed',
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      roleCode: 'instructor_pilot',
+      roleLabel: 'Instructor Pilot',
       version: 2,
       replayed: false,
       correlationId: CORRELATION_ID,
@@ -432,6 +473,189 @@ describe('FEAT-005 member administration handler', () => {
       }),
     );
     expect(response.status).toBe(503);
+  });
+
+  it('assigns a privileged role only after validating the target factor inventory', async () => {
+    const changeRole = vi.fn<MemberAdministrationDependencies['changeRole']>().mockResolvedValue({
+      decision: 'changed',
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      roleCode: 'instructor_pilot',
+      roleLabel: 'Instructor Pilot',
+      version: 2,
+      replayed: false,
+      correlationId: CORRELATION_ID,
+    });
+    const deps = dependencies({ changeRole });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'instructor_pilot',
+        reasonCode: 'responsibility_changed',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.listFactors).toHaveBeenCalledWith(TARGET_USER_ID);
+    expect(changeRole).toHaveBeenCalledOnce();
+    const roleRequest = changeRole.mock.calls[0]?.[0];
+    expect(roleRequest?.actorUserId).toBe(USER_ID);
+    expect(roleRequest?.roleCode).toBe('instructor_pilot');
+    expect(roleRequest?.factorReferenceHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(roleRequest?.idempotencyKeyHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('does not query provider factors when the database says the target role is AAL1', async () => {
+    const deps = dependencies({
+      resolveRoleContext: vi.fn().mockResolvedValue({
+        decision: 'authorized',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        targetUserId: TARGET_USER_ID,
+        newRoleCode: 'student_pilot',
+        requiresMfa: false,
+        correlationId: CORRELATION_ID,
+      }),
+      changeRole: vi.fn().mockResolvedValue({
+        decision: 'changed',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'student_pilot',
+        roleLabel: 'Student Pilot',
+        version: 2,
+        replayed: false,
+        correlationId: CORRELATION_ID,
+      }),
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'student_pilot',
+        reasonCode: 'assignment_corrected',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(deps.changeRole).toHaveBeenCalledWith(
+      expect.objectContaining({ factorReferenceHash: null }),
+    );
+  });
+
+  it('denies and audits a privileged assignment when the target MFA state is not ready', async () => {
+    const deps = dependencies({ listFactors: vi.fn().mockResolvedValue([]) });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'instructor_pilot',
+        reasonCode: 'responsibility_changed',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await payload(response)).toMatchObject({
+      error: { code: 'member_administration.target_mfa_not_ready' },
+    });
+    expect(deps.recordDenied).toHaveBeenCalledWith(
+      expect.objectContaining({ reasonCode: 'target_mfa_not_ready' }),
+    );
+    expect(deps.changeRole).not.toHaveBeenCalled();
+  });
+
+  it('requires recent password authentication before resolving role authority', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockResolvedValue({ ...actor, passwordAuthenticatedAt: 1 }),
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'instructor_pilot',
+        reasonCode: 'responsibility_changed',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(deps.resolveRoleContext).not.toHaveBeenCalled();
+    expect(deps.changeRole).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the role-assignment result is not bound to the request', async () => {
+    const deps = dependencies({
+      changeRole: vi.fn().mockResolvedValue({
+        decision: 'changed',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'admin',
+        roleLabel: 'Organization Admin',
+        version: 2,
+        replayed: false,
+        correlationId: CORRELATION_ID,
+      }),
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'instructor_pilot',
+        reasonCode: 'responsibility_changed',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+    expect(response.status).toBe(503);
+  });
+
+  it('replays a committed role assignment after the context reports the current role conflict', async () => {
+    const changeRole = vi.fn().mockResolvedValue({
+      decision: 'changed',
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      roleCode: 'instructor_pilot',
+      roleLabel: 'Instructor Pilot',
+      version: 2,
+      replayed: true,
+      correlationId: CORRELATION_ID,
+    });
+    const deps = dependencies({
+      resolveRoleContext: vi.fn().mockResolvedValue({
+        decision: 'state_conflict',
+        correlationId: CORRELATION_ID,
+      }),
+      changeRole,
+    });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({
+        action: 'assign_role',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: 'instructor_pilot',
+        reasonCode: 'responsibility_changed',
+        expectedVersion: 1,
+        idempotencyKey: IDEMPOTENCY_KEY,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await payload(response)).toMatchObject({ replayed: true, version: 2 });
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(changeRole).toHaveBeenCalledWith(expect.objectContaining({ factorReferenceHash: null }));
   });
 
   it('fails closed when the limiter audit is unavailable', async () => {

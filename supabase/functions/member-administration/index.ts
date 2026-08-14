@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-import { authenticationEvidenceFromVerifiedToken } from '../_shared/authentication-evidence.ts';
+import {
+  authenticationEvidenceFromVerifiedToken,
+  completeFactorInventorySchema,
+} from '../_shared/authentication-evidence.ts';
 import { readMemberAdministrationRuntimeConfiguration } from '../_shared/edge-runtime-configuration.ts';
 import {
   createMemberAdministrationHandler,
@@ -90,6 +93,11 @@ Deno.serve(
         p_actor_user_id: actorUserId,
         p_membership_id: membershipId,
       }).then((value) => z.enum(['aal1', 'aal2', 'denied']).parse(value)),
+    listFactors: async (userId) => {
+      const { data, error } = await serverClient.auth.admin.mfa.listFactors({ userId });
+      if (error) throw error;
+      return completeFactorInventorySchema.parse(data.factors);
+    },
     consumeLimit: async ({ actorSubjectId, action, scopeId, correlationId }) => {
       const value = await rpc('consume_member_administration_rate_limit', {
         p_limiter_key_hash: await limiterHash(actorSubjectId, action, scopeId),
@@ -184,6 +192,44 @@ Deno.serve(
         p_reason_code: reasonCode,
         p_expected_version: expectedVersion,
         p_idempotency_key_hash: idempotencyKeyHash,
+        p_correlation_id: correlationId,
+      }),
+    resolveRoleContext: ({
+      actorUserId,
+      organizationId,
+      membershipId,
+      roleCode,
+      expectedVersion,
+      correlationId,
+    }) =>
+      rpc('resolve_member_role_assignment_context', {
+        p_actor_user_id: actorUserId,
+        p_organization_id: organizationId,
+        p_target_membership_id: membershipId,
+        p_new_role_code: roleCode,
+        p_expected_version: expectedVersion,
+        p_correlation_id: correlationId,
+      }),
+    changeRole: ({
+      actorUserId,
+      organizationId,
+      membershipId,
+      roleCode,
+      reasonCode,
+      expectedVersion,
+      idempotencyKeyHash,
+      factorReferenceHash,
+      correlationId,
+    }) =>
+      rpc('change_organization_member_role', {
+        p_actor_user_id: actorUserId,
+        p_organization_id: organizationId,
+        p_target_membership_id: membershipId,
+        p_new_role_code: roleCode,
+        p_reason_code: reasonCode,
+        p_expected_version: expectedVersion,
+        p_idempotency_key_hash: idempotencyKeyHash,
+        p_factor_reference_hash: factorReferenceHash,
         p_correlation_id: correlationId,
       }),
   }),

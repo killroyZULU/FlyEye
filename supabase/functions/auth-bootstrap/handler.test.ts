@@ -16,6 +16,8 @@ const validContext = {
       organizationId,
       organizationName: 'Synthetic Flight School',
       role: 'student_pilot',
+      roleLabel: 'Student Pilot',
+      workspacePermission: 'portal.student.access',
       permissions: ['portal.student.access'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',
@@ -191,6 +193,8 @@ describe('auth-bootstrap Edge Function handler', () => {
         {
           ...validContext.memberships[0],
           role: 'admin',
+          roleLabel: 'Organization Admin',
+          workspacePermission: 'portal.admin.access',
           permissions: ['portal.admin.access'],
           requiredAssuranceLevel: 'aal2',
           accessStatus: 'mfa_required',
@@ -307,6 +311,8 @@ describe('auth-bootstrap Edge Function handler', () => {
         {
           ...validContext.memberships[0],
           role: 'admin',
+          roleLabel: 'Organization Admin',
+          workspacePermission: 'portal.admin.access',
           permissions: ['portal.admin.access'],
           requiredAssuranceLevel: 'aal2',
           accessStatus: 'granted',
@@ -344,6 +350,8 @@ describe('auth-bootstrap Edge Function handler', () => {
         {
           ...validContext.memberships[0],
           role: 'admin',
+          roleLabel: 'Organization Admin',
+          workspacePermission: 'portal.admin.access',
           permissions: ['portal.admin.access'],
           requiredAssuranceLevel: 'aal2',
           accessStatus: 'granted',
@@ -380,6 +388,8 @@ describe('auth-bootstrap Edge Function handler', () => {
         {
           ...validContext.memberships[0],
           role: 'admin',
+          roleLabel: 'Organization Admin',
+          workspacePermission: 'portal.admin.access',
           permissions: ['portal.admin.access'],
           requiredAssuranceLevel: 'aal2',
           accessStatus: 'granted',

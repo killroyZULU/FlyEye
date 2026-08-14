@@ -408,6 +408,64 @@ describe('FEAT-006A Supabase auth gateway', () => {
   );
 });
 
+describe('FEAT-006B Supabase auth gateway', () => {
+  const request = {
+    organizationId: '20000000-0000-4000-8000-000000000001',
+    membershipId: '30000000-0000-4000-8000-000000000001',
+    roleCode: 'instructor_pilot',
+    reasonCode: 'responsibility_changed' as const,
+    expectedVersion: 1,
+    idempotencyKey: '0123456789abcdef0123456789abcdef',
+  };
+
+  it('sends and validates the exact protected role-assignment command', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: {
+        decision: 'changed',
+        organizationId: request.organizationId,
+        membershipId: request.membershipId,
+        roleCode: request.roleCode,
+        roleLabel: 'Instructor Pilot',
+        version: 2,
+        replayed: false,
+        correlationId: '40000000-0000-4000-8000-000000000001',
+      },
+      error: null,
+    });
+    const gateway = new SupabaseAuthGateway(clientWithAuth({}, { invoke }));
+
+    await expect(gateway.changeOrganizationMemberRole(request)).resolves.toMatchObject({
+      decision: 'changed',
+      roleCode: 'instructor_pilot',
+      version: 2,
+    });
+    expect(invoke).toHaveBeenCalledWith('member-administration', {
+      body: { action: 'assign_role', ...request },
+    });
+  });
+
+  it('maps target MFA readiness denial without exposing provider detail', async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        status: 409,
+        context: new Response(
+          JSON.stringify({
+            error: { code: 'member_administration.target_mfa_not_ready' },
+          }),
+          { status: 409, headers: { 'content-type': 'application/json' } },
+        ),
+      },
+    });
+    const gateway = new SupabaseAuthGateway(clientWithAuth({}, { invoke }));
+
+    await expect(gateway.changeOrganizationMemberRole(request)).rejects.toMatchObject({
+      code: 'member_administration_target_mfa_not_ready',
+      message: 'The selected privileged role requires the member to verify an authenticator first.',
+    });
+  });
+});
+
 describe('FEAT-004 Supabase auth gateway', () => {
   it('reauthenticates an existing confirmed invitee without changing the password', async () => {
     const updateUser = vi.fn();

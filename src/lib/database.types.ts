@@ -995,6 +995,9 @@ export type Database = {
           id: string;
           is_active: boolean;
           is_invitation_assignable: boolean;
+          is_membership_assignable: boolean;
+          required_assurance_level: string;
+          workspace_permission_code: string;
         };
         Insert: {
           code: string;
@@ -1004,6 +1007,9 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_invitation_assignable?: boolean;
+          is_membership_assignable?: boolean;
+          required_assurance_level?: string;
+          workspace_permission_code: string;
         };
         Update: {
           code?: string;
@@ -1013,8 +1019,19 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_invitation_assignable?: boolean;
+          is_membership_assignable?: boolean;
+          required_assurance_level?: string;
+          workspace_permission_code?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'roles_workspace_permission_code_fkey';
+            columns: ['workspace_permission_code'];
+            isOneToOne: false;
+            referencedRelation: 'permissions';
+            referencedColumns: ['code'];
+          },
+        ];
       };
     };
     Views: {
@@ -1090,6 +1107,20 @@ export type Database = {
       canonicalize_member_invitation_email: {
         Args: { p_email: string };
         Returns: string;
+      };
+      change_organization_member_role: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_factor_reference_hash: string;
+          p_idempotency_key_hash: string;
+          p_new_role_code: string;
+          p_organization_id: string;
+          p_reason_code: string;
+          p_target_membership_id: string;
+        };
+        Returns: Json;
       };
       change_organization_member_status: {
         Args: {
@@ -1259,6 +1290,7 @@ export type Database = {
           organization_name: string;
         }[];
       };
+      member_role_reason_options: { Args: never; Returns: Json };
       member_status_reason_options: {
         Args: { p_action: string };
         Returns: Json;
@@ -1339,6 +1371,17 @@ export type Database = {
           p_organization_id: string;
         };
         Returns: string;
+      };
+      resolve_member_role_assignment_context: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_new_role_code: string;
+          p_organization_id: string;
+          p_target_membership_id: string;
+        };
+        Returns: Json;
       };
       revoke_member_invitation: {
         Args: {

@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-13
-- Last verified merged baseline: PR #23 merge `25f4ddd`
+- Last updated: 2026-08-14
+- Last verified merged baseline: Slice A PR #25 merge `835b9dc`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -28,12 +28,12 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 uses an approved staggered boundary. Slice A self-service initial TOTP enrollment is implemented, verified locally, and independently reviewed on `feat/FEAT-006-member-totp-enrollment`; review-ready PR #25 is open with CI pending. Slice B role assignment has not started.
+- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 Slice A self-service member TOTP enrollment is merged through PR #25 at `835b9dc`. Slice B protected role assignment is implemented, locally verified, and independently reviewed on `feat/FEAT-006-role-assignment` for Issue #26; PR/CI publication remains pending.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Complete CI and the human merge decision for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice A PR #25. Begin dependent Slice B role assignment only after the Slice A baseline decision. Aviation licence, medical, qualification, and currency records remain later compliance work.
+Publish the review-ready pull request and follow CI for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice B. Aviation licence, medical, qualification, currency records, and additional school-validated roles remain later work requiring external workflow and authority evidence.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
