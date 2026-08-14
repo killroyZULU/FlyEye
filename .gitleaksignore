@@ -3,3 +3,4 @@
 19afca315b87d1a3a98f22979eb9cf10ce400720:supabase/functions/member-invitations/handler.test.ts:generic-api-key:12
 30853ce0df298173e8a665cf372f78506b8da4f5:supabase/functions/member-administration/handler.test.ts:generic-api-key:14
 a5bb9a69de70c0ac672d8489b34efaa21cf80d79:supabase/functions/member-mfa/handler.test.ts:generic-api-key:14
+88d2856a5aec70daf2951e563ee4dc7a4c78289d:src/features/auth/services/auth-gateway.test.ts:generic-api-key:418
