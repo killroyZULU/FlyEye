@@ -26,6 +26,13 @@ type Confirmation = {
   idempotencyKey: string;
 };
 
+type RoleConfirmation = {
+  member: MemberDetail;
+  roleCode: string;
+  reasonCode: 'responsibility_changed' | 'assignment_corrected';
+  idempotencyKey: string;
+};
+
 function safeMessage(error: unknown): string {
   return error instanceof AuthGatewayError
     ? error.message
@@ -59,22 +66,28 @@ export function MemberAdministrationPanel({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [confirmation, setConfirmation] = useState<Confirmation>();
+  const [roleConfirmation, setRoleConfirmation] = useState<RoleConfirmation>();
   const mounted = useRef(true);
   const requestSequence = useRef(0);
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
   const membersHeading = useRef<HTMLHeadingElement>(null);
   const confirmationReturnAction = useRef<MemberStatusAction | null>(null);
+  const roleConfirmationReturn = useRef(false);
 
   useEffect(() => {
-    if (confirmation) {
+    if (confirmation || roleConfirmation) {
       confirmationHeading.current?.focus();
     } else if (confirmationReturnAction.current) {
       const action = confirmationReturnAction.current;
       confirmationReturnAction.current = null;
       const target = document.querySelector<HTMLElement>(`[data-member-action="${action}"]`);
       (target ?? membersHeading.current)?.focus();
+    } else if (roleConfirmationReturn.current) {
+      roleConfirmationReturn.current = false;
+      const target = document.querySelector<HTMLElement>('[data-member-action="assign-role"]');
+      (target ?? membersHeading.current)?.focus();
     }
-  }, [confirmation]);
+  }, [confirmation, roleConfirmation]);
 
   async function loadMembers(cursor?: string, append = false): Promise<boolean> {
     const sequence = ++requestSequence.current;
@@ -201,11 +214,76 @@ export function MemberAdministrationPanel({
     }
   }
 
+  function beginRoleAction(member: MemberDetail) {
+    const firstRole = member.roleOptions[0];
+    const firstReason = member.roleReasonOptions[0];
+    if (!firstRole || !firstReason) {
+      setMessage('Role assignment is no longer available. Refresh and try again.');
+      return;
+    }
+    roleConfirmationReturn.current = true;
+    setRoleConfirmation({
+      member,
+      roleCode: firstRole.code,
+      reasonCode: firstReason.code,
+      idempotencyKey: createMemberIdempotencyKey(),
+    });
+    setMessage(undefined);
+  }
+
+  async function confirmRoleAction() {
+    if (!roleConfirmation) return;
+    if (!navigator.onLine) {
+      setMessage('You are offline. Role changes are not queued; reconnect and try again.');
+      return;
+    }
+
+    setBusy(true);
+    setMessage(undefined);
+    try {
+      const result = await gateway.changeOrganizationMemberRole({
+        organizationId,
+        membershipId: roleConfirmation.member.membershipId,
+        roleCode: roleConfirmation.roleCode,
+        reasonCode: roleConfirmation.reasonCode,
+        expectedVersion: roleConfirmation.member.membershipVersion,
+        idempotencyKey: roleConfirmation.idempotencyKey,
+      });
+      if (!mounted.current) return;
+      setRoleConfirmation(undefined);
+      setSelected(undefined);
+      const refreshed = await loadMembers();
+      if (mounted.current) {
+        const completed = `Role changed to ${result.roleLabel} successfully.`;
+        setMessage(
+          refreshed
+            ? completed
+            : `${completed} The refreshed member list is unavailable; retry the list before another action.`,
+        );
+      }
+    } catch (error) {
+      if (!mounted.current) return;
+      if (
+        error instanceof AuthGatewayError &&
+        error.code === 'member_administration_recent_authentication_required'
+      ) {
+        onRequirePassword(error.message);
+        return;
+      }
+      setMessage(safeMessage(error));
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }
+
   const reasonOptions = confirmation
     ? confirmation.member.statusReasonOptions.filter(
         (option) => option.action === confirmation.action,
       )
     : [];
+  const selectedRole = roleConfirmation?.member.roleOptions.find(
+    (role) => role.code === roleConfirmation.roleCode,
+  );
 
   return (
     <section className="member-workspace" aria-labelledby="members-heading">
@@ -221,6 +299,97 @@ export function MemberAdministrationPanel({
           Back to workspace
         </button>
       </div>
+
+      {roleConfirmation ? (
+        <section className="confirmation-card" aria-labelledby="role-confirmation-heading">
+          <span className="eyebrow">Confirm role change</span>
+          <h3 id="role-confirmation-heading" tabIndex={-1} ref={confirmationHeading}>
+            Replace this member&apos;s FlyEye role?
+          </h3>
+          <dl className="detail-grid">
+            <div>
+              <dt>Organization</dt>
+              <dd>{organizationName}</dd>
+            </div>
+            <div>
+              <dt>Member</dt>
+              <dd>{roleConfirmation.member.displayName ?? roleConfirmation.member.email}</dd>
+            </div>
+            <div>
+              <dt>Current role</dt>
+              <dd>{roleConfirmation.member.roleLabel}</dd>
+            </div>
+            <div>
+              <dt>New role</dt>
+              <dd>{selectedRole?.label ?? 'Select a role'}</dd>
+            </div>
+          </dl>
+          <div className="field-group">
+            <label htmlFor="replacement-role">New FlyEye role</label>
+            <select
+              id="replacement-role"
+              value={roleConfirmation.roleCode}
+              disabled={busy}
+              onChange={(event) =>
+                setRoleConfirmation({ ...roleConfirmation, roleCode: event.target.value })
+              }
+            >
+              {roleConfirmation.member.roleOptions.map((role) => (
+                <option key={role.code} value={role.code}>
+                  {role.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field-group">
+            <label htmlFor="role-reason">Reason category</label>
+            <select
+              id="role-reason"
+              value={roleConfirmation.reasonCode}
+              disabled={busy}
+              onChange={(event) =>
+                setRoleConfirmation({
+                  ...roleConfirmation,
+                  reasonCode: event.target.value as RoleConfirmation['reasonCode'],
+                })
+              }
+            >
+              {roleConfirmation.member.roleReasonOptions.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedRole?.requiresMfa ? (
+            <p className="notice notice--warning">
+              This privileged portal role requires the member&apos;s current verified authenticator.
+            </p>
+          ) : null}
+          <p className="notice">
+            A FlyEye portal role does not verify aviation qualification or grant operational
+            authority.
+          </p>
+          <div className="button-row">
+            <button
+              className="primary-button"
+              type="button"
+              disabled={busy}
+              onClick={() => void confirmRoleAction()}
+            >
+              {busy ? 'Applying change' : 'Confirm role change'}
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              disabled={busy}
+              onClick={() => setRoleConfirmation(undefined)}
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {confirmation ? (
         <section className="confirmation-card" aria-labelledby="status-confirmation-heading">
@@ -295,7 +464,7 @@ export function MemberAdministrationPanel({
         </section>
       ) : null}
 
-      {!confirmation ? (
+      {!confirmation && !roleConfirmation ? (
         <>
           <form className="member-filters" onSubmit={(event) => void submitSearch(event)}>
             <div className="field-group">
@@ -432,6 +601,16 @@ export function MemberAdministrationPanel({
                       {action === 'revoke' ? 'Revoke membership' : `${action} membership`}
                     </button>
                   ))}
+                  {selected.roleOptions.length > 0 ? (
+                    <button
+                      className="primary-button"
+                      type="button"
+                      data-member-action="assign-role"
+                      onClick={() => beginRoleAction(selected)}
+                    >
+                      Change FlyEye role
+                    </button>
+                  ) : null}
                 </div>
               )}
             </article>

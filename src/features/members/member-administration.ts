@@ -9,6 +9,19 @@ export const statusReasonOptionSchema = z
     label: z.string().min(2).max(80),
   })
   .strict();
+export const roleOptionSchema = z
+  .object({
+    code: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    label: z.string().min(2).max(80),
+    requiresMfa: z.boolean(),
+  })
+  .strict();
+export const roleReasonOptionSchema = z
+  .object({
+    code: z.enum(['responsibility_changed', 'assignment_corrected']),
+    label: z.string().min(2).max(80),
+  })
+  .strict();
 export const memberSummarySchema = z
   .object({
     membershipId: z.uuid(),
@@ -28,6 +41,8 @@ export const memberDetailSchema = memberSummarySchema
   .extend({
     contactNumber: z.string().max(32).nullable(),
     statusReasonOptions: z.array(statusReasonOptionSchema).max(4),
+    roleOptions: z.array(roleOptionSchema).max(50),
+    roleReasonOptions: z.array(roleReasonOptionSchema).max(2),
     updatedAt: z.string().min(1).max(80),
   })
   .strict();
@@ -92,6 +107,19 @@ export const memberStatusResultSchema = z
   })
   .strict();
 
+export const memberRoleResultSchema = z
+  .object({
+    decision: z.literal('changed'),
+    membershipId: z.uuid(),
+    organizationId: z.uuid(),
+    roleCode: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    roleLabel: z.string().min(2).max(80),
+    version: z.number().int().positive(),
+    replayed: z.boolean(),
+    correlationId: z.uuid(),
+  })
+  .strict();
+
 export const profileFormSchema = z.object({
   displayName: z.string().trim().min(2, 'Enter 2 to 80 characters.').max(80),
   contactNumber: z
@@ -113,6 +141,8 @@ export type MemberList = z.infer<typeof memberListSchema>;
 export type MemberProfile = z.infer<typeof memberProfileSchema>;
 export type MemberStatusAction = z.infer<typeof memberStatusActionSchema>;
 export type MemberStatusResult = z.infer<typeof memberStatusResultSchema>;
+export type MemberRoleResult = z.infer<typeof memberRoleResultSchema>;
+export type RoleOption = z.infer<typeof roleOptionSchema>;
 
 export function createMemberIdempotencyKey(): string {
   return crypto

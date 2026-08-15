@@ -7,6 +7,8 @@ const studentContext = {
       organizationId: '20000000-0000-4000-8000-000000000001',
       organizationName: 'Synthetic Flight School',
       role: 'student_pilot',
+      roleLabel: 'Student Pilot',
+      workspacePermission: 'portal.student.access',
       permissions: ['portal.student.access'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',

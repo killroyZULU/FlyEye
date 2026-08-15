@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  classifyCompleteFactorInventory,
   passwordAuthenticationIsRecent,
   type VerifiedAuthenticationEvidence,
 } from '../_shared/authentication-evidence.ts';
@@ -10,6 +11,17 @@ const idempotencyKeySchema = z.string().regex(/^[0-9a-f]{32,128}$/);
 const memberStatusSchema = z.enum(['active', 'suspended', 'revoked']);
 const searchSchema = z.string().trim().toLowerCase().min(2).max(80);
 const statusActionSchema = z.enum(['suspend', 'reactivate', 'revoke']);
+const roleReasonSchema = z.enum(['responsibility_changed', 'assignment_corrected']);
+const roleOptionSchema = z
+  .object({
+    code: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    label: z.string().min(2).max(80),
+    requiresMfa: z.boolean(),
+  })
+  .strict();
+const roleReasonOptionSchema = z
+  .object({ code: roleReasonSchema, label: z.string().min(2).max(80) })
+  .strict();
 const statusReasonOptionSchema = z
   .object({
     action: statusActionSchema,
@@ -62,6 +74,17 @@ const requestSchema = z.discriminatedUnion('action', [
       })
       .strict(),
   ),
+  z
+    .object({
+      action: z.literal('assign_role'),
+      organizationId: z.uuid(),
+      membershipId: z.uuid(),
+      roleCode: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+      reasonCode: roleReasonSchema,
+      expectedVersion: z.number().int().positive(),
+      idempotencyKey: idempotencyKeySchema,
+    })
+    .strict(),
 ]);
 
 const memberSummarySchema = z
@@ -83,6 +106,8 @@ const memberDetailSchema = memberSummarySchema
   .extend({
     contactNumber: z.string().max(32).nullable(),
     statusReasonOptions: z.array(statusReasonOptionSchema).max(4),
+    roleOptions: z.array(roleOptionSchema).max(50),
+    roleReasonOptions: z.array(roleReasonOptionSchema).max(2),
     updatedAt: z.string().min(1).max(80),
   })
   .strict();
@@ -154,6 +179,31 @@ const statusResultSchema = z
   })
   .strict();
 
+const roleAssignmentContextSchema = z
+  .object({
+    decision: z.literal('authorized'),
+    organizationId: z.uuid(),
+    membershipId: z.uuid(),
+    targetUserId: z.uuid(),
+    newRoleCode: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    requiresMfa: z.boolean(),
+    correlationId: z.uuid(),
+  })
+  .strict();
+
+const roleResultSchema = z
+  .object({
+    decision: z.literal('changed'),
+    membershipId: z.uuid(),
+    organizationId: z.uuid(),
+    roleCode: z.string().regex(/^[a-z][a-z0-9_]{2,63}$/),
+    roleLabel: z.string().min(2).max(80),
+    version: z.number().int().positive(),
+    replayed: z.boolean(),
+    correlationId: z.uuid(),
+  })
+  .strict();
+
 const decisionSchema = z
   .object({
     decision: z.enum([
@@ -162,6 +212,7 @@ const decisionSchema = z
       'state_conflict',
       'last_administrator',
       'self_action',
+      'target_mfa_not_ready',
     ]),
     correlationId: z.uuid(),
   })
@@ -197,6 +248,7 @@ export type MemberAdministrationDependencies = {
     actorUserId: string;
     membershipId: string;
   }) => Promise<'aal1' | 'aal2' | 'denied'>;
+  listFactors: (userId: string) => Promise<unknown>;
   consumeLimit: (input: {
     actorSubjectId: string;
     action: MemberAdministrationAction;
@@ -262,6 +314,25 @@ export type MemberAdministrationDependencies = {
     idempotencyKeyHash: string;
     correlationId: string;
   }) => Promise<unknown>;
+  resolveRoleContext: (input: {
+    actorUserId: string;
+    organizationId: string;
+    membershipId: string;
+    roleCode: string;
+    expectedVersion: number;
+    correlationId: string;
+  }) => Promise<unknown>;
+  changeRole: (input: {
+    actorUserId: string;
+    organizationId: string;
+    membershipId: string;
+    roleCode: string;
+    reasonCode: z.infer<typeof roleReasonSchema>;
+    expectedVersion: number;
+    idempotencyKeyHash: string;
+    factorReferenceHash: string | null;
+    correlationId: string;
+  }) => Promise<unknown>;
   createCorrelationId?: () => string;
   nowSeconds?: () => number;
 };
@@ -321,11 +392,11 @@ function requestHints(request: z.infer<typeof requestSchema>) {
 }
 
 function requiresAal2(action: MemberAdministrationAction): boolean {
-  return ['list', 'detail', 'suspend', 'reactivate', 'revoke'].includes(action);
+  return ['list', 'detail', 'suspend', 'reactivate', 'revoke', 'assign_role'].includes(action);
 }
 
 function requiresFreshPassword(action: MemberAdministrationAction): boolean {
-  return ['suspend', 'reactivate', 'revoke'].includes(action);
+  return ['suspend', 'reactivate', 'revoke', 'assign_role'].includes(action);
 }
 
 function failure(origin: string, decision: string, correlationId: string): Response {
@@ -353,7 +424,12 @@ function failure(origin: string, decision: string, correlationId: string): Respo
     self_action: {
       status: 403,
       code: 'member_administration.self_action',
-      message: 'You cannot change your own membership status.',
+      message: 'You cannot apply this change to your own membership.',
+    },
+    target_mfa_not_ready: {
+      status: 409,
+      code: 'member_administration.target_mfa_not_ready',
+      message: 'The selected privileged role requires the member to verify an authenticator first.',
     },
   };
   const item = table[decision] ?? {
@@ -730,6 +806,119 @@ export function createMemberAdministrationHandler(
             changed.data.membershipId === parsed.data.membershipId &&
             changed.data.decision === expectedStatus &&
             changed.data.status === expectedStatus
+          ) {
+            return json(origin, 200, changed.data);
+          }
+          break;
+        }
+        case 'assign_role': {
+          const rawContext = await dependencies.resolveRoleContext({
+            actorUserId: actor.actorUserId,
+            organizationId: parsed.data.organizationId,
+            membershipId: parsed.data.membershipId,
+            roleCode: parsed.data.roleCode,
+            expectedVersion: parsed.data.expectedVersion,
+            correlationId,
+          });
+          const context = roleAssignmentContextSchema.safeParse(rawContext);
+          const contextDecision = decisionSchema.safeParse(rawContext);
+          if (
+            !context.success &&
+            contextDecision.success &&
+            contextDecision.data.decision === 'state_conflict' &&
+            contextDecision.data.correlationId === correlationId
+          ) {
+            result = await dependencies.changeRole({
+              actorUserId: actor.actorUserId,
+              organizationId: parsed.data.organizationId,
+              membershipId: parsed.data.membershipId,
+              roleCode: parsed.data.roleCode,
+              reasonCode: parsed.data.reasonCode,
+              expectedVersion: parsed.data.expectedVersion,
+              idempotencyKeyHash: await sha256(parsed.data.idempotencyKey),
+              factorReferenceHash: null,
+              correlationId,
+            });
+            const replayed = roleResultSchema.safeParse(result);
+            if (
+              replayed.success &&
+              replayed.data.replayed &&
+              replayed.data.correlationId === correlationId &&
+              replayed.data.organizationId === parsed.data.organizationId &&
+              replayed.data.membershipId === parsed.data.membershipId &&
+              replayed.data.roleCode === parsed.data.roleCode
+            ) {
+              return json(origin, 200, replayed.data);
+            }
+            break;
+          }
+          if (
+            !context.success ||
+            context.data.correlationId !== correlationId ||
+            context.data.organizationId !== parsed.data.organizationId ||
+            context.data.membershipId !== parsed.data.membershipId ||
+            context.data.newRoleCode !== parsed.data.roleCode
+          ) {
+            result = rawContext;
+            break;
+          }
+
+          let factorReferenceHash: string | null = null;
+          if (context.data.requiresMfa) {
+            let factors: ReturnType<typeof classifyCompleteFactorInventory>;
+            try {
+              factors = classifyCompleteFactorInventory(
+                await dependencies.listFactors(context.data.targetUserId),
+              );
+            } catch {
+              if (
+                !(await auditFailure(
+                  dependencies,
+                  parsed.data,
+                  actor.actorUserId,
+                  'factor_inventory_unavailable',
+                  correlationId,
+                ))
+              ) {
+                return failure(origin, 'service_unavailable', correlationId);
+              }
+              return failure(origin, 'service_unavailable', correlationId);
+            }
+            if (factors.kind !== 'one_verified_totp') {
+              if (
+                !(await auditFailure(
+                  dependencies,
+                  parsed.data,
+                  actor.actorUserId,
+                  'target_mfa_not_ready',
+                  correlationId,
+                ))
+              ) {
+                return failure(origin, 'service_unavailable', correlationId);
+              }
+              return failure(origin, 'target_mfa_not_ready', correlationId);
+            }
+            factorReferenceHash = await sha256(factors.factorId);
+          }
+
+          result = await dependencies.changeRole({
+            actorUserId: actor.actorUserId,
+            organizationId: parsed.data.organizationId,
+            membershipId: parsed.data.membershipId,
+            roleCode: parsed.data.roleCode,
+            reasonCode: parsed.data.reasonCode,
+            expectedVersion: parsed.data.expectedVersion,
+            idempotencyKeyHash: await sha256(parsed.data.idempotencyKey),
+            factorReferenceHash,
+            correlationId,
+          });
+          const changed = roleResultSchema.safeParse(result);
+          if (
+            changed.success &&
+            changed.data.correlationId === correlationId &&
+            changed.data.organizationId === parsed.data.organizationId &&
+            changed.data.membershipId === parsed.data.membershipId &&
+            changed.data.roleCode === parsed.data.roleCode
           ) {
             return json(origin, 200, changed.data);
           }

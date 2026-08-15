@@ -16,12 +16,16 @@ const rolePermission = {
 
 function context(
   role: RoleCode,
-  permissions = [rolePermission[role]],
+  permissions = [
+    rolePermission[role as keyof typeof rolePermission] ?? 'portal.future_role.access',
+  ],
   accessStatus: 'granted' | 'mfa_required' | 'denied' = role === 'student_pilot'
     ? 'granted'
     : 'mfa_required',
 ): AccessContextResponse {
   const organizationId = '20000000-0000-4000-8000-000000000001';
+  const workspacePermission =
+    rolePermission[role as keyof typeof rolePermission] ?? 'portal.future_role.access';
   return {
     memberships: [
       {
@@ -29,6 +33,15 @@ function context(
         organizationId,
         organizationName: 'Synthetic Flight School',
         role,
+        roleLabel:
+          role === 'student_pilot'
+            ? 'Student Pilot'
+            : role === 'instructor_pilot'
+              ? 'Instructor Pilot'
+              : role === 'admin'
+                ? 'Organization Admin'
+                : 'Future Role',
+        workspacePermission,
         permissions,
         membershipVersion: 1,
         requiredAssuranceLevel: role === 'student_pilot' ? 'aal1' : 'aal2',
@@ -86,6 +99,7 @@ function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
     loadMyMemberProfile: vi.fn(),
     updateMyMemberProfile: vi.fn(),
     changeOrganizationMemberStatus: vi.fn(),
+    changeOrganizationMemberRole: vi.fn(),
     getMfaAssurance: vi.fn().mockResolvedValue({ currentLevel: 'aal1', nextLevel: 'aal2' }),
     verifyTotp: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),
@@ -256,6 +270,8 @@ describe('FEAT-001 authentication UI', () => {
       organizationId: '20000000-0000-4000-8000-000000000002',
       organizationName: 'Second Synthetic School',
       role: 'student_pilot',
+      roleLabel: 'Student Pilot',
+      workspacePermission: 'portal.student.access',
       permissions: ['portal.student.access'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',

@@ -2,12 +2,12 @@
 
 ## Status
 
-- State: Approved for staggered local delivery
-- Current SDLC phase: Slice A review-ready PR #25 open; CI pending
+- State: Slice A merged; Slice B implemented and locally verified
+- Current SDLC phase: Slice B review-ready PR #27 open; required CI green
 - Owner: Founder/Product Owner
-- Baseline: `main` at PR #23 merge `25f4ddd`
-- Slice A branch/PR: `feat/FEAT-006-member-totp-enrollment`; PR #25
-- Planned Slice B branch: `feat/FEAT-006-role-assignment`
+- Baseline: `main` at Slice A PR #25 merge `835b9dc`
+- Slice A: merged through PR #25
+- Slice B: Issue #26; `feat/FEAT-006-role-assignment`; PR #27
 - Evidence plan: [FEAT-006 Traceability](FEAT-006_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002`, `IAM-003`, `IAM-005`–`IAM-012`,
   `REC-001`–`REC-003`, and `NFR-004`, `NFR-008`, `NFR-010`
@@ -113,6 +113,12 @@ Browser roles receive no direct readiness, role, permission, membership, or
 audit mutation grant. The server derives authority from verified Auth and
 PostgreSQL records, never user metadata, client role text, email, or a
 request-supplied organization alone.
+
+Future school-validated roles remain version-controlled built-in permission
+bundles under the governance role decision. Role security metadata and
+permission-driven interface checks may be centralized in Slice B, but the
+assignable set remains the three roles in this contract. Custom roles,
+permission editing, and multiple-role assignment remain excluded.
 
 ## Slice A workflow and rules
 
@@ -260,22 +266,22 @@ Active membership + Role A --authorized replacement--> Active membership + Role 
 
 ### Slice B
 
-- [ ] `FEAT-006B-AC-01` Only an active Organization Admin with
+- [x] `FEAT-006B-AC-01` Only an active Organization Admin with
       `membership.role.assign`, AAL2/TOTP, and recent password can change
       another active same-school member's role.
-- [ ] `FEAT-006B-AC-02` Only the three active membership-assignable built-in
+- [x] `FEAT-006B-AC-02` Only the three active membership-assignable built-in
       roles are accepted and exactly one role remains.
-- [ ] `FEAT-006B-AC-03` Instructor/Admin assignment requires matching current
+- [x] `FEAT-006B-AC-03` Instructor/Admin assignment requires matching current
       verified TOTP readiness; missing or stale readiness changes no role.
-- [ ] `FEAT-006B-AC-04` Self-action and last-active-admin demotion are denied,
+- [x] `FEAT-006B-AC-04` Self-action and last-active-admin demotion are denied,
       including under concurrent status and role commands.
-- [ ] `FEAT-006B-AC-05` Version, locks, idempotency, role mutation, attribution,
+- [x] `FEAT-006B-AC-05` Version, locks, idempotency, role mutation, attribution,
       and audit are deterministic and atomic.
-- [ ] `FEAT-006B-AC-06` Direct browser mutation, forged school, arbitrary role,
+- [x] `FEAT-006B-AC-06` Direct browser mutation, forged school, arbitrary role,
       metadata, replay, limiter, and audit-failure attempts fail closed.
-- [ ] `FEAT-006B-AC-07` Current server authority changes immediately and creates
+- [x] `FEAT-006B-AC-07` Current server authority changes immediately and creates
       no aviation qualification or operational authority.
-- [ ] `FEAT-006B-AC-08` Required responsive and accessible UI states and full
+- [x] `FEAT-006B-AC-08` Required responsive and accessible UI states and full
       regression matrices pass with zero fixture residue.
 
 ## Planned verification
@@ -313,12 +319,12 @@ production behavior remains excluded.
 
 ## Definition of done
 
-- [ ] Both slice contracts, assumptions, provider/database boundaries, and
+- [x] Both slice contracts, assumptions, provider/database boundaries, and
       later gates remain explicit
-- [ ] Each slice is implemented and verified independently with synthetic data
-- [ ] Positive, negative, cross-school, concurrency, failure, security,
+- [x] Each slice is implemented and verified independently with synthetic data
+- [x] Positive, negative, cross-school, concurrency, failure, security,
       accessibility-supporting, regression, and cleanup checks pass
-- [ ] Secrets and service-role authority remain server-only
-- [ ] Traceability contains reviewed evidence and limitations per slice
-- [ ] Documentation checks and separate-agent review pass
-- [ ] Each scoped slice has a green review-ready pull request
+- [x] Secrets and service-role authority remain server-only
+- [x] Traceability contains reviewed evidence and limitations per slice
+- [x] Documentation checks and separate-agent review pass
+- [x] Each scoped slice has a green review-ready pull request

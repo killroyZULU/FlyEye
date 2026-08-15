@@ -53,6 +53,7 @@ function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
     loadMyMemberProfile: vi.fn(),
     updateMyMemberProfile: vi.fn(),
     changeOrganizationMemberStatus: vi.fn(),
+    changeOrganizationMemberRole: vi.fn(),
     getMfaAssurance: vi.fn().mockResolvedValue({ currentLevel: 'aal1', nextLevel: 'aal1' }),
     verifyTotp: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),

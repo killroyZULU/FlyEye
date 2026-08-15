@@ -22,6 +22,7 @@ Superseded decision processes remain available through Git history. They are not
 - A deployment contains at most one organization and one membership per user. The application derives school context and provides no school selector.
 - `organization_id`, deny-by-default RLS, protected commands, and cross-school negative tests remain mandatory defense-in-depth.
 - One role per membership is the initial default. Future multiple roles require explicit assignment and an approved separation-of-duties matrix.
+- School-validated FlyEye roles are version-controlled permission bundles. Interfaces and protected actions check permissions rather than treating a job title as authority; adding a role never grants aviation or operational authority by implication.
 - Organization Admin is an access-administration role. It grants no automatic training, safety, quality, operations, dispatch, assessment, or approval authority.
 - Membership and role changes use protected, audited commands with appropriate reauthentication.
 - Ordinary administration cannot remove or demote the last active Organization Admin.

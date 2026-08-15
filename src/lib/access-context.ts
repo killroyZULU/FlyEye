@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RoleCode } from '../../supabase/functions/_shared/access-context';
+import type { AccessMembership, RoleCode } from '../../supabase/functions/_shared/access-context';
 
 export {
   accessContextResponseSchema,
@@ -21,11 +21,11 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
-export function requiresMfa(role: RoleCode): boolean {
-  return role === 'instructor_pilot' || role === 'admin';
+export function requiresMfa(membership: Pick<AccessMembership, 'requiredAssuranceLevel'>): boolean {
+  return membership.requiredAssuranceLevel === 'aal2';
 }
 
-export function landingLabel(role: RoleCode): string {
+export function landingLabel(role: RoleCode, roleLabel?: string): string {
   switch (role) {
     case 'student_pilot':
       return 'Student workspace';
@@ -33,5 +33,7 @@ export function landingLabel(role: RoleCode): string {
       return 'Instructor workspace';
     case 'admin':
       return 'Administration workspace';
+    default:
+      return roleLabel ? `${roleLabel} workspace` : 'FlyEye workspace';
   }
 }

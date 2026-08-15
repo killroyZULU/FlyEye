@@ -17,6 +17,13 @@ describe('access context contracts', () => {
             organizationId: '20000000-0000-4000-8000-000000000001',
             organizationName: 'Synthetic Flight School',
             role,
+            roleLabel:
+              role === 'student_pilot'
+                ? 'Student Pilot'
+                : role === 'instructor_pilot'
+                  ? 'Instructor Pilot'
+                  : 'Organization Admin',
+            workspacePermission: `portal.${role.replace('_pilot', '')}.access`,
             permissions: [`portal.${role.replace('_pilot', '')}.access`],
             membershipVersion: 1,
             requiredAssuranceLevel: role === 'student_pilot' ? 'aal1' : 'aal2',
@@ -34,15 +41,17 @@ describe('access context contracts', () => {
     }
   });
 
-  it('rejects unknown roles and malformed identifiers', () => {
+  it('accepts a future validated role code with server-provided permissions', () => {
     const parsed = accessContextResponseSchema.safeParse({
       memberships: [
         {
-          membershipId: 'not-a-uuid',
+          membershipId: '10000000-0000-4000-8000-000000000001',
           organizationId: '20000000-0000-4000-8000-000000000001',
           organizationName: 'Synthetic Flight School',
           role: 'cfi',
-          permissions: ['portal.admin.access'],
+          roleLabel: 'Chief Flight Instructor',
+          workspacePermission: 'portal.instructor.access',
+          permissions: ['portal.instructor.access'],
           membershipVersion: 1,
           requiredAssuranceLevel: 'aal1',
           accessStatus: 'granted',
@@ -51,6 +60,32 @@ describe('access context contracts', () => {
       correlationId: '30000000-0000-4000-8000-000000000001',
       decision: 'granted',
       currentAssuranceLevel: 'aal1',
+      selectedOrganizationId: null,
+      organizationIds: ['20000000-0000-4000-8000-000000000001'],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects malformed future role identifiers', () => {
+    const parsed = accessContextResponseSchema.safeParse({
+      memberships: [
+        {
+          membershipId: '10000000-0000-4000-8000-000000000001',
+          organizationId: '20000000-0000-4000-8000-000000000001',
+          organizationName: 'Synthetic Flight School',
+          role: 'chief flight instructor',
+          roleLabel: 'Chief Flight Instructor',
+          workspacePermission: 'portal.instructor.access',
+          permissions: ['portal.instructor.access'],
+          membershipVersion: 1,
+          requiredAssuranceLevel: 'aal2',
+          accessStatus: 'granted',
+        },
+      ],
+      correlationId: '30000000-0000-4000-8000-000000000001',
+      decision: 'granted',
+      currentAssuranceLevel: 'aal2',
       selectedOrganizationId: null,
       organizationIds: ['20000000-0000-4000-8000-000000000001'],
     });
@@ -68,10 +103,9 @@ describe('access context contracts', () => {
     expect(parsed.password).toBe('  intentional spaces  ');
   });
 
-  it('requires MFA for instructor and admin roles only', () => {
-    expect(requiresMfa('student_pilot')).toBe(false);
-    expect(requiresMfa('instructor_pilot')).toBe(true);
-    expect(requiresMfa('admin')).toBe(true);
+  it('uses server-provided assurance metadata for MFA', () => {
+    expect(requiresMfa({ requiredAssuranceLevel: 'aal1' })).toBe(false);
+    expect(requiresMfa({ requiredAssuranceLevel: 'aal2' })).toBe(true);
   });
 
   it('rejects more than one school context', () => {
@@ -82,6 +116,8 @@ describe('access context contracts', () => {
       organizationId,
       organizationName: 'Synthetic Flight School',
       role: 'student_pilot',
+      roleLabel: 'Student Pilot',
+      workspacePermission: 'portal.student.access',
       permissions: ['portal.student.access'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',
@@ -112,5 +148,8 @@ describe('access context contracts', () => {
     expect(landingLabel('student_pilot')).toBe('Student workspace');
     expect(landingLabel('instructor_pilot')).toBe('Instructor workspace');
     expect(landingLabel('admin')).toBe('Administration workspace');
+    expect(landingLabel('chief_flight_instructor', 'Chief Flight Instructor')).toBe(
+      'Chief Flight Instructor workspace',
+    );
   });
 });

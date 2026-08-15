@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const roleCodeSchema = z.enum(['student_pilot', 'instructor_pilot', 'admin']);
+export const roleCodeSchema = z.string().regex(/^[a-z][a-z0-9_]{2,63}$/);
 export const assuranceLevelSchema = z.enum(['aal1', 'aal2']);
 export const accessStatusSchema = z.enum(['granted', 'mfa_required', 'denied']);
 
@@ -14,6 +14,8 @@ export const accessMembershipSchema = z
     organizationId: z.uuid(),
     organizationName: z.string().trim().min(2).max(160),
     role: roleCodeSchema,
+    roleLabel: z.string().trim().min(2).max(80),
+    workspacePermission: z.string().regex(/^[a-z][a-z0-9_.]{2,127}$/),
     permissions: z.array(z.string().regex(/^[a-z][a-z0-9_.]{2,127}$/)),
     membershipVersion: z.number().int().positive(),
     requiredAssuranceLevel: assuranceLevelSchema,
@@ -54,17 +56,15 @@ export const accessContextResponseSchema = z
     }
 
     for (const [index, membership] of context.memberships.entries()) {
-      const privileged = membership.role === 'instructor_pilot' || membership.role === 'admin';
-      const expectedAssurance = privileged ? 'aal2' : 'aal1';
-      if (membership.requiredAssuranceLevel !== expectedAssurance) {
+      if (!membership.permissions.includes(membership.workspacePermission)) {
         refinement.addIssue({
           code: 'custom',
-          message: 'Role and required assurance level conflict.',
-          path: ['memberships', index, 'requiredAssuranceLevel'],
+          message: 'Workspace permission is not granted to this membership.',
+          path: ['memberships', index, 'workspacePermission'],
         });
       }
       if (
-        privileged &&
+        membership.requiredAssuranceLevel === 'aal2' &&
         context.currentAssuranceLevel !== 'aal2' &&
         membership.accessStatus === 'granted'
       ) {
