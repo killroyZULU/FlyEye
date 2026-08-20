@@ -77,14 +77,17 @@ jobs:
       - name: Check documentation architecture
         run: pnpm check:docs
 
+      - name: Check code maintainability
+        run: pnpm check:code
+
       - name: Run ESLint
         run: pnpm lint
 
       - name: Check TypeScript
         run: pnpm typecheck
 
-      - name: Run unit, component, and Edge-handler tests
-        run: pnpm test
+      - name: Run unit, component, and Edge-handler tests with coverage
+        run: pnpm test:coverage
 
       - name: Build production bundle
         run: pnpm build

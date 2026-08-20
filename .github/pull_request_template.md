@@ -33,6 +33,8 @@ Closes #
 
 - [ ] Frozen dependency installation passes.
 - [ ] Formatting, documentation architecture, ESLint, TypeScript, unit/component/handler tests, and production build pass.
+- [ ] Code-maintainability architecture checks and configured coverage floors pass.
+- [ ] React components keep reusable or authoritative business rules in typed feature modules or protected server commands, or presentation behavior is unchanged.
 - [ ] Browser-specific Supabase and general repository secret scans pass.
 - [ ] Playwright tests pass.
 - [ ] Local Supabase reset, schema-wide SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.

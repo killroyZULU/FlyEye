@@ -31,8 +31,9 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 4. FEAT-003 Hosted Synthetic Hardening — merged; hosted-readiness planning and activation are deferred under the active governance decision
 5. FEAT-004 Member Invitations — merged
 6. FEAT-005 User Management and Basic Profiles — merged through PR #15; correction PR #16 and single-school FIX-006 PR #17 merged
-7. FEAT-006 Member MFA Readiness and Role Assignment — Slice A is merged through PR #25; Slice B protected role assignment is locally verified and independently reviewed in PR #27 with required CI green
-8. Visual-identity checkpoint before larger operational modules
+7. FEAT-006 Member MFA Readiness and Role Assignment — merged through Slice B PR #27 at `65d11aa`
+8. Code-maintainability guardrail checkpoint before Stage 2 expansion
+9. Visual-identity checkpoint before larger operational modules
 
 This roadmap records sequence, not live evidence or authorization. See [Current State](CURRENT_STATE.md) for status, dependencies, and later gates. Each requested slice follows the bounded delivery policy in `AGENTS.md`.
 

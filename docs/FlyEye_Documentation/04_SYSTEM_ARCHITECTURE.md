@@ -91,6 +91,18 @@ AI Assistance
 
 The repository should mirror these bounded areas in frontend features, Edge Functions, migrations, tests, and documentation. A feature must not write another module’s tables casually; shared mutations are formal commands or reviewed database functions.
 
+Cross-feature frontend imports use the target feature's public entry point; Edge
+Functions use `_shared` or a reviewed command boundary instead of another
+function's internals. Frontend and Edge source layers do not import each other's
+internals, and shared frontend libraries do not proxy feature internals.
+Production import cycles are prohibited. React components coordinate rendering
+and interaction, while reusable validation and business rules live in typed
+feature modules or protected server commands with focused tests.
+Repository-owned maintainability checks enforce new-file and thin Edge
+entrypoint size, import, cycle, and function-complexity limits. Named legacy
+hotspots and layer imports have exact no-growth exceptions until separately
+verified refactoring removes them.
+
 ## 6. Deployment and school isolation
 
 Each flight school receives an isolated frontend deployment and Supabase project. The same versioned codebase and migrations serve every deployment; customer-specific source forks are not the operating model. Within a deployment, the PostgreSQL schema contains at most one organization, each user has at most one membership, and school-owned rows retain `organization_id`.

@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-14
-- Last verified merged baseline: Slice A PR #25 merge `835b9dc`
+- Last updated: 2026-08-20
+- Last verified merged baseline: FEAT-006 Slice B PR #27 merge `65d11aa`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -17,6 +17,7 @@ This file is the sole active project-status summary. Replace stale entries; do n
 | FEAT-003 Hosted Synthetic Hardening | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free | No staging provider/project, credentials, paid plan, executable hosted issuer, or hosted run is authorized or configured |
 | FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
 | FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
+| FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -28,12 +29,15 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-005 and its PR #16/FIX-006 corrections are merged with required CI green. FEAT-006 Slice A self-service member TOTP enrollment is merged through PR #25 at `835b9dc`. Slice B protected role assignment is implemented, locally verified, and independently reviewed on `feat/FEAT-006-role-assignment` for Issue #26; review-ready PR #27 is open with required CI green.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Obtain the human merge decision for [FEAT-006 Member MFA Readiness and Role Assignment](features/FEAT-006_ROLE_ASSIGNMENT.md) Slice B PR #27. Aviation licence, medical, qualification, currency records, and additional school-validated roles remain later work requiring external workflow and authority evidence.
+Complete the bounded code-maintainability guardrail checkpoint in Issue #28,
+then hold the visual-identity checkpoint before larger operational modules.
+After those gates, specify Aircraft Records and Compliance Documents without
+inventing aviation status, expiry, approval, or dispatch-eligibility rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

@@ -12,11 +12,21 @@ GitHub-enforced branch protection is not available under the current repository 
 
 ## 3. Pull-request pipeline
 
-The current CI baseline is verification-only. It runs frozen installation, formatting, documentation architecture checks, ESLint, TypeScript, unit/component/handler tests, production build, a browser-specific Supabase key scan, a general Git-history secret scan, Playwright tests, dependency audit, local Supabase reset, schema-wide and feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization integration, database lint, and generated database-type drift. It uses synthetic local data, least-privilege read-only repository permissions, and no deployment credentials.
+The current CI baseline is verification-only. It runs frozen installation,
+formatting, documentation and code-maintainability architecture checks, ESLint,
+TypeScript, coverage-gated unit/component/handler tests, production build, a
+browser-specific Supabase key scan, a general Git-history secret scan,
+Playwright tests, dependency audit, local Supabase reset, schema-wide and
+feature-specific SQL/RLS tests, real Auth/TOTP/Edge/browser/cross-organization
+integration, database lint, and generated database-type drift. It uses
+synthetic local data, least-privilege read-only repository permissions, and no
+deployment credentials.
 
 The pipeline exposes the same stable entry points to developers and AI agents:
 
 - `pnpm verify:app` runs the complete application-side quality group;
+- `pnpm check:code` enforces production TypeScript file budgets, feature and
+  Edge Function import boundaries, and acyclic production imports;
 - `pnpm check:docs` validates active-document size budgets, local links,
   required entry points, prohibited historical/prompt structure, and duplicate
   long paragraphs;
@@ -26,6 +36,14 @@ The pipeline exposes the same stable entry points to developers and AI agents:
   already running local stack; and
 - GitHub Actions publishes one aggregate `Required quality gate` result after
   the parallel application and database jobs finish.
+
+Application tests enforce repository-level statement, branch, function, and
+line coverage floors in `vite.config.ts`. ESLint owns function complexity,
+nesting, parameter, and length limits. Existing hotspots are named in the code
+checker with exact no-growth ceilings; exceptions do not establish acceptable
+patterns for new modules. Threshold changes require a reviewed explanation and
+must not hide untested authority, tenancy, audit, calculation, or workflow
+logic.
 
 Feature runtime fixtures are registered by filename rather than by repeatedly
 editing the workflow. The runtime-matrix runner emits only the fixed fixture
