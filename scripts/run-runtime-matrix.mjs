@@ -95,7 +95,11 @@ if (process.argv.includes('--list')) {
 }
 
 for (const fixture of fixtures) {
-  if (fixture === 'test-feat-003-runtime.mjs' || fixture === 'test-feat-005-runtime.mjs') {
+  if (
+    fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-005-runtime.mjs' ||
+    fixture === 'test-feat-006-runtime.mjs'
+  ) {
     try {
       await restartLocalRuntime();
     } catch (error) {
