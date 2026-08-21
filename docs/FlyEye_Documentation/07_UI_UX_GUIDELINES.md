@@ -17,19 +17,7 @@ Use role-sensitive navigation, but never rely on it for authorization. Candidate
 
 ## 4. Reusable design system
 
-Build reusable components rather than AI-generated one-off styles:
-
-```text
-FlyEyePageHeader        FlyEyeFormSection
-FlyEyeTextField         FlyEyeSelect / DateTimeField
-FlyEyeDataTable         FlyEyeStatusBadge
-FlyEyeDocumentCard      FlyEyeAuditTimeline
-FlyEyeSourcePanel       FlyEyeValidationSummary
-FlyEyeConfirmDialog     FlyEyeOfflineIndicator
-FlyEyeEmptyState        FlyEyeErrorState
-```
-
-Material UI may supply foundations. Product components enforce FlyEye semantics, accessibility, error behavior, status vocabulary, and visual consistency.
+Use the tokens, application-shell patterns, and component presentation in the [Visual Design System](DESIGN.md). Product components enforce FlyEye semantics, accessibility, error behavior, status vocabulary, and visual consistency. Any foundational component or icon library requires the normal dependency review; this guideline does not select one.
 
 ## 5. Form behavior
 
@@ -90,4 +78,3 @@ On small screens, convert dense rows to cards or prioritized columns; do not for
 ## 14. UX evidence
 
 For each critical feature retain the user flow, prototype/version, participants/roles, task script, success/error observations, decisions, and before/after screenshots where authorized. Link findings to feature specifications and the [QA Plan](11_QA_TEST_PLAN.md).
-

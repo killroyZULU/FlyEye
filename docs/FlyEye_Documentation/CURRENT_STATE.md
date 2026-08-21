@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-20
-- Last verified merged baseline: FEAT-006 Slice B PR #27 merge `65d11aa`
+- Last updated: 2026-08-21
+- Last verified merged baseline: code-maintainability guardrails PR #29 merge `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -30,14 +30,15 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
-- The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
+- The code-maintainability guardrail checkpoint is merged. The post-FEAT-006 visual direction is defined in [Visual Design System](DESIGN.md); implementation conformance and external usability/accessibility validation remain follow-up work.
 
 ## Next bounded product work
 
-Complete the bounded code-maintainability guardrail checkpoint in Issue #28,
-then hold the visual-identity checkpoint before larger operational modules.
-After those gates, specify Aircraft Records and Compliance Documents without
-inventing aviation status, expiry, approval, or dispatch-eligibility rules.
+Complete one bounded [Visual Design System](DESIGN.md) adoption slice for shared
+tokens, primitives, and an existing authentication shell, with synthetic desktop
+and phone verification. Then specify Aircraft Records and Compliance Documents
+without inventing aviation status, expiry, approval, or dispatch-eligibility
+rules; remaining legacy-flow migrations are separate follow-up work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
