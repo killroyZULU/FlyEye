@@ -2,13 +2,12 @@
 
 ## Evidence boundary
 
-- Reviewed target: Local verified working tree on
-  `feat/FEAT-006-role-assignment`
+- Reviewed target: Slice B merge `65d11aa`
 - Slice A target: Issue #24; merged through PR #25 at `835b9dc`
-- Slice B target: Issue #26; independent technical review clear; PR #27 open with required CI green
+- Slice B target: Issue #26; independent technical review clear; PR #27 merged at `65d11aa` after required CI passed
 - Verification date: 2026-08-14
 - Local/hosted/data boundary: Local synthetic verification only
-- Pull requests and CI: Slice A PR #25 merged; Slice B PR #27 open with required CI green
+- Pull requests and CI: Slice A PR #25 and Slice B PR #27 merged after their required CI passed
 - Known limitations: No hosted validation, real-data authority, factor
   recovery/replacement, formal accessibility review, qualified aviation role
   matrix, deployment, or production approval
