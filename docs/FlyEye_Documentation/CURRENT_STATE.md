@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-08-21
+- Last updated: 2026-08-27
 - Last verified merged baseline: code-maintainability guardrails PR #29 merge `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -30,15 +30,14 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
-- The code-maintainability guardrail checkpoint is merged. The post-FEAT-006 visual direction is defined in [Visual Design System](DESIGN.md); implementation conformance and external usability/accessibility validation remain follow-up work.
+- The code-maintainability guardrail checkpoint is merged. The post-FEAT-006 visual documentation checkpoint is defined in [Visual Design System](DESIGN.md); implementation is deferred, and a later bounded redesign may supersede the working direction.
 
 ## Next bounded product work
 
-Complete one bounded [Visual Design System](DESIGN.md) adoption slice for shared
-tokens, primitives, and an existing authentication shell, with synthetic desktop
-and phone verification. Then specify Aircraft Records and Compliance Documents
-without inventing aviation status, expiry, approval, or dispatch-eligibility
-rules; remaining legacy-flow migrations are separate follow-up work.
+Specify Aircraft Records and Compliance Documents through bounded Founder/Product
+Owner decisions without inventing aviation status, expiry, approval, or
+dispatch-eligibility rules. Visual-system adoption and any broader distinctive
+FlyEye redesign remain separate future work.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

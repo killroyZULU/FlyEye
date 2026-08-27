@@ -1,6 +1,6 @@
 # FlyEye Visual Design System
 
-- Status: target direction for bounded implementation
+- Status: documented working direction; implementation deferred
 - Scope: authenticated FlyEye PWA and authentication flows
 - Companion guidance: [UI/UX Guidelines](07_UI_UX_GUIDELINES.md)
 
@@ -11,6 +11,8 @@ This document owns FlyEye's visual tokens, application-shell patterns, and reusa
 FlyEye is a responsive PWA for one Philippine flight school per isolated deployment. It is not a shared multi-school application and has no school selector. The design must support the approved Student Pilot, Instructor Pilot, and Organization Admin access model without treating a role label or visible navigation as authorization.
 
 The current checkpoint covers the product application, not a public marketing, pricing, or blog website. Those surfaces require separate product and commercial decisions if later needed.
+
+This checkpoint is a reversible working reference, not a permanent commitment to the overall FlyEye interface. A later bounded redesign may supersede it when the Founder/Product Owner chooses to pursue a more distinctive product experience and the replacement preserves validated workflow, accessibility, safety, and authority requirements.
 
 ## 2. Reference boundary
 
@@ -217,12 +219,12 @@ Use real FlyEye field names and states with synthetic values. A polished screen 
 
 ## 11. Adoption and verification
 
-The existing interface predates these tokens and contains legacy color, typography, shadow, gradient, and radius choices. This document defines the migration target; it does not claim current conformance.
+The existing interface predates these tokens and contains legacy color, typography, shadow, gradient, and radius choices. This document records a working reference; it does not claim current conformance or require implementation before the next business-logic specification.
 
-Adopt the system through bounded follow-up work:
+If this system is adopted before a later redesign supersedes it, use bounded follow-up work:
 
 1. Complete one bounded adoption slice for tokens, focus treatment, shared primitives, and an existing authentication shell without changing authority or workflow behavior.
-2. Use that verified slice as the visual baseline before specifying larger operational modules.
+2. Use that verified slice as the visual baseline for later interface implementation; business-logic specification may proceed independently.
 3. Migrate remaining existing flows only through separately scoped follow-up work or when a feature is otherwise touched; a full retrospective migration is not a Stage 2 prerequisite.
 4. For each slice, verify its applicable states and desktop/phone behavior and retain before/after evidence where authorized.
 5. Run automated accessibility checks plus keyboard and screen-reader workflow review. Formal WCAG evidence and pilot-user validation remain separate qualified gates.
