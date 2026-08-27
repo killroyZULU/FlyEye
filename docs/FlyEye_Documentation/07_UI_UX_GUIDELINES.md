@@ -17,19 +17,7 @@ Use role-sensitive navigation, but never rely on it for authorization. Candidate
 
 ## 4. Reusable design system
 
-Build reusable components rather than AI-generated one-off styles:
-
-```text
-FlyEyePageHeader        FlyEyeFormSection
-FlyEyeTextField         FlyEyeSelect / DateTimeField
-FlyEyeDataTable         FlyEyeStatusBadge
-FlyEyeDocumentCard      FlyEyeAuditTimeline
-FlyEyeSourcePanel       FlyEyeValidationSummary
-FlyEyeConfirmDialog     FlyEyeOfflineIndicator
-FlyEyeEmptyState        FlyEyeErrorState
-```
-
-Material UI may supply foundations. Product components enforce FlyEye semantics, accessibility, error behavior, status vocabulary, and visual consistency.
+Use the tokens, application-shell patterns, and component presentation in the [Visual Design System](DESIGN.md). Product components enforce FlyEye semantics, accessibility, error behavior, status vocabulary, and visual consistency. Any foundational component or icon library requires the normal dependency review; this guideline does not select one.
 
 ## 5. Form behavior
 
@@ -81,7 +69,23 @@ Prototype Gate 3 target: at least 85% critical-task success; before commercial r
 
 ## 12. Content style
 
-Use Philippine flight-school terminology validated by users. Keep messages concise, actionable, respectful, and non-accusatory. Avoid raw technical errors, unexplained regulatory claims, or ambiguous “success” messages. Confirmation should state the record, new state, and next owner/action.
+Use Philippine flight-school terminology validated by users. FlyEye's voice is professional, calm, direct, and respectful. Keep messages concise, actionable, non-accusatory, and free of raw technical errors, unexplained regulatory claims, conversational filler, jokes, or self-congratulatory language.
+
+- Use sentence case and specific verb-plus-object actions such as “Save draft,” “Submit for review,” and “Confirm role change.” Avoid vague labels such as “Yes,” “Proceed,” or “Do it” when the action can be named.
+- State what happened without a standalone “Success!” heading or an exclamation mark. Include the record, new state, and next owner/action when applicable.
+- Explain errors in this order: what could not be completed, whether the user's work is preserved, and what to do next. Avoid “Oops,” “Something went wrong,” or blame-oriented wording.
+- State permission and protected-action denials plainly without exposing restricted details.
+- Use plain international English and avoid idioms. Follow the active [product-language scope](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#product-and-commercial-direction).
+
+Examples:
+
+| Situation | Preferred | Avoid |
+|---|---|---|
+| Saved draft | “Draft saved.” | “Awesome! Your data is safe!” |
+| Empty filtered list | “No members match these filters.” | “Nothing to see here.” |
+| Preserved error | “We couldn't save this change. Your entries are still here. Try again.” | “Oops! Something went wrong.” |
+| Permission denial | “You don't have permission to change this role.” | “Access forbidden.” |
+| Protected continuation | “Enter the code from your authenticator app to continue.” | “Verify now.” |
 
 ## 13. Responsive tables and reports
 
@@ -90,4 +94,3 @@ On small screens, convert dense rows to cards or prioritized columns; do not for
 ## 14. UX evidence
 
 For each critical feature retain the user flow, prototype/version, participants/roles, task script, success/error observations, decisions, and before/after screenshots where authorized. Link findings to feature specifications and the [QA Plan](11_QA_TEST_PLAN.md).
-
