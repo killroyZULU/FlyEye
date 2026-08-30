@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { SupabaseAuthGateway } from '../features/auth/services/auth-gateway';
@@ -34,7 +34,7 @@ export function isSafeBrowserKey(value: string): boolean {
   return jwtRole(value) !== 'service_role';
 }
 
-export function createBrowserAuthGateway(): SupabaseAuthGateway {
+export function createBrowserSupabaseClient(): SupabaseClient<Database> {
   const environment = environmentSchema.safeParse(import.meta.env);
   if (!environment.success) {
     throw new Error('FlyEye authentication is not configured for this environment.');
@@ -52,5 +52,9 @@ export function createBrowserAuthGateway(): SupabaseAuthGateway {
     },
   );
 
-  return new SupabaseAuthGateway(client);
+  return client;
+}
+
+export function createBrowserAuthGateway(): SupabaseAuthGateway {
+  return new SupabaseAuthGateway(createBrowserSupabaseClient());
 }

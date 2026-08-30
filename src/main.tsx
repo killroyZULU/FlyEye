@@ -2,8 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
+import { SupabaseAircraftRegistryGateway } from './features/aircraft';
 import { StatePanel } from './features/auth/components/StatePanel';
-import { createBrowserAuthGateway } from './lib/supabase';
+import { SupabaseAuthGateway } from './features/auth/services/auth-gateway';
+import { createBrowserSupabaseClient } from './lib/supabase';
 import './styles/main.css';
 
 const rootElement = document.getElementById('root');
@@ -14,10 +16,13 @@ if (!rootElement) {
 const root = createRoot(rootElement);
 
 try {
-  const gateway = createBrowserAuthGateway();
+  const client = createBrowserSupabaseClient();
   root.render(
     <StrictMode>
-      <App gateway={gateway} />
+      <App
+        gateway={new SupabaseAuthGateway(client)}
+        aircraftGateway={new SupabaseAircraftRegistryGateway(client)}
+      />
     </StrictMode>,
   );
 } catch {

@@ -96,6 +96,7 @@ if (process.argv.includes('--list')) {
 
 for (const fixture of fixtures) {
   if (
+    fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
     fixture === 'test-feat-006-runtime.mjs'
@@ -109,11 +110,7 @@ for (const fixture of fixtures) {
       process.exit(1);
     }
   }
-  if (
-    fixture === 'test-edge-runtime.mjs' ||
-    fixture === 'test-recovery-runtime.mjs' ||
-    fixture === 'test-feat-004-runtime.mjs'
-  ) {
+  if (fixture === 'test-recovery-runtime.mjs' || fixture === 'test-feat-004-runtime.mjs') {
     try {
       await ensureTemplateRuntimeReady();
     } catch (error) {

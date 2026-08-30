@@ -51,6 +51,8 @@ const adminContext = {
       workspacePermission: 'portal.admin.access',
       permissions: [
         'portal.admin.access',
+        'aircraft.record.read',
+        'aircraft.record.manage',
         'membership.invitation.manage',
         'membership.member.review',
         'membership.member.manage_status',
@@ -100,6 +102,7 @@ async function waitForServer() {
 }
 
 async function mockSupabase(page, options = {}) {
+  let aircraftRecord;
   await page.route('**/auth/v1/token?grant_type=password', async (route) => {
     if (options.invalid) {
       await route.fulfill({
@@ -276,6 +279,60 @@ async function mockSupabase(page, options = {}) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(responses[body.action]),
+    });
+  });
+  await page.route('**/functions/v1/aircraft-registry', async (route) => {
+    const body = route.request().postDataJSON();
+    const correlationId = '30000000-0000-4000-8000-000000000040';
+    if (body.action === 'list') {
+      const records =
+        aircraftRecord && (body.includeArchived || aircraftRecord.registryState === 'tracked')
+          ? [aircraftRecord]
+          : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          decision: 'listed',
+          records,
+          page: body.page,
+          pageSize: body.pageSize,
+          hasNext: false,
+          correlationId,
+        }),
+      });
+      return;
+    }
+    const decisions = {
+      create: 'created',
+      update: 'updated',
+      archive: 'archived',
+      reactivate: 'reactivated',
+    };
+    assert.ok(Object.hasOwn(decisions, body.action));
+    aircraftRecord = {
+      id: aircraftRecord?.id ?? '50000000-0000-4000-8000-000000000001',
+      registrationMark: body.registrationMark ?? aircraftRecord.registrationMark,
+      manufacturer: body.manufacturer ?? aircraftRecord.manufacturer,
+      model: body.model ?? aircraftRecord.model,
+      registryState:
+        body.action === 'archive'
+          ? 'archived'
+          : body.action === 'reactivate'
+            ? 'tracked'
+            : (aircraftRecord?.registryState ?? 'tracked'),
+      version: (aircraftRecord?.version ?? 0) + 1,
+      updatedAt: '2026-08-29T00:00:00Z',
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: decisions[body.action],
+        record: aircraftRecord,
+        replayed: false,
+        correlationId,
+      }),
     });
   });
   await page.route('**/auth/v1/logout*', async (route) => route.fulfill({ status: 204, body: '' }));
@@ -496,6 +553,31 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('heading', { name: 'suspend this membership?' }).waitFor();
       await page.getByRole('button', { name: 'Confirm suspend' }).click();
       await page.getByText('Membership suspended successfully.').waitFor();
+    } else if (scenario.name === 'aircraft') {
+      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
+      await page.getByRole('button', { name: 'Open aircraft registry' }).click();
+      await page.getByRole('heading', { name: 'Aircraft registry' }).waitFor();
+      await page.getByText(/Tracked does not mean operationally available/i).waitFor();
+      await page.getByRole('button', { name: 'Add aircraft' }).click();
+      await page.getByLabel('Registration mark').fill('rp-c1234');
+      await page.getByLabel('Manufacturer').fill('Synthetic Airframes');
+      await page.getByLabel('Model').fill('Trainer One');
+      await page.getByRole('button', { name: 'Save record' }).click();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Archive record' }).click();
+      const confirmation = page.getByRole('heading', { name: 'Archive RP-C1234?' });
+      await confirmation.waitFor();
+      assert.equal(
+        await confirmation.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      await page.getByRole('button', { name: 'Confirm archive' }).click();
+      await page.getByText('No Tracked aircraft records yet.').waitFor();
+      await page.getByLabel('Include archived').check();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Reactivate record' }).click();
+      await page.getByRole('button', { name: 'Confirm reactivate' }).click();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
     }
   } finally {
     await page.close();
@@ -513,6 +595,7 @@ const scenarios = [
   { name: 'security', options: {} },
   { name: 'privileged-security', options: { privilegedMissingMfa: true } },
   { name: 'members', options: { admin: true } },
+  { name: 'aircraft', options: { admin: true } },
 ];
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },

@@ -2,8 +2,8 @@
 
 ## Status
 
-- State: Approved specification; implementation not started
-- Current SDLC phase: Specification and design
+- State: Implementation, local synthetic verification, and technical review complete; PR/CI pending
+- Current SDLC phase: PR/CI
 - Owner: Founder/Product Owner
 - Baseline: `main` at `1a85ae6`
 - Task issue: [#31](https://github.com/killroyZULU/FlyEye/issues/31)
@@ -137,7 +137,7 @@ airworthiness, compliance, maintenance condition, or operational availability.
 
 ## Data and server contract
 
-The future implementation adds one `aircraft_records` tenant-owned aggregate:
+The implementation adds one `aircraft_records` tenant-owned aggregate:
 
 - opaque `id` and required `organization_id` with composite tenant integrity;
 - `registration_mark`, server-derived `registration_key`, `manufacturer`, and
@@ -309,46 +309,46 @@ command produces no second mutation or audit event.
 
 ## Acceptance criteria
 
-- [ ] `FEAT-007A-AC-01` Only an active Organization Admin with
+- [x] `FEAT-007A-AC-01` Only an active Organization Admin with
       `aircraft.record.read` and current AAL2 can list, search, or read aircraft
       records from the deployment's organization through the protected read
       boundary.
-- [ ] `FEAT-007A-AC-02` Only an active Organization Admin with
+- [x] `FEAT-007A-AC-02` Only an active Organization Admin with
       `aircraft.record.manage` and current AAL2 can create, edit, archive, or
       reactivate a record through the protected command.
-- [ ] `FEAT-007A-AC-03` Each record contains only the approved aircraft identity
+- [x] `FEAT-007A-AC-03` Each record contains only the approved aircraft identity
       fields plus tenant, lifecycle, version, attribution, and audit metadata.
-- [ ] `FEAT-007A-AC-04` Registration, manufacturer, and model validation follows
+- [x] `FEAT-007A-AC-04` Registration, manufacturer, and model validation follows
       the approved normalization and length rules without asserting a
       registration-format rule.
-- [ ] `FEAT-007A-AC-05` Two Tracked records cannot share a normalized
+- [x] `FEAT-007A-AC-05` Two Tracked records cannot share a normalized
       registration key within the organization, including under concurrent
       create, update, or reactivate attempts.
-- [ ] `FEAT-007A-AC-06` Version and idempotency behavior prevents silent
+- [x] `FEAT-007A-AC-06` Version and idempotency behavior prevents silent
       overwrites, changed-input key reuse, duplicate mutations, and duplicate
       audit events, including versionless create and rate-limited replay.
-- [ ] `FEAT-007A-AC-07` Archive and reactivation accept only approved reasons,
+- [x] `FEAT-007A-AC-07` Archive and reactivation accept only approved reasons,
       remain reversible, and never imply an operational aircraft status.
-- [ ] `FEAT-007A-AC-08` Record mutation and the required audit event commit
+- [x] `FEAT-007A-AC-08` Record mutation and the required audit event commit
       atomically; audit failure leaves the record unchanged.
-- [ ] `FEAT-007A-AC-09` Direct browser table reads/writes, unauthorized roles,
+- [x] `FEAT-007A-AC-09` Direct browser table reads/writes, unauthorized roles,
       forged authority, and cross-school list/search/direct-ID/RPC/Edge attempts
       fail closed without hidden-state disclosure.
-- [ ] `FEAT-007A-AC-10` Loading, empty, filtered-empty, error, unauthorized,
+- [x] `FEAT-007A-AC-10` Loading, empty, filtered-empty, error, unauthorized,
       conflict, offline, and success interface states preserve accessibility and
       user-entered values where applicable.
-- [ ] `FEAT-007A-AC-11` The application exposes no operational status,
+- [x] `FEAT-007A-AC-11` The application exposes no operational status,
       compliance judgment, attachment, expiry, notification, dispatch, export,
       or permanent deletion behavior.
-- [ ] `FEAT-007A-AC-12` Synthetic verification leaves no residual school,
+- [x] `FEAT-007A-AC-12` Synthetic verification leaves no residual school,
       membership, aircraft, idempotency, limiter, or audit fixture data.
-- [ ] `FEAT-007A-AC-13` Search treats wildcard input literally, applies bounded
+- [x] `FEAT-007A-AC-13` Search treats wildcard input literally, applies bounded
       pages with repeated criteria and stable ordering, and returns no
       unauthorized or out-of-window data.
-- [ ] `FEAT-007A-AC-14` Offline registry data remains current-session memory
+- [x] `FEAT-007A-AC-14` Offline registry data remains current-session memory
       only; successful protected reads create their bounded domain audit event
       or return no registry data.
-- [ ] `FEAT-007A-AC-15` Read, mutation, and lifecycle token buckets enforce the
+- [x] `FEAT-007A-AC-15` Read, mutation, and lifecycle token buckets enforce the
       specified order, capacities, and refill rates; an authorized stored replay
       bypasses mutation-token consumption, and limiter failure causes no data
       access or change.
@@ -373,12 +373,11 @@ command produces no second mutation or audit event.
 ## Dependencies and change boundary
 
 No new package, provider, paid service, attachment scanner, notification channel,
-or architecture is planned. The future implementation reuses current Auth,
+or architecture was added. The implementation reuses current Auth,
 permission, protected-command, RLS, audit, limiter, responsive form, and test
 patterns.
 
-This specification task may change only FEAT-007A documentation. Future
-implementation is bounded to one migration and generated types, a focused
+The implementation is bounded to one migration and generated types, a focused
 aircraft-registry Edge Function and server contract, the aircraft feature UI,
 focused synthetic tests/fixtures, and required canonical evidence. Unrelated
 identity, member administration, operational status, documents, dispatch,
