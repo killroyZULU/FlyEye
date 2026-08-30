@@ -2,11 +2,11 @@
 
 ## Evidence boundary
 
-- Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; PR #32 update pending
+- Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; review-ready PR #32
 - Verification date: 2026-08-30
 - Local/hosted/data boundary: Local synthetic verification only
 - Review and CI: Final corrected-target technical re-review clear; required
-  pull-request CI pending
+  pull-request checks passed for implementation commit `cd6a937`
 - Known limitations: No hosted validation, real-data authority, formal
   accessibility review, qualified aviation workflow review, retention decision,
   deployment, or production approval
@@ -42,7 +42,8 @@ compliance, registration validity, ownership, or dispatch authority.
 - Database lint reported no schema warnings, and generated types match the
   applied schema.
 
-Commit and CI state must be refreshed for the stable pull-request target.
+Implementation commit `cd6a937` is pushed, and its required pull-request checks
+passed.
 
 ## Evidence rules
 

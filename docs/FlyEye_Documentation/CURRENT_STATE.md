@@ -28,9 +28,10 @@ FEAT-007 Slice A Aircraft Registry Foundation is implemented on
 desktop/mobile browser, database, and runtime matrices pass. Review corrections
 pass the 303-test app gate, 382 rollback-only SQL assertions, all eight local
 runtime fixtures, schema lint, and generated-type verification. Final technical
-re-review is clear; pull-request CI remains before the merge decision. The slice
-contains administrative identity records only and creates no operational,
-airworthiness, compliance, registration-validity, ownership, or dispatch authority.
+re-review is clear, and required pull-request checks passed for implementation
+commit `cd6a937`. The slice contains administrative identity records only and
+creates no operational, airworthiness, compliance, registration-validity,
+ownership, or dispatch authority.
 
 ## Current product boundary
 
@@ -40,15 +41,15 @@ airworthiness, compliance, registration-validity, ownership, or dispatch authori
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic and technical-review evidence but remains unmerged; no operational-status module is implemented.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic, technical-review, and required CI evidence but remains unmerged; no operational-status module is implemented.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Complete required PR #32 CI, then stop for the merge decision. After that gate,
-return to owner-directed discovery for the next bounded Aircraft Records or
-Compliance Documents slice without inventing aviation status, expiry, approval,
-or dispatch-eligibility rules.
+Stop for the FEAT-007A merge decision. After that gate, return to owner-directed
+discovery for the next bounded Aircraft Records or Compliance Documents slice
+without inventing aviation status, expiry, approval, or dispatch-eligibility
+rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
