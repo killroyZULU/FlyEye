@@ -12,8 +12,98 @@ const priority = new Map([
 ]);
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
-const feat003DiagnosticPattern =
-  /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/;
+const diagnosticLinePattern =
+  /^(FEAT-003|FEAT-006) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
+const diagnosticFailureLinePattern =
+  /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
+const fixtureDiagnosticRules = new Map([
+  [
+    'test-feat-003-runtime.mjs',
+    {
+      prefix: 'FEAT-003',
+      stages: new Set([
+        'auth-reset-initial',
+        'identity-creation',
+        'fixture-failure-injection',
+        'fixture-issuance',
+        'edge-runtime-startup',
+        'first-admin-status',
+        'first-admin-start',
+        'first-admin-totp',
+        'first-admin-completion',
+        'first-admin-bootstrap',
+        'first-replay-recovery',
+        'first-completion-replay',
+        'browser-onboarding',
+        'browser-frontend-startup',
+        'browser-launch',
+        'browser-sign-in',
+        'browser-onboarding-ready',
+        'browser-totp-completion',
+        'browser-frontend-shutdown',
+        'completion-race',
+        'auth-reset-limiter',
+        'limiter-burst',
+        'limiter-recovery',
+        'race-completion-replay',
+        'privacy-evidence',
+        'fixture-cleanup',
+        'fixture-assertions',
+        'edge-runtime-shutdown',
+      ]),
+    },
+  ],
+  [
+    'test-feat-006-runtime.mjs',
+    {
+      prefix: 'FEAT-006',
+      stages: new Set([
+        'identity-creation',
+        'database-fixture',
+        'edge-runtime-startup',
+        'sign-in',
+        'readiness-status',
+        'enrollment-start',
+        'provider-enrollment',
+        'factor-binding',
+        'totp-verification',
+        'completion',
+        'evidence',
+        'fixture-data-cleanup',
+        'fixture-assertions',
+      ]),
+      failureDetails: new Set([
+        'auth-session-read-failed',
+        'auth-session-unavailable',
+        'edge-runtime-exited',
+        'member-mfa-audit-unavailable',
+        'member-mfa-authentication-required',
+        'member-mfa-factor-conflict',
+        'member-mfa-limiter-unavailable',
+        'member-mfa-not-available',
+        'member-mfa-provider-unavailable',
+        'member-mfa-rate-limited',
+        'member-mfa-recent-authentication-required',
+        'member-mfa-service-unavailable',
+        'member-mfa-state-conflict',
+        'response-decoding-failed',
+        'transport-failed',
+        'unclassified',
+      ]),
+    },
+  ],
+]);
+
+function isApprovedDiagnosticLine(line, rule) {
+  const match = diagnosticLinePattern.exec(line);
+  if (match) return match[1] === rule.prefix && rule.stages.has(match[2]);
+  const failureMatch = diagnosticFailureLinePattern.exec(line);
+  return (
+    rule.prefix === 'FEAT-006' &&
+    failureMatch?.[1] === 'completion' &&
+    rule.failureDetails.has(failureMatch[2])
+  );
+}
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -96,6 +186,7 @@ if (process.argv.includes('--list')) {
 
 for (const fixture of fixtures) {
   if (
+    fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
     fixture === 'test-feat-006-runtime.mjs'
@@ -109,11 +200,7 @@ for (const fixture of fixtures) {
       process.exit(1);
     }
   }
-  if (
-    fixture === 'test-edge-runtime.mjs' ||
-    fixture === 'test-recovery-runtime.mjs' ||
-    fixture === 'test-feat-004-runtime.mjs'
-  ) {
+  if (fixture === 'test-recovery-runtime.mjs' || fixture === 'test-feat-004-runtime.mjs') {
     try {
       await ensureTemplateRuntimeReady();
     } catch (error) {
@@ -124,18 +211,21 @@ for (const fixture of fixtures) {
     }
   }
 
-  const isFeat003Fixture = fixture === 'test-feat-003-runtime.mjs';
+  const diagnosticRule = fixtureDiagnosticRules.get(fixture);
+  const hasSanitizedDiagnostics = diagnosticRule !== undefined;
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    encoding: isFeat003Fixture ? 'utf8' : undefined,
-    env: isFeat003Fixture ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
-    stdio: isFeat003Fixture ? ['ignore', 'pipe', 'ignore'] : 'ignore',
+    encoding: hasSanitizedDiagnostics ? 'utf8' : undefined,
+    env: hasSanitizedDiagnostics
+      ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' }
+      : process.env,
+    stdio: hasSanitizedDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
     timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
 
-  if (isFeat003Fixture && typeof result.stdout === 'string') {
+  if (diagnosticRule && typeof result.stdout === 'string') {
     for (const line of result.stdout.split(/\r?\n/)) {
-      if (feat003DiagnosticPattern.test(line)) process.stdout.write(`${line}\n`);
+      if (isApprovedDiagnosticLine(line, diagnosticRule)) process.stdout.write(`${line}\n`);
     }
   }
 
@@ -144,7 +234,7 @@ for (const fixture of fixtures) {
       result.error?.code === 'ETIMEDOUT' ? 'timeout' : `exit ${result.status ?? 'unknown'}`;
     process.stderr.write(`Runtime matrix failed: ${fixture} (${outcome}).\n`);
     process.stderr.write(
-      'Child output was suppressed. Treat cleanup as uncertain until the fixture-specific sanitized diagnostic confirms it.\n',
+      'Child output was suppressed. Treat data and process cleanup as uncertain; sanitized diagnostics identify only the last confirmed stage.\n',
     );
     process.exit(result.status ?? 1);
   }

@@ -32,9 +32,68 @@ const admin = createClient(apiUrl, serviceRoleKey, {
 let userId;
 let client;
 let edgeProcess;
+let edgeExitPromise;
+let edgeExitObserved = false;
 let temporaryDirectory;
 let primaryError;
 const limiterCorrelationIds = [];
+const runtimeDiagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
+const runtimeFailureCodes = new Set([
+  'member_mfa.audit_unavailable',
+  'member_mfa.authentication_required',
+  'member_mfa.factor_conflict',
+  'member_mfa.limiter_unavailable',
+  'member_mfa.not_available',
+  'member_mfa.provider_unavailable',
+  'member_mfa.rate_limited',
+  'member_mfa.recent_authentication_required',
+  'member_mfa.service_unavailable',
+  'member_mfa.state_conflict',
+]);
+
+class MemberMfaRuntimeRequestError extends Error {
+  constructor(status, safeCode) {
+    super(`Member MFA runtime request failed with ${status} (${safeCode}).`);
+    this.safeCode = safeCode;
+  }
+}
+
+class MemberMfaRuntimePhaseError extends Error {
+  constructor(detail) {
+    super('The member MFA runtime invocation failed.');
+    this.detail = detail;
+  }
+}
+
+function runtimeDiagnostic(stage, event) {
+  if (runtimeDiagnosticsEnabled) {
+    process.stdout.write(`FEAT-006 runtime diagnostic: stage=${stage} event=${event}.\n`);
+  }
+}
+
+async function runtimeFailureDiagnostic(stage, error) {
+  if (!runtimeDiagnosticsEnabled) return;
+  if (
+    edgeProcess &&
+    !edgeExitObserved &&
+    edgeProcess.exitCode === null &&
+    edgeProcess.signalCode === null
+  ) {
+    await Promise.race([edgeExitPromise, new Promise((resolve) => setTimeout(resolve, 250))]);
+  }
+  const detail =
+    edgeProcess &&
+    (edgeExitObserved || edgeProcess.exitCode !== null || edgeProcess.signalCode !== null)
+      ? 'edge-runtime-exited'
+      : error instanceof MemberMfaRuntimeRequestError && runtimeFailureCodes.has(error.safeCode)
+        ? error.safeCode.replaceAll(/[._]/g, '-')
+        : error instanceof MemberMfaRuntimePhaseError
+          ? error.detail
+          : 'unclassified';
+  process.stdout.write(
+    `FEAT-006 runtime diagnostic: stage=${stage} event=failed detail=${detail}.\n`,
+  );
+}
 
 function psql(sql, tuplesOnly = false) {
   const args = ['exec', '-i', 'supabase_db_flyeye', 'psql', '-U', 'postgres', '-d', 'postgres'];
@@ -90,19 +149,34 @@ async function waitForEdge() {
 }
 
 async function invoke(body) {
-  const { data } = await client.auth.getSession();
-  if (!data.session) throw new Error('The synthetic session is unavailable.');
-  const response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${data.session.access_token}`,
-      'content-type': 'application/json',
-      origin,
-    },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json();
+  let data;
+  try {
+    ({ data } = await client.auth.getSession());
+  } catch {
+    throw new MemberMfaRuntimePhaseError('auth-session-read-failed');
+  }
+  if (!data.session) throw new MemberMfaRuntimePhaseError('auth-session-unavailable');
+  let response;
+  try {
+    response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${data.session.access_token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new MemberMfaRuntimePhaseError('transport-failed');
+  }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new MemberMfaRuntimePhaseError('response-decoding-failed');
+  }
   if (payload && typeof payload === 'object' && typeof payload.correlationId === 'string') {
     limiterCorrelationIds.push(payload.correlationId);
   }
@@ -111,15 +185,19 @@ async function invoke(body) {
       payload && typeof payload === 'object' && typeof payload.error?.code === 'string'
         ? payload.error.code
         : 'unknown';
-    throw new Error(`Member MFA runtime request failed with ${response.status} (${safeCode}).`);
+    throw new MemberMfaRuntimeRequestError(response.status, safeCode);
   }
   return payload;
 }
 
 try {
+  runtimeDiagnostic('identity-creation', 'enter');
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error || !created.data.user) throw new Error('Synthetic user creation failed.');
   userId = created.data.user.id;
+  runtimeDiagnostic('identity-creation', 'passed');
+
+  runtimeDiagnostic('database-fixture', 'enter');
   psql(`
     insert into public.organizations (id, name, status)
     values ('${organizationId}', 'Synthetic FEAT-006 Runtime School', 'active');
@@ -129,7 +207,9 @@ try {
     select '${organizationId}', '${membershipId}', id
     from public.roles where code = 'student_pilot';
   `);
+  runtimeDiagnostic('database-fixture', 'passed');
 
+  runtimeDiagnostic('edge-runtime-startup', 'enter');
   temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), 'flyeye-feat006a-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -158,23 +238,38 @@ try {
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
     { stdio: 'ignore', windowsHide: true },
   );
+  edgeExitPromise = new Promise((resolve) => {
+    edgeProcess.once('exit', () => {
+      edgeExitObserved = true;
+      resolve();
+    });
+  });
   await waitForEdge();
+  runtimeDiagnostic('edge-runtime-startup', 'passed');
 
+  runtimeDiagnostic('sign-in', 'enter');
   client = createClient(apiUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: true },
   });
   const signedIn = await client.auth.signInWithPassword({ email, password });
   if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
+  runtimeDiagnostic('sign-in', 'passed');
 
+  runtimeDiagnostic('readiness-status', 'enter');
   const status = await invoke({ action: 'status' });
   assert.equal(status.factorState, 'enrollment_required');
   assert.equal(status.ready, false);
+  runtimeDiagnostic('readiness-status', 'passed');
 
+  runtimeDiagnostic('enrollment-start', 'enter');
   const started = await invoke({
     action: 'start',
     idempotencyKey: randomBytes(16).toString('hex'),
   });
   assert.equal(started.factorState, 'enrollment_required');
+  runtimeDiagnostic('enrollment-start', 'passed');
+
+  runtimeDiagnostic('provider-enrollment', 'enter');
   const enrolled = await client.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: 'Synthetic FlyEye authenticator',
@@ -191,7 +286,9 @@ try {
   if (!providerInventory.data.factors[0]) {
     throw new Error('Synthetic factor inventory was empty.');
   }
+  runtimeDiagnostic('provider-enrollment', 'passed');
 
+  runtimeDiagnostic('factor-binding', 'enter');
   const bound = await invoke({
     action: 'bind_factor',
     operationId: started.operationId,
@@ -200,21 +297,34 @@ try {
     idempotencyKey: randomBytes(16).toString('hex'),
   });
   assert.equal(bound.decision, 'bound');
+  runtimeDiagnostic('factor-binding', 'passed');
 
+  runtimeDiagnostic('totp-verification', 'enter');
   const verified = await client.auth.mfa.challengeAndVerify({
     factorId: enrolled.data.id,
     code: currentTotp(enrolled.data.totp.secret),
   });
   if (verified.error) throw new Error('Synthetic TOTP verification failed.');
+  runtimeDiagnostic('totp-verification', 'passed');
 
-  const completed = await invoke({
-    action: 'complete',
-    operationId: started.operationId,
-    expectedVersion: bound.operationVersion,
-    idempotencyKey: randomBytes(16).toString('hex'),
-  });
+  runtimeDiagnostic('completion', 'enter');
+  let completed;
+  try {
+    completed = await invoke({
+      action: 'complete',
+      operationId: started.operationId,
+      expectedVersion: bound.operationVersion,
+      idempotencyKey: randomBytes(16).toString('hex'),
+    });
+  } catch (error) {
+    await runtimeFailureDiagnostic('completion', error);
+    throw error;
+  }
   assert.equal(completed.decision, 'completed');
   assert.equal(completed.membershipId, membershipId);
+  runtimeDiagnostic('completion', 'passed');
+
+  runtimeDiagnostic('evidence', 'enter');
   assert.equal(
     psql(
       `select count(*) from public.member_mfa_readiness where membership_id = '${membershipId}';`,
@@ -236,10 +346,12 @@ try {
     ),
     'student_pilot',
   );
+  runtimeDiagnostic('evidence', 'passed');
 } catch (error) {
   primaryError = error;
 } finally {
   if (edgeProcess) edgeProcess.kill();
+  runtimeDiagnostic('fixture-data-cleanup', 'enter');
   const cleanupErrors = [];
   if (userId) {
     try {
@@ -310,8 +422,10 @@ try {
       primaryError ? [primaryError, ...cleanupErrors] : cleanupErrors,
       'FEAT-006A runtime verification or cleanup failed.',
     );
+  if (cleanupErrors.length === 0) runtimeDiagnostic('fixture-data-cleanup', 'passed');
 }
 
 if (primaryError) throw primaryError;
 
+runtimeDiagnostic('fixture-assertions', 'passed');
 process.stdout.write('FEAT-006A local synthetic TOTP runtime verification passed.\n');
