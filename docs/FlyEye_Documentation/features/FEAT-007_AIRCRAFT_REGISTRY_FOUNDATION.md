@@ -2,7 +2,7 @@
 
 ## Status
 
-- State: Implementation, local synthetic verification, and technical review complete; current-head PR checks pending after bounded CI diagnostic remediation
+- State: Implementation, local synthetic verification, and technical review complete; current-head PR checks blocked by a repeated pre-existing FEAT-006 completion-fixture failure under bounded diagnosis
 - Current SDLC phase: PR/CI verification
 - Owner: Founder/Product Owner
 - Baseline: `main` at `1a85ae6`

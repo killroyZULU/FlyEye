@@ -29,10 +29,12 @@ desktop/mobile browser, database, and runtime matrices pass. Review corrections
 pass the 303-test app gate, 382 rollback-only SQL assertions, all eight local
 runtime fixtures, schema lint, and generated-type verification. Final technical
 re-review is clear, and required pull-request checks passed for implementation
-commit `cd6a937`. Two repeated current-head CI failures in the pre-existing
-FEAT-006 runtime fixture are under bounded sanitized-diagnostic remediation;
-the correction passes the complete local runtime and app gates and independent
-re-review, while current-head PR checks remain pending. The slice contains
+commit `cd6a937`. Three consecutive later-head CI failures in the pre-existing
+FEAT-006 runtime fixture are under bounded sanitized-diagnostic investigation;
+the latest evidence isolates the failure to protected completion after TOTP
+verification and confirms synthetic data cleanup. Safe error classification
+passes focused local verification and independent re-review, while current-head
+PR checks remain pending. The slice contains
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
 

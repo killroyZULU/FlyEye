@@ -14,6 +14,8 @@ const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
 const diagnosticLinePattern =
   /^(FEAT-003|FEAT-006) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
+const diagnosticFailureLinePattern =
+  /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
 const fixtureDiagnosticRules = new Map([
   [
     'test-feat-003-runtime.mjs',
@@ -70,13 +72,32 @@ const fixtureDiagnosticRules = new Map([
         'fixture-data-cleanup',
         'fixture-assertions',
       ]),
+      failureDetails: new Set([
+        'member-mfa-audit-unavailable',
+        'member-mfa-authentication-required',
+        'member-mfa-factor-conflict',
+        'member-mfa-limiter-unavailable',
+        'member-mfa-not-available',
+        'member-mfa-provider-unavailable',
+        'member-mfa-rate-limited',
+        'member-mfa-recent-authentication-required',
+        'member-mfa-service-unavailable',
+        'member-mfa-state-conflict',
+        'unclassified',
+      ]),
     },
   ],
 ]);
 
 function isApprovedDiagnosticLine(line, rule) {
   const match = diagnosticLinePattern.exec(line);
-  return match?.[1] === rule.prefix && rule.stages.has(match[2]);
+  if (match) return match[1] === rule.prefix && rule.stages.has(match[2]);
+  const failureMatch = diagnosticFailureLinePattern.exec(line);
+  return (
+    rule.prefix === 'FEAT-006' &&
+    failureMatch?.[1] === 'completion' &&
+    rule.failureDetails.has(failureMatch[2])
+  );
 }
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
