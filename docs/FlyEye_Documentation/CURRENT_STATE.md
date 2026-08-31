@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-08-30
+- Last updated: 2026-08-31
 - Last verified merged baseline: `main` at `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -29,9 +29,12 @@ desktop/mobile browser, database, and runtime matrices pass. Review corrections
 pass the 303-test app gate, 382 rollback-only SQL assertions, all eight local
 runtime fixtures, schema lint, and generated-type verification. Final technical
 re-review is clear, and required pull-request checks passed for implementation
-commit `cd6a937`. The slice contains administrative identity records only and
-creates no operational, airworthiness, compliance, registration-validity,
-ownership, or dispatch authority.
+commit `cd6a937`. Two repeated current-head CI failures in the pre-existing
+FEAT-006 runtime fixture are under bounded sanitized-diagnostic remediation;
+the correction passes the complete local runtime and app gates and independent
+re-review, while current-head PR checks remain pending. The slice contains
+administrative identity records only and creates no operational, airworthiness,
+compliance, registration-validity, ownership, or dispatch authority.
 
 ## Current product boundary
 
@@ -41,12 +44,13 @@ ownership, or dispatch authority.
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic, technical-review, and required CI evidence but remains unmerged; no operational-status module is implemented.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic and technical-review evidence; its implementation commit passed required CI, but the diagnostic-remediation head still requires current-head CI evidence. No operational-status module is implemented.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Stop for the FEAT-007A merge decision. After that gate, return to owner-directed
+Obtain green current-head FEAT-007A PR checks, then stop for the merge decision.
+After that gate, return to owner-directed
 discovery for the next bounded Aircraft Records or Compliance Documents slice
 without inventing aviation status, expiry, approval, or dispatch-eligibility
 rules.

@@ -2,8 +2,8 @@
 
 ## Status
 
-- State: Implementation, local synthetic verification, technical review, and required PR checks complete; merge decision pending
-- Current SDLC phase: Merge decision
+- State: Implementation, local synthetic verification, and technical review complete; current-head PR checks pending after bounded CI diagnostic remediation
+- Current SDLC phase: PR/CI verification
 - Owner: Founder/Product Owner
 - Baseline: `main` at `1a85ae6`
 - Task issue: [#31](https://github.com/killroyZULU/FlyEye/issues/31)
@@ -394,4 +394,4 @@ behavior remains excluded.
       behavior is specified
 - [x] Documentation formatting, structure, links, and duplication checks pass
 - [x] Separate-agent review reports no unresolved actionable finding
-- [x] The scoped branch has a green review-ready pull request
+- [ ] The scoped branch has a green review-ready pull request

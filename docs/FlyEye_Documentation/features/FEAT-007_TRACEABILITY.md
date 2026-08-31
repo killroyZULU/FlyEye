@@ -2,11 +2,13 @@
 
 ## Evidence boundary
 
-- Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; review-ready PR #32
-- Verification date: 2026-08-30
+- Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; PR #32
+- Verification date: 2026-08-31
 - Local/hosted/data boundary: Local synthetic verification only
-- Review and CI: Final corrected-target technical re-review clear; required
-  pull-request checks passed for implementation commit `cd6a937`
+- Review and CI: Final implementation and diagnostic-remediation technical
+  re-reviews clear; required pull-request checks passed for implementation
+  commit `cd6a937`, while current-head checks remain pending after two repeated
+  FEAT-006 fixture failures
 - Known limitations: No hosted validation, real-data authority, formal
   accessibility review, qualified aviation workflow review, retention decision,
   deployment, or production approval
@@ -43,7 +45,9 @@ compliance, registration validity, ownership, or dispatch authority.
   applied schema.
 
 Implementation commit `cd6a937` is pushed, and its required pull-request checks
-passed.
+passed. The bounded diagnostic correction for the repeated current-head
+FEAT-006 fixture failure passes the complete local app and eight-fixture runtime
+gates; current-head pull-request evidence remains pending.
 
 ## Evidence rules
 
