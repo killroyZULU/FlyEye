@@ -7,7 +7,7 @@
 - Local/hosted/data boundary: Local synthetic verification only
 - Review and CI: Final implementation and diagnostic-remediation technical
   re-reviews clear; required pull-request checks passed for implementation
-  commit `cd6a937`, while current-head checks remain pending after three
+  commit `cd6a937`, while current-head checks remain pending after four
   consecutive FEAT-006 fixture failures
 - Known limitations: No hosted validation, real-data authority, formal
   accessibility review, qualified aviation workflow review, retention decision,
@@ -49,7 +49,9 @@ passed. The bounded diagnostic correction for the repeated current-head
 FEAT-006 fixture failure passes the complete local app and eight-fixture runtime
 gates. CI now isolates the failure to protected completion after successful TOTP
 verification and confirms data cleanup. Reviewed safe error classification is
-ready; current-head pull-request evidence remains pending.
+ready and rules out the protected API's bounded contract errors; safe
+invocation-phase classification and current-head pull-request evidence remain
+pending.
 
 ## Evidence rules
 

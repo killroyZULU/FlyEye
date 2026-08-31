@@ -73,6 +73,9 @@ const fixtureDiagnosticRules = new Map([
         'fixture-assertions',
       ]),
       failureDetails: new Set([
+        'auth-session-read-failed',
+        'auth-session-unavailable',
+        'edge-runtime-exited',
         'member-mfa-audit-unavailable',
         'member-mfa-authentication-required',
         'member-mfa-factor-conflict',
@@ -83,6 +86,8 @@ const fixtureDiagnosticRules = new Map([
         'member-mfa-recent-authentication-required',
         'member-mfa-service-unavailable',
         'member-mfa-state-conflict',
+        'response-decoding-failed',
+        'transport-failed',
         'unclassified',
       ]),
     },

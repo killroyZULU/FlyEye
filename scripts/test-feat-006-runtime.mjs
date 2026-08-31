@@ -32,6 +32,8 @@ const admin = createClient(apiUrl, serviceRoleKey, {
 let userId;
 let client;
 let edgeProcess;
+let edgeExitPromise;
+let edgeExitObserved = false;
 let temporaryDirectory;
 let primaryError;
 const limiterCorrelationIds = [];
@@ -56,18 +58,38 @@ class MemberMfaRuntimeRequestError extends Error {
   }
 }
 
+class MemberMfaRuntimePhaseError extends Error {
+  constructor(detail) {
+    super('The member MFA runtime invocation failed.');
+    this.detail = detail;
+  }
+}
+
 function runtimeDiagnostic(stage, event) {
   if (runtimeDiagnosticsEnabled) {
     process.stdout.write(`FEAT-006 runtime diagnostic: stage=${stage} event=${event}.\n`);
   }
 }
 
-function runtimeFailureDiagnostic(stage, error) {
+async function runtimeFailureDiagnostic(stage, error) {
   if (!runtimeDiagnosticsEnabled) return;
+  if (
+    edgeProcess &&
+    !edgeExitObserved &&
+    edgeProcess.exitCode === null &&
+    edgeProcess.signalCode === null
+  ) {
+    await Promise.race([edgeExitPromise, new Promise((resolve) => setTimeout(resolve, 250))]);
+  }
   const detail =
-    error instanceof MemberMfaRuntimeRequestError && runtimeFailureCodes.has(error.safeCode)
-      ? error.safeCode.replaceAll(/[._]/g, '-')
-      : 'unclassified';
+    edgeProcess &&
+    (edgeExitObserved || edgeProcess.exitCode !== null || edgeProcess.signalCode !== null)
+      ? 'edge-runtime-exited'
+      : error instanceof MemberMfaRuntimeRequestError && runtimeFailureCodes.has(error.safeCode)
+        ? error.safeCode.replaceAll(/[._]/g, '-')
+        : error instanceof MemberMfaRuntimePhaseError
+          ? error.detail
+          : 'unclassified';
   process.stdout.write(
     `FEAT-006 runtime diagnostic: stage=${stage} event=failed detail=${detail}.\n`,
   );
@@ -127,19 +149,34 @@ async function waitForEdge() {
 }
 
 async function invoke(body) {
-  const { data } = await client.auth.getSession();
-  if (!data.session) throw new Error('The synthetic session is unavailable.');
-  const response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${data.session.access_token}`,
-      'content-type': 'application/json',
-      origin,
-    },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json();
+  let data;
+  try {
+    ({ data } = await client.auth.getSession());
+  } catch {
+    throw new MemberMfaRuntimePhaseError('auth-session-read-failed');
+  }
+  if (!data.session) throw new MemberMfaRuntimePhaseError('auth-session-unavailable');
+  let response;
+  try {
+    response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${data.session.access_token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new MemberMfaRuntimePhaseError('transport-failed');
+  }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new MemberMfaRuntimePhaseError('response-decoding-failed');
+  }
   if (payload && typeof payload === 'object' && typeof payload.correlationId === 'string') {
     limiterCorrelationIds.push(payload.correlationId);
   }
@@ -201,6 +238,12 @@ try {
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
     { stdio: 'ignore', windowsHide: true },
   );
+  edgeExitPromise = new Promise((resolve) => {
+    edgeProcess.once('exit', () => {
+      edgeExitObserved = true;
+      resolve();
+    });
+  });
   await waitForEdge();
   runtimeDiagnostic('edge-runtime-startup', 'passed');
 
@@ -274,7 +317,7 @@ try {
       idempotencyKey: randomBytes(16).toString('hex'),
     });
   } catch (error) {
-    runtimeFailureDiagnostic('completion', error);
+    await runtimeFailureDiagnostic('completion', error);
     throw error;
   }
   assert.equal(completed.decision, 'completed');
