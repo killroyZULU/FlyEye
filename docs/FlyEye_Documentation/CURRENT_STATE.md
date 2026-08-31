@@ -29,13 +29,11 @@ desktop/mobile browser, database, and runtime matrices pass. Review corrections
 pass the 303-test app gate, 382 rollback-only SQL assertions, all eight local
 runtime fixtures, schema lint, and generated-type verification. Final technical
 re-review is clear, and required pull-request checks passed for implementation
-commit `cd6a937`. Four consecutive later-head CI failures in the pre-existing
-FEAT-006 runtime fixture are under bounded sanitized-diagnostic investigation;
-the latest evidence isolates the failure to protected completion after TOTP
-verification, confirms synthetic data cleanup, and rules out the protected API's
-bounded contract errors. Safe invocation-phase classification is under focused
-local verification, while current-head PR checks remain pending. The slice
-contains
+commit `cd6a937`. After four intermittent later-head CI failures in the
+pre-existing FEAT-006 runtime fixture, bounded fail-closed diagnostics isolated
+the failure to protected completion after TOTP verification without exposing
+child output. The reviewed diagnostic head `ef61821` passes all required PR
+checks, including all eight runtime fixtures. The slice contains
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
 
@@ -47,13 +45,12 @@ compliance, registration-validity, ownership, or dispatch authority.
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic and technical-review evidence; its implementation commit passed required CI, but the diagnostic-remediation head still requires current-head CI evidence. No operational-status module is implemented.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic, technical-review, and required current-head CI evidence but remains unmerged. No operational-status module is implemented.
 - The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
 
 ## Next bounded product work
 
-Obtain green current-head FEAT-007A PR checks, then stop for the merge decision.
-After that gate, return to owner-directed
+Stop for the FEAT-007A merge decision. After that gate, return to owner-directed
 discovery for the next bounded Aircraft Records or Compliance Documents slice
 without inventing aviation status, expiry, approval, or dispatch-eligibility
 rules.

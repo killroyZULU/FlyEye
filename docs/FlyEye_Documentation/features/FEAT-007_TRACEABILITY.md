@@ -6,9 +6,8 @@
 - Verification date: 2026-08-31
 - Local/hosted/data boundary: Local synthetic verification only
 - Review and CI: Final implementation and diagnostic-remediation technical
-  re-reviews clear; required pull-request checks passed for implementation
-  commit `cd6a937`, while current-head checks remain pending after four
-  consecutive FEAT-006 fixture failures
+  re-reviews clear; all required pull-request checks passed for reviewed head
+  `ef61821` after four intermittent FEAT-006 fixture failures
 - Known limitations: No hosted validation, real-data authority, formal
   accessibility review, qualified aviation workflow review, retention decision,
   deployment, or production approval
@@ -44,14 +43,10 @@ compliance, registration validity, ownership, or dispatch authority.
 - Database lint reported no schema warnings, and generated types match the
   applied schema.
 
-Implementation commit `cd6a937` is pushed, and its required pull-request checks
-passed. The bounded diagnostic correction for the repeated current-head
-FEAT-006 fixture failure passes the complete local app and eight-fixture runtime
-gates. CI now isolates the failure to protected completion after successful TOTP
-verification and confirms data cleanup. Reviewed safe error classification is
-ready and rules out the protected API's bounded contract errors; safe
-invocation-phase classification and current-head pull-request evidence remain
-pending.
+Reviewed head `ef61821` is pushed, and all three required pull-request checks
+pass. Fail-closed diagnostics remain available if the intermittent FEAT-006
+fixture failure recurs; their output is limited to approved stage, event, and
+error-category labels.
 
 ## Evidence rules
 
