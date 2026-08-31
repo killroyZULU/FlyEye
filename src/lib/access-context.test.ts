@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   accessContextResponseSchema,
-  landingLabel,
+  dashboardLabel,
   loginRequestSchema,
   requiresMfa,
 } from './access-context';
@@ -144,12 +144,12 @@ describe('access context contracts', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('maps approved roles to safe landing labels', () => {
-    expect(landingLabel('student_pilot')).toBe('Student workspace');
-    expect(landingLabel('instructor_pilot')).toBe('Instructor workspace');
-    expect(landingLabel('admin')).toBe('Administration workspace');
-    expect(landingLabel('chief_flight_instructor', 'Chief Flight Instructor')).toBe(
-      'Chief Flight Instructor workspace',
+  it('maps approved roles to safe dashboard labels', () => {
+    expect(dashboardLabel('student_pilot')).toBe('Student dashboard');
+    expect(dashboardLabel('instructor_pilot')).toBe('Instructor dashboard');
+    expect(dashboardLabel('admin')).toBe('Administration dashboard');
+    expect(dashboardLabel('chief_flight_instructor', 'Chief Flight Instructor')).toBe(
+      'Chief Flight Instructor dashboard',
     );
   });
 });

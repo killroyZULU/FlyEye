@@ -124,8 +124,12 @@ describe('FEAT-001 authentication UI', () => {
 
     await signIn(gatewayUnderTest);
 
-    expect(await screen.findByRole('heading', { name: 'Student workspace' })).toBeInTheDocument();
-    expect(screen.getByText('Synthetic Flight School')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Student dashboard' })).toBeInTheDocument();
+    expect(screen.getAllByText('Synthetic Flight School')).toHaveLength(2);
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByLabelText('FlyEye introduction')).not.toBeInTheDocument();
+    expect(screen.queryByText('Secure school access')).not.toBeInTheDocument();
     expect(gatewayUnderTest.signIn).toHaveBeenCalledWith({
       email: 'student@example.test',
       password: 'NotARealPassword1!',
@@ -189,7 +193,7 @@ describe('FEAT-001 authentication UI', () => {
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Instructor workspace' }),
+      await screen.findByRole('heading', { name: 'Instructor dashboard' }),
     ).toBeInTheDocument();
     expect(gatewayUnderTest.verifyTotp).toHaveBeenCalledWith('123456');
     expect(loadAccessContext).toHaveBeenLastCalledWith();
@@ -230,7 +234,7 @@ describe('FEAT-001 authentication UI', () => {
     expect(
       await screen.findByRole('heading', { name: 'Your account is not assigned' }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Instructor workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Instructor dashboard' })).not.toBeInTheDocument();
   });
 
   it('blocks a role that lacks its required permission', async () => {
@@ -356,7 +360,7 @@ describe('FEAT-001 authentication UI', () => {
       }),
     });
     render(<AuthApp gateway={gatewayUnderTest} />);
-    await screen.findByRole('heading', { name: 'Student workspace' });
+    await screen.findByRole('heading', { name: 'Student dashboard' });
 
     await act(async () => {
       signedOutCallback?.();
@@ -391,7 +395,7 @@ describe('FEAT-001 authentication UI', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Student workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Student dashboard' })).not.toBeInTheDocument();
   });
 
   it('discards access results after component disposal', async () => {
@@ -436,7 +440,7 @@ describe('FEAT-001 authentication UI', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: 'Administration workspace' }),
+      screen.queryByRole('heading', { name: 'Administration dashboard' }),
     ).not.toBeInTheDocument();
   });
 });

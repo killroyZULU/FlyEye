@@ -25,15 +25,15 @@ export function requiresMfa(membership: Pick<AccessMembership, 'requiredAssuranc
   return membership.requiredAssuranceLevel === 'aal2';
 }
 
-export function landingLabel(role: RoleCode, roleLabel?: string): string {
+export function dashboardLabel(role: RoleCode, roleLabel?: string): string {
   switch (role) {
     case 'student_pilot':
-      return 'Student workspace';
+      return 'Student dashboard';
     case 'instructor_pilot':
-      return 'Instructor workspace';
+      return 'Instructor dashboard';
     case 'admin':
-      return 'Administration workspace';
+      return 'Administration dashboard';
     default:
-      return roleLabel ? `${roleLabel} workspace` : 'FlyEye workspace';
+      return roleLabel ? `${roleLabel} dashboard` : 'FlyEye dashboard';
   }
 }

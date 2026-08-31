@@ -789,7 +789,7 @@ async function runBrowserOnboarding() {
       await codeInput.fill(currentTotp(secret));
       enterStage('browser-totp-completion', 'browser TOTP completion');
       await page.getByRole('button', { name: 'Verify and create administrator' }).click();
-      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
 
       stage = 'browser secret removal and responsive checks';
       assert.equal(await page.locator('.manual-secret').count(), 0);
