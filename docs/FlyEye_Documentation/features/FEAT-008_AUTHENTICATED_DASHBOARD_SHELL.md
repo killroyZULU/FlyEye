@@ -2,8 +2,8 @@
 
 ## Status
 
-- State: Verified locally
-- Current SDLC phase: Review
+- State: Review-ready
+- Current SDLC phase: Merge decision
 - Owner: Founder/Product Owner
 - Baseline and task branch: `main` at `1a85ae6`; `feat/FEAT-008-authenticated-dashboard-shell`
 - Related requirements and decisions: `REC-006`, UI/UX Guidelines Sections 1–3 and 10, `IAM-002/003/005/010/011`
@@ -127,4 +127,4 @@ Excluded areas:
 - [x] Existing authority, tenancy, MFA, and stale-session protections remain unchanged.
 - [x] Traceability records evidence and limitations.
 - [x] Documentation, application verification, browser evidence, and separate review pass.
-- [ ] The scoped branch has a green review-ready pull request linked to Issue #33.
+- [x] The scoped branch has a green review-ready pull request linked to Issue #33.

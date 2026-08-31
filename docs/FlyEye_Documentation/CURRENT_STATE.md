@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-08-31
+- Last updated: 2026-09-01
 - Last verified merged baseline: maintainability checkpoint PR #29 merge `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -32,14 +32,14 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is merged.
 - FEAT-007A Aircraft Registry Foundation is independently review-ready in PR #32 and remains unmerged.
-- FEAT-008 Authenticated Dashboard Shell is locally verified on `feat/FEAT-008-authenticated-dashboard-shell`; separate review and PR/CI remain current work.
+- FEAT-008 Authenticated Dashboard Shell is review-ready in PR #34 after local synthetic verification, separate technical review, and required CI passed.
 
 ## Next bounded product work
 
-Complete FEAT-008 separate review and review-ready PR/CI for Issue #33, then
-stop for the protected-main merge decision. Keep FEAT-007A independent in PR
-#32; after the dashboard-shell decision, reconcile its Aircraft Registry UI
-without inventing aviation status, approval, or dispatch-eligibility rules.
+Review FEAT-008 in PR #34 and stop for the protected-main merge decision. Keep
+FEAT-007A independent in PR #32; after the dashboard-shell decision, reconcile
+its Aircraft Registry UI without inventing aviation status, approval, or
+dispatch-eligibility rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

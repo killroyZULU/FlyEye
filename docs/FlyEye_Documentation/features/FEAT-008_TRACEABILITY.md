@@ -2,10 +2,10 @@
 
 ## Evidence boundary
 
-- Reviewed target: stable pre-commit diff on `feat/FEAT-008-authenticated-dashboard-shell`; separate agent review clear
-- Verification date: 2026-08-31
+- Reviewed target: implementation commit `9220091` on `feat/FEAT-008-authenticated-dashboard-shell`; separate agent review clear
+- Verification dates: local synthetic 2026-08-31; CI 2026-09-01
 - Local/hosted/data boundary: local synthetic only
-- Pull request and CI: pending; Issue #33
+- Pull request and CI: PR #34 linked to Issue #33; run #33376126906 passed Application quality, Local Supabase security, and Required quality gate
 - Known limitations: no operational dashboard metrics or formal human accessibility study
 
 ## Requirements and results
