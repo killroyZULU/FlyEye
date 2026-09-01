@@ -443,5 +443,5 @@ Excluded areas:
 - [x] Data/RLS/protected-command/file/UI/audit design and future preflight
       boundary are specified
 - [x] Documentation checks and separate technical review pass
-- [ ] Scoped branch has a green review-ready documentation pull request
+- [x] Scoped branch has a green review-ready documentation pull request
 - [ ] Founder/Product Owner accepts the written contract before implementation

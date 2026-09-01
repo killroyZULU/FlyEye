@@ -38,13 +38,13 @@ records that green evidence and PR #32 remains open and clean. The slice contain
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
 
-FEAT-007B Aircraft Document Records specification and design are complete and
-independently reviewed on
-`feat/FEAT-007B-aircraft-documents-spec` for Issue #35, stacked on the current
-Slice A branch so its review diff remains bounded. The approved contract covers
-aircraft-linked ARROWI metadata, required expiration, configured status,
-versioned renewal, Admin notifications, status-only role access, and one
-optional private attachment per version. Implementation has not started.
+FEAT-007B Aircraft Document Records specification and design are independently
+reviewed in review-ready PR #36 for Issue #35. It is stacked on Slice A to keep
+the review diff bounded; exact-head Application quality, Local Supabase security,
+and aggregate gates pass. The contract covers aircraft-linked ARROWI metadata,
+required expiration, configured status, versioned renewal, Admin notifications,
+status-only role access, and one optional private attachment per version.
+Implementation has not started.
 
 FEAT-008 Authenticated Dashboard Shell remains independently review-ready in PR
 #34 at `1dc61c1`; Application quality, Local Supabase security, and the required
