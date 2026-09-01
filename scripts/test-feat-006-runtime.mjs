@@ -9,6 +9,105 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
+const commandTimeoutMs = 30_000;
+const shutdownTimeoutMs = 5_000;
+const runtimeDiagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
+let diagnosticStage = 'initialization';
+
+function recordDiagnostic(event) {
+  if (runtimeDiagnosticsEnabled) {
+    process.stdout.write(`FEAT-006 runtime diagnostic: stage=${diagnosticStage} event=${event}.\n`);
+  }
+}
+
+function enterStage(stage) {
+  diagnosticStage = stage;
+  recordDiagnostic('enter');
+}
+
+function waitForChildExit(child, timeoutMs) {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const finish = (exited) => {
+      clearTimeout(timer);
+      child.removeListener('exit', onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    child.once('exit', onExit);
+  });
+}
+
+async function waitForProcessGroupExit(processId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      process.kill(-processId, 0);
+    } catch (error) {
+      if (error?.code === 'ESRCH') return true;
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
+}
+
+async function stopChild(child) {
+  if (!child) return;
+  if (typeof child.pid !== 'number') {
+    throw new Error('Synthetic child process identifier was unavailable.');
+  }
+
+  if (child.exitCode === null && child.signalCode === null) {
+    if (process.platform === 'win32') {
+      const termination = spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+        stdio: 'ignore',
+        timeout: commandTimeoutMs,
+        windowsHide: true,
+      });
+      if (![0, 128].includes(termination.status ?? -1)) {
+        throw new Error('Synthetic child process tree shutdown failed.');
+      }
+    } else {
+      try {
+        process.kill(-child.pid, 'SIGTERM');
+      } catch (error) {
+        if (error?.code !== 'ESRCH') throw error;
+      }
+    }
+
+    const childExited = await waitForChildExit(child, shutdownTimeoutMs);
+    const processTreeExited =
+      process.platform === 'win32'
+        ? childExited
+        : childExited && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+
+    if (!processTreeExited) {
+      if (process.platform !== 'win32') {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch (error) {
+          if (error?.code !== 'ESRCH') throw error;
+        }
+      }
+      const forcedChildExit = await waitForChildExit(child, shutdownTimeoutMs);
+      const forcedTreeExit =
+        process.platform === 'win32'
+          ? forcedChildExit
+          : forcedChildExit && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+      if (!forcedTreeExit) {
+        throw new Error('Synthetic child process tree shutdown remained uncertain.');
+      }
+    }
+  }
+
+  child.stdout?.destroy();
+  child.stderr?.destroy();
+}
+
+enterStage('local-status');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
 });
@@ -20,6 +119,7 @@ const serviceRoleKey = local.SERVICE_ROLE_KEY;
 if (!['127.0.0.1', 'localhost'].includes(new URL(apiUrl).hostname)) {
   throw new Error('FEAT-006 runtime verification is restricted to local Supabase.');
 }
+recordDiagnostic('passed');
 
 const origin = 'http://127.0.0.1:5173';
 const organizationId = randomUUID();
@@ -117,9 +217,11 @@ async function invoke(body) {
 }
 
 try {
+  enterStage('identity-creation');
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error || !created.data.user) throw new Error('Synthetic user creation failed.');
   userId = created.data.user.id;
+  enterStage('database-fixture');
   psql(`
     insert into public.organizations (id, name, status)
     values ('${organizationId}', 'Synthetic FEAT-006 Runtime School', 'active');
@@ -130,6 +232,7 @@ try {
     from public.roles where code = 'student_pilot';
   `);
 
+  enterStage('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), 'flyeye-feat006a-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -156,25 +259,29 @@ try {
   edgeProcess = spawn(
     process.execPath,
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
-    { stdio: 'ignore', windowsHide: true },
+    { detached: process.platform !== 'win32', stdio: 'ignore', windowsHide: true },
   );
   await waitForEdge();
 
+  enterStage('synthetic-sign-in');
   client = createClient(apiUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: true },
   });
   const signedIn = await client.auth.signInWithPassword({ email, password });
   if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
 
+  enterStage('readiness-status');
   const status = await invoke({ action: 'status' });
   assert.equal(status.factorState, 'enrollment_required');
   assert.equal(status.ready, false);
 
+  enterStage('enrollment-start');
   const started = await invoke({
     action: 'start',
     idempotencyKey: randomBytes(16).toString('hex'),
   });
   assert.equal(started.factorState, 'enrollment_required');
+  enterStage('provider-enrollment');
   const enrolled = await client.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: 'Synthetic FlyEye authenticator',
@@ -182,6 +289,7 @@ try {
   if (enrolled.error || !enrolled.data.totp.secret)
     throw new Error('Synthetic TOTP enrollment failed.');
 
+  enterStage('provider-inventory');
   const providerInventory = await admin.auth.admin.mfa.listFactors({ userId });
   if (providerInventory.error) {
     throw new Error(
@@ -192,6 +300,7 @@ try {
     throw new Error('Synthetic factor inventory was empty.');
   }
 
+  enterStage('factor-binding');
   const bound = await invoke({
     action: 'bind_factor',
     operationId: started.operationId,
@@ -201,12 +310,14 @@ try {
   });
   assert.equal(bound.decision, 'bound');
 
+  enterStage('factor-verification');
   const verified = await client.auth.mfa.challengeAndVerify({
     factorId: enrolled.data.id,
     code: currentTotp(enrolled.data.totp.secret),
   });
   if (verified.error) throw new Error('Synthetic TOTP verification failed.');
 
+  enterStage('enrollment-completion');
   const completed = await invoke({
     action: 'complete',
     operationId: started.operationId,
@@ -236,11 +347,18 @@ try {
     ),
     'student_pilot',
   );
+  recordDiagnostic('passed');
 } catch (error) {
+  recordDiagnostic('failed');
   primaryError = error;
 } finally {
-  if (edgeProcess) edgeProcess.kill();
+  enterStage('fixture-cleanup');
   const cleanupErrors = [];
+  try {
+    await stopChild(edgeProcess);
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
   if (userId) {
     try {
       if (limiterCorrelationIds.length > 0) {
@@ -310,6 +428,7 @@ try {
       primaryError ? [primaryError, ...cleanupErrors] : cleanupErrors,
       'FEAT-006A runtime verification or cleanup failed.',
     );
+  recordDiagnostic(cleanupErrors.length > 0 ? 'failed' : 'passed');
 }
 
 if (primaryError) throw primaryError;
