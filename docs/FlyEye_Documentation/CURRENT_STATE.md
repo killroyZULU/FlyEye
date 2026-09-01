@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-08-31
+- Last updated: 2026-09-01
 - Last verified merged baseline: `main` at `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -33,9 +33,23 @@ commit `cd6a937`. After four intermittent later-head CI failures in the
 pre-existing FEAT-006 runtime fixture, bounded fail-closed diagnostics isolated
 the failure to protected completion after TOTP verification without exposing
 child output. The reviewed diagnostic head `ef61821` passes all required PR
-checks, including all eight runtime fixtures. The slice contains
+checks, including all eight runtime fixtures; documentation head `7658c1f`
+records that green evidence and PR #32 remains open and clean. The slice contains
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
+
+FEAT-007B Aircraft Document Records specification and design are independently
+reviewed in review-ready PR #36 for Issue #35. It is stacked on Slice A to keep
+the review diff bounded; exact-head Application quality, Local Supabase security,
+and aggregate gates pass. The contract covers aircraft-linked ARROWI metadata,
+required expiration, configured status, versioned renewal, Admin notifications,
+status-only role access, and one optional private attachment per version.
+Implementation has not started.
+
+FEAT-008 Authenticated Dashboard Shell remains independently review-ready in PR
+#34 at `1dc61c1`; Application quality, Local Supabase security, and the required
+aggregate gate pass. It remains unmerged and is a later FEAT-007B UI integration
+dependency rather than part of this stacked specification branch.
 
 ## Current product boundary
 
@@ -46,13 +60,14 @@ compliance, registration-validity, ownership, or dispatch authority.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic, technical-review, and required current-head CI evidence but remains unmerged. No operational-status module is implemented.
-- The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
+- FEAT-008 has green local, independent-review, and required PR evidence but remains unmerged; it supersedes the earlier UI-checkpoint status for authenticated workspace navigation.
 
 ## Next bounded product work
 
-Stop for the FEAT-007A merge decision. After that gate, return to owner-directed
-discovery for the next bounded Aircraft Records or Compliance Documents slice
-without inventing aviation status, expiry, approval, or dispatch-eligibility
+Review the FEAT-007B Aircraft Document Records specification and design without
+merging or changing the independent FEAT-007A decision. Implementation remains
+separate and must reconcile the authenticated dashboard shell after its merge
+decision without inventing aviation status, approval, or dispatch-eligibility
 rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
