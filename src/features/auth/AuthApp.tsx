@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  landingLabel,
-  requiresMfa,
-  type AccessMembership,
-  type LoginRequest,
-} from '../../lib/access-context';
+import { requiresMfa, type AccessMembership, type LoginRequest } from '../../lib/access-context';
 import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboarding';
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
 import { AdminOnboardingFlow } from './components/AdminOnboardingFlow';
+import { AuthenticatedShell } from './components/AuthenticatedShell';
 import { InvitationAcceptanceFlow } from './components/InvitationAcceptanceFlow';
 import { LoginForm } from './components/LoginForm';
 import { MemberInvitationsPanel } from './components/MemberInvitationsPanel';
@@ -18,8 +14,10 @@ import { MemberMfaEnrollmentFlow } from './components/MemberMfaEnrollmentFlow';
 import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
 import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
+import { WorkspaceDashboard } from './components/WorkspaceDashboard';
 import { RECOVERY_COMPLETE_PATH, RECOVERY_REQUEST_PATH } from './recovery';
 import { INVITATION_PATH } from './member-invitations';
+import { workspaceNavigation, type WorkspaceView } from './workspace-navigation';
 import {
   AuthGatewayError,
   type AuthGateway,
@@ -69,9 +67,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
   const [message, setMessage] = useState<string>();
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
-  const [workspaceView, setWorkspaceView] = useState<
-    'home' | 'invitations' | 'members' | 'profile' | 'security'
-  >('home');
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('home');
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
 
@@ -364,6 +360,64 @@ export function AuthApp({ gateway }: AuthAppProps) {
     }
   }
 
+  if (route === 'sign-in' && state === 'success' && activeMembership) {
+    const navigation = workspaceNavigation(activeMembership);
+    return (
+      <AuthenticatedShell
+        membership={activeMembership}
+        currentView={workspaceView}
+        navigation={navigation}
+        onNavigate={setWorkspaceView}
+        onSignOut={() => void handleSignOut()}
+      >
+        {workspaceView === 'invitations' ? (
+          <MemberInvitationsPanel
+            gateway={gateway}
+            organizationId={activeMembership.organizationId}
+            organizationName={activeMembership.organizationName}
+            onClose={() => setWorkspaceView('home')}
+          />
+        ) : null}
+
+        {workspaceView === 'members' ? (
+          <MemberAdministrationPanel
+            gateway={gateway}
+            organizationId={activeMembership.organizationId}
+            organizationName={activeMembership.organizationName}
+            currentMembershipId={activeMembership.membershipId}
+            onClose={() => setWorkspaceView('home')}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'profile' ? (
+          <MemberProfilePanel
+            gateway={gateway}
+            membershipId={activeMembership.membershipId}
+            onClose={() => setWorkspaceView('home')}
+          />
+        ) : null}
+
+        {workspaceView === 'security' ? (
+          <MemberMfaEnrollmentFlow
+            gateway={gateway}
+            onCompleted={() => setWorkspaceView('home')}
+            onClose={() => setWorkspaceView('home')}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'home' ? (
+          <WorkspaceDashboard
+            membership={activeMembership}
+            navigation={navigation}
+            onNavigate={setWorkspaceView}
+          />
+        ) : null}
+      </AuthenticatedShell>
+    );
+  }
+
   return (
     <main className="auth-shell">
       <section className="brand-panel" aria-label="FlyEye introduction">
@@ -386,7 +440,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
       </section>
 
       <section className="auth-panel" aria-label="Account access">
-        <div className={`auth-card${workspaceView !== 'home' ? ' auth-card--workspace' : ''}`}>
+        <div className="auth-card">
           {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
 
           {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
@@ -502,113 +556,6 @@ export function AuthApp({ gateway }: AuthAppProps) {
               <p>{message}</p>
               <button className="primary-button" type="button" onClick={() => void loadAccess()}>
                 Try again
-              </button>
-              <button className="text-button" type="button" onClick={() => void handleSignOut()}>
-                Sign out
-              </button>
-            </StatePanel>
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'invitations' ? (
-            <MemberInvitationsPanel
-              gateway={gateway}
-              organizationId={activeMembership.organizationId}
-              organizationName={activeMembership.organizationName}
-              onClose={() => setWorkspaceView('home')}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'members' ? (
-            <MemberAdministrationPanel
-              gateway={gateway}
-              organizationId={activeMembership.organizationId}
-              organizationName={activeMembership.organizationName}
-              currentMembershipId={activeMembership.membershipId}
-              onClose={() => setWorkspaceView('home')}
-              onRequirePassword={(reason) => void returnToPassword(reason)}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'profile' ? (
-            <MemberProfilePanel
-              gateway={gateway}
-              membershipId={activeMembership.membershipId}
-              onClose={() => setWorkspaceView('home')}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'security' ? (
-            <MemberMfaEnrollmentFlow
-              gateway={gateway}
-              onCompleted={() => setWorkspaceView('home')}
-              onClose={() => setWorkspaceView('home')}
-              onRequirePassword={(reason) => void returnToPassword(reason)}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'home' ? (
-            <StatePanel
-              eyebrow="Access verified"
-              title={landingLabel(activeMembership.role, activeMembership.roleLabel)}
-              tone="success"
-            >
-              <p>
-                Signed in to <strong>{activeMembership.organizationName}</strong>. Your available
-                modules will be based on server-approved permissions.
-              </p>
-              <div className="permission-summary">
-                <span>Current role</span>
-                <strong>{activeMembership.role.replaceAll('_', ' ')}</strong>
-              </div>
-              <p className="placeholder-note">
-                Workspace features are intentionally outside FEAT-001.
-              </p>
-              {activeMembership.permissions.includes('membership.invitation.manage') ? (
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => setWorkspaceView('invitations')}
-                >
-                  Manage member invitations
-                </button>
-              ) : null}
-              {activeMembership.permissions.includes('membership.member.review') ? (
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => setWorkspaceView('members')}
-                >
-                  Manage organization members
-                </button>
-              ) : null}
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => setWorkspaceView('profile')}
-              >
-                View my basic profile
-              </button>
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => setWorkspaceView('security')}
-              >
-                Manage authenticator security
               </button>
               <button className="text-button" type="button" onClick={() => void handleSignOut()}>
                 Sign out

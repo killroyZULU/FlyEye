@@ -168,11 +168,6 @@ select:disabled {
   box-shadow: 0 25px 70px rgb(15 52 64 / 12%);
 }
 
-.auth-card--workspace {
-  width: min(100%, 62rem);
-  justify-content: flex-start;
-}
-
 .section-heading h2,
 .state-panel h2 {
   margin: 0.55rem 0 0.75rem;
@@ -426,6 +421,335 @@ button:focus-visible {
 
 .permission-summary span {
   color: #64757d;
+}
+
+.application-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f6f6;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 20;
+  top: 0.6rem;
+  left: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #0b3448;
+  font-weight: 800;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.application-header {
+  color: #eff8f8;
+  background:
+    radial-gradient(circle at 12% -120%, rgb(104 214 207 / 28%), transparent 42%), #071f30;
+}
+
+.application-header__inner {
+  width: min(100% - 3rem, 74rem);
+  min-height: 5.7rem;
+  display: grid;
+  grid-template-columns: minmax(13rem, auto) minmax(12rem, 1fr) auto;
+  align-items: center;
+  gap: 2rem;
+  margin: 0 auto;
+}
+
+.application-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.application-brand__mark {
+  width: 2.55rem;
+  height: 2.55rem;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 38%);
+  border-radius: 0.6rem 0.6rem 0.6rem 0.12rem;
+  background: #68d6cf;
+  color: #071c2c;
+  font-weight: 900;
+}
+
+.application-brand > span:last-child,
+.school-context,
+.account-context {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.application-brand strong {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.application-brand small,
+.school-context span {
+  overflow: hidden;
+  color: #abc4ca;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.school-context {
+  justify-self: center;
+  text-align: center;
+}
+
+.school-context strong {
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-context {
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-context > span {
+  color: #c7d9dd;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.account-context button {
+  min-height: 2.6rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgb(255 255 255 / 32%);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.account-context button:hover {
+  border-color: #68d6cf;
+  background: rgb(104 214 207 / 10%);
+}
+
+.primary-navigation {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  border-bottom: 1px solid #cad6d8;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 5px 18px rgb(11 41 59 / 6%);
+  backdrop-filter: blur(10px);
+}
+
+.primary-navigation__inner {
+  width: min(100% - 3rem, 74rem);
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.primary-navigation__item {
+  min-height: 3.55rem;
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #526771;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.primary-navigation__item:hover {
+  color: #0e5758;
+  background: #f1f8f7;
+}
+
+.primary-navigation__item[aria-current='page'] {
+  border-bottom-color: #238e88;
+  color: #0b3448;
+}
+
+.application-main {
+  width: min(100% - 3rem, 74rem);
+  flex: 1;
+  margin: 0 auto;
+  padding: clamp(2.2rem, 5vw, 4.6rem) 0;
+  outline: none;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.32fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+}
+
+.dashboard-introduction {
+  grid-column: 1 / -1;
+  padding-bottom: clamp(1.8rem, 4vw, 3.2rem);
+  border-bottom: 1px solid #bccbce;
+}
+
+.dashboard-introduction h1 {
+  max-width: 13ch;
+  margin: 0.7rem 0 1rem;
+  color: #0b293b;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.8rem, 7vw, 5.4rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.dashboard-introduction p {
+  max-width: 46rem;
+  margin: 0;
+  color: #5b6d75;
+  line-height: 1.65;
+}
+
+.dashboard-workspace,
+.dashboard-section-heading {
+  display: grid;
+}
+
+.dashboard-workspace {
+  gap: 1.7rem;
+}
+
+.dashboard-section-heading {
+  gap: 0.35rem;
+}
+
+.dashboard-section-heading > span,
+.dashboard-access span {
+  color: #65777f;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-section-heading h2 {
+  margin: 0;
+  color: #143446;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.65rem, 3.5vw, 2.25rem);
+  font-weight: 500;
+}
+
+.dashboard-section-heading p {
+  margin: 0;
+  color: #66777e;
+  line-height: 1.55;
+}
+
+.dashboard-destinations {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #bccbce;
+  list-style: none;
+}
+
+.dashboard-destinations li {
+  border-bottom: 1px solid #bccbce;
+}
+
+.dashboard-destinations button {
+  width: 100%;
+  min-height: 5.5rem;
+  display: grid;
+  grid-template-columns: 2.3rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0.35rem;
+  border: 0;
+  background: transparent;
+  color: #163747;
+  text-align: left;
+}
+
+.dashboard-destinations button:hover {
+  background: linear-gradient(90deg, #eaf5f3, transparent 84%);
+}
+
+.dashboard-destination__index {
+  color: #2b7774;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.dashboard-destination__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.dashboard-destination__copy strong {
+  font-size: 1rem;
+}
+
+.dashboard-destination__copy small {
+  color: #64767d;
+  line-height: 1.45;
+}
+
+.dashboard-destination__arrow {
+  color: #278b86;
+  font-size: 1.35rem;
+}
+
+.dashboard-access {
+  align-self: start;
+  display: grid;
+  gap: 1.3rem;
+  padding-left: 1.5rem;
+  border-left: 3px solid #70bcb7;
+}
+
+.dashboard-access > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dashboard-access strong {
+  color: #173746;
+  font-size: 0.95rem;
+}
+
+.dashboard-access p {
+  margin: 0;
+  color: #697a81;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.application-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.2rem 1.5rem;
+  border-top: 1px solid #d4dfe0;
+  color: #74858b;
+  font-size: 0.72rem;
 }
 
 .invitation-panel {
@@ -736,7 +1060,7 @@ button:focus-visible {
   background: #fbe5e2;
 }
 
-footer {
+.auth-panel > footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -799,6 +1123,50 @@ footer {
     padding: 1.6rem;
   }
 
+  .application-header__inner {
+    width: min(100% - 2rem, 74rem);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    padding: 1rem 0;
+  }
+
+  .application-brand small {
+    display: none;
+  }
+
+  .school-context {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgb(255 255 255 / 15%);
+    text-align: left;
+  }
+
+  .account-context {
+    gap: 0.65rem;
+  }
+
+  .account-context > span {
+    display: none;
+  }
+
+  .primary-navigation__inner,
+  .application-main {
+    width: min(100% - 2rem, 74rem);
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    gap: 2.2rem;
+  }
+
+  .dashboard-access {
+    padding: 1.2rem 0 0;
+    border-top: 3px solid #70bcb7;
+    border-left: 0;
+  }
+
   .workspace-heading,
   .button-row {
     align-items: stretch;
@@ -812,6 +1180,28 @@ footer {
 
   .member-search .inline-field {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .application-header__inner,
+  .primary-navigation__inner,
+  .application-main {
+    width: min(100% - 1.25rem, 74rem);
+  }
+
+  .application-brand__mark {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .dashboard-introduction h1 {
+    font-size: clamp(2.45rem, 14vw, 3.6rem);
+  }
+
+  .dashboard-destinations button {
+    grid-template-columns: 1.7rem minmax(0, 1fr) auto;
+    gap: 0.7rem;
   }
 }
 

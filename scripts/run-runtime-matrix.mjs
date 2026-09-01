@@ -12,8 +12,16 @@ const priority = new Map([
 ]);
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
-const feat003DiagnosticPattern =
-  /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/;
+const sanitizedDiagnosticPatterns = new Map([
+  [
+    'test-feat-003-runtime.mjs',
+    /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/,
+  ],
+  [
+    'test-feat-006-runtime.mjs',
+    /^FEAT-006 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed|failed)\.$/,
+  ],
+]);
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -124,18 +132,21 @@ for (const fixture of fixtures) {
     }
   }
 
-  const isFeat003Fixture = fixture === 'test-feat-003-runtime.mjs';
+  const diagnosticPattern = sanitizedDiagnosticPatterns.get(fixture);
+  const captureSanitizedDiagnostics = diagnosticPattern !== undefined;
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    encoding: isFeat003Fixture ? 'utf8' : undefined,
-    env: isFeat003Fixture ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
-    stdio: isFeat003Fixture ? ['ignore', 'pipe', 'ignore'] : 'ignore',
+    encoding: captureSanitizedDiagnostics ? 'utf8' : undefined,
+    env: captureSanitizedDiagnostics
+      ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' }
+      : process.env,
+    stdio: captureSanitizedDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
     timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
 
-  if (isFeat003Fixture && typeof result.stdout === 'string') {
+  if (diagnosticPattern && typeof result.stdout === 'string') {
     for (const line of result.stdout.split(/\r?\n/)) {
-      if (feat003DiagnosticPattern.test(line)) process.stdout.write(`${line}\n`);
+      if (diagnosticPattern.test(line)) process.stdout.write(`${line}\n`);
     }
   }
 

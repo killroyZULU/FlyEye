@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-08-20
-- Last verified merged baseline: FEAT-006 Slice B PR #27 merge `65d11aa`
+- Last updated: 2026-09-01
+- Last verified merged baseline: maintainability checkpoint PR #29 merge `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -18,6 +18,7 @@ This file is the sole active project-status summary. Replace stale entries; do n
 | FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
 | FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
 | FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
+| Code maintainability guardrails | Merged through PR #29 at `1a85ae6`; code-size, complexity, coverage, boundary, and circular-import controls pass on `main` | Continue enforcing the controls on each bounded feature |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -29,15 +30,16 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
-- The UI design checkpoint remains after FEAT-002 through FEAT-006 unless a later approved decision changes the sequence.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is merged.
+- FEAT-007A Aircraft Registry Foundation is independently review-ready in PR #32 and remains unmerged.
+- FEAT-008 Authenticated Dashboard Shell is review-ready in PR #34 after local synthetic verification, separate technical review, and required CI passed.
 
 ## Next bounded product work
 
-Complete the bounded code-maintainability guardrail checkpoint in Issue #28,
-then hold the visual-identity checkpoint before larger operational modules.
-After those gates, specify Aircraft Records and Compliance Documents without
-inventing aviation status, expiry, approval, or dispatch-eligibility rules.
+Review FEAT-008 in PR #34 and stop for the protected-main merge decision. Keep
+FEAT-007A independent in PR #32; after the dashboard-shell decision, reconcile
+its Aircraft Registry UI without inventing aviation status, approval, or
+dispatch-eligibility rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
