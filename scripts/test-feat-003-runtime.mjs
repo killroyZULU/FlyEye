@@ -376,10 +376,19 @@ async function waitForEdgeRuntime() {
     try {
       const response = await boundedFetch(
         `${apiUrl}/functions/v1/organization-admin-onboarding`,
-        { method: 'OPTIONS', headers: { origin } },
+        {
+          method: 'POST',
+          headers: {
+            apikey: publishableKey,
+            authorization: `Bearer ${serviceRoleKey}`,
+            'content-type': 'application/json',
+            origin,
+          },
+          body: '{}',
+        },
         readinessProbeTimeoutMs,
       );
-      if (response.status === 204) return;
+      if ([400, 401, 403, 405, 422].includes(response.status)) return;
     } catch {
       // Bounded readiness retry.
     }
@@ -898,6 +907,13 @@ async function cleanup() {
         :'organization_ui'::uuid
       );
       delete from public.organization_memberships
+      where organization_id in (
+        :'organization_a'::uuid,
+        :'organization_b'::uuid,
+        :'organization_race'::uuid,
+        :'organization_ui'::uuid
+      );
+      delete from public.aircraft_document_categories
       where organization_id in (
         :'organization_a'::uuid,
         :'organization_b'::uuid,

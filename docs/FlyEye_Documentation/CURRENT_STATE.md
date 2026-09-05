@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-09-01
+- Last updated: 2026-09-05
 - Last verified merged baseline: `main` at `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -38,13 +38,13 @@ records that green evidence and PR #32 remains open and clean. The slice contain
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
 
-FEAT-007B Aircraft Document Records specification and design are independently
-reviewed in review-ready PR #36 for Issue #35. It is stacked on Slice A to keep
-the review diff bounded; exact-head Application quality, Local Supabase security,
-and aggregate gates pass. The contract covers aircraft-linked ARROWI metadata,
-required expiration, configured status, versioned renewal, Admin notifications,
-status-only role access, and one optional private attachment per version.
-Implementation has not started.
+FEAT-007B Aircraft Document Records specification and design remain independently
+review-ready in PR #36 for Issue #35. The approved implementation is complete on
+`feat/FEAT-007B-aircraft-documents`, stacked on specification head `fbea354`.
+Local application, database, and nine-fixture runtime checks pass. Technical
+review is clear; see [FEAT-007 Traceability](features/FEAT-007_TRACEABILITY.md#slice-b-aircraft-document-records-evidence).
+Issue #37 tracks publication; commit and pull-request CI are next. Hosted
+activation, deployment, real-data use, and production remain unapproved.
 
 FEAT-008 Authenticated Dashboard Shell remains independently review-ready in PR
 #34 at `1dc61c1`; Application quality, Local Supabase security, and the required
@@ -64,11 +64,11 @@ dependency rather than part of this stacked specification branch.
 
 ## Next bounded product work
 
-Review the FEAT-007B Aircraft Document Records specification and design without
-merging or changing the independent FEAT-007A decision. Implementation remains
-separate and must reconcile the authenticated dashboard shell after its merge
-decision without inventing aviation status, approval, or dispatch-eligibility
-rules.
+Publish the verified and reviewed FEAT-007B implementation pull request and
+follow required CI through green without
+merging or changing the independent FEAT-007A and FEAT-008 decisions. Preserve
+the configured-record-only boundary; do not introduce aviation status,
+approval, or dispatch-eligibility rules.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

@@ -2,12 +2,13 @@
 
 ## Status
 
-- State: Specification and design in review; implementation not started
-- Current SDLC phase: Specification and design
+- State: Implementation and local synthetic verification complete; separate technical review clear
+- Current SDLC phase: PR/CI
 - Owner: Founder/Product Owner
-- Baseline: FEAT-007A branch head `7658c1f`; stacked task branch
-  `feat/FEAT-007B-aircraft-documents-spec`
-- Task issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
+- Baseline: specification head `fbea354`; implementation branch
+  `feat/FEAT-007B-aircraft-documents`
+- Contract issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
+- Implementation issue: [#37](https://github.com/killroyZULU/FlyEye/issues/37)
 - Parent discovery: [#22](https://github.com/killroyZULU/FlyEye/issues/22)
 - Dependency: [FEAT-007A Aircraft Registry Foundation](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md)
 - Related requirements: SRS `CMP-002`, `CMP-003`, `CMP-006`, `REC-001`–`REC-003`,
@@ -347,43 +348,43 @@ remains a release gate.
 
 ## Acceptance criteria
 
-- [ ] `FEAT-007B-AC-01` Six stable seeded requirements appear for every Tracked
+- [x] `FEAT-007B-AC-01` Six stable seeded requirements appear for every Tracked
       aircraft; a custom requirement affects only explicitly assigned aircraft.
-- [ ] `FEAT-007B-AC-02` Every current version requires title, source, and
+- [x] `FEAT-007B-AC-02` Every current version requires title, source, and
       expiration; optional fields and past dates follow the approved validation
       contract without asserting document-number or aviation rules.
-- [ ] `FEAT-007B-AC-03` Server status deterministically produces Missing, Valid,
+- [x] `FEAT-007B-AC-03` Server status deterministically produces Missing, Valid,
       Expiring Soon, Expired, Suspended, or Archived from approved record state
       and Philippine calendar date, with no Unknown or operational conclusion.
-- [ ] `FEAT-007B-AC-04` Correction/renewal preserves an immutable prior version;
+- [x] `FEAT-007B-AC-04` Correction/renewal preserves an immutable prior version;
       concurrency, idempotency, and races cannot create two current versions or
       duplicate audit/notification/file links.
-- [ ] `FEAT-007B-AC-05` Admins alone manage full metadata, history, categories,
+- [x] `FEAT-007B-AC-05` Admins alone manage full metadata, history, categories,
       suspension, and attachments; Student/Instructor receive only the approved
       status summary at their required assurance level.
-- [ ] `FEAT-007B-AC-06` One optional PDF/JPEG/PNG attachment can become linked to
+- [x] `FEAT-007B-AC-06` One optional PDF/JPEG/PNG attachment can become linked to
       a version only after bounded validation and a clean scan; unsafe,
       uncertain, duplicate, or unauthorized files remain unavailable.
-- [ ] `FEAT-007B-AC-07` Private download rechecks Admin authority and recent
+- [x] `FEAT-007B-AC-07` Private download rechecks Admin authority and recent
       password, issues only a short-lived link, and creates audit evidence
       without exposing Storage paths or attachment existence to other roles.
-- [ ] `FEAT-007B-AC-08` Warning and expiration notifications are idempotent per
+- [x] `FEAT-007B-AC-08` Warning and expiration notifications are idempotent per
       Admin/version/event; expiration, correction, renewal, suspension,
       restoration, archival/removal, reactivation/reassignment, late jobs, and
       job/mutation races apply the approved resolve/reopen/skip rules without
       stale or duplicate alerts.
-- [ ] `FEAT-007B-AC-09` Every significant read/mutation/file action creates the
+- [x] `FEAT-007B-AC-09` Every significant read/mutation/file action creates the
       required audit evidence atomically or returns no protected outcome.
-- [ ] `FEAT-007B-AC-10` Direct browser grants, forged authority, cross-school
+- [x] `FEAT-007B-AC-10` Direct browser grants, forged authority, cross-school
       data/file paths, enumeration, mass assignment, replay, and limiter/audit
       uncertainty fail closed.
-- [ ] `FEAT-007B-AC-11` Required responsive, accessible, offline/stale, conflict,
+- [x] `FEAT-007B-AC-11` Required responsive, accessible, offline/stale, conflict,
       upload/scan, empty/missing, unauthorized, and success UI states behave
       predictably without invented operational labels.
-- [ ] `FEAT-007B-AC-12` Database and Storage cleanup/recovery verification detects
+- [x] `FEAT-007B-AC-12` Database and Storage cleanup/recovery verification detects
       orphan, missing, mismatched-hash, wrong-scope, or unclean objects and leaves
       no synthetic fixture residue.
-- [ ] `FEAT-007B-AC-13` No preflight selection, dispatch authority, W&B values,
+- [x] `FEAT-007B-AC-13` No preflight selection, dispatch authority, W&B values,
       email, permanent deletion, public file access, hosted activation, or
       production behavior is introduced.
 
@@ -444,4 +445,16 @@ Excluded areas:
       boundary are specified
 - [x] Documentation checks and separate technical review pass
 - [x] Scoped branch has a green review-ready documentation pull request
-- [ ] Founder/Product Owner accepts the written contract before implementation
+- [x] Founder/Product Owner accepts the written contract before implementation
+
+## Implementation definition of done
+
+- [x] Versioned schema, deny-by-default RLS, protected functions, permissions,
+      private Storage, generated types, and deterministic local file validation
+      implement the approved contract
+- [x] Role-aware responsive UI covers status, metadata, version history,
+      document lifecycle, custom categories, notifications, and private files
+- [x] Unit, component, desktop/mobile browser, rollback-only SQL, real Auth/TOTP,
+      Edge, private Storage, cleanup, and regression verification pass locally
+- [x] Separate technical review is clear on the stable implementation target
+- [ ] Scoped commit, review-ready pull request, and required CI checks are green

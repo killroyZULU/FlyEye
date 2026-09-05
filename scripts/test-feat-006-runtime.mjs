@@ -136,10 +136,16 @@ async function waitForEdge() {
   for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
       const response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
-        method: 'OPTIONS',
-        headers: { origin },
+        method: 'POST',
+        headers: {
+          apikey: publishableKey,
+          authorization: `Bearer ${serviceRoleKey}`,
+          'content-type': 'application/json',
+          origin,
+        },
+        body: '{}',
       });
-      if (response.status === 204) return;
+      if ([400, 401, 403, 405, 422].includes(response.status)) return;
     } catch {
       // The local worker is still starting.
     }
@@ -378,6 +384,7 @@ try {
         delete from public.organization_member_profiles where membership_id = '${membershipId}';
         delete from public.membership_roles where membership_id = '${membershipId}';
         delete from public.organization_memberships where id = '${membershipId}';
+        delete from public.aircraft_document_categories where organization_id = '${organizationId}';
         delete from public.organizations where id = '${organizationId}';
       `);
     } catch (error) {
