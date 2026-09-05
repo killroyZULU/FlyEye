@@ -9,6 +9,7 @@
   `feat/FEAT-007B-aircraft-documents`
 - Contract issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
 - Implementation issue: [#37](https://github.com/killroyZULU/FlyEye/issues/37)
+- Implementation PR: [#38](https://github.com/killroyZULU/FlyEye/pull/38)
 - Parent discovery: [#22](https://github.com/killroyZULU/FlyEye/issues/22)
 - Dependency: [FEAT-007A Aircraft Registry Foundation](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md)
 - Related requirements: SRS `CMP-002`, `CMP-003`, `CMP-006`, `REC-001`–`REC-003`,
@@ -457,4 +458,5 @@ Excluded areas:
 - [x] Unit, component, desktop/mobile browser, rollback-only SQL, real Auth/TOTP,
       Edge, private Storage, cleanup, and regression verification pass locally
 - [x] Separate technical review is clear on the stable implementation target
-- [ ] Scoped commit, review-ready pull request, and required CI checks are green
+- [x] Scoped commit and review-ready pull request are published
+- Required CI checks must be green before the human merge decision.

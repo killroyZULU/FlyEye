@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-09-05
+- Last updated: 2026-09-06
 - Last verified merged baseline: `main` at `1a85ae6`
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -38,13 +38,14 @@ records that green evidence and PR #32 remains open and clean. The slice contain
 administrative identity records only and creates no operational, airworthiness,
 compliance, registration-validity, ownership, or dispatch authority.
 
-FEAT-007B Aircraft Document Records specification and design remain independently
-review-ready in PR #36 for Issue #35. The approved implementation is complete on
+FEAT-007B Aircraft Document Records specification remains review-ready in PR #36
+for Issue #35. Implementation is complete on
 `feat/FEAT-007B-aircraft-documents`, stacked on specification head `fbea354`.
 Local application, database, and nine-fixture runtime checks pass. Technical
 review is clear; see [FEAT-007 Traceability](features/FEAT-007_TRACEABILITY.md#slice-b-aircraft-document-records-evidence).
-Issue #37 tracks publication; commit and pull-request CI are next. Hosted
-activation, deployment, real-data use, and production remain unapproved.
+Implementation commit `cd93914` is published in [PR #38](https://github.com/killroyZULU/FlyEye/pull/38)
+for Issue #37. Required CI is tracked on that PR; the slice remains unmerged.
+Hosted activation, deployment, real-data use, and production remain unapproved.
 
 FEAT-008 Authenticated Dashboard Shell remains independently review-ready in PR
 #34 at `1dc61c1`; Application quality, Local Supabase security, and the required
@@ -64,9 +65,8 @@ dependency rather than part of this stacked specification branch.
 
 ## Next bounded product work
 
-Publish the verified and reviewed FEAT-007B implementation pull request and
-follow required CI through green without
-merging or changing the independent FEAT-007A and FEAT-008 decisions. Preserve
+Complete CI and human review of FEAT-007B PR #38, then obtain the merge decision
+without changing the independent FEAT-007A and FEAT-008 decisions. Preserve
 the configured-record-only boundary; do not introduce aviation status,
 approval, or dispatch-eligibility rules.
 

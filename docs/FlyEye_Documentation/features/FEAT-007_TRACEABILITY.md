@@ -59,12 +59,14 @@ error-category labels.
 
 ## Slice B Aircraft Document Records evidence
 
-- Delivery target: Issue #37 on `feat/FEAT-007B-aircraft-documents`, stacked on
-  specification head `fbea354`; implementation pull request pending
+- Delivery target: Issue #37 and [PR #38](https://github.com/killroyZULU/FlyEye/pull/38)
+  on `feat/FEAT-007B-aircraft-documents`; implementation `cd93914`, stacked on
+  specification head `fbea354`
 - Verification date: 2026-09-05
 - Boundary: Local synthetic verification only; deterministic local file scanner
   and browser-reachable local signed URLs
-- Review and CI: Separate technical correction review clear; pull-request CI pending
+- Review and CI: Separate technical correction review clear; required CI results
+  are tracked on PR #38
 - Known limitations: No hosted scanner or scheduler, real-data authority,
   retention/deletion approval, qualified aviation review, deployment, or
   production approval
