@@ -62,7 +62,7 @@ error-category labels.
 - Delivery target: Issue #37 and [PR #38](https://github.com/killroyZULU/FlyEye/pull/38)
   on `feat/FEAT-007B-aircraft-documents`; implementation `cd93914`, stacked on
   specification head `fbea354`
-- Verification date: 2026-09-05
+- Verification date: 2026-09-06
 - Boundary: Local synthetic verification only; deterministic local file scanner
   and browser-reachable local signed URLs
 - Review and CI: Separate technical correction review clear; required CI results
@@ -85,7 +85,7 @@ matrix passes with real Auth, TOTP, protected Edge reads and mutations, private
 signed upload/download, deterministic file validation, notification lifecycle,
 direct Data API denial, audit evidence, and zero synthetic residue.
 
-- Application gate: 43 files and 349 tests, coverage thresholds, formatting,
+- Application gate: 43 files and 355 tests, coverage thresholds, formatting,
   documentation, maintainability, lint, types, build, browser-key scan, all 26
   desktop/mobile scenarios, and dependency audit passed. Frozen installation passed.
 - Database gate: 10 files and 447 rollback-only assertions, all nine runtime
@@ -93,3 +93,7 @@ direct Data API denial, audit evidence, and zero synthetic residue.
 - Separate review confirmed corrected custom-category transport and reuse,
   minimized status-only fields, signing-before-download-audit, stale-job alert
   preservation, page continuation, and cross-aircraft notification editing.
+- CI retry exposed an intermittent FEAT-006 completion failure. The reviewed
+  fixture now uses the existing bounded local-proxy recovery helper and emits
+  only allowlisted HTTP-status diagnostics. Application errors remain terminal;
+  exact-head runtime verification remains a required CI gate.

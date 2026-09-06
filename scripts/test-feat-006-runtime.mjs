@@ -8,6 +8,8 @@ import process from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
 
+import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
@@ -55,6 +57,7 @@ class MemberMfaRuntimeRequestError extends Error {
   constructor(status, safeCode) {
     super(`Member MFA runtime request failed with ${status} (${safeCode}).`);
     this.safeCode = safeCode;
+    this.status = status;
   }
 }
 
@@ -87,9 +90,13 @@ async function runtimeFailureDiagnostic(stage, error) {
       ? 'edge-runtime-exited'
       : error instanceof MemberMfaRuntimeRequestError && runtimeFailureCodes.has(error.safeCode)
         ? error.safeCode.replaceAll(/[._]/g, '-')
-        : error instanceof MemberMfaRuntimePhaseError
-          ? error.detail
-          : 'unclassified';
+        : error instanceof MemberMfaRuntimeRequestError
+          ? [401, 403, 409, 429, 500, 502, 503, 504].includes(error.status)
+            ? `http-${error.status}`
+            : 'http-other'
+          : error instanceof MemberMfaRuntimePhaseError
+            ? error.detail
+            : 'unclassified';
   process.stdout.write(
     `FEAT-006 runtime diagnostic: stage=${stage} event=failed detail=${detail}.\n`,
   );
@@ -164,7 +171,7 @@ async function invoke(body) {
   if (!data.session) throw new MemberMfaRuntimePhaseError('auth-session-unavailable');
   let response;
   try {
-    response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
+    response = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
       method: 'POST',
       headers: {
         apikey: publishableKey,
