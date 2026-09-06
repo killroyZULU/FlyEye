@@ -60,12 +60,23 @@ function enterRuntimeStage(stage) {
 
 function failRuntimeStage(error) {
   if (!runtimeDiagnosticsEnabled || !currentRuntimeStage) return;
+  const assertedHttpStatus =
+    error?.name === 'AssertionError' &&
+    Number.isInteger(error.actual) &&
+    error.actual >= 400 &&
+    error.actual <= 599
+      ? error.actual
+      : undefined;
   const detail =
-    error?.name === 'AssertionError'
-      ? 'assertion'
-      : error?.name === 'TimeoutError'
-        ? 'timeout'
-        : 'unclassified';
+    assertedHttpStatus !== undefined
+      ? [400, 401, 403, 404, 409, 429, 500, 502, 503, 504].includes(assertedHttpStatus)
+        ? `http-${assertedHttpStatus}`
+        : 'http-other'
+      : error?.name === 'AssertionError'
+        ? 'assertion'
+        : error?.name === 'TimeoutError'
+          ? 'timeout'
+          : 'unclassified';
   process.stdout.write(
     `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=failed detail=${detail}.\n`,
   );
@@ -475,7 +486,7 @@ try {
   assert.equal(resumedUpload.payload.fileId, fileStage.payload.fileId);
   assert.equal(resumedUpload.payload.uploadToken, undefined);
 
-  enterRuntimeStage('metadata-lifecycle');
+  enterRuntimeStage('metadata-create');
   const createKey = randomBytes(32).toString('hex');
   const createRequest = {
     action: 'create',
@@ -496,11 +507,13 @@ try {
   assert.equal(created.payload.replayed, false);
   const documentId = created.payload.documentId;
 
+  enterRuntimeStage('metadata-replay');
   const replayed = await invoke(adminSession.session.access_token, createRequest);
   assert.equal(replayed.response.status, 200, JSON.stringify(replayed.payload));
   assert.equal(replayed.payload.replayed, true);
   assert.equal(replayed.payload.documentId, documentId);
 
+  enterRuntimeStage('status-after-create');
   const statusAfterCreate = await invoke(studentSession.session.access_token, {
     action: 'status_list',
     aircraftId,
@@ -511,6 +524,7 @@ try {
     'expiring_soon',
   );
 
+  enterRuntimeStage('detail-after-create');
   const detail = await invoke(adminSession.session.access_token, {
     action: 'detail',
     documentId,
@@ -519,6 +533,7 @@ try {
   assert.equal(detail.payload.document.currentVersion.versionNumber, 1);
   assert.equal(detail.payload.document.currentVersion.attachment.scanState, 'clean');
 
+  enterRuntimeStage('concealed-detail-audit');
   const guessedDetail = await invoke(adminSession.session.access_token, {
     action: 'detail',
     documentId: randomUUID(),
@@ -537,7 +552,7 @@ try {
     '1',
   );
 
-  enterRuntimeStage('download-reconciliation');
+  enterRuntimeStage('attachment-download');
   const download = await invoke(adminSession.session.access_token, {
     action: 'attachment_download',
     fileId: fileStage.payload.fileId,
@@ -548,9 +563,11 @@ try {
   });
   assert.equal(downloaded.status, 200);
   assert.deepEqual(new Uint8Array(await downloaded.arrayBuffer()), fileBytes);
+  enterRuntimeStage('reconciliation-ready');
   const ready = await reconcileAircraftDocumentStorage(server, organizationId, randomUUID());
   assert.equal(ready.decision, 'ready', JSON.stringify(ready));
 
+  enterRuntimeStage('reconciliation-orphan-row');
   const abandonedFileId = randomUUID();
   const abandonedObjectKey = `${organizationId}/${aircraftId}/${abandonedFileId}/${abandonedFileId}.png`;
   uploadedObjectKeys.add(abandonedObjectKey);
@@ -585,6 +602,7 @@ try {
     `delete from public.stored_files where organization_id = '${organizationId}'::uuid and id = '${abandonedFileId}'::uuid;`,
   );
 
+  enterRuntimeStage('reconciliation-hash-mismatch');
   const mismatched = await server.rpc('reconcile_aircraft_document_storage', {
     p_organization_id: organizationId,
     p_observed_hashes: { [uploadedObjectKey]: '0'.repeat(64) },
@@ -594,6 +612,7 @@ try {
   assert.equal(mismatched.data.decision, 'reconciliation_failed');
   assert.ok(mismatched.data.failures.some((failure) => failure.reason === 'hash_mismatch'));
 
+  enterRuntimeStage('reconciliation-missing-object');
   const { error: missingRemovalError } = await server.storage
     .from('aircraft-documents')
     .remove([uploadedObjectKey]);
@@ -606,6 +625,7 @@ try {
     .upload(uploadedObjectKey, fileBytes, { contentType: 'image/png', upsert: false });
   if (restoreError) throw restoreError;
 
+  enterRuntimeStage('reconciliation-orphan-object');
   const orphanId = randomUUID();
   const orphanObjectKey = `${organizationId}/${aircraftId}/${orphanId}/${orphanId}.png`;
   uploadedObjectKeys.add(orphanObjectKey);
@@ -622,6 +642,7 @@ try {
   if (orphanRemovalError) throw orphanRemovalError;
   uploadedObjectKeys.delete(orphanObjectKey);
 
+  enterRuntimeStage('reconciliation-wrong-scope');
   const wrongScopeFileId = randomUUID();
   const wrongScopeOrganizationId = randomUUID();
   psql(`
@@ -640,6 +661,7 @@ try {
   assert.ok(wrongScope.failures.some((failure) => failure.reason === 'wrong_scope'));
   psql(`delete from public.stored_files where id = '${wrongScopeFileId}'::uuid;`);
 
+  enterRuntimeStage('reconciliation-unclean-object');
   psql(`
     update public.stored_files set scan_state = 'staged', updated_at = now()
     where id = '${fileStage.payload.fileId}'::uuid;
@@ -654,7 +676,7 @@ try {
   // The local Kong/Edge bridge can briefly recycle its upstream after serving Storage bytes.
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  enterRuntimeStage('renewal-notifications');
+  enterRuntimeStage('renewal-conflict');
   const stale = await invoke(adminSession.session.access_token, {
     ...createRequest,
     action: 'renew',
@@ -668,6 +690,7 @@ try {
   assert.equal(stale.response.status, 409);
   assert.equal(stale.payload.error.code, 'aircraft_documents.version_conflict');
 
+  enterRuntimeStage('renewal-success');
   const renewed = await invoke(adminSession.session.access_token, {
     ...createRequest,
     action: 'renew',
@@ -682,6 +705,7 @@ try {
   assert.equal(renewed.payload.decision, 'renewed');
   assert.equal(renewed.payload.currentVersionNumber, 2);
 
+  enterRuntimeStage('history-read');
   const history = await invoke(adminSession.session.access_token, {
     action: 'history',
     documentId,
@@ -691,6 +715,7 @@ try {
   assert.equal(history.response.status, 200, JSON.stringify(history.payload));
   assert.equal(history.payload.items.length, 2);
 
+  enterRuntimeStage('notification-read');
   const notifications = await invoke(adminSession.session.access_token, {
     action: 'notifications_list',
     page: 1,
@@ -701,7 +726,7 @@ try {
   assert.equal(notifications.payload.items.length, 1);
   assert.equal(notifications.payload.items[0].state, 'resolved');
 
-  enterRuntimeStage('direct-access-audit');
+  enterRuntimeStage('archived-download');
   psql(`
     update public.aircraft_records
     set registry_state = 'archived', archive_reason = 'no_longer_tracked',
@@ -716,6 +741,7 @@ try {
   assert.equal(archivedDownload.response.status, 404);
   assert.equal(archivedDownload.payload.error.code, 'aircraft_documents.not_found');
 
+  enterRuntimeStage('direct-data-audit');
   const { data: directRows, error: directError } = await studentSession.client
     .from('aircraft_documents')
     .select('id');
