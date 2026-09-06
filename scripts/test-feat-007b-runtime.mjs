@@ -39,10 +39,46 @@ const limiterKeys = new Set();
 let edgeProcess;
 let temporaryDirectory;
 const uploadedObjectKeys = new Set();
+const runtimeDiagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
+let currentRuntimeStage;
 
 const server = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
+
+function enterRuntimeStage(stage) {
+  if (currentRuntimeStage && runtimeDiagnosticsEnabled) {
+    process.stdout.write(
+      `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=passed.\n`,
+    );
+  }
+  currentRuntimeStage = stage;
+  if (runtimeDiagnosticsEnabled) {
+    process.stdout.write(`FEAT-007B runtime diagnostic: stage=${stage} event=enter.\n`);
+  }
+}
+
+function failRuntimeStage(error) {
+  if (!runtimeDiagnosticsEnabled || !currentRuntimeStage) return;
+  const detail =
+    error?.name === 'AssertionError'
+      ? 'assertion'
+      : error?.name === 'TimeoutError'
+        ? 'timeout'
+        : 'unclassified';
+  process.stdout.write(
+    `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=failed detail=${detail}.\n`,
+  );
+}
+
+function completeRuntimeStages() {
+  if (currentRuntimeStage && runtimeDiagnosticsEnabled) {
+    process.stdout.write(
+      `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=passed.\n`,
+    );
+  }
+  currentRuntimeStage = undefined;
+}
 
 function psql(sql) {
   const result = spawnSync(
@@ -303,6 +339,7 @@ async function cleanup() {
 }
 
 try {
+  enterRuntimeStage('identity-creation');
   for (const identity of [admin, student]) {
     const { error } = await server.auth.admin.createUser({
       id: identity.id,
@@ -313,6 +350,7 @@ try {
     if (error) throw new Error('Synthetic FEAT-007B Auth fixture creation failed.');
   }
 
+  enterRuntimeStage('database-fixture');
   psql(`
     begin;
     insert into public.organizations (id, name, status)
@@ -346,11 +384,13 @@ try {
   `);
   assert.match(categoryId, /^[0-9a-f-]{36}$/);
 
+  enterRuntimeStage('authentication');
   const adminSession = await signIn(admin, true);
   const studentSession = await signIn(student, false);
   limiterKeys.add(limiterHash(admin.id));
   limiterKeys.add(limiterHash(student.id));
 
+  enterRuntimeStage('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat007b-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -386,6 +426,7 @@ try {
   );
   await waitForEdge();
 
+  enterRuntimeStage('role-boundary');
   const studentStatus = await invoke(studentSession.session.access_token, {
     action: 'status_list',
     aircraftId,
@@ -401,6 +442,7 @@ try {
   assert.equal(concealed.response.status, 403);
   assert.equal(concealed.payload.error.code, 'aircraft_documents.unauthorized');
 
+  enterRuntimeStage('file-lifecycle');
   const fileBytes = new Uint8Array(24);
   fileBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
   new DataView(fileBytes.buffer).setUint32(16, 10);
@@ -445,6 +487,7 @@ try {
   assert.equal(resumedUpload.payload.fileId, fileStage.payload.fileId);
   assert.equal(resumedUpload.payload.uploadToken, undefined);
 
+  enterRuntimeStage('metadata-lifecycle');
   const createKey = randomBytes(32).toString('hex');
   const createRequest = {
     action: 'create',
@@ -506,6 +549,7 @@ try {
     '1',
   );
 
+  enterRuntimeStage('download-reconciliation');
   const download = await invoke(adminSession.session.access_token, {
     action: 'attachment_download',
     fileId: fileStage.payload.fileId,
@@ -622,6 +666,7 @@ try {
   // The local Kong/Edge bridge can briefly recycle its upstream after serving Storage bytes.
   await new Promise((resolve) => setTimeout(resolve, 500));
 
+  enterRuntimeStage('renewal-notifications');
   const stale = await invoke(adminSession.session.access_token, {
     ...createRequest,
     action: 'renew',
@@ -668,6 +713,7 @@ try {
   assert.equal(notifications.payload.items.length, 1);
   assert.equal(notifications.payload.items[0].state, 'resolved');
 
+  enterRuntimeStage('direct-access-audit');
   psql(`
     update public.aircraft_records
     set registry_state = 'archived', archive_reason = 'no_longer_tracked',
@@ -696,9 +742,13 @@ try {
     '2',
   );
 
+  completeRuntimeStages();
   process.stdout.write(
     'Local FEAT-007B Auth, TOTP, status-only access, protected metadata, versioning, replay, conflict, warning lifecycle, Storage reconciliation, direct-data denial, audit, and cleanup checks passed.\n',
   );
+} catch (error) {
+  failRuntimeStage(error);
+  throw error;
 } finally {
   await cleanup();
 }

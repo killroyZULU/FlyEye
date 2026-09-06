@@ -13,9 +13,9 @@ const priority = new Map([
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
 const diagnosticLinePattern =
-  /^(FEAT-003|FEAT-006) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
+  /^(FEAT-003|FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
 const diagnosticFailureLinePattern =
-  /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
+  /^(FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
 const fixtureDiagnosticRules = new Map([
   [
     'test-feat-003-runtime.mjs',
@@ -101,6 +101,25 @@ const fixtureDiagnosticRules = new Map([
       ]),
     },
   ],
+  [
+    'test-feat-007b-runtime.mjs',
+    {
+      prefix: 'FEAT-007B',
+      stages: new Set([
+        'identity-creation',
+        'database-fixture',
+        'authentication',
+        'edge-runtime-startup',
+        'role-boundary',
+        'file-lifecycle',
+        'metadata-lifecycle',
+        'download-reconciliation',
+        'renewal-notifications',
+        'direct-access-audit',
+      ]),
+      failureDetails: new Set(['assertion', 'timeout', 'unclassified']),
+    },
+  ],
 ]);
 
 function isApprovedDiagnosticLine(line, rule) {
@@ -108,9 +127,9 @@ function isApprovedDiagnosticLine(line, rule) {
   if (match) return match[1] === rule.prefix && rule.stages.has(match[2]);
   const failureMatch = diagnosticFailureLinePattern.exec(line);
   return (
-    rule.prefix === 'FEAT-006' &&
-    failureMatch?.[1] === 'completion' &&
-    rule.failureDetails.has(failureMatch[2])
+    failureMatch?.[1] === rule.prefix &&
+    rule.stages.has(failureMatch[2]) &&
+    rule.failureDetails.has(failureMatch[3])
   );
 }
 
