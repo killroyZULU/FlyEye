@@ -409,20 +409,8 @@ try {
   );
   edgeProcess = spawn(
     process.execPath,
-    [
-      cliPath,
-      'functions',
-      'serve',
-      '--env-file',
-      environmentPath,
-      '--log-level',
-      process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1' ? 'debug' : 'error',
-    ],
-    {
-      cwd: process.cwd(),
-      windowsHide: true,
-      stdio: process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1' ? 'inherit' : 'ignore',
-    },
+    [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
+    { cwd: process.cwd(), windowsHide: true, stdio: 'ignore' },
   );
   await waitForEdge();
 
