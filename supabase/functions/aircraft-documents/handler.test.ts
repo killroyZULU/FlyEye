@@ -246,6 +246,7 @@ describe('aircraft documents Edge handler', () => {
     const deps = dependencies();
     const response = await createAircraftDocumentHandler(deps)(request(createBody));
     expect(response.status).toBe(200);
+    expect((await response.json()) as object).toMatchObject({ replayed: false, documentId });
     expect(deps.rpc).toHaveBeenCalledWith(
       'mutate_aircraft_document',
       expect.objectContaining({
