@@ -8,6 +8,8 @@ import { spawn, spawnSync } from 'node:child_process';
 
 import { createClient } from '@supabase/supabase-js';
 
+import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
@@ -110,7 +112,7 @@ function limiterHash(subjectId, action, scopeId) {
 }
 
 async function invoke(token, body) {
-  const response = await fetch(`${apiUrl}/functions/v1/member-invitations`, {
+  const response = await fetchLocalEdge(`${apiUrl}/functions/v1/member-invitations`, {
     method: 'POST',
     headers: {
       apikey: publishableKey,
@@ -130,11 +132,17 @@ async function waitForEdge() {
   for (let attempt = 0; attempt < 80; attempt += 1) {
     try {
       const response = await fetch(`${apiUrl}/functions/v1/member-invitations`, {
-        method: 'OPTIONS',
-        headers: { origin },
+        method: 'POST',
+        headers: {
+          apikey: publishableKey,
+          authorization: `Bearer ${serviceRoleKey}`,
+          'content-type': 'application/json',
+          origin,
+        },
+        body: '{}',
         signal: AbortSignal.timeout(1_000),
       });
-      if (response.status === 204) return;
+      if ([400, 401, 403, 405, 422].includes(response.status)) return;
     } catch {
       // The bounded local worker is still starting.
     }
@@ -213,6 +221,8 @@ async function cleanup() {
     delete from public.membership_roles
     where organization_id = '${organizationA}'::uuid;
     delete from public.organization_memberships
+    where organization_id = '${organizationA}'::uuid;
+    delete from public.aircraft_document_categories
     where organization_id = '${organizationA}'::uuid;
     delete from public.organizations where id = '${organizationA}'::uuid;
     ${correlationValues ? `delete from public.member_invitation_rate_limit_events where correlation_id in (${correlationValues});` : ''}

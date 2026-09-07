@@ -13,9 +13,9 @@ const priority = new Map([
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
 const diagnosticLinePattern =
-  /^(FEAT-003|FEAT-006) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
+  /^(FEAT-003|FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
 const diagnosticFailureLinePattern =
-  /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
+  /^(FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
 const fixtureDiagnosticRules = new Map([
   [
     'test-feat-003-runtime.mjs',
@@ -88,6 +88,64 @@ const fixtureDiagnosticRules = new Map([
         'member-mfa-state-conflict',
         'response-decoding-failed',
         'transport-failed',
+        'http-401',
+        'http-403',
+        'http-409',
+        'http-429',
+        'http-500',
+        'http-502',
+        'http-503',
+        'http-504',
+        'http-other',
+        'unclassified',
+      ]),
+    },
+  ],
+  [
+    'test-feat-007b-runtime.mjs',
+    {
+      prefix: 'FEAT-007B',
+      stages: new Set([
+        'identity-creation',
+        'database-fixture',
+        'authentication',
+        'edge-runtime-startup',
+        'role-boundary',
+        'file-lifecycle',
+        'metadata-create',
+        'metadata-replay',
+        'status-after-create',
+        'detail-after-create',
+        'concealed-detail-audit',
+        'attachment-download',
+        'reconciliation-ready',
+        'reconciliation-orphan-row',
+        'reconciliation-hash-mismatch',
+        'reconciliation-missing-object',
+        'reconciliation-orphan-object',
+        'reconciliation-wrong-scope',
+        'reconciliation-unclean-object',
+        'renewal-conflict',
+        'renewal-success',
+        'history-read',
+        'notification-read',
+        'archived-download',
+        'direct-data-audit',
+      ]),
+      failureDetails: new Set([
+        'assertion',
+        'timeout',
+        'http-400',
+        'http-401',
+        'http-403',
+        'http-404',
+        'http-409',
+        'http-429',
+        'http-500',
+        'http-502',
+        'http-503',
+        'http-504',
+        'http-other',
         'unclassified',
       ]),
     },
@@ -99,9 +157,9 @@ function isApprovedDiagnosticLine(line, rule) {
   if (match) return match[1] === rule.prefix && rule.stages.has(match[2]);
   const failureMatch = diagnosticFailureLinePattern.exec(line);
   return (
-    rule.prefix === 'FEAT-006' &&
-    failureMatch?.[1] === 'completion' &&
-    rule.failureDetails.has(failureMatch[2])
+    failureMatch?.[1] === rule.prefix &&
+    rule.stages.has(failureMatch[2]) &&
+    rule.failureDetails.has(failureMatch[3])
   );
 }
 
@@ -188,8 +246,12 @@ for (const fixture of fixtures) {
   if (
     fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-004-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
-    fixture === 'test-feat-006-runtime.mjs'
+    fixture === 'test-feat-006-runtime.mjs' ||
+    fixture === 'test-feat-006b-runtime.mjs' ||
+    fixture === 'test-feat-007-runtime.mjs' ||
+    fixture === 'test-feat-007b-runtime.mjs'
   ) {
     try {
       await restartLocalRuntime();
@@ -200,7 +262,7 @@ for (const fixture of fixtures) {
       process.exit(1);
     }
   }
-  if (fixture === 'test-recovery-runtime.mjs' || fixture === 'test-feat-004-runtime.mjs') {
+  if (fixture === 'test-recovery-runtime.mjs') {
     try {
       await ensureTemplateRuntimeReady();
     } catch (error) {

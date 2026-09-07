@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { requiresMfa, type AccessMembership, type LoginRequest } from '../../lib/access-context';
-import { AircraftRegistryPanel, type AircraftRegistryGateway } from '../aircraft';
+import {
+  AircraftDocumentsPanel,
+  AircraftRegistryPanel,
+  aircraftDocumentCapabilities,
+  type AircraftDocumentGateway,
+  type AircraftRegistryGateway,
+} from '../aircraft';
 import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboarding';
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
@@ -42,6 +48,7 @@ type AuthState =
 type AuthAppProps = {
   gateway: AuthGateway;
   aircraftGateway?: AircraftRegistryGateway;
+  aircraftDocumentGateway?: AircraftDocumentGateway;
 };
 
 type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete' | 'invitation';
@@ -61,7 +68,7 @@ function safeError(error: unknown): { code: AuthGatewayErrorCode; message: strin
   return { code: 'unknown', message: 'FlyEye could not verify your access. Try again.' };
 }
 
-export function AuthApp({ gateway, aircraftGateway }: AuthAppProps) {
+export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: AuthAppProps) {
   const route = currentAuthRoute(window.location.pathname);
   const [state, setState] = useState<AuthState>('checking-session');
   const [message, setMessage] = useState<string>();
@@ -577,10 +584,25 @@ export function AuthApp({ gateway, aircraftGateway }: AuthAppProps) {
           {route === 'sign-in' &&
           state === 'success' &&
           activeMembership &&
+          aircraftDocumentGateway &&
+          workspaceView === 'documents' ? (
+            <AircraftDocumentsPanel
+              gateway={aircraftDocumentGateway}
+              {...aircraftDocumentCapabilities(activeMembership.permissions)}
+              onClose={() => setWorkspaceView('home')}
+              onAccessRevoked={handleAircraftAccessRevoked}
+              onRequirePassword={(reason) => void returnToPassword(reason)}
+            />
+          ) : null}
+
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
           workspaceView === 'home' ? (
             <WorkspaceHome
               membership={activeMembership}
               aircraftAvailable={Boolean(aircraftGateway)}
+              aircraftDocumentsAvailable={Boolean(aircraftDocumentGateway)}
               onNavigate={setWorkspaceView}
               onSignOut={() => void handleSignOut()}
             />

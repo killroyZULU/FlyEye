@@ -288,6 +288,7 @@ async function cleanup() {
     where organization_id = '${organizationA}';
     delete from public.membership_roles where organization_id = '${organizationA}';
     delete from public.organization_memberships where organization_id = '${organizationA}';
+    delete from public.aircraft_document_categories where organization_id = '${organizationA}';
     delete from public.organizations where id = '${organizationA}';
     commit;
   `);
