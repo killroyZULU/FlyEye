@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, normalize, relative, resolve } from 'node:path';
+import { basename, join, relative, resolve } from 'node:path';
+
+import { validateMarkdownLinks } from './lib/markdown-links.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -118,24 +120,8 @@ for (const [path, content] of contents) {
   }
 }
 
-const linkPattern = /\[[^\]]*\]\(([^)]+)\)/gu;
-for (const [path, content] of contents) {
-  for (const match of content.matchAll(linkPattern)) {
-    const rawTarget = match[1].trim().replace(/^<|>$/gu, '');
-    if (!rawTarget || rawTarget.startsWith('#') || /^[a-z][a-z0-9+.-]*:/iu.test(rawTarget)) {
-      continue;
-    }
-    try {
-      const target = normalize(
-        resolve(dirname(path), decodeURIComponent(rawTarget.split('#', 1)[0])),
-      );
-      if (!existsSync(target)) {
-        failures.push(`${display(path)} links to missing path: ${rawTarget}`);
-      }
-    } catch {
-      failures.push(`${display(path)} has an invalid encoded link: ${rawTarget}`);
-    }
-  }
+for (const failure of validateMarkdownLinks(contents, existsSync)) {
+  failures.push(`${display(failure.file)} ${failure.message}`);
 }
 
 const requiredEntryPoints = [

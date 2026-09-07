@@ -2,8 +2,6 @@ name: CI quality gates
 
 on:
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
