@@ -194,12 +194,12 @@ Packages are pinned in `package.json`; all selected packages reported an MIT or 
 ## Known limitations and approvals still required
 
 - CFI, Head of Training, and other management authority requires an approved permission matrix and aviation-SME review.
-- MFA enrollment/recovery is not implemented.
+- MFA enrollment belongs to [FEAT-003](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md) and [FEAT-006](FEAT-006_ROLE_ASSIGNMENT.md); factor recovery/replacement remains outside this contract.
 - Student users remain allowed at AAL1 for non-privileged access under IAM-005 and ADR-0006. Instructor/Admin access remains TOTP/AAL2.
-- Password recovery is not implemented.
-- Role and membership administration are not implemented.
+- Password recovery belongs to [FEAT-002](FEAT-002_PASSWORD_RECOVERY.md).
+- Membership administration belongs to [FEAT-005](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) and role assignment to [FEAT-006](FEAT-006_ROLE_ASSIGNMENT.md).
 - Local Supabase uses ports `55320` through `55328`; optional local analytics is disabled.
 - The local Supabase stack exposes development services on the host network and uses shared development credentials. It must never contain production credentials, production data, or unrestricted real personal data. See [FEAT-001 local security testing](FEAT-001_LOCAL_SECURITY_TESTING.md).
-- Local TOTP enrollment and verification are enabled only to exercise the existing-factor flow; production MFA enrollment, recovery, support, factor-lifecycle, and rate-control procedures remain pending.
-- The generated database type snapshot was refreshed from the migrated local database and an immediate regeneration produced the same SHA-256 hash on 2026-07-19.
+- Hosted MFA, recovery, support, factor-lifecycle, and rate-control readiness require the applicable feature and environment evidence.
+- Local verification evidence belongs in [FEAT-001 Traceability](FEAT-001_TRACEABILITY.md).
 - Human security/privacy review remains required before real data.

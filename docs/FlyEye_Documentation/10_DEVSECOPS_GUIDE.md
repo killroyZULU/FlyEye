@@ -12,6 +12,11 @@ GitHub-enforced branch protection is not available under the current repository 
 
 ## 3. Pull-request pipeline
 
+Run the verification pipeline for pull requests targeting any branch, including
+stacked feature PRs. Push-triggered runs remain limited to `main`. A manually
+dispatched run is evidence for its recorded head, not an attached PR check;
+verify the current head and required results before delivery claims.
+
 The current CI baseline is verification-only. It runs frozen installation,
 formatting, documentation and code-maintainability architecture checks, ESLint,
 TypeScript, coverage-gated unit/component/handler tests, production build, a

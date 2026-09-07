@@ -135,14 +135,7 @@ Generate TypeScript database types from the versioned Supabase schema. Domain co
 
 Apply stricter limits to authentication recovery, invitations, protected transitions, downloads, exports, document generation, external-provider retrieval, and AI requests. Limits should consider user, organization, IP, cost, and operation sensitivity.
 
-At baseline `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66`, the version-controlled local Supabase configuration declares:
-
-- 30 sign-in/sign-up requests per five-minute interval per IP;
-- 30 token verifications per five-minute interval per IP;
-- 150 token refreshes per five-minute interval per IP; and
-- 30 email sends per hour.
-
-These are local Supabase Auth configuration values, not evidence of hosted settings, a production capacity decision, or FlyEye-controlled throttling for custom Edge Functions. The existing `auth-bootstrap` handler has authentication, exact-origin, method, body-size, schema, password-AMR, server-authorization, and audit controls, but it has no separate FlyEye application-level rate limiter at this baseline.
+Local Supabase Auth quotas are configured in [supabase/config.toml](../../supabase/config.toml). They do not establish hosted capacity or application-level throttling for custom Edge Functions. The `auth-bootstrap` endpoint still requires a separately specified application limiter before hosted exposure; its authentication and audit checks do not supply one.
 
 Provider quotas, Edge runtime/resource limits, frontend button disabling, and client counters do not replace application abuse controls. Before any custom protected endpoint is exposed in a hosted or real-data environment, its feature contract must define and test server-enforced limits appropriate to the action. Limits should combine the authenticated subject, safely obtained network source where approved, action, organization after authorization, failure pattern, and operation cost without becoming a tenant or account-enumeration channel. Sensitive mutations fail closed when required limiter state is unavailable. Rate-limit responses use safe `429` errors and bounded retry guidance without exposing hidden users, tenants, grants, factors, records, provider internals, or limit state.
 
