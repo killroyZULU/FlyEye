@@ -40,9 +40,9 @@ checks or inventorying files does not complete their manual review.
 
 - Active slice: [Issue #40](https://github.com/killroyZULU/FlyEye/issues/40), CI coverage for stacked PRs, Markdown section-link validation, and canonical documentation consistency.
 - Branch: `chore/structural-reinforcement`, based on merged `main` at `1a85ae6`.
-- Implementation: CI/link validation, documentation corrections and the Browserslist patch are published in [PR #41](https://github.com/killroyZULU/FlyEye/pull/41). Application CI passed; Supabase CI failed in the FEAT-006A runtime fixture. Fixed-stage diagnostics are being added to locate the failure without exposing child output.
-- Audit coverage: the scoped documentation/tooling review is complete. Broader Markdown, frontend and backend reviews were interrupted; recovered findings and unverified hypotheses are recorded separately in Issue #39. No whole-area audit is claimed complete.
-- Next: diagnose FEAT-006A in disposable CI (the local aircraft database is occupied), pass PR #41 CI, resolve project bookkeeping, then obtain the merge decision. Next code correction: A008, a late MFA-assurance rejection after session invalidation.
+- Implementation: [PR #41](https://github.com/killroyZULU/FlyEye/pull/41) delivers CI/link checks, documentation corrections, the Browserslist patch and secret-safe MFA diagnostics. Local verification and separate review pass. [Implementation CI](https://github.com/killroyZULU/FlyEye/actions/runs/35726593707) passed all gates, including MFA cleanup; the earlier failure did not recur. The PR owns final-head checks and merge readiness.
+- Audit coverage: the scoped documentation/tooling review is complete. Broader Markdown, frontend and backend reviews remain incomplete; Issue #39 separates recovered findings from unverified hypotheses.
+- Next: confirm final-head PR #41 CI, then obtain the merge decision. Issue #40 project assignment is owner-confirmed. Then address A008 (late MFA-assurance rejection) and A013 (moderate Vitest advisory). Preserve the occupied local aircraft database.
 - Resume: read this section and Issue #39, inspect `git status`/diff and the current PR checks, then continue the next unfinished step. Do not restart completed review areas or close the whole audit after one slice.
 
 ## Existing unmerged work
