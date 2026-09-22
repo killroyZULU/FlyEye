@@ -9,6 +9,7 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 
 import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
+import { fetchLocalEdge } from './lib/local-edge-request.mjs';
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -28,6 +29,7 @@ const organizationId = randomUUID();
 const membershipId = randomUUID();
 const email = `feat006a-${randomBytes(6).toString('hex')}@example.test`;
 const password = `Synthetic-${randomBytes(18).toString('base64url')}!`;
+const limiterSecret = randomBytes(32).toString('hex');
 const admin = createClient(apiUrl, serviceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -37,16 +39,21 @@ let edgeProcess;
 let temporaryDirectory;
 let primaryError;
 const limiterCorrelationIds = [];
+let discardedCorrelationId;
+let limiterRowBaseline;
+let cleanupLimiterKeyList;
 let stage = 'fixture-setup';
+let failureDetail = 'unclassified';
 
-function reportDiagnostic(event) {
+function reportDiagnostic(event, detail) {
   if (process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1') {
-    process.stdout.write(`${feat006Diagnostic(stage, event)}\n`);
+    process.stdout.write(`${feat006Diagnostic(stage, event, detail)}\n`);
   }
 }
 
 function enterStage(nextStage) {
   stage = nextStage;
+  failureDetail = 'unclassified';
   reportDiagnostic('enter');
 }
 
@@ -114,24 +121,39 @@ async function waitForEdge() {
   throw new Error('The local member-MFA Edge Function did not become ready.');
 }
 
-async function invoke(body) {
+async function invoke(body, trackCorrelation = true) {
   const { data } = await client.auth.getSession();
   if (!data.session) throw new Error('The synthetic session is unavailable.');
-  const response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${data.session.access_token}`,
-      'content-type': 'application/json',
-      origin,
+  failureDetail = 'transport-failed';
+  const response = await fetchLocalEdge(
+    `${apiUrl}/functions/v1/member-mfa`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${data.session.access_token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    (status) => reportDiagnostic('retry', `http-${status}`),
+  );
+  failureDetail = 'response-decoding-failed';
   const payload = await response.json();
-  if (payload && typeof payload === 'object' && typeof payload.correlationId === 'string') {
+  failureDetail = 'unclassified';
+  if (
+    trackCorrelation &&
+    payload &&
+    typeof payload === 'object' &&
+    typeof payload.correlationId === 'string'
+  ) {
     limiterCorrelationIds.push(payload.correlationId);
   }
   if (!response.ok) {
+    failureDetail = [400, 401, 403, 409, 422, 429, 500, 502, 503, 504].includes(response.status)
+      ? `http-${response.status}`
+      : 'http-other';
     const safeCode =
       payload && typeof payload === 'object' && typeof payload.error?.code === 'string'
         ? payload.error.code
@@ -143,6 +165,11 @@ async function invoke(body) {
 
 try {
   enterStage('fixture-setup');
+  limiterRowBaseline = psql(
+    `select (select count(*) from public.member_mfa_rate_limit_state)
+      + (select count(*) from public.member_mfa_rate_limit_events);`,
+    true,
+  );
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error || !created.data.user) throw new Error('Synthetic user creation failed.');
   userId = created.data.user.id;
@@ -175,7 +202,7 @@ try {
       `FEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}`,
       'FEAT006_LIMITER_POLICY_VERSION=member-mfa-subject-action-v1',
       'FEAT006_DATA_CLASSIFICATION=synthetic-only',
-      `FEAT006_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}`,
+      `FEAT006_LIMITER_HMAC_SECRET=${limiterSecret}`,
     ].join('\n'),
     { encoding: 'utf8', mode: 0o600 },
   );
@@ -195,6 +222,9 @@ try {
   if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
 
   enterStage('readiness-status');
+  // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
+  // Retain it only for the post-cleanup regression assertion.
+  discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
   const status = await invoke({ action: 'status' });
   assert.equal(status.factorState, 'enrollment_required');
   assert.equal(status.ready, false);
@@ -274,7 +304,7 @@ try {
   );
   reportDiagnostic('passed');
 } catch (error) {
-  reportDiagnostic('failed');
+  reportDiagnostic('failed', error?.code === 'ERR_ASSERTION' ? 'assertion' : failureDetail);
   primaryError = error;
 } finally {
   enterStage('fixture-cleanup');
@@ -282,18 +312,30 @@ try {
   const cleanupErrors = [];
   if (userId) {
     try {
+      const limiterKeys = new Set(
+        ['status', 'start', 'bind_factor', 'complete'].map((action) =>
+          createHmac('sha256', limiterSecret).update(`${userId}\u0000${action}`).digest('hex'),
+        ),
+      );
       if (limiterCorrelationIds.length > 0) {
         const correlationList = limiterCorrelationIds.map((value) => `'${value}'::uuid`).join(',');
-        psql(`
-          delete from public.member_mfa_rate_limit_state state_row
-          using public.member_mfa_rate_limit_events event_row
-          where state_row.limiter_key_hash = event_row.limiter_key_hash
-            and state_row.action = event_row.action
-            and event_row.correlation_id in (${correlationList});
-          delete from public.member_mfa_rate_limit_events
-          where correlation_id in (${correlationList});
-        `);
+        const observedKeys = psql(
+          `select distinct limiter_key_hash from public.member_mfa_rate_limit_events
+            where correlation_id in (${correlationList});`,
+          true,
+        );
+        for (const key of observedKeys.split(/\r?\n/).filter(Boolean)) {
+          assert.match(key, /^[0-9a-f]{64}$/);
+          limiterKeys.add(key);
+        }
       }
+      cleanupLimiterKeyList = [...limiterKeys].map((value) => `'${value}'`).join(',');
+      psql(`
+        delete from public.member_mfa_rate_limit_state
+        where limiter_key_hash in (${cleanupLimiterKeyList});
+        delete from public.member_mfa_rate_limit_events
+        where limiter_key_hash in (${cleanupLimiterKeyList});
+      `);
     } catch (error) {
       cleanupErrors.push(error);
     }
@@ -324,6 +366,34 @@ try {
       assert.equal(
         psql(`select count(*) from public.organizations where id = '${organizationId}';`, true),
         '0',
+      );
+      assert.equal(
+        psql(
+          `select (select count(*) from public.member_mfa_rate_limit_state
+            where limiter_key_hash in (${cleanupLimiterKeyList}))
+            + (select count(*) from public.member_mfa_rate_limit_events
+            where limiter_key_hash in (${cleanupLimiterKeyList}));`,
+          true,
+        ),
+        '0',
+      );
+      if (discardedCorrelationId) {
+        assert.equal(
+          psql(
+            `select count(*) from public.member_mfa_rate_limit_events
+              where correlation_id = '${discardedCorrelationId}'::uuid;`,
+            true,
+          ),
+          '0',
+        );
+      }
+      assert.equal(
+        psql(
+          `select (select count(*) from public.member_mfa_rate_limit_state)
+            + (select count(*) from public.member_mfa_rate_limit_events);`,
+          true,
+        ),
+        limiterRowBaseline,
       );
       if (limiterCorrelationIds.length > 0) {
         const correlationList = limiterCorrelationIds.map((value) => `'${value}'::uuid`).join(',');

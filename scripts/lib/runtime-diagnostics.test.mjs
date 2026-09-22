@@ -43,4 +43,25 @@ describe('runtime diagnostic output boundary', () => {
       ),
     ).toEqual([valid]);
   });
+
+  it('allows fixed retry/failure categories without exposing arbitrary detail', () => {
+    const retry = feat006Diagnostic('factor-bind', 'retry', 'http-502');
+    const failed = feat006Diagnostic('factor-bind', 'failed', 'http-409');
+    expect(runtimeDiagnosticLines(fixture, `${retry}\n${failed}`)).toEqual([retry, failed]);
+    for (const [event, detail] of [
+      ['failed', 'synthetic-sensitive-value'],
+      ['retry', 'http-401'],
+      ['retry', undefined],
+      ['passed', 'http-502'],
+    ]) {
+      expect(() => feat006Diagnostic('factor-bind', event, detail)).toThrow();
+      const suffix = detail === undefined ? '' : ` detail=${detail}`;
+      expect(
+        runtimeDiagnosticLines(
+          fixture,
+          `FEAT-006 runtime diagnostic: stage=factor-bind event=${event}${suffix}.`,
+        ),
+      ).toEqual([]);
+    }
+  });
 });
