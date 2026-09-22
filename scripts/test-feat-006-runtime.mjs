@@ -8,6 +8,8 @@ import process from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
 
+import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
+
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
@@ -35,9 +37,32 @@ let edgeProcess;
 let temporaryDirectory;
 let primaryError;
 const limiterCorrelationIds = [];
+let stage = 'fixture-setup';
+
+function reportDiagnostic(event) {
+  if (process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1') {
+    process.stdout.write(`${feat006Diagnostic(stage, event)}\n`);
+  }
+}
+
+function enterStage(nextStage) {
+  stage = nextStage;
+  reportDiagnostic('enter');
+}
 
 function psql(sql, tuplesOnly = false) {
-  const args = ['exec', '-i', 'supabase_db_flyeye', 'psql', '-U', 'postgres', '-d', 'postgres'];
+  const args = [
+    'exec',
+    '-i',
+    'supabase_db_flyeye',
+    'psql',
+    '-U',
+    'postgres',
+    '-d',
+    'postgres',
+    '-v',
+    'ON_ERROR_STOP=1',
+  ];
   if (tuplesOnly) args.push('-At');
   const result = spawnSync('docker', args, { input: sql, encoding: 'utf8' });
   if (result.status !== 0) throw new Error('Local synthetic database command failed.');
@@ -117,6 +142,7 @@ async function invoke(body) {
 }
 
 try {
+  enterStage('fixture-setup');
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error || !created.data.user) throw new Error('Synthetic user creation failed.');
   userId = created.data.user.id;
@@ -153,6 +179,7 @@ try {
     ].join('\n'),
     { encoding: 'utf8', mode: 0o600 },
   );
+  enterStage('edge-startup');
   edgeProcess = spawn(
     process.execPath,
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
@@ -163,18 +190,22 @@ try {
   client = createClient(apiUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: true },
   });
+  enterStage('password-sign-in');
   const signedIn = await client.auth.signInWithPassword({ email, password });
   if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
 
+  enterStage('readiness-status');
   const status = await invoke({ action: 'status' });
   assert.equal(status.factorState, 'enrollment_required');
   assert.equal(status.ready, false);
 
+  enterStage('enrollment-start');
   const started = await invoke({
     action: 'start',
     idempotencyKey: randomBytes(16).toString('hex'),
   });
   assert.equal(started.factorState, 'enrollment_required');
+  enterStage('totp-enroll');
   const enrolled = await client.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: 'Synthetic FlyEye authenticator',
@@ -182,6 +213,7 @@ try {
   if (enrolled.error || !enrolled.data.totp.secret)
     throw new Error('Synthetic TOTP enrollment failed.');
 
+  enterStage('factor-inventory');
   const providerInventory = await admin.auth.admin.mfa.listFactors({ userId });
   if (providerInventory.error) {
     throw new Error(
@@ -192,6 +224,7 @@ try {
     throw new Error('Synthetic factor inventory was empty.');
   }
 
+  enterStage('factor-bind');
   const bound = await invoke({
     action: 'bind_factor',
     operationId: started.operationId,
@@ -201,12 +234,14 @@ try {
   });
   assert.equal(bound.decision, 'bound');
 
+  enterStage('totp-verify');
   const verified = await client.auth.mfa.challengeAndVerify({
     factorId: enrolled.data.id,
     code: currentTotp(enrolled.data.totp.secret),
   });
   if (verified.error) throw new Error('Synthetic TOTP verification failed.');
 
+  enterStage('readiness-complete');
   const completed = await invoke({
     action: 'complete',
     operationId: started.operationId,
@@ -214,6 +249,7 @@ try {
     idempotencyKey: randomBytes(16).toString('hex'),
   });
   assert.equal(completed.decision, 'completed');
+  enterStage('persistence-assertions');
   assert.equal(completed.membershipId, membershipId);
   assert.equal(
     psql(
@@ -236,9 +272,12 @@ try {
     ),
     'student_pilot',
   );
+  reportDiagnostic('passed');
 } catch (error) {
+  reportDiagnostic('failed');
   primaryError = error;
 } finally {
+  enterStage('fixture-cleanup');
   if (edgeProcess) edgeProcess.kill();
   const cleanupErrors = [];
   if (userId) {
@@ -305,6 +344,7 @@ try {
   } catch (error) {
     cleanupErrors.push(error);
   }
+  reportDiagnostic(cleanupErrors.length > 0 ? 'failed' : 'passed');
   if (cleanupErrors.length > 0)
     primaryError = new AggregateError(
       primaryError ? [primaryError, ...cleanupErrors] : cleanupErrors,

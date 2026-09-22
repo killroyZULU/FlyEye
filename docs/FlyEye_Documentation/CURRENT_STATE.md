@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-09-08
+- Last updated: 2026-09-22
 - Last verified merged baseline: `main` at `1a85ae6` (PR #29)
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -40,9 +40,9 @@ checks or inventorying files does not complete their manual review.
 
 - Active slice: [Issue #40](https://github.com/killroyZULU/FlyEye/issues/40), CI coverage for stacked PRs, Markdown section-link validation, and canonical documentation consistency.
 - Branch: `chore/structural-reinforcement`, based on merged `main` at `1a85ae6`.
-- Implementation: CI/link validation and documentation consistency corrections are complete locally, including the Browserslist security patch. Application verification passes (276 tests, 20 browser scenarios); separate review is clear. Publication and PR CI remain pending.
+- Implementation: CI/link validation, documentation corrections and the Browserslist patch are published in [PR #41](https://github.com/killroyZULU/FlyEye/pull/41). Application CI passed; Supabase CI failed in the FEAT-006A runtime fixture. Fixed-stage diagnostics are being added to locate the failure without exposing child output.
 - Audit coverage: the scoped documentation/tooling review is complete. Broader Markdown, frontend and backend reviews were interrupted; recovered findings and unverified hypotheses are recorded separately in Issue #39. No whole-area audit is claimed complete.
-- Next: publish the maintenance PR and follow its required CI, then obtain the merge decision. The next code correction is A008: reproduce and guard a late MFA-assurance rejection after session invalidation.
+- Next: diagnose FEAT-006A in disposable CI (the local aircraft database is occupied), pass PR #41 CI, resolve project bookkeeping, then obtain the merge decision. Next code correction: A008, a late MFA-assurance rejection after session invalidation.
 - Resume: read this section and Issue #39, inspect `git status`/diff and the current PR checks, then continue the next unfinished step. Do not restart completed review areas or close the whole audit after one slice.
 
 ## Existing unmerged work
