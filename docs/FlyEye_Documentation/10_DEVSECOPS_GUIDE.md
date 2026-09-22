@@ -12,6 +12,11 @@ GitHub-enforced branch protection is not available under the current repository 
 
 ## 3. Pull-request pipeline
 
+Run the verification pipeline for pull requests targeting any branch, including
+stacked feature PRs. Push-triggered runs remain limited to `main`. A manually
+dispatched run is evidence for its recorded head, not an attached PR check;
+verify the current head and required results before delivery claims.
+
 The current CI baseline is verification-only. It runs frozen installation,
 formatting, documentation and code-maintainability architecture checks, ESLint,
 TypeScript, coverage-gated unit/component/handler tests, production build, a
@@ -47,11 +52,11 @@ logic.
 
 Feature runtime fixtures are registered by filename rather than by repeatedly
 editing the workflow. The runtime-matrix runner emits only the fixed fixture
-identifier and pass/fail result; child stdout and stderr are discarded to keep
+identifier, pass/fail result and allowlisted fixed-stage diagnostics; other child output is discarded to keep
 credentials, provider payloads, messages, links, QR material, and local stack
-output out of CI logs. A failing fixture is diagnosed locally inside the
-approved delivery envelope using its reviewed sanitizer, never by weakening the
-CI suppression boundary.
+output out of CI logs. Diagnose failures locally with reviewed sanitizers or
+fixed-stage diagnostics in disposable CI when the local stack is occupied.
+Never print raw child errors or payloads to diagnose a failure.
 
 The schema-wide pgTAP guard discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails if any lacks enabled RLS. The general scanner uses the MIT-licensed Gitleaks CLI `8.30.1`, pinned by version and official Linux archive SHA-256, on a full Git-history checkout with 100% finding redaction. Gitleaks is feature-complete and receives security-maintenance releases. The separately licensed Gitleaks Action is not used, and the existing browser-specific Supabase key scan remains a distinct defense.
 

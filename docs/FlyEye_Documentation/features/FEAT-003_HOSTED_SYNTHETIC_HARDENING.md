@@ -137,24 +137,8 @@ removed to make a test appear clean.
 
 ## Local verification evidence
 
-On 2026-08-05, the final target passed formatting, linting, type checking, the
-disabled-manifest validator, 143 unit/component/handler/configuration tests, the
-production build, browser-secret scan, 10 desktop/mobile Playwright scenarios,
-and the dependency audit with no known advisories. Local Supabase reset applied
-all migrations; 107 SQL/RLS tests, all three sanitized runtime fixtures,
-database lint, and generated-type drift passed. The pinned checksum-verified
-Gitleaks 8.30.1 history scan and a 129-file tracked/untracked worktree scan
-passed. Fixture cleanup reported zero residue, the local stack was stopped
-without backup, and no FlyEye containers remained.
-
-The fresh independent read-only review found five fail-closed or evidence
-defects: remote hosts accepted by the local profile, a dormant staging enable
-escape hatch, limiter-key reuse, overstated limiter evidence wording, and a JWT
-test aimed at the wrong function section. All five were corrected. The complete
-application and database/runtime matrices passed again, and the reviewer
-confirmed every finding resolved with no new blocking or actionable issue.
-These are local synthetic engineering results, not hosted or product
-acceptance.
+The recorded local matrix and resolved review findings are maintained in
+[FEAT-003 Traceability](FEAT-003_TRACEABILITY.md#final-local-matrix).
 
 ## Remaining later gates
 

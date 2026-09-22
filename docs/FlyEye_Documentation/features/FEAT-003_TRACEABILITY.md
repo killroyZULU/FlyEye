@@ -28,8 +28,8 @@ Detailed output and chronology remain in Git, PR #7, PR #8, CI, and reviewed scr
 | `FEAT-003-11` | Existing and last-active admins remain protected | `AC-16`, `RPC-02`, scope review | Pass; no removal/demotion path exists |
 | `FEAT-003-12` | Browser roles cannot mutate tenant authority | `AMD-01`, `AC-01/02/19/28`, `RLS-01/02`, `EDGE-01`, `SCAN-01` | Pass locally; server-only execution retained |
 | `FEAT-003-13` | Keep invitations outside FEAT-003 | Scope review, `AC-21`, `REG-01` | Pass; invitations remained outside FEAT-003 and are owned by FEAT-004 |
-| `FEAT-003-14` | Keep user/profile management outside FEAT-003 | Scope review, `AC-21`, `REG-01` | Pass; FEAT-005 is not specified |
-| `FEAT-003-15` | First-admin assignment is not general role assignment | `AC-11/15/16`, `RPC-01/02`, `REG-01` | Pass; FEAT-006 is not specified |
+| `FEAT-003-14` | Keep user/profile management outside FEAT-003 | Scope review, `AC-21`, `REG-01` | Pass; separate contract in [FEAT-005](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) |
+| `FEAT-003-15` | First-admin assignment is not general role assignment | `AC-11/15/16`, `RPC-01/02`, `REG-01` | Pass; separate contract in [FEAT-006](FEAT-006_ROLE_ASSIGNMENT.md) |
 | `FEAT-003-16` | Complete safe states on weak connectivity/failure | `AC-06/10/18`, `COMP-01/02`, `E2E-03` | Pass for automated/local scope |
 | `FEAT-003-17` | Accessible MFA onboarding | `AC-17`, component/E2E/A11Y/CAPTCHA families | Automated/local scope pass; formal and active-provider evidence pending |
 | `FEAT-003-18` | Lost-device/replacement uncertainty creates no bypass | `AC-08/22`, `COMP-04`, `AUTH-03` | Deferred behavior explicitly blocks real-data/production readiness |
