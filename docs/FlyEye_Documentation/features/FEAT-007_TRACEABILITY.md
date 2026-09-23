@@ -60,6 +60,7 @@ stack with `main` at `813dbd9`.
 |---|---|---|
 | `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; original PR #38 CI | Existing behavior retained; fresh full CI pending |
 | `FEAT-007B-AC-06/11` | `AircraftDocumentsPanel.test.tsx`, invalid-file metadata-only continuation | A009 reproduced before correction; regression passes with one metadata save, null file ID and no upload |
+| `FEAT-007B-AC-08`, `FEAT-007B-JOB-01` | Final stale-job SQL regression | CI exposed mixed fixed/live dates after aircraft reactivation. The regression now uses one non-decreasing evaluation date and compares all replacement notification fields before/after the stale job; fresh CI required |
 | `NFR-008/010`, `FEAT-007B-REG-01` | `local-edge-request.test.mjs`, `runtime-diagnostics.test.mjs`, nine-fixture discovery | Merged loopback-only retries and MFA cleanup retained; fixed aircraft diagnostic labels preserved without forwarding provider payloads |
 
 The occupied local database is excluded from reconciliation runtime execution;

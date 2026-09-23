@@ -578,19 +578,39 @@ select public.mutate_aircraft_record(
   null, null, null, null, 'tracking_resumed', 2,
   repeat('d', 64), repeat('6', 64), '85000000-0000-4000-8000-000000000030'
 );
+-- Reactivation uses the live Manila date. Do not subsequently move this
+-- regression's clock backwards and reopen a warning alongside expiration.
+create temp table feat007b_job_clock as
+select greatest(
+  (clock_timestamp() at time zone 'Asia/Manila')::date,
+  expiration_date + 1
+) as philippine_date
+from public.aircraft_document_versions
+where id = (select (result->>'currentVersionId')::uuid from feat007b_attach);
 select public.sync_aircraft_document_notifications(
   '82000000-0000-4000-8000-000000000001',
   (select (result->>'documentId')::uuid from feat007b_attach),
   (select (result->>'currentVersionId')::uuid from feat007b_attach),
-  '2026-09-02', '81000000-0000-4000-8000-000000000001',
+  (select philippine_date from feat007b_job_clock), '81000000-0000-4000-8000-000000000001',
   '85000000-0000-4000-8000-000000000031'
 );
+select is(
+  (select count(*)::integer from public.aircraft_document_notifications
+   where document_version_id = (select (result->>'currentVersionId')::uuid from feat007b_attach)
+     and notification_state = 'open' and event_kind = 'expiration'),
+  1,
+  'The replacement version has one open expiration alert before the stale job'
+);
+create temp table feat007b_alert_snapshot as
+select jsonb_agg(to_jsonb(notification) order by notification.id) as notifications
+from public.aircraft_document_notifications notification
+where document_version_id = (select (result->>'currentVersionId')::uuid from feat007b_attach);
 select is(
   public.sync_aircraft_document_notifications(
     '82000000-0000-4000-8000-000000000001',
     (select (result->>'documentId')::uuid from feat007b_create),
     (select (result->>'currentVersionId')::uuid from feat007b_create),
-    '2026-09-02', '81000000-0000-4000-8000-000000000001',
+    (select philippine_date from feat007b_job_clock), '81000000-0000-4000-8000-000000000001',
     '85000000-0000-4000-8000-000000000032'
   )->>'decision',
   'skipped',
@@ -602,6 +622,13 @@ select is(
      and notification_state = 'open'),
   1,
   'A stale job snapshot preserves the replacement version alert'
+);
+select is(
+  (select jsonb_agg(to_jsonb(notification) order by notification.id)
+   from public.aircraft_document_notifications notification
+   where document_version_id = (select (result->>'currentVersionId')::uuid from feat007b_attach)),
+  (select notifications from feat007b_alert_snapshot),
+  'A stale job leaves every replacement notification field unchanged'
 );
 
 select * from finish();
