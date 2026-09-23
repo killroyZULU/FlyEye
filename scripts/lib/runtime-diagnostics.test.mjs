@@ -5,6 +5,14 @@ import { feat006Diagnostic, runtimeDiagnosticLines } from './runtime-diagnostics
 describe('runtime diagnostic output boundary', () => {
   const fixture = 'test-feat-006-runtime.mjs';
 
+  it('identifies cleanup failures without forwarding error payloads', () => {
+    const failed = feat006Diagnostic('cleanup-discarded-event', 'failed', 'assertion');
+    expect(
+      runtimeDiagnosticLines(fixture, `${failed}\nAssertionError: synthetic-private-key`),
+    ).toEqual([failed]);
+    expect(() => feat006Diagnostic('cleanup-synthetic-private-key', 'failed')).toThrow();
+  });
+
   it('retains fixed stage outcomes while suppressing provider and assertion output', () => {
     const entered = feat006Diagnostic('factor-bind', 'enter');
     const failed = feat006Diagnostic('factor-bind', 'failed');
