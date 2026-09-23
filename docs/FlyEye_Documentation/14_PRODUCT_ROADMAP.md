@@ -23,15 +23,15 @@ Exit: problem and requirements accepted by a pilot candidate and aviation SME.
 
 Exit: invited user securely performs an authorized tenant-scoped action with complete audit evidence.
 
-### Current Stage 1 sequence
+### Stage 1 sequence
 
-1. FEAT-001 Login and initial RBAC — merged
-2. FEAT-002 Password Recovery — merged
-3. FEAT-003 Organization Admin and MFA Onboarding — merged
-4. FEAT-003 Hosted Synthetic Hardening — merged; hosted-readiness planning and activation are deferred under the active governance decision
-5. FEAT-004 Member Invitations — merged
-6. FEAT-005 User Management and Basic Profiles — merged through PR #15; correction PR #16 and single-school FIX-006 PR #17 merged
-7. FEAT-006 Member MFA Readiness and Role Assignment — merged through Slice B PR #27 at `65d11aa`
+1. FEAT-001 Login and initial RBAC
+2. FEAT-002 Password Recovery
+3. FEAT-003 Organization Admin and MFA Onboarding
+4. FEAT-003 Hosted Synthetic Hardening; hosted activation follows the [hosting decision](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments)
+5. FEAT-004 Member Invitations
+6. FEAT-005 User Management and Basic Profiles, including single-school FIX-006
+7. FEAT-006 Member MFA Readiness and Role Assignment
 8. Code-maintainability guardrail checkpoint before Stage 2 expansion
 9. Visual-identity checkpoint before larger operational modules
 

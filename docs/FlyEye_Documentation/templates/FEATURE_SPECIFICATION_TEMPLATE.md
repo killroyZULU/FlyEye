@@ -2,13 +2,14 @@
 
 Follow `DOCUMENTATION_STANDARD.md`. This file defines the stable feature contract; implementation history and test results belong in traceability, Git, pull requests, and CI.
 
-## Status
+## Contract
 
-- State: Draft | Approved | Implemented | Verified | Merged
-- Current SDLC phase:
+- Contract state: Draft | Approved
 - Owner:
-- Baseline and task branch:
 - Related requirement/decision IDs:
+
+Implementation status and the active branch belong in [Current State](../CURRENT_STATE.md).
+Link the feature traceability record for verification evidence.
 
 ## User outcome
 
