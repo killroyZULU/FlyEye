@@ -94,8 +94,9 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
    reviewed migration, permission mapping, UI label, acceptance coverage, and
    tenant/security tests. The schema does not otherwise hard-code three roles.
 4. Only one nonterminal invitation may exist for a normalized email and
-   organization. Invitations to the same email in different organizations are
-   independent and disclose nothing across tenants.
+   organization. Different schools use isolated deployments under
+   [ADR-0006](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md);
+   no invitation permits a second school or membership in one deployment.
 5. Invitation issuance is a two-transaction saga. The first transaction records
    `issuing` state and its intent audit before Supabase Auth is called. After the
    provider call, a second transaction locks the invitation and atomically
@@ -294,8 +295,9 @@ support remain later environment-specific gates.
       concurrency failure rolls back all FlyEye authority.
 - `FEAT-004-AC-14` Same- and cross-invitation races create at most one
       organization membership for the subject.
-- `FEAT-004-AC-15` Same email in separate organizations remains isolated and
-      may produce independent memberships only through independent acceptance.
+- `FEAT-004-AC-15` Same email in separate school deployments remains isolated;
+      each deployment requires independent acceptance and permits only one
+      school membership per subject.
 - `FEAT-004-AC-16` Existing membership, wrong account, changed email, stale
       version, expired, revoked, superseded, and unknown IDs fail without
       enumeration.
@@ -331,9 +333,9 @@ support remain later environment-specific gates.
 | `FEAT-004-RPC-02` | SQL/RPC | Same/different invitation races | At most one membership and role |
 | `FEAT-004-RPC-03` | SQL/RPC | Elapsed pending row is materialized, audited, and reinvited | Expired row no longer blocks a new invitation |
 | `FEAT-004-EDGE-01` | Edge | JWT, origin, body, AMR, AAL2, permission, role, provider errors | Protected commands fail closed |
-| `FEAT-004-TENANT-01` | Runtime | Two organizations, same/different emails and direct IDs | No cross-tenant read, inference, or mutation |
+| `FEAT-004-TENANT-01` | Runtime/SQL | Forged-school IDs; adversarial schools only in rollback-only SQL fixtures or separate deployments | No cross-tenant read, inference, or mutation |
 | `FEAT-004-AUTH-01` | Runtime | New identity invitation, password setup, acceptance | One verified membership |
-| `FEAT-004-AUTH-02` | Runtime | Existing confirmed identity joins another organization | Explicit second-organization acceptance |
+| `FEAT-004-AUTH-02` | Runtime | Existing confirmed identity without a membership joins the deployment school | Explicit acceptance creates its first school membership |
 | `FEAT-004-AUTH-03` | Runtime | Expired, resent, revoked, wrong account, provider uncertainty, and lost post-provider response | Database state is read back idempotently; no outcome is assumed |
 | `FEAT-004-MAIL-01` | Runtime | Local invite/magic-link templates and exact callback allowlist | Mail captured locally with safe callback |
 | `FEAT-004-E2E-01` | Browser | Admin invites and recipient accepts on desktop/mobile | End-to-end success and final bootstrap |

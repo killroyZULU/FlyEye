@@ -1,11 +1,11 @@
 # Current State
 
-- Last updated: 2026-09-01
-- Last verified merged baseline: maintainability checkpoint PR #29 merge `1a85ae6`
+- Last updated: 2026-09-23
+- Merged baseline: `main` at `813dbd9` (PR #43); post-merge quality gates passed
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
-This file is the sole active project-status summary. Replace stale entries; do not append implementation history. Durable requirements and decisions belong in their canonical documents, while detailed evidence remains in feature traceability records, pull requests, CI, and Git.
+This is the canonical status summary. Replace stale entries; keep requirements in their designated documents and detailed evidence in traceability, PRs, CI, and Git.
 
 ## Delivered foundation
 
@@ -18,7 +18,6 @@ This file is the sole active project-status summary. Replace stale entries; do n
 | FEAT-004 Member Invitations | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed | Hosted email, formal accessibility evidence, real data, deployment, and production remain open |
 | FEAT-005 User Management and Basic Profiles | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open |
 | FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
-| Code maintainability guardrails | Merged through PR #29 at `1a85ae6`; code-size, complexity, coverage, boundary, and circular-import controls pass on `main` | Continue enforcing the controls on each bounded feature |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -30,16 +29,34 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is merged.
-- FEAT-007A Aircraft Registry Foundation is independently review-ready in PR #32 and remains unmerged.
-- FEAT-008 Authenticated Dashboard Shell is review-ready in PR #34 after local synthetic verification, separate technical review, and required CI passed.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
+- Aircraft records/documents and the authenticated dashboard are implemented on separate unmerged branches; see their PRs below. They do not establish operational or dispatch authority.
 
-## Next bounded product work
+## Structural reinforcement checkpoint
 
-Review FEAT-008 in PR #34 and stop for the protected-main merge decision. Keep
-FEAT-007A independent in PR #32; after the dashboard-shell decision, reconcile
-its Aircraft Registry UI without inventing aviation status, approval, or
-dispatch-eligibility rules.
+[Issue #39](https://github.com/killroyZULU/FlyEye/issues/39) owns the remaining audit
+coverage and findings. Further refactoring follows reconciliation of the existing
+pull requests and issues. Passing automated checks does not complete manual review.
+
+- Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
+- Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
+- Active slice: reconcile [Issue #33](https://github.com/killroyZULU/FlyEye/issues/33) / PR #34 with current main and verify the authenticated session boundary.
+- Next: finish fresh CI for all five reconciled PRs and obtain their merge decisions. A008 is corrected on PR #34; A013 remains tracked; broad refactors remain deferred. Preserve the occupied local aircraft database.
+- Resume from this checkpoint, Issue #39 and live PR checks; do not restart completed reviews or close the umbrella audit after one slice.
+
+## Existing unmerged work
+
+| Work | Review location | Audit baseline |
+|---|---|---|
+| Aircraft registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32) | `f17f9c5`; fresh CI pending |
+| Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `ac01368`; fresh CI pending |
+| Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | `9bc7b32`; A009 corrected, fresh CI pending |
+| Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `1dc61c1` |
+| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | Reconciliation with current `main` in progress |
+
+These branches remain unmerged. Their recorded heads have successful historical
+checks; reconciliation requires fresh verification. PR #36 depends on #32, and
+#38 depends on #36. Merge and feature integration require separate decisions.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

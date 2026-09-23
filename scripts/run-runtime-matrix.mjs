@@ -3,6 +3,8 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
+import { runtimeDiagnosticLines } from './lib/runtime-diagnostics.mjs';
+
 const scriptsDirectory = path.resolve('scripts');
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const runtimePattern = /^test-[a-z0-9-]+-runtime\.mjs$/;
@@ -12,16 +14,6 @@ const priority = new Map([
 ]);
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
-const sanitizedDiagnosticPatterns = new Map([
-  [
-    'test-feat-003-runtime.mjs',
-    /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/,
-  ],
-  [
-    'test-feat-006-runtime.mjs',
-    /^FEAT-006 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed|failed)\.$/,
-  ],
-]);
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -132,22 +124,18 @@ for (const fixture of fixtures) {
     }
   }
 
-  const diagnosticPattern = sanitizedDiagnosticPatterns.get(fixture);
-  const captureSanitizedDiagnostics = diagnosticPattern !== undefined;
+  const hasDiagnostics =
+    fixture === 'test-feat-003-runtime.mjs' || fixture === 'test-feat-006-runtime.mjs';
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    encoding: captureSanitizedDiagnostics ? 'utf8' : undefined,
-    env: captureSanitizedDiagnostics
-      ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' }
-      : process.env,
-    stdio: captureSanitizedDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
+    encoding: hasDiagnostics ? 'utf8' : undefined,
+    env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
+    stdio: hasDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
     timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
 
-  if (diagnosticPattern && typeof result.stdout === 'string') {
-    for (const line of result.stdout.split(/\r?\n/)) {
-      if (diagnosticPattern.test(line)) process.stdout.write(`${line}\n`);
-    }
+  for (const line of runtimeDiagnosticLines(fixture, result.stdout)) {
+    process.stdout.write(`${line}\n`);
   }
 
   if (result.status !== 0) {

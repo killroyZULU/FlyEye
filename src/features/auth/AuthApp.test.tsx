@@ -398,6 +398,56 @@ describe('FEAT-001 authentication UI', () => {
     expect(screen.queryByRole('heading', { name: 'Student dashboard' })).not.toBeInTheDocument();
   });
 
+  it.each([false, true])(
+    'ignores late MFA-assurance rejection after sign-out (new session: %s)',
+    async (newSession) => {
+      let rejectAssurance: ((reason: Error) => void) | undefined;
+      let signedOutCallback: (() => void) | undefined;
+      const loadAccessContext = vi
+        .fn()
+        .mockResolvedValueOnce(context('admin'))
+        .mockResolvedValue(context('student_pilot'));
+      const subject = gateway({
+        hasSession: vi.fn().mockResolvedValue(true),
+        loadAccessContext,
+        getMfaAssurance: vi.fn<AuthGateway['getMfaAssurance']>(
+          () =>
+            new Promise((_resolve, reject) => {
+              rejectAssurance = reject;
+            }),
+        ),
+        onSignedOut: vi.fn((callback: () => void) => {
+          signedOutCallback = callback;
+          return () => undefined;
+        }),
+      });
+      render(<AuthApp gateway={subject} />);
+      await waitFor(() => expect(subject.getMfaAssurance).toHaveBeenCalledTimes(1));
+      await act(async () => {
+        signedOutCallback?.();
+        await Promise.resolve();
+      });
+      await screen.findByRole('heading', { name: 'Sign in to FlyEye' });
+      if (newSession) {
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText('Email address'), 'student@example.test');
+        await user.type(screen.getByLabelText('Password'), 'NotARealPassword1!');
+        await user.click(screen.getByRole('button', { name: 'Sign in securely' }));
+        await screen.findByRole('heading', { name: 'Student dashboard' });
+      }
+      await act(async () => {
+        rejectAssurance?.(new Error('Synthetic late assurance failure'));
+        await Promise.resolve();
+      });
+      expect(
+        screen.getByRole('heading', {
+          name: newSession ? 'Student dashboard' : 'Sign in to FlyEye',
+        }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Synthetic late assurance failure')).not.toBeInTheDocument();
+    },
+  );
+
   it('discards access results after component disposal', async () => {
     let resolveAccess: ((value: AccessContextResponse) => void) | undefined;
     const gatewayUnderTest = gateway({

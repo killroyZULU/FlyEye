@@ -2,11 +2,12 @@
 
 ## Status
 
-- State: Merged through PR #7 at `00dcfd2`
+- Delivery status: [Current State](../CURRENT_STATE.md)
 - Outcome: Protected first-Organization-Admin bootstrap and TOTP onboarding
 - Evidence: [FEAT-003 Traceability](FEAT-003_TRACEABILITY.md)
-- Hosted safeguards: [FEAT-003 Hosted Synthetic Hardening](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md), merged through PR #8
-- Later gates: Exact hosted target and run, real data, deployment, production, FEAT-005 user management, and FEAT-006 role assignment
+- Hosted safeguards: [FEAT-003 Hosted Synthetic Hardening](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md)
+- Later gates: Exact hosted target and run, real data, deployment, and production
+- Separate contracts: [FEAT-005 user management](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) and [FEAT-006 role assignment](FEAT-006_ROLE_ASSIGNMENT.md)
 
 This is the stable feature contract. Approval chronology, command logs, and detailed test output belong in Git, pull requests, CI, and traceability.
 

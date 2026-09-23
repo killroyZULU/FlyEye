@@ -302,6 +302,7 @@ export function AuthApp({ gateway }: AuthAppProps) {
 
       setState('mfa-required');
     } catch (error) {
+      if (!operationIsCurrent(operation)) return;
       const safe = safeError(error);
       setMessage(safe.message);
       setState('error');

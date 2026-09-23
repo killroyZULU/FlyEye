@@ -19,6 +19,17 @@
 | `FEAT-008-AC-07` | Existing operation invalidation and shell teardown | `FEAT-008-COMP-04`; sign-out, revocation, disposal, and MFA-race checks | Pass | Hosted session behavior remains later validation |
 | `FEAT-008-AC-08` | Focused and full regression matrix | `FEAT-008-REG-01`; 27 files, 270 tests, coverage and build/secret/audit gates; 326 SQL assertions, 7 runtime fixtures, database lint/type-drift checks | Pass | Local synthetic evidence only |
 
+## Reconciliation verification
+
+PR #34 is reconciled with `main` at `813dbd9`, retaining the current MFA runtime
+readiness, cleanup and diagnostic controls. A008 was reproduced in
+`AuthApp.test.tsx`: a late assurance rejection replaced both the signed-out
+screen and a newer granted session with an error. The correction discards the
+obsolete rejection using the existing operation guard; it changes no authority
+or permission rule. These regressions extend `FEAT-008-AC-07` evidence. Fresh
+application and disposable database/runtime CI results belong in PR #34; the
+occupied local database remains excluded.
+
 ## Evidence rules
 
 - Results apply only to the reviewed commit and recorded local/CI target.
