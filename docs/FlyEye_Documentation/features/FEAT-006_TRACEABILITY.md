@@ -39,6 +39,24 @@ establish hosted, production, qualified aviation, or customer readiness.
 | `NFR-004`, `FEAT-006B-AC-08` | Responsive keyboard/focus role confirmation, offline, reauthentication, MFA, conflict, last-admin, rate-limit, service-failure, and success states | Component tests; 20 desktop/mobile E2E scenarios | Local supporting pass | 200% reflow and formal accessibility review remain later |
 | `NFR-008/010`, `FEAT-006B-AC-08` | Complete quality/security matrices with generated types and cleanup | 253 app tests; 326 SQL tests; seven runtime fixtures; schema lint and type drift | Local pass; independent review clear; PR #27 required CI green | Hosted evidence remains later |
 
+## Runtime fixture maintenance
+
+[Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) tracks the
+`FEAT-006A-AC-09/10` cleanup correction after [PR #41 post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35732201053)
+passed persistence assertions but failed cleanup. The original log does not
+identify the failing cleanup substep.
+
+Review identified worker-readiness and shutdown weaknesses: a shared OPTIONS
+response could come from a worker using a different limiter secret, and killing
+the Node CLI wrapper did not establish process-tree termination. The correction
+uses a fresh exact origin and the handler's side-effect-free GET rejection,
+verifies the limiter identity before the lost-response
+probe, awaits bounded shutdown, and reports allowlisted cleanup substeps. Auth
+deletion is verified directly in the local database; provider errors cannot count
+as proof of absence. Existing keyed-row, lost-response and baseline assertions
+remain mandatory. The correction PR owns final checks and separate review;
+the occupied local database is excluded from runtime execution.
+
 ## Evidence rules
 
 - Do not mark `Pass` without reproducible evidence for the reviewed slice target.

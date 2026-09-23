@@ -1,11 +1,11 @@
 # Current State
 
-- Last updated: 2026-08-27
-- Last verified merged baseline: code-maintainability guardrails PR #29 merge `1a85ae6`
+- Last updated: 2026-09-23
+- Merged baseline: `main` at `813dbd9` (PR #43); post-merge quality gates passed
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
-This file is the sole active project-status summary. Replace stale entries; do not append implementation history. Durable requirements and decisions belong in their canonical documents, while detailed evidence remains in feature traceability records, pull requests, CI, and Git.
+This is the canonical status summary. Replace stale entries; keep requirements in their designated documents and detailed evidence in traceability, PRs, CI, and Git.
 
 ## Delivered foundation
 
@@ -30,14 +30,34 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
-- The code-maintainability guardrail checkpoint is merged. The post-FEAT-006 visual documentation checkpoint is defined in [Visual Design System](DESIGN.md); implementation is deferred, and a later bounded redesign may supersede the working direction.
+- The [Visual Design System](DESIGN.md) is a reversible working direction in PR #30; implementation remains separately bounded.
+- Aircraft records/documents and the authenticated dashboard are implemented on separate unmerged branches; see their PRs below. They do not establish operational or dispatch authority.
 
-## Next bounded product work
+## Structural reinforcement checkpoint
 
-Specify Aircraft Records and Compliance Documents through bounded Founder/Product
-Owner decisions without inventing aviation status, expiry, approval, or
-dispatch-eligibility rules. Visual-system adoption and any broader distinctive
-FlyEye redesign remain separate future work.
+[Issue #39](https://github.com/killroyZULU/FlyEye/issues/39) owns the remaining audit
+coverage and findings. Further refactoring follows reconciliation of the existing
+pull requests and issues. Passing automated checks does not complete manual review.
+
+- Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
+- Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
+- Active slice: reconcile [Issue #21](https://github.com/killroyZULU/FlyEye/issues/21) / PR #30 with current `main`, preserving the reversible visual guidance and current status.
+- Next: verify and review PR #30, then reconcile the aircraft stack and dashboard. A008, A009 and A013 remain tracked findings; broad refactors remain deferred. Preserve the occupied local aircraft database.
+- Resume from this checkpoint, Issue #39 and live PR checks; do not restart completed reviews or close the umbrella audit after one slice.
+
+## Existing unmerged work
+
+| Work | Review location | Audit baseline |
+|---|---|---|
+| Aircraft registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32) | `7658c1f` |
+| Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `fbea354` |
+| Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | `1e16af4` |
+| Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `1dc61c1` |
+| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | Reconciliation with current `main` in progress |
+
+These branches remain unmerged. Their recorded heads have successful historical
+checks; reconciliation requires fresh verification. PR #36 depends on #32, and
+#38 depends on #36. Merge and feature integration require separate decisions.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
