@@ -1,7 +1,7 @@
 # Current State
 
 - Last updated: 2026-09-23
-- Merged baseline: `main` at `813dbd9` (PR #43); post-merge quality gates passed
+- Merged baseline: `main` at `4141c33` (PR #30); post-merge checks are recorded in GitHub CI
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -30,6 +30,7 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
+- The [Visual Design System](DESIGN.md) is a reversible working direction in PR #30; implementation remains separately bounded.
 - Aircraft records/documents and the authenticated dashboard are implemented on separate unmerged branches; see their PRs below. They do not establish operational or dispatch authority.
 
 ## Structural reinforcement checkpoint
@@ -40,8 +41,8 @@ pull requests and issues. Passing automated checks does not complete manual revi
 
 - Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
 - Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
-- Active slice: reconcile [Issue #31](https://github.com/killroyZULU/FlyEye/issues/31) / PR #32 with current `main`, preserving the aircraft registry contract and the merged MFA fixture corrections.
-- Next: verify and review PR #32, then propagate the updated registry baseline through PRs #36 and #38 and reconcile the dashboard. A008, A009 and A013 remain tracked findings; broad refactors remain deferred. Preserve the occupied local aircraft database.
+- Active slice: integrate the aircraft registry, document specification, document implementation and dashboard in dependency order, checking CI between merges. The visual checkpoint is merged through PR #30; Issue #20 is closed against merged FEAT-006 evidence.
+- Next: verify and merge PR #32, then #36, #38 and #34. A008 and A009 are corrected on their feature branches; A013 and the broader audit remain open. Preserve the occupied local aircraft database.
 - Resume from this checkpoint, Issue #39 and live PR checks; do not restart completed reviews or close the umbrella audit after one slice.
 
 ## Existing unmerged work
@@ -52,7 +53,6 @@ pull requests and issues. Passing automated checks does not complete manual revi
 | Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `fbea354` |
 | Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | `1e16af4` |
 | Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `1dc61c1` |
-| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | Reconciliation with current `main` in progress |
 
 These branches remain unmerged. Their recorded heads have successful historical
 checks; reconciliation requires fresh verification. PR #36 depends on #32, and

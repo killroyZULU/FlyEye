@@ -33,7 +33,7 @@ Exit: invited user securely performs an authorized tenant-scoped action with com
 6. FEAT-005 User Management and Basic Profiles, including single-school FIX-006
 7. FEAT-006 Member MFA Readiness and Role Assignment
 8. Code-maintainability guardrail checkpoint before Stage 2 expansion
-9. Visual-identity checkpoint before larger operational modules
+9. Visual-design documentation checkpoint before larger operational modules; implementation remains separately bounded
 
 This roadmap records sequence, not live evidence or authorization. See [Current State](CURRENT_STATE.md) for status, dependencies, and later gates. Each requested slice follows the bounded delivery policy in `AGENTS.md`.
 
