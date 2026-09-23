@@ -37,10 +37,10 @@ Use React, TypeScript, Vite, Supabase PostgreSQL/Auth/private Storage/Row-Level 
 
 A direct request to build, fix, document, or continue a bounded outcome authorizes delivery through a green review-ready pull request:
 
-1. Inspect the implementation, current branch, and working tree.
+1. Inspect the implementation, current branch, and working tree; apply the [integration checkpoint](docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#integration-checkpoint) before starting another delivery slice.
 2. Define or refine the smallest coherent specification. Record assumptions, unresolved questions, scope, non-goals, risks, affected files, and required data/RLS/function/frontend/audit/test/doc changes.
 3. Create or confirm the bounded GitHub issue and add it to the FlyEye Delivery project. Link canonical requirements instead of copying them into the issue.
-4. Create or continue the task branch from current `main`; preserve unrelated work.
+4. Create or continue the task branch from current `main`, or use the explicitly directed stack described in the integration checkpoint; preserve unrelated work.
 5. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
 6. Add positive, negative-authorization, and cross-school isolation tests where school-owned data or protected commands are involved; use rollback-only database fixtures or separate isolated test deployments for School A/School B cases.
 7. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.

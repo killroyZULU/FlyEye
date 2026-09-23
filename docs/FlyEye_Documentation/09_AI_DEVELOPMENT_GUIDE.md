@@ -26,6 +26,14 @@ GitHub Issues and the [FlyEye Delivery project](https://github.com/users/killroy
 
 Issues and project fields are operational views, not new requirement or status authorities. They link to the applicable specification, [Current State](CURRENT_STATE.md), roadmap, decision, or evidence record instead of duplicating those documents. Closed issues and pull requests provide history; they do not replace traceability evidence.
 
+### Integration checkpoint
+
+Before starting another delivery slice, refresh `main` and inspect open PRs, their bases, dependencies, linked issues, review findings, and CI. Identify which are in progress, blocked, ready for a merge decision, or intentionally deferred. Open discovery and audit issues alone do not block unrelated delivery.
+
+Keep one active delivery slice by default. Finish its corrections and review before starting another. Once its PR is green, surface the merge decision instead of silently starting new work. An explicit instruction to defer it or proceed with another task permits that work; record the disposition in the affected PR. Never infer merge authorization from green CI or a request for the next task.
+
+Use stacked or parallel delivery only when explicitly directed. For a stack, record each parent PR, base branch, merge order, and eventual `main` target in the PR descriptions. Do not build on an unmerged prerequisite without that direction. For parallel work, identify overlapping files or contracts and the integration order. Recheck these relationships as branches change.
+
 ## Feature workflow
 
 ### 1. Discover and specify
@@ -58,9 +66,17 @@ Agent review is technical evidence, not qualified independent human review or ri
 
 ### 6. Publish
 
-Inspect the complete diff and worktree, stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the bounded issue, and follow required CI through green. Do not merge.
+Inspect the complete diff and worktree, stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the bounded issue, and follow required CI through green. Publication ends at the merge decision unless merge authorization is already explicit.
 
-The handoff reports only the outcome, checks and review, branch/commit/PR, material limitations, and next human action.
+The handoff reports only the outcome, checks and review, branch/commit/PR, material limitations, and next human action. State whether the outcome is review-ready on a branch or integrated into `main`; publication alone does not complete integration.
+
+### 7. Integrate when authorized
+
+Before each authorized merge, verify the current head and base, final diff, resolved blocking review findings, mergeability, and required CI for the resulting integration. Resolve drift and reverify affected behavior before merging. Follow any specified merge order and stop the sequence on failure.
+
+After each merge, verify the resulting `main` commit and required post-merge CI before merging the next PR or starting dependent work. Retarget stacked children as needed, reconcile them with updated `main`, and obtain fresh checks and review for changed integration behavior. Verify linked issue closure only when its acceptance criteria are fulfilled; an intermediate stack merge or partial umbrella fix does not close the overall outcome.
+
+Update stale canonical status, confirm the final remote state, and refresh a clean local `main` without disturbing unrelated work. Report any remaining PRs and their disposition. Branch deletion and release remain outside integration authorization under `AGENTS.md`.
 
 ## Documentation behavior
 
