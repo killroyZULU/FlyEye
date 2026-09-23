@@ -22,7 +22,7 @@ AI contributors must also read the root `AGENTS.md`. Anyone editing Markdown mus
 |---|---|
 | Product | [Overview](00_PROJECT_OVERVIEW.md), [Charter](02_PROJECT_CHARTER.md), [SRS](03_PRODUCT_REQUIREMENTS_SRS.md), [Roadmap](14_PRODUCT_ROADMAP.md) |
 | Technical design | [Architecture](04_SYSTEM_ARCHITECTURE.md), [Database](05_DATABASE_DESIGN.md), [API](06_API_SPECIFICATION.md), [ADRs](adr/README.md) |
-| Quality and risk | [UI/UX](07_UI_UX_GUIDELINES.md), [Security](08_SECURITY_REQUIREMENTS.md), [DevSecOps](10_DEVSECOPS_GUIDE.md), [QA](11_QA_TEST_PLAN.md), [Privacy](12_PRIVACY_DATA_PROTECTION.md), [Risk Register](15_RISK_REGISTER.md) |
+| Quality and risk | [UI/UX](07_UI_UX_GUIDELINES.md), [Visual design](DESIGN.md), [Security](08_SECURITY_REQUIREMENTS.md), [DevSecOps](10_DEVSECOPS_GUIDE.md), [QA](11_QA_TEST_PLAN.md), [Privacy](12_PRIVACY_DATA_PROTECTION.md), [Risk Register](15_RISK_REGISTER.md) |
 | Delivery | [AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md), [Pilot Plan](13_PILOT_IMPLEMENTATION_PLAN.md), [Change Log](16_CHANGE_LOG.md), [Current State](CURRENT_STATE.md) |
 | Governance | [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md), [Documentation Standard](DOCUMENTATION_STANDARD.md) |
 | Features | [`features/`](features/) specifications, traceability, and feature-specific evidence |

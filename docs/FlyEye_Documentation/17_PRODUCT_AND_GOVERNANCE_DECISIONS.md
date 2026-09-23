@@ -14,6 +14,7 @@ Superseded decision processes remain available through Git history. They are not
 - The product serves flight schools and their authorized students, instructors, operations personnel, and administrators; it is not a standalone student application.
 - Customers retain ownership and control of their data. FlyEye may process it only under an approved agreement and documented instructions.
 - Initial commercial testing focuses on one anonymous candidate school and a PPL-first workflow. Participation or endorsement cannot be implied before written agreement.
+- English is the only product-interface language for the initial scope. Localization requires separate user evidence and specification.
 - Pricing, contract, warranty, support, intellectual-property, and service-level terms remain unresolved.
 
 ## School deployments, memberships, and roles
