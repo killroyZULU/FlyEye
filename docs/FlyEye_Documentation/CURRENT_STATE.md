@@ -1,7 +1,7 @@
 # Current State
 
-- Last updated: 2026-09-22
-- Last verified merged baseline: `main` at `1a85ae6` (PR #29)
+- Last updated: 2026-09-23
+- Merged baseline: `main` at `8349e31` (PR #41); post-merge runtime cleanup failed
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
@@ -38,12 +38,12 @@ The repository-wide audit precedes newer features. [Issue #39](https://github.co
 owns its coverage checklist, findings and remaining corrections. Passing automated
 checks or inventorying files does not complete their manual review.
 
-- Active slice: [Issue #40](https://github.com/killroyZULU/FlyEye/issues/40), CI coverage for stacked PRs, Markdown section-link validation, and canonical documentation consistency.
-- Branch: `chore/structural-reinforcement`, based on merged `main` at `1a85ae6`.
-- Implementation: [PR #41](https://github.com/killroyZULU/FlyEye/pull/41) delivers CI/link checks, documentation corrections, the Browserslist patch and secret-safe MFA diagnostics. An intermittent factor-binding fixture failure prompted bounded local-proxy recovery with unchanged request/idempotency data; application authorization errors remain fatal. The PR owns verification evidence, final-head checks and merge readiness.
+- Active slice: [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42), FEAT-006 runtime cleanup correction. Project assignment is owner-confirmed.
+- Branch: `fix/FIX-042-mfa-runtime-cleanup`, based on merged `main` at `8349e31`.
+- Implementation: [PR #41](https://github.com/killroyZULU/FlyEye/pull/41) merged CI/link checks, documentation corrections, the Browserslist patch and MFA diagnostics. Its post-merge run passed application/SQL checks and MFA persistence but failed fixture cleanup. The correction adds fixture-specific worker readiness, limiter identity verification, awaited process-tree shutdown and fixed cleanup substeps. The original failure substep remains unknown; verification evidence belongs in the correction PR and [FEAT-006 Traceability](features/FEAT-006_TRACEABILITY.md#runtime-fixture-maintenance).
 - Audit coverage: the scoped documentation/tooling review is complete. Broader Markdown, frontend and backend reviews remain incomplete; Issue #39 separates recovered findings from unverified hypotheses.
-- Next: confirm final-head PR #41 CI, then obtain the merge decision. Issue #40 project assignment is owner-confirmed. Then address A008 (late MFA-assurance rejection) and A013 (moderate Vitest advisory). Preserve the occupied local aircraft database.
-- Resume: read this section and Issue #39, inspect `git status`/diff and the current PR checks, then continue the next unfinished step. Do not restart completed review areas or close the whole audit after one slice.
+- Next: review and verify Issue #42 in disposable CI, then obtain its merge decision. Continue A008 (late MFA-assurance rejection) and A013 (moderate Vitest advisory) afterward. Preserve the occupied local aircraft database.
+- Resume: read this checkpoint and Issue #39, inspect Git/PR checks, and continue unfinished work. Do not restart completed reviews or close the whole audit after one slice.
 
 ## Existing unmerged work
 

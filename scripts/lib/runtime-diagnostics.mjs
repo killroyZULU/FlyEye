@@ -11,6 +11,16 @@ const feat006Stages = new Set([
   'readiness-complete',
   'persistence-assertions',
   'fixture-cleanup',
+  'cleanup-edge-shutdown',
+  'cleanup-auth-refresh',
+  'cleanup-limiter-rows',
+  'cleanup-domain-rows',
+  'cleanup-auth-user',
+  'cleanup-identity-assertions',
+  'cleanup-key-assertions',
+  'cleanup-discarded-event',
+  'cleanup-baseline-assertions',
+  'cleanup-temporary-files',
 ]);
 const events = new Set(['enter', 'passed', 'failed']);
 const failureDetails = new Set([

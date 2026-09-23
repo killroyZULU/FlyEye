@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { stopLocalEdge, waitForMemberMfaWorker } from './lib/local-edge-lifecycle.mjs';
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -24,7 +25,9 @@ if (!['127.0.0.1', 'localhost'].includes(new URL(apiUrl).hostname)) {
   throw new Error('FEAT-006 runtime verification is restricted to local Supabase.');
 }
 
-const origin = 'http://127.0.0.1:5173';
+// This is an Origin header only; no network request targets this hostname.
+// A fresh exact origin prevents the default/previous worker passing readiness.
+const origin = `https://${randomUUID()}.localhost`;
 const organizationId = randomUUID();
 const membershipId = randomUUID();
 const email = `feat006a-${randomBytes(6).toString('hex')}@example.test`;
@@ -103,22 +106,6 @@ function currentTotp(secret) {
     ((digest[offset + 2] & 0xff) << 8) |
     (digest[offset + 3] & 0xff);
   return String(binary % 1_000_000).padStart(6, '0');
-}
-
-async function waitForEdge() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    try {
-      const response = await fetch(`${apiUrl}/functions/v1/member-mfa`, {
-        method: 'OPTIONS',
-        headers: { origin },
-      });
-      if (response.status === 204) return;
-    } catch {
-      // The local worker is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('The local member-MFA Edge Function did not become ready.');
 }
 
 async function invoke(body, trackCorrelation = true) {
@@ -206,14 +193,6 @@ try {
     ].join('\n'),
     { encoding: 'utf8', mode: 0o600 },
   );
-  enterStage('edge-startup');
-  edgeProcess = spawn(
-    process.execPath,
-    [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
-    { stdio: 'ignore', windowsHide: true },
-  );
-  await waitForEdge();
-
   client = createClient(apiUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: true },
   });
@@ -221,7 +200,30 @@ try {
   const signedIn = await client.auth.signInWithPassword({ email, password });
   if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
 
+  enterStage('edge-startup');
+  edgeProcess = spawn(
+    process.execPath,
+    [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
+    { stdio: 'ignore', windowsHide: true, detached: process.platform !== 'win32' },
+  );
+  // Avoid an unhandled spawn error; readiness and cleanup report fixed failures.
+  edgeProcess.on('error', () => {});
+  await waitForMemberMfaWorker(`${apiUrl}/functions/v1/member-mfa`, origin, edgeProcess, {
+    apikey: publishableKey,
+    authorization: `Bearer ${signedIn.data.session.access_token}`,
+  });
+
   enterStage('readiness-status');
+  const identity = await invoke({ action: 'status' });
+  assert.match(identity.correlationId, /^[0-9a-f-]{36}$/);
+  assert.equal(
+    psql(
+      `select limiter_key_hash from public.member_mfa_rate_limit_events
+      where correlation_id = '${identity.correlationId}'::uuid;`,
+      true,
+    ),
+    createHmac('sha256', limiterSecret).update(`${userId}\u0000status`).digest('hex'),
+  );
   // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
   // Retain it only for the post-cleanup regression assertion.
   discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
@@ -307,11 +309,21 @@ try {
   reportDiagnostic('failed', error?.code === 'ERR_ASSERTION' ? 'assertion' : failureDetail);
   primaryError = error;
 } finally {
-  enterStage('fixture-cleanup');
-  if (edgeProcess) edgeProcess.kill();
   const cleanupErrors = [];
-  if (userId) {
+  async function cleanupStep(name, action) {
+    enterStage(name);
     try {
+      await action();
+      reportDiagnostic('passed');
+    } catch (error) {
+      reportDiagnostic('failed', error?.code === 'ERR_ASSERTION' ? 'assertion' : 'unclassified');
+      cleanupErrors.push(error);
+    }
+  }
+  await cleanupStep('cleanup-edge-shutdown', () => stopLocalEdge(edgeProcess));
+  await cleanupStep('cleanup-auth-refresh', () => client?.auth.stopAutoRefresh());
+  if (userId) {
+    await cleanupStep('cleanup-limiter-rows', () => {
       const limiterKeys = new Set(
         ['status', 'start', 'bind_factor', 'complete'].map((action) =>
           createHmac('sha256', limiterSecret).update(`${userId}\u0000${action}`).digest('hex'),
@@ -336,10 +348,8 @@ try {
         delete from public.member_mfa_rate_limit_events
         where limiter_key_hash in (${cleanupLimiterKeyList});
       `);
-    } catch (error) {
-      cleanupErrors.push(error);
-    }
-    try {
+    });
+    await cleanupStep('cleanup-domain-rows', () => {
       psql(`
         delete from public.authentication_events where actor_user_id = '${userId}';
         delete from public.member_mfa_readiness where subject_user_id = '${userId}';
@@ -349,24 +359,20 @@ try {
         delete from public.organization_memberships where id = '${membershipId}';
         delete from public.organizations where id = '${organizationId}';
       `);
-    } catch (error) {
-      cleanupErrors.push(error);
-    }
-    try {
+    });
+    await cleanupStep('cleanup-auth-user', async () => {
       const deleted = await admin.auth.admin.deleteUser(userId);
-      if (deleted.error) cleanupErrors.push(deleted.error);
-      const lookup = await admin.auth.admin.getUserById(userId);
-      if (!lookup.error || lookup.data.user) {
-        cleanupErrors.push(new Error('Synthetic Auth user cleanup failed.'));
-      }
-    } catch (error) {
-      cleanupErrors.push(error);
-    }
-    try {
+      if (deleted.error) throw deleted.error;
+    });
+    await cleanupStep('cleanup-identity-assertions', () => {
+      assert.equal(psql(`select count(*) from auth.users where id = '${userId}';`, true), '0');
       assert.equal(
         psql(`select count(*) from public.organizations where id = '${organizationId}';`, true),
         '0',
       );
+    });
+    await cleanupStep('cleanup-key-assertions', () => {
+      assert.ok(cleanupLimiterKeyList);
       assert.equal(
         psql(
           `select (select count(*) from public.member_mfa_rate_limit_state
@@ -377,6 +383,8 @@ try {
         ),
         '0',
       );
+    });
+    await cleanupStep('cleanup-discarded-event', () => {
       if (discardedCorrelationId) {
         assert.equal(
           psql(
@@ -387,6 +395,8 @@ try {
           '0',
         );
       }
+    });
+    await cleanupStep('cleanup-baseline-assertions', () => {
       assert.equal(
         psql(
           `select (select count(*) from public.member_mfa_rate_limit_state)
@@ -405,15 +415,12 @@ try {
           '0',
         );
       }
-    } catch (error) {
-      cleanupErrors.push(error);
-    }
+    });
   }
-  try {
+  await cleanupStep('cleanup-temporary-files', () => {
     if (temporaryDirectory) rmSync(temporaryDirectory, { recursive: true, force: true });
-  } catch (error) {
-    cleanupErrors.push(error);
-  }
+  });
+  enterStage('fixture-cleanup');
   reportDiagnostic(cleanupErrors.length > 0 ? 'failed' : 'passed');
   if (cleanupErrors.length > 0)
     primaryError = new AggregateError(
