@@ -555,9 +555,9 @@ async function runScenario(browser, viewport, scenario) {
         true,
       );
       for (const heading of [
-        'Student workspace',
-        'Instructor workspace',
-        'Administration workspace',
+        'Student dashboard',
+        'Instructor dashboard',
+        'Administration dashboard',
       ]) {
         assert.equal(await page.getByRole('heading', { name: heading }).count(), 0);
       }
@@ -589,8 +589,18 @@ async function runScenario(browser, viewport, scenario) {
 
     await submitLogin(page);
     if (scenario.name === 'student') {
-      await page.getByRole('heading', { name: 'Student workspace' }).waitFor();
-      await page.getByText('Synthetic Flight School').waitFor();
+      await page.getByRole('heading', { name: 'Student dashboard' }).waitFor();
+      await page.getByRole('banner').getByText('Synthetic Flight School').waitFor();
+      assert.equal(await page.getByText('Secure school access').count(), 0);
+      assert.equal(await page.getByRole('navigation', { name: 'Primary navigation' }).count(), 1);
+      assert.equal(
+        await page.evaluate(
+          () =>
+            globalThis.document.documentElement.scrollWidth <=
+            globalThis.document.documentElement.clientWidth,
+        ),
+        true,
+      );
       await page.getByRole('button', { name: 'Sign out' }).click();
       await page.getByRole('heading', { name: 'Sign in to FlyEye' }).waitFor();
     } else if (scenario.name === 'invalid') {
@@ -602,14 +612,14 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('heading', { name: 'Your account is not assigned' }).waitFor();
       await page.getByRole('button', { name: 'Return to sign in' }).click();
     } else if (scenario.name === 'profile') {
-      await page.getByRole('button', { name: 'View my basic profile' }).click();
+      await page.getByRole('button', { name: 'My profile', exact: true }).click();
       await page.getByRole('heading', { name: 'My basic profile' }).waitFor();
       await page.getByLabel('Display name').fill('Updated Synthetic Student');
       await page.getByLabel('Contact number (optional)').fill('+63 917 000 0000');
       await page.getByRole('button', { name: 'Save profile' }).click();
       await page.getByText('Your organization profile was saved.').waitFor();
     } else if (scenario.name === 'security') {
-      await page.getByRole('button', { name: 'Manage authenticator security' }).click();
+      await page.getByRole('button', { name: 'Account security', exact: true }).click();
       const heading = page.getByRole('heading', { name: 'Authenticator is ready' });
       await heading.waitFor();
       assert.equal(
@@ -628,8 +638,8 @@ async function runScenario(browser, viewport, scenario) {
       assert.equal(await page.getByText(/does not change your role/i).count(), 1);
       assert.equal(await page.getByRole('button', { name: 'Begin secure setup' }).count(), 1);
     } else if (scenario.name === 'members') {
-      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
-      await page.getByRole('button', { name: 'Manage organization members' }).click();
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
+      await page.getByRole('button', { name: 'People', exact: true }).click();
       await page.getByRole('heading', { name: 'Organization members' }).waitFor();
       await page.getByRole('button', { name: /Synthetic Member/ }).click();
       await page.getByRole('button', { name: 'Change FlyEye role' }).click();
@@ -643,8 +653,11 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('button', { name: 'Confirm suspend' }).click();
       await page.getByText('Membership suspended successfully.').waitFor();
     } else if (scenario.name === 'aircraft') {
-      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
-      await page.getByRole('button', { name: 'Open aircraft registry' }).click();
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft', exact: true })
+        .click();
       await page.getByRole('heading', { name: 'Aircraft registry' }).waitFor();
       await page.getByText(/Tracked does not mean operationally available/i).waitFor();
       await page.getByRole('button', { name: 'Add aircraft' }).click();
@@ -668,8 +681,11 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('button', { name: 'Confirm reactivate' }).click();
       await page.getByText('RP-C1234', { exact: true }).waitFor();
     } else if (scenario.name === 'documents-admin') {
-      await page.getByRole('heading', { name: 'Administration workspace' }).waitFor();
-      await page.getByRole('button', { name: 'Open aircraft documents' }).click();
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft documents', exact: true })
+        .click();
       await page.getByRole('heading', { name: 'Aircraft documents' }).waitFor();
       await page.getByText(/not an airworthiness or dispatch decision/i).waitFor();
       await page.getByRole('button', { name: 'Add document' }).first().click();
@@ -679,8 +695,11 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('button', { name: 'Add document' }).click();
       await page.getByText('Expires 2027-09-02', { exact: true }).waitFor();
     } else if (scenario.name === 'documents-student') {
-      await page.getByRole('heading', { name: 'Student workspace' }).waitFor();
-      await page.getByRole('button', { name: 'Open aircraft documents' }).click();
+      await page.getByRole('heading', { name: 'Student dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft documents', exact: true })
+        .click();
       await page.getByRole('heading', { name: 'Aircraft documents' }).waitFor();
       await page.getByText('Airworthiness Certificate').waitFor();
       assert.equal(await page.getByRole('button', { name: 'Add document' }).count(), 0);

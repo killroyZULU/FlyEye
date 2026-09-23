@@ -199,9 +199,9 @@ describe('FEAT-002 recovery UI', () => {
     expect(gatewayUnderTest.signOutEverywhere).toHaveBeenCalledTimes(1);
     expect(gatewayUnderTest.loadAccessContext).not.toHaveBeenCalled();
     for (const heading of [
-      'Student workspace',
-      'Instructor workspace',
-      'Administration workspace',
+      'Student dashboard',
+      'Instructor dashboard',
+      'Administration dashboard',
     ]) {
       expect(screen.queryByRole('heading', { name: heading })).not.toBeInTheDocument();
     }

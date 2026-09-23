@@ -196,7 +196,7 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await studentPage.getByLabel('Email address').fill(users.student.email);
       await studentPage.getByLabel('Password', { exact: true }).fill(password);
       await studentPage.getByRole('button', { name: 'Sign in securely' }).click();
-      await studentPage.getByRole('heading', { name: 'Student workspace' }).waitFor();
+      await studentPage.getByRole('heading', { name: 'Student dashboard' }).waitFor();
       await studentPage.waitForLoadState('networkidle');
       await studentPage.close();
 
@@ -208,7 +208,7 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await instructorPage.getByRole('heading', { name: 'Verify your identity' }).waitFor();
       await instructorPage.getByLabel('Verification code').fill(currentTotp(instructorTotpSecret));
       await instructorPage.getByRole('button', { name: 'Verify and continue' }).click();
-      await instructorPage.getByRole('heading', { name: 'Instructor workspace' }).waitFor();
+      await instructorPage.getByRole('heading', { name: 'Instructor dashboard' }).waitFor();
       await instructorPage.waitForLoadState('networkidle');
       await instructorPage.close();
     } finally {

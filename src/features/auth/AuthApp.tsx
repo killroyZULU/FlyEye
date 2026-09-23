@@ -12,6 +12,7 @@ import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboardi
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
 import { AdminOnboardingFlow } from './components/AdminOnboardingFlow';
+import { AuthenticatedShell } from './components/AuthenticatedShell';
 import { InvitationAcceptanceFlow } from './components/InvitationAcceptanceFlow';
 import { LoginForm } from './components/LoginForm';
 import { MemberInvitationsPanel } from './components/MemberInvitationsPanel';
@@ -20,9 +21,10 @@ import { MemberMfaEnrollmentFlow } from './components/MemberMfaEnrollmentFlow';
 import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
 import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
-import { WorkspaceHome, type WorkspaceView } from './components/WorkspaceHome';
+import { WorkspaceDashboard } from './components/WorkspaceDashboard';
 import { RECOVERY_COMPLETE_PATH, RECOVERY_REQUEST_PATH } from './recovery';
 import { INVITATION_PATH } from './member-invitations';
+import { workspaceNavigation, type WorkspaceView } from './workspace-navigation';
 import {
   AuthGatewayError,
   type AuthGateway,
@@ -309,6 +311,7 @@ export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: A
 
       setState('mfa-required');
     } catch (error) {
+      if (!operationIsCurrent(operation)) return;
       const safe = safeError(error);
       setMessage(safe.message);
       setState('error');
@@ -373,6 +376,87 @@ export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: A
     void loadAccess();
   }
 
+  if (route === 'sign-in' && state === 'success' && activeMembership) {
+    const navigation = workspaceNavigation(activeMembership, {
+      aircraftAvailable: Boolean(aircraftGateway),
+      aircraftDocumentsAvailable: Boolean(aircraftDocumentGateway),
+    });
+    return (
+      <AuthenticatedShell
+        membership={activeMembership}
+        currentView={workspaceView}
+        navigation={navigation}
+        onNavigate={setWorkspaceView}
+        onSignOut={() => void handleSignOut()}
+      >
+        {workspaceView === 'invitations' ? (
+          <MemberInvitationsPanel
+            gateway={gateway}
+            organizationId={activeMembership.organizationId}
+            organizationName={activeMembership.organizationName}
+            onClose={() => setWorkspaceView('home')}
+          />
+        ) : null}
+
+        {workspaceView === 'members' ? (
+          <MemberAdministrationPanel
+            gateway={gateway}
+            organizationId={activeMembership.organizationId}
+            organizationName={activeMembership.organizationName}
+            currentMembershipId={activeMembership.membershipId}
+            onClose={() => setWorkspaceView('home')}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'profile' ? (
+          <MemberProfilePanel
+            gateway={gateway}
+            membershipId={activeMembership.membershipId}
+            onClose={() => setWorkspaceView('home')}
+          />
+        ) : null}
+
+        {workspaceView === 'security' ? (
+          <MemberMfaEnrollmentFlow
+            gateway={gateway}
+            onCompleted={() => setWorkspaceView('home')}
+            onClose={() => setWorkspaceView('home')}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'aircraft' && aircraftGateway ? (
+          <AircraftRegistryPanel
+            gateway={aircraftGateway}
+            organizationName={activeMembership.organizationName}
+            canManage={activeMembership.permissions.includes('aircraft.record.manage')}
+            onClose={() => setWorkspaceView('home')}
+            onAccessRevoked={handleAircraftAccessRevoked}
+          />
+        ) : null}
+
+        {workspaceView === 'documents' && aircraftDocumentGateway ? (
+          <AircraftDocumentsPanel
+            gateway={aircraftDocumentGateway}
+            {...aircraftDocumentCapabilities(activeMembership.permissions)}
+            onClose={() => setWorkspaceView('home')}
+            onAccessRevoked={handleAircraftAccessRevoked}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'home' ? (
+          <WorkspaceDashboard
+            membership={activeMembership}
+            navigation={navigation}
+            onNavigate={setWorkspaceView}
+          />
+        ) : null}
+      </AuthenticatedShell>
+    );
+  }
+
   return (
     <main className="auth-shell">
       <section className="brand-panel" aria-label="FlyEye introduction">
@@ -395,7 +479,7 @@ export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: A
       </section>
 
       <section className="auth-panel" aria-label="Account access">
-        <div className={`auth-card${workspaceView !== 'home' ? ' auth-card--workspace' : ''}`}>
+        <div className="auth-card">
           {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
 
           {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
@@ -516,96 +600,6 @@ export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: A
                 Sign out
               </button>
             </StatePanel>
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'invitations' ? (
-            <MemberInvitationsPanel
-              gateway={gateway}
-              organizationId={activeMembership.organizationId}
-              organizationName={activeMembership.organizationName}
-              onClose={() => setWorkspaceView('home')}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'members' ? (
-            <MemberAdministrationPanel
-              gateway={gateway}
-              organizationId={activeMembership.organizationId}
-              organizationName={activeMembership.organizationName}
-              currentMembershipId={activeMembership.membershipId}
-              onClose={() => setWorkspaceView('home')}
-              onRequirePassword={(reason) => void returnToPassword(reason)}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'profile' ? (
-            <MemberProfilePanel
-              gateway={gateway}
-              membershipId={activeMembership.membershipId}
-              onClose={() => setWorkspaceView('home')}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'security' ? (
-            <MemberMfaEnrollmentFlow
-              gateway={gateway}
-              onCompleted={() => setWorkspaceView('home')}
-              onClose={() => setWorkspaceView('home')}
-              onRequirePassword={(reason) => void returnToPassword(reason)}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          aircraftGateway &&
-          workspaceView === 'aircraft' ? (
-            <AircraftRegistryPanel
-              gateway={aircraftGateway}
-              organizationName={activeMembership.organizationName}
-              canManage={activeMembership.permissions.includes('aircraft.record.manage')}
-              onClose={() => setWorkspaceView('home')}
-              onAccessRevoked={handleAircraftAccessRevoked}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          aircraftDocumentGateway &&
-          workspaceView === 'documents' ? (
-            <AircraftDocumentsPanel
-              gateway={aircraftDocumentGateway}
-              {...aircraftDocumentCapabilities(activeMembership.permissions)}
-              onClose={() => setWorkspaceView('home')}
-              onAccessRevoked={handleAircraftAccessRevoked}
-              onRequirePassword={(reason) => void returnToPassword(reason)}
-            />
-          ) : null}
-
-          {route === 'sign-in' &&
-          state === 'success' &&
-          activeMembership &&
-          workspaceView === 'home' ? (
-            <WorkspaceHome
-              membership={activeMembership}
-              aircraftAvailable={Boolean(aircraftGateway)}
-              aircraftDocumentsAvailable={Boolean(aircraftDocumentGateway)}
-              onNavigate={setWorkspaceView}
-              onSignOut={() => void handleSignOut()}
-            />
           ) : null}
         </div>
         <footer>

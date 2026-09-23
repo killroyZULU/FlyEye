@@ -1,8 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccessContextResponse, RoleCode } from '../../lib/access-context';
+import { AircraftDocumentError, type AircraftDocumentGateway } from '../aircraft';
 import { AuthApp } from './AuthApp';
 import { AuthGatewayError, type AuthGateway } from './services/auth-gateway';
 
@@ -16,7 +17,7 @@ const rolePermission = {
 
 function context(
   role: RoleCode,
-  permissions = [
+  permissions: string[] = [
     rolePermission[role as keyof typeof rolePermission] ?? 'portal.future_role.access',
   ],
   accessStatus: 'granted' | 'mfa_required' | 'denied' = role === 'student_pilot'
@@ -124,8 +125,12 @@ describe('FEAT-001 authentication UI', () => {
 
     await signIn(gatewayUnderTest);
 
-    expect(await screen.findByRole('heading', { name: 'Student workspace' })).toBeInTheDocument();
-    expect(screen.getByText('Synthetic Flight School')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Student dashboard' })).toBeInTheDocument();
+    expect(screen.getAllByText('Synthetic Flight School')).toHaveLength(2);
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByLabelText('FlyEye introduction')).not.toBeInTheDocument();
+    expect(screen.queryByText('Secure school access')).not.toBeInTheDocument();
     expect(gatewayUnderTest.signIn).toHaveBeenCalledWith({
       email: 'student@example.test',
       password: 'NotARealPassword1!',
@@ -189,7 +194,7 @@ describe('FEAT-001 authentication UI', () => {
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Instructor workspace' }),
+      await screen.findByRole('heading', { name: 'Instructor dashboard' }),
     ).toBeInTheDocument();
     expect(gatewayUnderTest.verifyTotp).toHaveBeenCalledWith('123456');
     expect(loadAccessContext).toHaveBeenLastCalledWith();
@@ -230,7 +235,7 @@ describe('FEAT-001 authentication UI', () => {
     expect(
       await screen.findByRole('heading', { name: 'Your account is not assigned' }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Instructor workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Instructor dashboard' })).not.toBeInTheDocument();
   });
 
   it('blocks a role that lacks its required permission', async () => {
@@ -356,7 +361,7 @@ describe('FEAT-001 authentication UI', () => {
       }),
     });
     render(<AuthApp gateway={gatewayUnderTest} />);
-    await screen.findByRole('heading', { name: 'Student workspace' });
+    await screen.findByRole('heading', { name: 'Student dashboard' });
 
     await act(async () => {
       signedOutCallback?.();
@@ -391,8 +396,58 @@ describe('FEAT-001 authentication UI', () => {
     });
 
     expect(await screen.findByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Student workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Student dashboard' })).not.toBeInTheDocument();
   });
+
+  it.each([false, true])(
+    'ignores late MFA-assurance rejection after sign-out (new session: %s)',
+    async (newSession) => {
+      let rejectAssurance: ((reason: Error) => void) | undefined;
+      let signedOutCallback: (() => void) | undefined;
+      const loadAccessContext = vi
+        .fn()
+        .mockResolvedValueOnce(context('admin'))
+        .mockResolvedValue(context('student_pilot'));
+      const subject = gateway({
+        hasSession: vi.fn().mockResolvedValue(true),
+        loadAccessContext,
+        getMfaAssurance: vi.fn<AuthGateway['getMfaAssurance']>(
+          () =>
+            new Promise((_resolve, reject) => {
+              rejectAssurance = reject;
+            }),
+        ),
+        onSignedOut: vi.fn((callback: () => void) => {
+          signedOutCallback = callback;
+          return () => undefined;
+        }),
+      });
+      render(<AuthApp gateway={subject} />);
+      await waitFor(() => expect(subject.getMfaAssurance).toHaveBeenCalledTimes(1));
+      await act(async () => {
+        signedOutCallback?.();
+        await Promise.resolve();
+      });
+      await screen.findByRole('heading', { name: 'Sign in to FlyEye' });
+      if (newSession) {
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText('Email address'), 'student@example.test');
+        await user.type(screen.getByLabelText('Password'), 'NotARealPassword1!');
+        await user.click(screen.getByRole('button', { name: 'Sign in securely' }));
+        await screen.findByRole('heading', { name: 'Student dashboard' });
+      }
+      await act(async () => {
+        rejectAssurance?.(new Error('Synthetic late assurance failure'));
+        await Promise.resolve();
+      });
+      expect(
+        screen.getByRole('heading', {
+          name: newSession ? 'Student dashboard' : 'Sign in to FlyEye',
+        }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Synthetic late assurance failure')).not.toBeInTheDocument();
+    },
+  );
 
   it('discards access results after component disposal', async () => {
     let resolveAccess: ((value: AccessContextResponse) => void) | undefined;
@@ -412,6 +467,54 @@ describe('FEAT-001 authentication UI', () => {
     });
 
     expect(rendered.container).toBeEmptyDOMElement();
+  });
+
+  it('revalidates access and removes the shell when aircraft document access is revoked', async () => {
+    const user = userEvent.setup();
+    const access = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAccessContext: vi
+        .fn()
+        .mockResolvedValueOnce(
+          context('student_pilot', ['portal.student.access', 'aircraft.document.status.read']),
+        )
+        .mockResolvedValue(context('student_pilot', ['portal.student.access'], 'denied')),
+    });
+    const documents: AircraftDocumentGateway = {
+      listAircraft: vi
+        .fn()
+        .mockRejectedValue(new AircraftDocumentError('unauthorized', 'Access revoked.')),
+      listStatus: vi.fn(),
+      detail: vi.fn(),
+      history: vi.fn(),
+      create: vi.fn(),
+      renew: vi.fn(),
+      correct: vi.fn(),
+      suspend: vi.fn(),
+      restore: vi.fn(),
+      createCategory: vi.fn(),
+      renameCategory: vi.fn(),
+      assignCategory: vi.fn(),
+      removeCategory: vi.fn(),
+      archiveCategory: vi.fn(),
+      listNotifications: vi.fn(),
+      openNotification: vi.fn(),
+      upload: vi.fn(),
+      download: vi.fn(),
+    };
+    render(<AuthApp gateway={access} aircraftDocumentGateway={documents} />);
+    const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+    expect(
+      within(navigation).queryByRole('button', { name: /^Aircraft$/ }),
+    ).not.toBeInTheDocument();
+    await user.click(within(navigation).getByRole('button', { name: 'Aircraft documents' }));
+    expect(
+      await screen.findByRole('heading', { name: 'You cannot enter this workspace' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Primary navigation' }),
+    ).not.toBeInTheDocument();
+    expect(access.loadAccessContext).toHaveBeenCalledTimes(2);
   });
 
   it('does not restore privileged success when MFA resolves after session revocation', async () => {
@@ -436,7 +539,7 @@ describe('FEAT-001 authentication UI', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: 'Administration workspace' }),
+      screen.queryByRole('heading', { name: 'Administration dashboard' }),
     ).not.toBeInTheDocument();
   });
 });
