@@ -40,23 +40,24 @@ pull requests and issues. Passing automated checks does not complete manual revi
 
 - Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
 - Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
-- Active slice: reconcile [Issue #37](https://github.com/killroyZULU/FlyEye/issues/37) / PR #38 with the updated specification baseline and correct A009 metadata-only continuation.
-- Next: verify and review PR #38, then reconcile the dashboard. A008 and A013 remain tracked findings; broad refactors remain deferred. Preserve the occupied local aircraft database.
+- Active slice: five existing PRs are reconciled and separately reviewed. PR #38 corrects A009 metadata-only continuation and date/cleanup fixture regressions; PR #34 corrects A008 stale MFA-assurance rejection. Exact-head CI and merge decisions remain delivery gates.
+- Next: confirm PR #38 is green, obtain merge decisions in dependency order, and recheck integration. A013 and the broader audit remain open; refactors remain deferred. Preserve the occupied local aircraft database.
 - Resume from this checkpoint, Issue #39 and live PR checks; do not restart completed reviews or close the umbrella audit after one slice.
 
 ## Existing unmerged work
 
-| Work | Review location | Audit baseline |
+| Work | Review location | Reconciliation evidence |
 |---|---|---|
-| Aircraft registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32) | `f17f9c5`; fresh CI pending |
-| Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `ac01368`; fresh CI pending |
-| Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | `1e16af4` |
-| Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `1dc61c1` |
-| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | Reconciliation with current `main` in progress |
+| Aircraft registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32) | `f17f9c5`; required CI passed |
+| Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `ac01368`; required CI passed |
+| Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | Current head and required verification in the linked PR |
+| Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `039b2b1`; required CI passed |
+| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | `e3aea10`; required CI passed on retry |
 
-These branches remain unmerged. Their recorded heads have successful historical
-checks; reconciliation requires fresh verification. PR #36 depends on #32, and
-#38 depends on #36. Merge and feature integration require separate decisions.
+These branches remain unmerged. Linked PRs own exact-head checks and limitations.
+PR #36 depends on #32, and #38 depends on #36. Merge and feature integration
+require separate decisions. Issue #20 has delivered evidence in merged PRs #25/#27
+and awaits closure authorization; Issue #22 still requires qualified workflow evidence.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
