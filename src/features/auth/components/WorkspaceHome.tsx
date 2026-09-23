@@ -2,11 +2,12 @@ import { landingLabel, type AccessMembership } from '../../../lib/access-context
 import { StatePanel } from './StatePanel';
 
 export type WorkspaceView =
-  'home' | 'invitations' | 'members' | 'profile' | 'security' | 'aircraft';
+  'home' | 'invitations' | 'members' | 'profile' | 'security' | 'aircraft' | 'documents';
 
 type WorkspaceHomeProps = {
   membership: AccessMembership;
   aircraftAvailable: boolean;
+  aircraftDocumentsAvailable: boolean;
   onNavigate: (view: WorkspaceView) => void;
   onSignOut: () => void;
 };
@@ -14,6 +15,7 @@ type WorkspaceHomeProps = {
 export function WorkspaceHome({
   membership,
   aircraftAvailable,
+  aircraftDocumentsAvailable,
   onNavigate,
   onSignOut,
 }: WorkspaceHomeProps) {
@@ -34,6 +36,12 @@ export function WorkspaceHome({
       {aircraftAvailable && membership.permissions.includes('aircraft.record.read') ? (
         <button className="primary-button" type="button" onClick={() => onNavigate('aircraft')}>
           Open aircraft registry
+        </button>
+      ) : null}
+      {aircraftDocumentsAvailable &&
+      membership.permissions.includes('aircraft.document.status.read') ? (
+        <button className="primary-button" type="button" onClick={() => onNavigate('documents')}>
+          Open aircraft documents
         </button>
       ) : null}
       {membership.permissions.includes('membership.invitation.manage') ? (

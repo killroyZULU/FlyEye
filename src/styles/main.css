@@ -25,7 +25,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -35,7 +36,8 @@ button {
 
 button:disabled,
 input:disabled,
-select:disabled {
+select:disabled,
+textarea:disabled {
   cursor: wait;
   opacity: 0.7;
 }
@@ -758,7 +760,8 @@ button:focus-visible {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   min-height: 3rem;
   padding: 0.75rem 0.85rem;
@@ -769,9 +772,145 @@ button:focus-visible {
 }
 
 .field input:focus-visible,
-.field select:focus-visible {
+.field select:focus-visible,
+.field textarea:focus-visible {
   outline: 3px solid rgb(37 150 143 / 28%);
   outline-offset: 2px;
+}
+
+.field textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.field-guidance {
+  color: #65767d;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.document-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.document-list,
+.document-notifications ul,
+.document-history {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #cad8da;
+  list-style: none;
+}
+
+.document-list > li {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(8rem, auto) minmax(12rem, auto);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #cad8da;
+}
+
+.document-list > li > div:first-child,
+.document-attachment > div,
+.document-history li {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.document-list > li > div:first-child span,
+.document-attachment span,
+.document-history span,
+.document-notifications button span {
+  color: #65767d;
+  font-size: 0.76rem;
+}
+
+.document-status {
+  white-space: nowrap;
+  color: #53676f;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.document-status--valid {
+  color: #11685f;
+}
+
+.document-status--expiring_soon {
+  color: #91631a;
+}
+
+.document-status--expired,
+.document-status--suspended {
+  color: #9a4038;
+}
+
+.document-status-heading,
+.document-attachment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-block: 1px solid #cad8da;
+}
+
+.document-history li {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #cad8da;
+}
+
+.document-notifications {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.document-notifications h3 {
+  margin: 0;
+  color: #0b293b;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.document-notifications button {
+  width: 100%;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 0;
+  border: 0;
+  border-bottom: 1px solid #cad8da;
+  background: transparent;
+  color: #173745;
+  text-align: left;
+}
+
+.document-notifications button:hover {
+  color: #176c69;
+}
+
+.custom-category-form,
+.category-rename-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  align-items: end;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid #cad8da;
+}
+
+.category-rename-form {
+  grid-column: 1 / -1;
+  padding-top: 0.8rem;
+  border-top-style: dashed;
 }
 
 .secondary-button {
@@ -925,8 +1064,17 @@ footer {
   .member-filters,
   .member-list button,
   .aircraft-filters,
-  .aircraft-list li {
+  .aircraft-list li,
+  .document-list > li,
+  .custom-category-form,
+  .category-rename-form {
     grid-template-columns: 1fr;
+  }
+
+  .document-status-heading,
+  .document-attachment {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .member-search .inline-field,

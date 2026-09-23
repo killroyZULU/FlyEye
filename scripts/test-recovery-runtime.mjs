@@ -230,6 +230,8 @@ async function cleanup() {
     where membership_id = '${membershipId}'::uuid;
     delete from public.organization_memberships
     where id = '${membershipId}'::uuid;
+    delete from public.aircraft_document_categories
+    where organization_id = '${organizationId}'::uuid;
     delete from public.organizations
     where id = '${organizationId}'::uuid;
   `);

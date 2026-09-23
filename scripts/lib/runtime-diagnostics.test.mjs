@@ -5,6 +5,28 @@ import { feat006Diagnostic, runtimeDiagnosticLines } from './runtime-diagnostics
 describe('runtime diagnostic output boundary', () => {
   const fixture = 'test-feat-006-runtime.mjs';
 
+  it('retains aircraft file diagnostics without leaking payloads or accepting MFA stages', () => {
+    const entered = 'FEAT-007B runtime diagnostic: stage=file-lifecycle event=enter.';
+    const failed =
+      'FEAT-007B runtime diagnostic: stage=metadata-create event=failed detail=http-404.';
+    const rejected = [
+      'FEAT-007B runtime diagnostic: stage=synthetic-secret event=enter.',
+      'FEAT-007B runtime diagnostic: stage=file-lifecycle event=failed detail=synthetic-secret.',
+      'FEAT-007B runtime diagnostic: stage=file-lifecycle event=passed detail=http-404.',
+      'FEAT-007B runtime diagnostic: stage=factor-bind event=enter.',
+      `${failed} provider payload`,
+      'provider payload: synthetic-secret',
+      feat006Diagnostic('fixture-cleanup', 'passed'),
+    ];
+    expect(
+      runtimeDiagnosticLines(
+        'test-feat-007b-runtime.mjs',
+        [entered, failed, ...rejected].join('\n'),
+      ),
+    ).toEqual([entered, failed]);
+    expect(runtimeDiagnosticLines(fixture, `${entered}\n${failed}`)).toEqual([]);
+  });
+
   it('identifies cleanup failures without forwarding error payloads', () => {
     const failed = feat006Diagnostic('cleanup-discarded-event', 'failed', 'assertion');
     expect(

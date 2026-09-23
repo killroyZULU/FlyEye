@@ -357,6 +357,7 @@ try {
         delete from public.organization_member_profiles where membership_id = '${membershipId}';
         delete from public.membership_roles where membership_id = '${membershipId}';
         delete from public.organization_memberships where id = '${membershipId}';
+        delete from public.aircraft_document_categories where organization_id = '${organizationId}';
         delete from public.organizations where id = '${organizationId}';
       `);
     });

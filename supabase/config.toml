@@ -101,3 +101,7 @@ verify_jwt = true
 [functions.aircraft-registry]
 enabled = true
 verify_jwt = true
+
+[functions.aircraft-documents]
+enabled = true
+verify_jwt = true
