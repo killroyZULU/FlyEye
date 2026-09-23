@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { requiresMfa, type AccessMembership, type LoginRequest } from '../../lib/access-context';
+import {
+  AircraftDocumentsPanel,
+  AircraftRegistryPanel,
+  aircraftDocumentCapabilities,
+  type AircraftDocumentGateway,
+  type AircraftRegistryGateway,
+} from '../aircraft';
 import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboarding';
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
@@ -42,6 +49,8 @@ type AuthState =
 
 type AuthAppProps = {
   gateway: AuthGateway;
+  aircraftGateway?: AircraftRegistryGateway;
+  aircraftDocumentGateway?: AircraftDocumentGateway;
 };
 
 type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete' | 'invitation';
@@ -61,7 +70,7 @@ function safeError(error: unknown): { code: AuthGatewayErrorCode; message: strin
   return { code: 'unknown', message: 'FlyEye could not verify your access. Try again.' };
 }
 
-export function AuthApp({ gateway }: AuthAppProps) {
+export function AuthApp({ gateway, aircraftGateway, aircraftDocumentGateway }: AuthAppProps) {
   const route = currentAuthRoute(window.location.pathname);
   const [state, setState] = useState<AuthState>('checking-session');
   const [message, setMessage] = useState<string>();
@@ -361,8 +370,17 @@ export function AuthApp({ gateway }: AuthAppProps) {
     }
   }
 
+  function handleAircraftAccessRevoked() {
+    setActiveMembership(undefined);
+    setWorkspaceView('home');
+    void loadAccess();
+  }
+
   if (route === 'sign-in' && state === 'success' && activeMembership) {
-    const navigation = workspaceNavigation(activeMembership);
+    const navigation = workspaceNavigation(activeMembership, {
+      aircraftAvailable: Boolean(aircraftGateway),
+      aircraftDocumentsAvailable: Boolean(aircraftDocumentGateway),
+    });
     return (
       <AuthenticatedShell
         membership={activeMembership}
@@ -404,6 +422,26 @@ export function AuthApp({ gateway }: AuthAppProps) {
             gateway={gateway}
             onCompleted={() => setWorkspaceView('home')}
             onClose={() => setWorkspaceView('home')}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        ) : null}
+
+        {workspaceView === 'aircraft' && aircraftGateway ? (
+          <AircraftRegistryPanel
+            gateway={aircraftGateway}
+            organizationName={activeMembership.organizationName}
+            canManage={activeMembership.permissions.includes('aircraft.record.manage')}
+            onClose={() => setWorkspaceView('home')}
+            onAccessRevoked={handleAircraftAccessRevoked}
+          />
+        ) : null}
+
+        {workspaceView === 'documents' && aircraftDocumentGateway ? (
+          <AircraftDocumentsPanel
+            gateway={aircraftDocumentGateway}
+            {...aircraftDocumentCapabilities(activeMembership.permissions)}
+            onClose={() => setWorkspaceView('home')}
+            onAccessRevoked={handleAircraftAccessRevoked}
             onRequirePassword={(reason) => void returnToPassword(reason)}
           />
         ) : null}

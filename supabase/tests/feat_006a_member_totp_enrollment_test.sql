@@ -99,6 +99,8 @@ select is(
 delete from public.organization_member_profiles
 where membership_id = '93000000-0000-4000-8000-000000000004';
 delete from public.organization_memberships where id = '93000000-0000-4000-8000-000000000004';
+delete from public.aircraft_document_categories
+where organization_id = '92000000-0000-4000-8000-000000000002';
 delete from public.organizations where id = '92000000-0000-4000-8000-000000000002';
 
 create temp table feat006a_start_result as
@@ -178,6 +180,8 @@ select is(
 delete from public.organization_member_profiles
 where membership_id = '93000000-0000-4000-8000-000000000005';
 delete from public.organization_memberships where id = '93000000-0000-4000-8000-000000000005';
+delete from public.aircraft_document_categories
+where organization_id = '92000000-0000-4000-8000-000000000003';
 delete from public.organizations where id = '92000000-0000-4000-8000-000000000003';
 
 create temp table feat006a_complete_result as
@@ -272,6 +276,8 @@ select is(
 delete from public.organization_member_profiles
 where membership_id = '93000000-0000-4000-8000-000000000006';
 delete from public.organization_memberships where id = '93000000-0000-4000-8000-000000000006';
+delete from public.aircraft_document_categories
+where organization_id = '92000000-0000-4000-8000-000000000004';
 delete from public.organizations where id = '92000000-0000-4000-8000-000000000004';
 create temp table feat006a_cancel_result as
 select public.cancel_member_mfa_enrollment(

@@ -1,7 +1,7 @@
 import type { AccessMembership } from '../../lib/access-context';
 
 export type WorkspaceView =
-  'home' | 'aircraft' | 'invitations' | 'members' | 'profile' | 'security';
+  'home' | 'aircraft' | 'documents' | 'invitations' | 'members' | 'profile' | 'security';
 
 export type WorkspaceNavigationItem = {
   view: WorkspaceView;
@@ -11,6 +11,7 @@ export type WorkspaceNavigationItem = {
 
 type WorkspaceNavigationOptions = {
   aircraftAvailable?: boolean;
+  aircraftDocumentsAvailable?: boolean;
 };
 
 export function workspaceNavigation(
@@ -26,6 +27,17 @@ export function workspaceNavigation(
       view: 'aircraft',
       label: 'Aircraft',
       description: 'Open the administrative aircraft identity registry.',
+    });
+  }
+
+  if (
+    options.aircraftDocumentsAvailable &&
+    membership.permissions.includes('aircraft.document.status.read')
+  ) {
+    items.push({
+      view: 'documents',
+      label: 'Aircraft documents',
+      description: 'View configured aircraft document status and permitted records.',
     });
   }
 

@@ -96,9 +96,14 @@ if (process.argv.includes('--list')) {
 
 for (const fixture of fixtures) {
   if (
+    fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-004-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
-    fixture === 'test-feat-006-runtime.mjs'
+    fixture === 'test-feat-006-runtime.mjs' ||
+    fixture === 'test-feat-006b-runtime.mjs' ||
+    fixture === 'test-feat-007-runtime.mjs' ||
+    fixture === 'test-feat-007b-runtime.mjs'
   ) {
     try {
       await restartLocalRuntime();
@@ -109,11 +114,7 @@ for (const fixture of fixtures) {
       process.exit(1);
     }
   }
-  if (
-    fixture === 'test-edge-runtime.mjs' ||
-    fixture === 'test-recovery-runtime.mjs' ||
-    fixture === 'test-feat-004-runtime.mjs'
-  ) {
+  if (fixture === 'test-recovery-runtime.mjs') {
     try {
       await ensureTemplateRuntimeReady();
     } catch (error) {
@@ -125,7 +126,9 @@ for (const fixture of fixtures) {
   }
 
   const hasDiagnostics =
-    fixture === 'test-feat-003-runtime.mjs' || fixture === 'test-feat-006-runtime.mjs';
+    fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-006-runtime.mjs' ||
+    fixture === 'test-feat-007b-runtime.mjs';
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
     encoding: hasDiagnostics ? 'utf8' : undefined,
     env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,

@@ -28,7 +28,7 @@ const studentContext = {
       role: 'student_pilot',
       roleLabel: 'Student Pilot',
       workspacePermission: 'portal.student.access',
-      permissions: ['portal.student.access'],
+      permissions: ['portal.student.access', 'aircraft.document.status.read'],
       membershipVersion: 1,
       requiredAssuranceLevel: 'aal1',
       accessStatus: 'granted',
@@ -51,6 +51,14 @@ const adminContext = {
       workspacePermission: 'portal.admin.access',
       permissions: [
         'portal.admin.access',
+        'aircraft.record.read',
+        'aircraft.record.manage',
+        'aircraft.document.status.read',
+        'aircraft.document.read',
+        'aircraft.document.notification.read',
+        'aircraft.document.manage',
+        'aircraft.document.category.manage',
+        'aircraft.document.attachment.read',
         'membership.invitation.manage',
         'membership.member.review',
         'membership.member.manage_status',
@@ -100,6 +108,8 @@ async function waitForServer() {
 }
 
 async function mockSupabase(page, options = {}) {
+  let aircraftRecord;
+  let documentCreated = false;
   await page.route('**/auth/v1/token?grant_type=password', async (route) => {
     if (options.invalid) {
       await route.fulfill({
@@ -272,6 +282,142 @@ async function mockSupabase(page, options = {}) {
       },
     };
     assert.ok(Object.hasOwn(responses, body.action));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responses[body.action]),
+    });
+  });
+  await page.route('**/functions/v1/aircraft-registry', async (route) => {
+    const body = route.request().postDataJSON();
+    const correlationId = '30000000-0000-4000-8000-000000000040';
+    if (body.action === 'list') {
+      const records =
+        aircraftRecord && (body.includeArchived || aircraftRecord.registryState === 'tracked')
+          ? [aircraftRecord]
+          : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          decision: 'listed',
+          records,
+          page: body.page,
+          pageSize: body.pageSize,
+          hasNext: false,
+          correlationId,
+        }),
+      });
+      return;
+    }
+    const decisions = {
+      create: 'created',
+      update: 'updated',
+      archive: 'archived',
+      reactivate: 'reactivated',
+    };
+    assert.ok(Object.hasOwn(decisions, body.action));
+    aircraftRecord = {
+      id: aircraftRecord?.id ?? '50000000-0000-4000-8000-000000000001',
+      registrationMark: body.registrationMark ?? aircraftRecord.registrationMark,
+      manufacturer: body.manufacturer ?? aircraftRecord.manufacturer,
+      model: body.model ?? aircraftRecord.model,
+      registryState:
+        body.action === 'archive'
+          ? 'archived'
+          : body.action === 'reactivate'
+            ? 'tracked'
+            : (aircraftRecord?.registryState ?? 'tracked'),
+      version: (aircraftRecord?.version ?? 0) + 1,
+      updatedAt: '2026-08-29T00:00:00Z',
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        decision: decisions[body.action],
+        record: aircraftRecord,
+        replayed: false,
+        correlationId,
+      }),
+    });
+  });
+  await page.route('**/functions/v1/aircraft-documents', async (route) => {
+    const body = route.request().postDataJSON();
+    const correlationId = '30000000-0000-4000-8000-000000000050';
+    const aircraftId = '50000000-0000-4000-8000-000000000001';
+    const documentId = '60000000-0000-4000-8000-000000000001';
+    const categories = [
+      [
+        '70000000-0000-4000-8000-000000000001',
+        'airworthiness_certificate',
+        'Airworthiness Certificate',
+      ],
+      [
+        '70000000-0000-4000-8000-000000000002',
+        'registration_certificate',
+        'Registration Certificate',
+      ],
+      ['70000000-0000-4000-8000-000000000003', 'radio_station_license', 'Radio Station License'],
+      ['70000000-0000-4000-8000-000000000004', 'weight_balance_data', 'Weight and Balance Data'],
+      ['70000000-0000-4000-8000-000000000005', 'operating_handbook', 'Operating Handbook'],
+      ['70000000-0000-4000-8000-000000000006', 'insurance', 'Insurance'],
+    ];
+    const responses = {
+      aircraft_list: {
+        decision: 'listed',
+        aircraft: [{ id: aircraftId, label: 'RP-C7B1 · Synthetic Document Trainer' }],
+        page: body.page,
+        pageSize: body.pageSize,
+        hasNext: false,
+        correlationId,
+      },
+      status_list: {
+        decision: 'listed',
+        aircraft: { id: aircraftId, label: 'RP-C7B1 · Synthetic Document Trainer' },
+        items: categories.map(([categoryId, categoryCode, categoryLabel], index) => ({
+          categoryId,
+          categoryCode,
+          categoryLabel,
+          categoryKind: 'system',
+          ...(options.admin
+            ? {
+                categoryVersion: 1,
+                requirementId: null,
+                requirementVersion: null,
+                documentId: documentCreated && index === 0 ? documentId : null,
+                aggregateVersion: documentCreated && index === 0 ? 1 : null,
+              }
+            : {}),
+          status: documentCreated && index === 0 ? 'valid' : 'missing',
+          expirationDate: documentCreated && index === 0 ? '2027-09-02' : null,
+          calculatedOn: '2026-09-02',
+        })),
+        availableCustomCategories: [],
+        calculatedOn: '2026-09-02',
+        correlationId,
+      },
+      notifications_list: {
+        decision: 'listed',
+        items: [],
+        page: body.page,
+        pageSize: body.pageSize,
+        hasNext: false,
+        correlationId,
+      },
+      create: {
+        decision: 'created',
+        documentId,
+        aggregateVersion: 1,
+        documentState: 'active',
+        currentVersionId: '80000000-0000-4000-8000-000000000001',
+        currentVersionNumber: 1,
+        replayed: false,
+        correlationId,
+      },
+    };
+    assert.ok(Object.hasOwn(responses, body.action));
+    if (body.action === 'create') documentCreated = true;
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -506,6 +652,58 @@ async function runScenario(browser, viewport, scenario) {
       await page.getByRole('heading', { name: 'suspend this membership?' }).waitFor();
       await page.getByRole('button', { name: 'Confirm suspend' }).click();
       await page.getByText('Membership suspended successfully.').waitFor();
+    } else if (scenario.name === 'aircraft') {
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft', exact: true })
+        .click();
+      await page.getByRole('heading', { name: 'Aircraft registry' }).waitFor();
+      await page.getByText(/Tracked does not mean operationally available/i).waitFor();
+      await page.getByRole('button', { name: 'Add aircraft' }).click();
+      await page.getByLabel('Registration mark').fill('rp-c1234');
+      await page.getByLabel('Manufacturer').fill('Synthetic Airframes');
+      await page.getByLabel('Model').fill('Trainer One');
+      await page.getByRole('button', { name: 'Save record' }).click();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Archive record' }).click();
+      const confirmation = page.getByRole('heading', { name: 'Archive RP-C1234?' });
+      await confirmation.waitFor();
+      assert.equal(
+        await confirmation.evaluate((element) => element === globalThis.document.activeElement),
+        true,
+      );
+      await page.getByRole('button', { name: 'Confirm archive' }).click();
+      await page.getByText('No Tracked aircraft records yet.').waitFor();
+      await page.getByLabel('Include archived').check();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Reactivate record' }).click();
+      await page.getByRole('button', { name: 'Confirm reactivate' }).click();
+      await page.getByText('RP-C1234', { exact: true }).waitFor();
+    } else if (scenario.name === 'documents-admin') {
+      await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft documents', exact: true })
+        .click();
+      await page.getByRole('heading', { name: 'Aircraft documents' }).waitFor();
+      await page.getByText(/not an airworthiness or dispatch decision/i).waitFor();
+      await page.getByRole('button', { name: 'Add document' }).first().click();
+      await page.getByLabel('Document title').fill('Airworthiness Certificate');
+      await page.getByLabel('Source or issuing authority').fill('Synthetic Authority');
+      await page.getByLabel('Expiration date').fill('2027-09-02');
+      await page.getByRole('button', { name: 'Add document' }).click();
+      await page.getByText('Expires 2027-09-02', { exact: true }).waitFor();
+    } else if (scenario.name === 'documents-student') {
+      await page.getByRole('heading', { name: 'Student dashboard' }).waitFor();
+      await page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'Aircraft documents', exact: true })
+        .click();
+      await page.getByRole('heading', { name: 'Aircraft documents' }).waitFor();
+      await page.getByText('Airworthiness Certificate').waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Add document' }).count(), 0);
+      assert.equal(await page.getByText('Private attachment').count(), 0);
     }
   } finally {
     await page.close();
@@ -523,6 +721,9 @@ const scenarios = [
   { name: 'security', options: {} },
   { name: 'privileged-security', options: { privilegedMissingMfa: true } },
   { name: 'members', options: { admin: true } },
+  { name: 'aircraft', options: { admin: true } },
+  { name: 'documents-admin', options: { admin: true } },
+  { name: 'documents-student', options: {} },
 ];
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },

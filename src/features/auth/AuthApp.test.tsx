@@ -1,8 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccessContextResponse, RoleCode } from '../../lib/access-context';
+import { AircraftDocumentError, type AircraftDocumentGateway } from '../aircraft';
 import { AuthApp } from './AuthApp';
 import { AuthGatewayError, type AuthGateway } from './services/auth-gateway';
 
@@ -16,7 +17,7 @@ const rolePermission = {
 
 function context(
   role: RoleCode,
-  permissions = [
+  permissions: string[] = [
     rolePermission[role as keyof typeof rolePermission] ?? 'portal.future_role.access',
   ],
   accessStatus: 'granted' | 'mfa_required' | 'denied' = role === 'student_pilot'
@@ -466,6 +467,54 @@ describe('FEAT-001 authentication UI', () => {
     });
 
     expect(rendered.container).toBeEmptyDOMElement();
+  });
+
+  it('revalidates access and removes the shell when aircraft document access is revoked', async () => {
+    const user = userEvent.setup();
+    const access = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAccessContext: vi
+        .fn()
+        .mockResolvedValueOnce(
+          context('student_pilot', ['portal.student.access', 'aircraft.document.status.read']),
+        )
+        .mockResolvedValue(context('student_pilot', ['portal.student.access'], 'denied')),
+    });
+    const documents: AircraftDocumentGateway = {
+      listAircraft: vi
+        .fn()
+        .mockRejectedValue(new AircraftDocumentError('unauthorized', 'Access revoked.')),
+      listStatus: vi.fn(),
+      detail: vi.fn(),
+      history: vi.fn(),
+      create: vi.fn(),
+      renew: vi.fn(),
+      correct: vi.fn(),
+      suspend: vi.fn(),
+      restore: vi.fn(),
+      createCategory: vi.fn(),
+      renameCategory: vi.fn(),
+      assignCategory: vi.fn(),
+      removeCategory: vi.fn(),
+      archiveCategory: vi.fn(),
+      listNotifications: vi.fn(),
+      openNotification: vi.fn(),
+      upload: vi.fn(),
+      download: vi.fn(),
+    };
+    render(<AuthApp gateway={access} aircraftDocumentGateway={documents} />);
+    const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+    expect(
+      within(navigation).queryByRole('button', { name: /^Aircraft$/ }),
+    ).not.toBeInTheDocument();
+    await user.click(within(navigation).getByRole('button', { name: 'Aircraft documents' }));
+    expect(
+      await screen.findByRole('heading', { name: 'You cannot enter this workspace' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Primary navigation' }),
+    ).not.toBeInTheDocument();
+    expect(access.loadAccessContext).toHaveBeenCalledTimes(2);
   });
 
   it('does not restore privileged success when MFA resolves after session revocation', async () => {

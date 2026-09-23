@@ -18,6 +18,7 @@ const membership: AccessMembership = {
     'membership.invitation.manage',
     'membership.member.review',
     'aircraft.record.read',
+    'aircraft.document.status.read',
   ],
   membershipVersion: 1,
   requiredAssuranceLevel: 'aal2',
@@ -37,13 +38,28 @@ describe('FEAT-008 authenticated shell', () => {
       workspaceNavigation(membership, { aircraftAvailable: true }).map((item) => item.label),
     ).toContain('Aircraft');
     expect(
+      workspaceNavigation(membership, { aircraftDocumentsAvailable: true }).map(
+        (item) => item.label,
+      ),
+    ).toContain('Aircraft documents');
+    expect(
       workspaceNavigation(
         { ...membership, permissions: ['portal.admin.access'] },
         {
           aircraftAvailable: true,
+          aircraftDocumentsAvailable: true,
         },
       ).map((item) => item.label),
     ).toEqual(['Home', 'My profile', 'Account security']);
+  });
+
+  it('gives status-only access a document destination without registry access', () => {
+    expect(
+      workspaceNavigation(
+        { ...membership, permissions: ['portal.student.access', 'aircraft.document.status.read'] },
+        { aircraftAvailable: true, aircraftDocumentsAvailable: true },
+      ).map((item) => item.view),
+    ).toEqual(['home', 'documents', 'profile', 'security']);
   });
 
   it('keeps navigation visible, marks the current view, and exposes sign out', async () => {

@@ -30,6 +30,13 @@ or permission rule. These regressions extend `FEAT-008-AC-07` evidence. Fresh
 application and disposable database/runtime CI results belong in PR #34; the
 occupied local database remains excluded.
 
+Aircraft integration places the existing registry and document panels inside
+the persistent shell. Navigation retains module availability and server-approved
+permission checks, including Student status-only document access. Module access
+revocation still clears membership and revalidates access. Component navigation
+cases and desktop/mobile aircraft browser scenarios cover this composition;
+the final combined verification belongs to PR #34.
+
 ## Evidence rules
 
 - Results apply only to the reviewed commit and recorded local/CI target.
