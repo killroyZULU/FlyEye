@@ -75,7 +75,7 @@ While editing:
 
 Before publication:
 
-1. Run `pnpm check:docs` and formatting checks.
+1. Run `pnpm check:docs` and formatting checks. Use ATX (`#`) headings with literal characters (not HTML entities) and inline links for repository documents; local Markdown section links are checked against heading anchors, including repeated headings. Fenced examples are excluded from link checks. External links, non-Markdown fragments, and other Markdown syntax require review.
 2. Review the diff for duplicated rules, accidental authority changes, stale status, broken links, and unnecessary prose.
 3. Confirm every removed operative rule still has a canonical home.
 4. Obtain the normal separate review required by `AGENTS.md`.

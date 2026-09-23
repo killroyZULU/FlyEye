@@ -1,11 +1,11 @@
 # Current State
 
-- Last updated: 2026-09-01
-- Last verified merged baseline: `main` at `1a85ae6`
+- Last updated: 2026-09-23
+- Merged baseline: `main` at `813dbd9` (PR #43); post-merge quality gates passed
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
-This file is the sole active project-status summary. Replace stale entries; do not append implementation history. Durable requirements and decisions belong in their canonical documents, while detailed evidence remains in feature traceability records, pull requests, CI, and Git.
+This is the canonical status summary. Replace stale entries; keep requirements in their designated documents and detailed evidence in traceability, PRs, CI, and Git.
 
 ## Delivered foundation
 
@@ -21,36 +21,6 @@ This file is the sole active project-status summary. Replace stale entries; do n
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
-## Current delivery target
-
-FEAT-007 Slice A Aircraft Registry Foundation is implemented on
-`feat/FEAT-007A-aircraft-registry` for Issue #31 and PR #32. Local app,
-desktop/mobile browser, database, and runtime matrices pass. Review corrections
-pass the 303-test app gate, 382 rollback-only SQL assertions, all eight local
-runtime fixtures, schema lint, and generated-type verification. Final technical
-re-review is clear, and required pull-request checks passed for implementation
-commit `cd6a937`. After four intermittent later-head CI failures in the
-pre-existing FEAT-006 runtime fixture, bounded fail-closed diagnostics isolated
-the failure to protected completion after TOTP verification without exposing
-child output. The reviewed diagnostic head `ef61821` passes all required PR
-checks, including all eight runtime fixtures; documentation head `7658c1f`
-records that green evidence and PR #32 remains open and clean. The slice contains
-administrative identity records only and creates no operational, airworthiness,
-compliance, registration-validity, ownership, or dispatch authority.
-
-FEAT-007B Aircraft Document Records specification and design are independently
-reviewed in review-ready PR #36 for Issue #35. It is stacked on Slice A to keep
-the review diff bounded; exact-head Application quality, Local Supabase security,
-and aggregate gates pass. The contract covers aircraft-linked ARROWI metadata,
-required expiration, configured status, versioned renewal, Admin notifications,
-status-only role access, and one optional private attachment per version.
-Implementation has not started.
-
-FEAT-008 Authenticated Dashboard Shell remains independently review-ready in PR
-#34 at `1dc61c1`; Application quality, Local Supabase security, and the required
-aggregate gate pass. It remains unmerged and is a later FEAT-007B UI integration
-dependency rather than part of this stacked specification branch.
-
 ## Current product boundary
 
 - React, TypeScript, Vite PWA, and Supabase remain the approved MVP stack.
@@ -59,16 +29,34 @@ dependency rather than part of this stacked specification branch.
 - Development and demonstrations use synthetic data.
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
-- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. FEAT-007A has green corrected local synthetic, technical-review, and required current-head CI evidence but remains unmerged. No operational-status module is implemented.
-- FEAT-008 has green local, independent-review, and required PR evidence but remains unmerged; it supersedes the earlier UI-checkpoint status for authenticated workspace navigation.
+- FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
+- Aircraft records/documents and the authenticated dashboard are implemented on separate unmerged branches; see their PRs below. They do not establish operational or dispatch authority.
 
-## Next bounded product work
+## Structural reinforcement checkpoint
 
-Review the FEAT-007B Aircraft Document Records specification and design without
-merging or changing the independent FEAT-007A decision. Implementation remains
-separate and must reconcile the authenticated dashboard shell after its merge
-decision without inventing aviation status, approval, or dispatch-eligibility
-rules.
+[Issue #39](https://github.com/killroyZULU/FlyEye/issues/39) owns the remaining audit
+coverage and findings. Further refactoring follows reconciliation of the existing
+pull requests and issues. Passing automated checks does not complete manual review.
+
+- Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
+- Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
+- Active slice: reconcile [Issue #35](https://github.com/killroyZULU/FlyEye/issues/35) / PR #36 with the updated registry baseline, preserving the approved aircraft document contract.
+- Next: verify and review PR #36, propagate its baseline into PR #38, and reconcile the dashboard. A008, A009 and A013 remain tracked findings; broad refactors remain deferred. Preserve the occupied local aircraft database.
+- Resume from this checkpoint, Issue #39 and live PR checks; do not restart completed reviews or close the umbrella audit after one slice.
+
+## Existing unmerged work
+
+| Work | Review location | Audit baseline |
+|---|---|---|
+| Aircraft registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32) | `f17f9c5`; fresh CI pending |
+| Aircraft document specification | [PR #36](https://github.com/killroyZULU/FlyEye/pull/36), stacked on registry | `fbea354` |
+| Aircraft document implementation | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), stacked on specification | `1e16af4` |
+| Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | `1dc61c1` |
+| Visual-design documentation | [PR #30](https://github.com/killroyZULU/FlyEye/pull/30) | Reconciliation with current `main` in progress |
+
+These branches remain unmerged. Their recorded heads have successful historical
+checks; reconciliation requires fresh verification. PR #36 depends on #32, and
+#38 depends on #36. Merge and feature integration require separate decisions.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 

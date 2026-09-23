@@ -1,17 +1,16 @@
 # Feature Specification: FEAT-007 — Aircraft Document Records (Slice B)
 
-## Status
+## Contract
 
-- State: Specification and design in review; implementation not started
-- Current SDLC phase: Specification and design
 - Owner: Founder/Product Owner
-- Baseline: FEAT-007A branch head `7658c1f`; stacked task branch
-  `feat/FEAT-007B-aircraft-documents-spec`
 - Task issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
 - Parent discovery: [#22](https://github.com/killroyZULU/FlyEye/issues/22)
 - Dependency: [FEAT-007A Aircraft Registry Foundation](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md)
 - Related requirements: SRS `CMP-002`, `CMP-003`, `CMP-006`, `REC-001`–`REC-003`,
   `NFR-004`, `NFR-008`, `NFR-010`, and `NFR-011`
+
+Delivery status and dependencies are recorded in [Current State](../CURRENT_STATE.md).
+The implementation and its verification evidence are in [PR #38](https://github.com/killroyZULU/FlyEye/pull/38).
 
 ## User outcome
 
@@ -434,14 +433,3 @@ Excluded areas:
 - Architecture or authority changes outside this specification
 - Merge, real data, hosted-provider activation, production deployment,
   destructive actions, and branch deletion
-
-## Specification and design definition of done
-
-- [x] Product fields, categories/applicability, expiry, role visibility,
-      suspension, attachment cardinality, history, and notification decisions
-      are explicit
-- [x] Data/RLS/protected-command/file/UI/audit design and future preflight
-      boundary are specified
-- [x] Documentation checks and separate technical review pass
-- [x] Scoped branch has a green review-ready documentation pull request
-- [ ] Founder/Product Owner accepts the written contract before implementation
