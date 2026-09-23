@@ -30,8 +30,8 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - No staging or production environment, production domain, or customer-data workflow is currently approved.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
-- The [Visual Design System](DESIGN.md) is a reversible working direction in PR #30; implementation remains separately bounded.
-- Aircraft records/documents and the authenticated dashboard are composed in PR #34. They do not establish operational or dispatch authority.
+- The [Visual Design System](DESIGN.md) is a reversible working direction merged through PR #30; implementation remains separately bounded.
+- Aircraft records/documents and the authenticated dashboard are composed on `main` through PR #34. They do not establish operational or dispatch authority.
 
 ## Structural reinforcement checkpoint
 
@@ -42,7 +42,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
 - Integration: PR #34 combines the aircraft modules and dashboard with permission-filtered navigation and access-revocation handling. PR #30 delivers the reversible visual checkpoint; Issue #20 is closed against merged FEAT-006 evidence. Linked PRs own merge state and exact-head checks.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Next after integration CI: A013 test-toolchain security patch, then bounded extraction from the 1,629-line auth gateway and reduction of 13 legacy complexity exemptions. Verify A010 bootstrap limiting and H001/H002 authorization hypotheses before hosted exposure. Preserve the occupied local database.
+- Next: A013 test-toolchain security patch, then bounded extraction from the 1,629-line auth gateway and reduction of 13 legacy complexity exemptions. Verify A010 bootstrap limiting and H001/H002 authorization hypotheses before hosted exposure. Preserve the occupied local database.
 
 ## Aircraft and dashboard integration
 
@@ -53,7 +53,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 | Aircraft documents | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38) | Metadata versions, private attachments, configured status, notifications and bounded status-only access |
 | Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | Persistent shell, role dashboards and available aircraft/member modules |
 
-Integration order is #30, #32, #36, #38, #34, with CI between merges. Issue #22
+PRs #30, #32, #36, #38, #34 merged with green CI between merges and on [main](https://github.com/killroyZULU/FlyEye/actions/runs/35861588094). Issue #22
 requires qualified school workflow evidence; Issue #39 remains the unfinished
 audit. The combined build still exceeds the 500 kB entry-bundle warning; measure
 route/module splitting without weakening the warning or security boundaries.

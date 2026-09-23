@@ -6,6 +6,10 @@ Describe the single user or developer outcome this pull request delivers.
 
 Closes #
 
+## Integration
+
+Follow the [integration checkpoint](../docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#integration-checkpoint). State existing PR dispositions; for an explicitly directed stack or parallel work, identify dependencies, base, merge order, and final target.
+
 ## Scope
 
 - [ ] The change is bounded to one approved feature, fix, documentation task, or chore.
