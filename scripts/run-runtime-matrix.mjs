@@ -3,6 +3,8 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
+import { runtimeDiagnosticLines } from './lib/runtime-diagnostics.mjs';
+
 const scriptsDirectory = path.resolve('scripts');
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const runtimePattern = /^test-[a-z0-9-]+-runtime\.mjs$/;
@@ -12,156 +14,6 @@ const priority = new Map([
 ]);
 const defaultFixtureTimeoutMs = 15 * 60 * 1000;
 const fixtureTimeoutMs = new Map([['test-feat-003-runtime.mjs', 25 * 60 * 1000]]);
-const diagnosticLinePattern =
-  /^(FEAT-003|FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=(enter|passed)\.$/;
-const diagnosticFailureLinePattern =
-  /^(FEAT-006|FEAT-007B) runtime diagnostic: stage=([a-z0-9-]+) event=failed detail=([a-z0-9-]+)\.$/;
-const fixtureDiagnosticRules = new Map([
-  [
-    'test-feat-003-runtime.mjs',
-    {
-      prefix: 'FEAT-003',
-      stages: new Set([
-        'auth-reset-initial',
-        'identity-creation',
-        'fixture-failure-injection',
-        'fixture-issuance',
-        'edge-runtime-startup',
-        'first-admin-status',
-        'first-admin-start',
-        'first-admin-totp',
-        'first-admin-completion',
-        'first-admin-bootstrap',
-        'first-replay-recovery',
-        'first-completion-replay',
-        'browser-onboarding',
-        'browser-frontend-startup',
-        'browser-launch',
-        'browser-sign-in',
-        'browser-onboarding-ready',
-        'browser-totp-completion',
-        'browser-frontend-shutdown',
-        'completion-race',
-        'auth-reset-limiter',
-        'limiter-burst',
-        'limiter-recovery',
-        'race-completion-replay',
-        'privacy-evidence',
-        'fixture-cleanup',
-        'fixture-assertions',
-        'edge-runtime-shutdown',
-      ]),
-    },
-  ],
-  [
-    'test-feat-006-runtime.mjs',
-    {
-      prefix: 'FEAT-006',
-      stages: new Set([
-        'identity-creation',
-        'database-fixture',
-        'edge-runtime-startup',
-        'sign-in',
-        'readiness-status',
-        'enrollment-start',
-        'provider-enrollment',
-        'factor-binding',
-        'totp-verification',
-        'completion',
-        'evidence',
-        'fixture-data-cleanup',
-        'fixture-assertions',
-      ]),
-      failureDetails: new Set([
-        'auth-session-read-failed',
-        'auth-session-unavailable',
-        'edge-runtime-exited',
-        'member-mfa-audit-unavailable',
-        'member-mfa-authentication-required',
-        'member-mfa-factor-conflict',
-        'member-mfa-limiter-unavailable',
-        'member-mfa-not-available',
-        'member-mfa-provider-unavailable',
-        'member-mfa-rate-limited',
-        'member-mfa-recent-authentication-required',
-        'member-mfa-service-unavailable',
-        'member-mfa-state-conflict',
-        'response-decoding-failed',
-        'transport-failed',
-        'http-401',
-        'http-403',
-        'http-409',
-        'http-429',
-        'http-500',
-        'http-502',
-        'http-503',
-        'http-504',
-        'http-other',
-        'unclassified',
-      ]),
-    },
-  ],
-  [
-    'test-feat-007b-runtime.mjs',
-    {
-      prefix: 'FEAT-007B',
-      stages: new Set([
-        'identity-creation',
-        'database-fixture',
-        'authentication',
-        'edge-runtime-startup',
-        'role-boundary',
-        'file-lifecycle',
-        'metadata-create',
-        'metadata-replay',
-        'status-after-create',
-        'detail-after-create',
-        'concealed-detail-audit',
-        'attachment-download',
-        'reconciliation-ready',
-        'reconciliation-orphan-row',
-        'reconciliation-hash-mismatch',
-        'reconciliation-missing-object',
-        'reconciliation-orphan-object',
-        'reconciliation-wrong-scope',
-        'reconciliation-unclean-object',
-        'renewal-conflict',
-        'renewal-success',
-        'history-read',
-        'notification-read',
-        'archived-download',
-        'direct-data-audit',
-      ]),
-      failureDetails: new Set([
-        'assertion',
-        'timeout',
-        'http-400',
-        'http-401',
-        'http-403',
-        'http-404',
-        'http-409',
-        'http-429',
-        'http-500',
-        'http-502',
-        'http-503',
-        'http-504',
-        'http-other',
-        'unclassified',
-      ]),
-    },
-  ],
-]);
-
-function isApprovedDiagnosticLine(line, rule) {
-  const match = diagnosticLinePattern.exec(line);
-  if (match) return match[1] === rule.prefix && rule.stages.has(match[2]);
-  const failureMatch = diagnosticFailureLinePattern.exec(line);
-  return (
-    failureMatch?.[1] === rule.prefix &&
-    rule.stages.has(failureMatch[2]) &&
-    rule.failureDetails.has(failureMatch[3])
-  );
-}
 
 const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isFile() && runtimePattern.test(entry.name))
@@ -273,22 +125,20 @@ for (const fixture of fixtures) {
     }
   }
 
-  const diagnosticRule = fixtureDiagnosticRules.get(fixture);
-  const hasSanitizedDiagnostics = diagnosticRule !== undefined;
+  const hasDiagnostics =
+    fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-006-runtime.mjs' ||
+    fixture === 'test-feat-007b-runtime.mjs';
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    encoding: hasSanitizedDiagnostics ? 'utf8' : undefined,
-    env: hasSanitizedDiagnostics
-      ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' }
-      : process.env,
-    stdio: hasSanitizedDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
+    encoding: hasDiagnostics ? 'utf8' : undefined,
+    env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
+    stdio: hasDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
     timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
     windowsHide: true,
   });
 
-  if (diagnosticRule && typeof result.stdout === 'string') {
-    for (const line of result.stdout.split(/\r?\n/)) {
-      if (isApprovedDiagnosticLine(line, diagnosticRule)) process.stdout.write(`${line}\n`);
-    }
+  for (const line of runtimeDiagnosticLines(fixture, result.stdout)) {
+    process.stdout.write(`${line}\n`);
   }
 
   if (result.status !== 0) {
@@ -296,7 +146,7 @@ for (const fixture of fixtures) {
       result.error?.code === 'ETIMEDOUT' ? 'timeout' : `exit ${result.status ?? 'unknown'}`;
     process.stderr.write(`Runtime matrix failed: ${fixture} (${outcome}).\n`);
     process.stderr.write(
-      'Child output was suppressed. Treat data and process cleanup as uncertain; sanitized diagnostics identify only the last confirmed stage.\n',
+      'Child output was suppressed. Treat cleanup as uncertain until the fixture-specific sanitized diagnostic confirms it.\n',
     );
     process.exit(result.status ?? 1);
   }

@@ -1,16 +1,24 @@
 async function isTransientLocalProxyFailure(response) {
   if (response.status === 502) return true;
   if (response.status !== 503) return false;
-  return (await response.clone().text()).includes('"message":"name resolution failed"');
+  try {
+    const payload = await response.clone().json();
+    return payload?.message === 'name resolution failed';
+  } catch {
+    return false;
+  }
 }
 
-export async function fetchLocalEdge(url, init) {
-  let response;
+// Keep this test-harness recovery local and bounded. Mutations must already carry
+// their idempotency key in init.body; every attempt reuses the identical request.
+export async function fetchLocalEdge(url, init, onRetry = () => {}) {
+  if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname)) {
+    throw new Error('Local Edge recovery requires a loopback URL.');
+  }
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    response = await fetch(url, init);
-    if (!(await isTransientLocalProxyFailure(response)) || attempt === 2) return response;
-    // Reuse the exact request so mutation idempotency protects an uncertain first attempt.
+    const response = await fetch(url, init);
+    if (attempt === 2 || !(await isTransientLocalProxyFailure(response))) return response;
+    onRetry(response.status);
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  return response;
 }

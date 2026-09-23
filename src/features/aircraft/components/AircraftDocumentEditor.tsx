@@ -82,7 +82,13 @@ export function AircraftDocumentEditor({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const checked = validateEditorSubmission(values, mode, reason, file, online);
+    const checked = validateEditorSubmission(
+      values,
+      mode,
+      reason,
+      metadataOnly ? undefined : file,
+      online,
+    );
     if (!checked.success) {
       setMessages(checked.messages);
       return;

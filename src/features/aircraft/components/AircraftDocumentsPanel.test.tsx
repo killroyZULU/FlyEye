@@ -312,6 +312,36 @@ describe('AircraftDocumentsPanel', () => {
     );
   });
 
+  it('saves metadata without uploading an invalid file after explicit continuation', async () => {
+    const subject = gateway();
+    const user = userEvent.setup({ applyAccept: false });
+    panel(subject);
+    await user.click((await screen.findAllByRole('button', { name: 'Add document' }))[0]!);
+    await user.type(screen.getByLabelText('Document title'), 'Synthetic certificate');
+    await user.type(screen.getByLabelText('Source or issuing authority'), 'Synthetic Authority');
+    await user.type(screen.getByLabelText('Expiration date'), '2027-09-01');
+    await user.upload(
+      screen.getByLabelText(/Private attachment/),
+      new File(['synthetic'], 'invalid.txt', { type: 'text/plain' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Add document' }));
+    expect(
+      await screen.findByText('Choose one PDF, JPEG, or PNG file no larger than 20 MiB.'),
+    ).toBeInTheDocument();
+    expect(subject.create).not.toHaveBeenCalled();
+    expect(subject.upload).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('checkbox', { name: 'Continue without attachment' }));
+    await user.click(screen.getByRole('button', { name: 'Add document' }));
+    await waitFor(() => expect(subject.create).toHaveBeenCalledTimes(1));
+    expect(subject.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentTitle: 'Synthetic certificate',
+        storedFileId: null,
+      }),
+    );
+    expect(subject.upload).not.toHaveBeenCalled();
+  });
+
   it('manages custom category rename, removal, archival, and creation with versions', async () => {
     const subject = gateway();
     const user = userEvent.setup();

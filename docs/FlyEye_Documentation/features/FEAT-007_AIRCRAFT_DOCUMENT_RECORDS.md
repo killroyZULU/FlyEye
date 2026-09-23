@@ -1,19 +1,16 @@
 # Feature Specification: FEAT-007 — Aircraft Document Records (Slice B)
 
-## Status
+## Contract
 
-- State: Implementation and local synthetic verification complete; separate technical review clear
-- Current SDLC phase: PR/CI
 - Owner: Founder/Product Owner
-- Baseline: specification head `fbea354`; implementation branch
-  `feat/FEAT-007B-aircraft-documents`
-- Contract issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
-- Implementation issue: [#37](https://github.com/killroyZULU/FlyEye/issues/37)
-- Implementation PR: [#38](https://github.com/killroyZULU/FlyEye/pull/38)
+- Task issue: [#35](https://github.com/killroyZULU/FlyEye/issues/35)
 - Parent discovery: [#22](https://github.com/killroyZULU/FlyEye/issues/22)
 - Dependency: [FEAT-007A Aircraft Registry Foundation](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md)
 - Related requirements: SRS `CMP-002`, `CMP-003`, `CMP-006`, `REC-001`–`REC-003`,
   `NFR-004`, `NFR-008`, `NFR-010`, and `NFR-011`
+
+Delivery status and dependencies are recorded in [Current State](../CURRENT_STATE.md).
+The implementation and its verification evidence are in [PR #38](https://github.com/killroyZULU/FlyEye/pull/38).
 
 ## User outcome
 
@@ -349,43 +346,43 @@ remains a release gate.
 
 ## Acceptance criteria
 
-- [x] `FEAT-007B-AC-01` Six stable seeded requirements appear for every Tracked
+- [ ] `FEAT-007B-AC-01` Six stable seeded requirements appear for every Tracked
       aircraft; a custom requirement affects only explicitly assigned aircraft.
-- [x] `FEAT-007B-AC-02` Every current version requires title, source, and
+- [ ] `FEAT-007B-AC-02` Every current version requires title, source, and
       expiration; optional fields and past dates follow the approved validation
       contract without asserting document-number or aviation rules.
-- [x] `FEAT-007B-AC-03` Server status deterministically produces Missing, Valid,
+- [ ] `FEAT-007B-AC-03` Server status deterministically produces Missing, Valid,
       Expiring Soon, Expired, Suspended, or Archived from approved record state
       and Philippine calendar date, with no Unknown or operational conclusion.
-- [x] `FEAT-007B-AC-04` Correction/renewal preserves an immutable prior version;
+- [ ] `FEAT-007B-AC-04` Correction/renewal preserves an immutable prior version;
       concurrency, idempotency, and races cannot create two current versions or
       duplicate audit/notification/file links.
-- [x] `FEAT-007B-AC-05` Admins alone manage full metadata, history, categories,
+- [ ] `FEAT-007B-AC-05` Admins alone manage full metadata, history, categories,
       suspension, and attachments; Student/Instructor receive only the approved
       status summary at their required assurance level.
-- [x] `FEAT-007B-AC-06` One optional PDF/JPEG/PNG attachment can become linked to
+- [ ] `FEAT-007B-AC-06` One optional PDF/JPEG/PNG attachment can become linked to
       a version only after bounded validation and a clean scan; unsafe,
       uncertain, duplicate, or unauthorized files remain unavailable.
-- [x] `FEAT-007B-AC-07` Private download rechecks Admin authority and recent
+- [ ] `FEAT-007B-AC-07` Private download rechecks Admin authority and recent
       password, issues only a short-lived link, and creates audit evidence
       without exposing Storage paths or attachment existence to other roles.
-- [x] `FEAT-007B-AC-08` Warning and expiration notifications are idempotent per
+- [ ] `FEAT-007B-AC-08` Warning and expiration notifications are idempotent per
       Admin/version/event; expiration, correction, renewal, suspension,
       restoration, archival/removal, reactivation/reassignment, late jobs, and
       job/mutation races apply the approved resolve/reopen/skip rules without
       stale or duplicate alerts.
-- [x] `FEAT-007B-AC-09` Every significant read/mutation/file action creates the
+- [ ] `FEAT-007B-AC-09` Every significant read/mutation/file action creates the
       required audit evidence atomically or returns no protected outcome.
-- [x] `FEAT-007B-AC-10` Direct browser grants, forged authority, cross-school
+- [ ] `FEAT-007B-AC-10` Direct browser grants, forged authority, cross-school
       data/file paths, enumeration, mass assignment, replay, and limiter/audit
       uncertainty fail closed.
-- [x] `FEAT-007B-AC-11` Required responsive, accessible, offline/stale, conflict,
+- [ ] `FEAT-007B-AC-11` Required responsive, accessible, offline/stale, conflict,
       upload/scan, empty/missing, unauthorized, and success UI states behave
       predictably without invented operational labels.
-- [x] `FEAT-007B-AC-12` Database and Storage cleanup/recovery verification detects
+- [ ] `FEAT-007B-AC-12` Database and Storage cleanup/recovery verification detects
       orphan, missing, mismatched-hash, wrong-scope, or unclean objects and leaves
       no synthetic fixture residue.
-- [x] `FEAT-007B-AC-13` No preflight selection, dispatch authority, W&B values,
+- [ ] `FEAT-007B-AC-13` No preflight selection, dispatch authority, W&B values,
       email, permanent deletion, public file access, hosted activation, or
       production behavior is introduced.
 
@@ -436,27 +433,3 @@ Excluded areas:
 - Architecture or authority changes outside this specification
 - Merge, real data, hosted-provider activation, production deployment,
   destructive actions, and branch deletion
-
-## Specification and design definition of done
-
-- [x] Product fields, categories/applicability, expiry, role visibility,
-      suspension, attachment cardinality, history, and notification decisions
-      are explicit
-- [x] Data/RLS/protected-command/file/UI/audit design and future preflight
-      boundary are specified
-- [x] Documentation checks and separate technical review pass
-- [x] Scoped branch has a green review-ready documentation pull request
-- [x] Founder/Product Owner accepts the written contract before implementation
-
-## Implementation definition of done
-
-- [x] Versioned schema, deny-by-default RLS, protected functions, permissions,
-      private Storage, generated types, and deterministic local file validation
-      implement the approved contract
-- [x] Role-aware responsive UI covers status, metadata, version history,
-      document lifecycle, custom categories, notifications, and private files
-- [x] Unit, component, desktop/mobile browser, rollback-only SQL, real Auth/TOTP,
-      Edge, private Storage, cleanup, and regression verification pass locally
-- [x] Separate technical review is clear on the stable implementation target
-- [x] Scoped commit and review-ready pull request are published
-- Required CI checks must be green before the human merge decision.

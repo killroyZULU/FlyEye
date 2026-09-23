@@ -12,8 +12,8 @@
   accessibility review, qualified aviation workflow review, retention decision,
   deployment, or production approval
 
-This record covers FEAT-007 Slice A only. It establishes an administrative
-aircraft identity registry, not airworthiness, operational availability,
+The following baseline covers Slice A; Slice B evidence is recorded separately
+below. Neither slice establishes airworthiness, operational availability,
 compliance, registration validity, ownership, or dispatch authority.
 
 ## Requirements and results
@@ -47,6 +47,25 @@ Reviewed head `ef61821` is pushed, and all three required pull-request checks
 pass. Fail-closed diagnostics remain available if the intermittent FEAT-006
 fixture failure recurs; their output is limited to approved stage, event, and
 error-category labels.
+
+## Slice B reconciliation
+
+[PR #38](https://github.com/killroyZULU/FlyEye/pull/38) owns the implementation and
+current-head verification for [Issue #37](https://github.com/killroyZULU/FlyEye/issues/37).
+Its original synthetic evidence is [CI run 34069500313](https://github.com/killroyZULU/FlyEye/actions/runs/34069500313)
+at `1e16af4`; fresh CI is required after reconciling the registry/specification
+stack with `main` at `813dbd9`.
+
+| Requirement/AC ID | Evidence | Reconciliation result |
+|---|---|---|
+| `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; original PR #38 CI | Existing behavior retained; fresh full CI pending |
+| `FEAT-007B-AC-06/11` | `AircraftDocumentsPanel.test.tsx`, invalid-file metadata-only continuation | A009 reproduced before correction; regression passes with one metadata save, null file ID and no upload |
+| `NFR-008/010`, `FEAT-007B-REG-01` | `local-edge-request.test.mjs`, `runtime-diagnostics.test.mjs`, nine-fixture discovery | Merged loopback-only retries and MFA cleanup retained; fixed aircraft diagnostic labels preserved without forwarding provider payloads |
+
+The occupied local database is excluded from reconciliation runtime execution;
+disposable CI owns SQL/RLS, real Auth/Edge/Storage, cleanup, schema lint and type
+drift evidence. Hosted file trust/scheduling, qualified review, real data,
+deployment and production remain outside this evidence.
 
 ## Evidence rules
 
