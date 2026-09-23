@@ -3,8 +3,9 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import process from 'node:process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createMemberMfaHandler } from '../../supabase/functions/member-mfa/handler.ts';
 
-import { stopLocalEdge, waitForLocalEdge } from './local-edge-lifecycle.mjs';
+import { stopLocalEdge, waitForMemberMfaWorker } from './local-edge-lifecycle.mjs';
 
 const url = 'http://127.0.0.1:55321/functions/v1/member-mfa';
 const origin = 'https://synthetic-fixture.localhost';
@@ -18,6 +19,12 @@ afterEach(() => {
 describe('fixture-specific Edge readiness', () => {
   it('rejects the old worker response before accepting the fixture environment', async () => {
     vi.useFakeTimers();
+    const authenticate = vi.fn();
+    const consumeLimit = vi.fn();
+    const makeWorker = (allowedOrigin) =>
+      createMemberMfaHandler({ allowedOrigin, authenticate, consumeLimit });
+    const oldWorker = makeWorker('http://127.0.0.1:5173');
+    const expectedWorker = makeWorker(origin);
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -26,26 +33,30 @@ describe('fixture-specific Edge readiness', () => {
           headers: { 'access-control-allow-origin': 'http://127.0.0.1:5173' },
         }),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 403 }))
+      .mockImplementationOnce((input, init) => oldWorker(new Request(input, init)))
       .mockResolvedValueOnce(
-        new Response(null, {
-          status: 204,
-          headers: { 'access-control-allow-origin': origin },
-        }),
-      );
+        Response.json({ error: { code: 'gateway.method_not_allowed' } }, { status: 405 }),
+      )
+      .mockImplementationOnce((input, init) => expectedWorker(new Request(input, init)));
     vi.stubGlobal('fetch', fetchMock);
-    const ready = waitForLocalEdge(url, origin, runningChild());
+    const ready = waitForMemberMfaWorker(url, origin, runningChild());
     await vi.runAllTimersAsync();
     await ready;
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls.every(([, init]) => init.headers.origin === origin)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(
+      fetchMock.mock.calls.every(
+        ([, init]) => init.method === 'GET' && init.headers.origin === origin,
+      ),
+    ).toBe(true);
+    expect(authenticate).not.toHaveBeenCalled();
+    expect(consumeLimit).not.toHaveBeenCalled();
   });
 
   it('bounds retries when only a stale worker is available', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
-    const failed = expect(waitForLocalEdge(url, origin, runningChild())).rejects.toThrow(
+    const failed = expect(waitForMemberMfaWorker(url, origin, runningChild())).rejects.toThrow(
       'did not become ready',
     );
     await vi.runAllTimersAsync();
@@ -56,11 +67,11 @@ describe('fixture-specific Edge readiness', () => {
   it('fails before probing an exited worker or a remote endpoint', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    await expect(waitForLocalEdge(url, origin, { exitCode: 1, signalCode: null })).rejects.toThrow(
-      'exited',
-    );
     await expect(
-      waitForLocalEdge('https://remote.example.test', origin, runningChild()),
+      waitForMemberMfaWorker(url, origin, { exitCode: 1, signalCode: null }),
+    ).rejects.toThrow('exited');
+    await expect(
+      waitForMemberMfaWorker('https://remote.example.test', origin, runningChild()),
     ).rejects.toThrow('loopback');
     expect(fetchMock).not.toHaveBeenCalled();
   });

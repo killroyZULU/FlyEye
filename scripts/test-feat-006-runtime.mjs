@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
-import { stopLocalEdge, waitForLocalEdge } from './lib/local-edge-lifecycle.mjs';
+import { stopLocalEdge, waitForMemberMfaWorker } from './lib/local-edge-lifecycle.mjs';
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -193,6 +193,13 @@ try {
     ].join('\n'),
     { encoding: 'utf8', mode: 0o600 },
   );
+  client = createClient(apiUrl, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: true },
+  });
+  enterStage('password-sign-in');
+  const signedIn = await client.auth.signInWithPassword({ email, password });
+  if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
+
   enterStage('edge-startup');
   edgeProcess = spawn(
     process.execPath,
@@ -201,14 +208,10 @@ try {
   );
   // Avoid an unhandled spawn error; readiness and cleanup report fixed failures.
   edgeProcess.on('error', () => {});
-  await waitForLocalEdge(`${apiUrl}/functions/v1/member-mfa`, origin, edgeProcess);
-
-  client = createClient(apiUrl, publishableKey, {
-    auth: { persistSession: false, autoRefreshToken: true },
+  await waitForMemberMfaWorker(`${apiUrl}/functions/v1/member-mfa`, origin, edgeProcess, {
+    apikey: publishableKey,
+    authorization: `Bearer ${signedIn.data.session.access_token}`,
   });
-  enterStage('password-sign-in');
-  const signedIn = await client.auth.signInWithPassword({ email, password });
-  if (signedIn.error || !signedIn.data.session) throw new Error('Synthetic sign-in failed.');
 
   enterStage('readiness-status');
   const identity = await invoke({ action: 'status' });

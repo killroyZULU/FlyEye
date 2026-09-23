@@ -49,7 +49,8 @@ identify the failing cleanup substep.
 Review identified worker-readiness and shutdown weaknesses: a shared OPTIONS
 response could come from a worker using a different limiter secret, and killing
 the Node CLI wrapper did not establish process-tree termination. The correction
-uses a fresh exact origin, verifies the limiter identity before the lost-response
+uses a fresh exact origin and the handler's side-effect-free GET rejection,
+verifies the limiter identity before the lost-response
 probe, awaits bounded shutdown, and reports allowlisted cleanup substeps. Auth
 deletion is verified directly in the local database; provider errors cannot count
 as proof of absence. Existing keyed-row, lost-response and baseline assertions

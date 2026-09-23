@@ -3,9 +3,9 @@ import process from 'node:process';
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-// A shared OPTIONS response proves routing, not that this fixture's environment
-// is active. The caller supplies a fresh exact origin for its worker.
-export async function waitForLocalEdge(url, origin, child) {
+// Gateway preflight responses cannot identify a function worker. The MFA
+// handler rejects GET after checking its exact origin, before any data work.
+export async function waitForMemberMfaWorker(url, origin, child, authHeaders) {
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname)) {
     throw new Error('Local Edge readiness requires a loopback URL.');
   }
@@ -15,13 +15,13 @@ export async function waitForLocalEdge(url, origin, child) {
     }
     try {
       const response = await fetch(url, {
-        method: 'OPTIONS',
-        headers: { origin },
+        method: 'GET',
+        headers: { ...authHeaders, origin },
         signal: AbortSignal.timeout(1_000),
       });
       if (
-        response.status === 204 &&
-        response.headers.get('access-control-allow-origin') === origin
+        response.status === 405 &&
+        (await response.json())?.error?.code === 'member_mfa.method_not_allowed'
       ) {
         return;
       }
