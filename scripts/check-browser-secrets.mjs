@@ -47,7 +47,8 @@ const secretPrefixPattern = new RegExp(['sb', 'secret', '[A-Za-z0-9_-]{16,}'].jo
 const viteServerKeyPattern = /VITE_[A-Z0-9_]*(?:SERVICE_ROLE|SECRET_KEY)[A-Z0-9_]*/;
 const findings = new Set();
 
-for (const file of repositoryRoots.flatMap(filesUnder)) {
+const credentialRoots = [...new Set([...repositoryRoots, ...browserRoots])];
+for (const file of credentialRoots.flatMap(filesUnder)) {
   const content = readFileSync(file, 'utf8');
   if (secretPrefixPattern.test(content) || hasServiceRoleJwt(content)) {
     findings.add(file);

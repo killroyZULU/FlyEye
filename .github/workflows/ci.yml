@@ -46,12 +46,7 @@ jobs:
           printf '%s  %s\n' "${GITLEAKS_LINUX_X64_SHA256}" "${archive_path}" \
             | sha256sum --check --strict -
           tar -xzf "${archive_path}" -C "${RUNNER_TEMP}" gitleaks
-
-      - name: Scan full Git history for general secrets
-        shell: bash
-        run: >-
-          "${RUNNER_TEMP}/gitleaks" git --redact=100 --no-banner --no-color
-          --exit-code 1 .
+          echo "GITLEAKS_PATH=${RUNNER_TEMP}/gitleaks" >> "${GITHUB_ENV}"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -65,6 +60,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Scan repository history and changes for general secrets
+        run: node scripts/check-repository-secrets.mjs
 
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
