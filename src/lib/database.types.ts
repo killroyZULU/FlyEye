@@ -91,6 +91,227 @@ export type Database = {
         };
         Relationships: [];
       };
+      aircraft_records: {
+        Row: {
+          archive_reason: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          manufacturer: string;
+          model: string;
+          organization_id: string;
+          registration_key: string;
+          registration_mark: string;
+          registry_state: string;
+          updated_at: string;
+          updated_by: string;
+          version: number;
+        };
+        Insert: {
+          archive_reason?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          manufacturer: string;
+          model: string;
+          organization_id: string;
+          registration_key: string;
+          registration_mark: string;
+          registry_state?: string;
+          updated_at?: string;
+          updated_by: string;
+          version?: number;
+        };
+        Update: {
+          archive_reason?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          manufacturer?: string;
+          model?: string;
+          organization_id?: string;
+          registration_key?: string;
+          registration_mark?: string;
+          registry_state?: string;
+          updated_at?: string;
+          updated_by?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'aircraft_records_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      aircraft_registry_events: {
+        Row: {
+          actor_user_id: string | null;
+          correlation_id: string;
+          event_name: string;
+          id: string;
+          idempotency_key_hash: string | null;
+          metadata: Json;
+          occurred_at: string;
+          organization_id: string;
+          outcome: string;
+          reason_code: string;
+          target_record_id: string | null;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          correlation_id: string;
+          event_name: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id: string;
+          outcome: string;
+          reason_code: string;
+          target_record_id?: string | null;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          correlation_id?: string;
+          event_name?: string;
+          id?: string;
+          idempotency_key_hash?: string | null;
+          metadata?: Json;
+          occurred_at?: string;
+          organization_id?: string;
+          outcome?: string;
+          reason_code?: string;
+          target_record_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'aircraft_registry_events_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'aircraft_registry_events_organization_id_target_record_id_fkey';
+            columns: ['organization_id', 'target_record_id'];
+            isOneToOne: false;
+            referencedRelation: 'aircraft_records';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
+      aircraft_registry_idempotency: {
+        Row: {
+          action: string;
+          actor_user_id: string;
+          created_at: string;
+          expected_version: number | null;
+          idempotency_key_hash: string;
+          organization_id: string;
+          request_hash: string;
+          result: Json;
+          target_record_id: string | null;
+        };
+        Insert: {
+          action: string;
+          actor_user_id: string;
+          created_at?: string;
+          expected_version?: number | null;
+          idempotency_key_hash: string;
+          organization_id: string;
+          request_hash: string;
+          result: Json;
+          target_record_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          actor_user_id?: string;
+          created_at?: string;
+          expected_version?: number | null;
+          idempotency_key_hash?: string;
+          organization_id?: string;
+          request_hash?: string;
+          result?: Json;
+          target_record_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'aircraft_registry_idempotency_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'aircraft_registry_idempotency_organization_id_target_recor_fkey';
+            columns: ['organization_id', 'target_record_id'];
+            isOneToOne: false;
+            referencedRelation: 'aircraft_records';
+            referencedColumns: ['organization_id', 'id'];
+          },
+        ];
+      };
+      aircraft_registry_rate_limit_events: {
+        Row: {
+          bucket: string;
+          correlation_id: string;
+          id: string;
+          limiter_key_hash: string;
+          occurred_at: string;
+          outcome: string;
+          retry_after_seconds: number | null;
+        };
+        Insert: {
+          bucket: string;
+          correlation_id: string;
+          id?: string;
+          limiter_key_hash: string;
+          occurred_at?: string;
+          outcome: string;
+          retry_after_seconds?: number | null;
+        };
+        Update: {
+          bucket?: string;
+          correlation_id?: string;
+          id?: string;
+          limiter_key_hash?: string;
+          occurred_at?: string;
+          outcome?: string;
+          retry_after_seconds?: number | null;
+        };
+        Relationships: [];
+      };
+      aircraft_registry_rate_limit_state: {
+        Row: {
+          bucket: string;
+          limiter_key_hash: string;
+          tokens: number;
+          updated_at: string;
+        };
+        Insert: {
+          bucket: string;
+          limiter_key_hash: string;
+          tokens: number;
+          updated_at: string;
+        };
+        Update: {
+          bucket?: string;
+          limiter_key_hash?: string;
+          tokens?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       authentication_events: {
         Row: {
           actor_kind: string;
@@ -1050,6 +1271,20 @@ export type Database = {
         };
         Returns: Json;
       };
+      aircraft_record_summary: {
+        Args: {
+          p_record: Database['public']['Tables']['aircraft_records']['Row'];
+        };
+        Returns: Json;
+      };
+      aircraft_registry_actor_is_authorized: {
+        Args: {
+          p_actor_user_id: string;
+          p_organization_id: string;
+          p_permission_code: string;
+        };
+        Returns: boolean;
+      };
       begin_member_invitation: {
         Args: {
           p_actor_user_id: string;
@@ -1175,6 +1410,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      consume_aircraft_registry_rate_limit: {
+        Args: {
+          p_bucket: string;
+          p_correlation_id: string;
+          p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
       consume_member_administration_rate_limit: {
         Args: {
           p_action: string;
@@ -1210,6 +1453,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      get_aircraft_record: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_organization_id: string;
+          p_record_id: string;
+        };
+        Returns: Json;
+      };
       get_member_mfa_status: {
         Args: {
           p_actor_user_id: string;
@@ -1240,6 +1492,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      list_aircraft_records: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_include_archived: boolean;
+          p_organization_id: string;
+          p_page: number;
+          p_page_size: number;
+          p_search: string;
+        };
+        Returns: Json;
+      };
       list_member_invitations: {
         Args: {
           p_actor_user_id: string;
@@ -1258,6 +1522,18 @@ export type Database = {
           p_organization_id: string;
           p_search?: string;
           p_status?: string;
+        };
+        Returns: Json;
+      };
+      lookup_aircraft_registry_idempotency: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_organization_id: string;
+          p_record_id: string;
+          p_request_hash: string;
         };
         Returns: Json;
       };
@@ -1295,6 +1571,24 @@ export type Database = {
         Args: { p_action: string };
         Returns: Json;
       };
+      mutate_aircraft_record: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_expected_version: number;
+          p_idempotency_key_hash: string;
+          p_manufacturer: string;
+          p_model: string;
+          p_organization_id: string;
+          p_reason: string;
+          p_record_id: string;
+          p_registration_key: string;
+          p_registration_mark: string;
+          p_request_hash: string;
+        };
+        Returns: Json;
+      };
       prepare_member_invitation_acceptance: {
         Args: {
           p_actor_user_id: string;
@@ -1304,6 +1598,17 @@ export type Database = {
           p_invitation_id: string;
         };
         Returns: Json;
+      };
+      record_aircraft_registry_security_event: {
+        Args: {
+          p_action: string;
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_organization_id: string;
+          p_outcome: string;
+          p_reason: string;
+        };
+        Returns: undefined;
       };
       record_authentication_access_decision: {
         Args: {
@@ -1344,6 +1649,10 @@ export type Database = {
       required_member_profile_assurance: {
         Args: { p_actor_user_id: string; p_membership_id: string };
         Returns: string;
+      };
+      resolve_aircraft_registry_context: {
+        Args: { p_actor_user_id: string };
+        Returns: Json;
       };
       resolve_auth_access_context: {
         Args: {
@@ -1439,6 +1748,20 @@ export type Database = {
           p_target_id: string;
         };
         Returns: string;
+      };
+      write_aircraft_registry_event: {
+        Args: {
+          p_actor_user_id: string;
+          p_correlation_id: string;
+          p_event_name: string;
+          p_idempotency_key_hash?: string;
+          p_metadata?: Json;
+          p_organization_id: string;
+          p_outcome: string;
+          p_reason_code: string;
+          p_target_record_id: string;
+        };
+        Returns: undefined;
       };
       write_member_administration_event: {
         Args: {

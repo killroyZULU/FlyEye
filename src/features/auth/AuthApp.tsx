@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  landingLabel,
-  requiresMfa,
-  type AccessMembership,
-  type LoginRequest,
-} from '../../lib/access-context';
+import { requiresMfa, type AccessMembership, type LoginRequest } from '../../lib/access-context';
+import { AircraftRegistryPanel, type AircraftRegistryGateway } from '../aircraft';
 import type { AdminBootstrapGrant, AdminOnboardingStart } from './admin-onboarding';
 import { MemberAdministrationPanel } from '../members/components/MemberAdministrationPanel';
 import { MemberProfilePanel } from '../members/components/MemberProfilePanel';
@@ -18,6 +14,7 @@ import { MemberMfaEnrollmentFlow } from './components/MemberMfaEnrollmentFlow';
 import { PasswordRecoveryFlow } from './components/PasswordRecoveryFlow';
 import { RecoveryRequestForm } from './components/RecoveryRequestForm';
 import { StatePanel } from './components/StatePanel';
+import { WorkspaceHome, type WorkspaceView } from './components/WorkspaceHome';
 import { RECOVERY_COMPLETE_PATH, RECOVERY_REQUEST_PATH } from './recovery';
 import { INVITATION_PATH } from './member-invitations';
 import {
@@ -44,6 +41,7 @@ type AuthState =
 
 type AuthAppProps = {
   gateway: AuthGateway;
+  aircraftGateway?: AircraftRegistryGateway;
 };
 
 type AuthRoute = 'sign-in' | 'recovery-request' | 'recovery-complete' | 'invitation';
@@ -63,15 +61,13 @@ function safeError(error: unknown): { code: AuthGatewayErrorCode; message: strin
   return { code: 'unknown', message: 'FlyEye could not verify your access. Try again.' };
 }
 
-export function AuthApp({ gateway }: AuthAppProps) {
+export function AuthApp({ gateway, aircraftGateway }: AuthAppProps) {
   const route = currentAuthRoute(window.location.pathname);
   const [state, setState] = useState<AuthState>('checking-session');
   const [message, setMessage] = useState<string>();
   const [adminOnboardingStart, setAdminOnboardingStart] = useState<AdminOnboardingStart>();
   const [activeMembership, setActiveMembership] = useState<AccessMembership>();
-  const [workspaceView, setWorkspaceView] = useState<
-    'home' | 'invitations' | 'members' | 'profile' | 'security'
-  >('home');
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('home');
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
 
@@ -364,6 +360,12 @@ export function AuthApp({ gateway }: AuthAppProps) {
     }
   }
 
+  function handleAircraftAccessRevoked() {
+    setActiveMembership(undefined);
+    setWorkspaceView('home');
+    void loadAccess();
+  }
+
   return (
     <main className="auth-shell">
       <section className="brand-panel" aria-label="FlyEye introduction">
@@ -561,59 +563,27 @@ export function AuthApp({ gateway }: AuthAppProps) {
           {route === 'sign-in' &&
           state === 'success' &&
           activeMembership &&
+          aircraftGateway &&
+          workspaceView === 'aircraft' ? (
+            <AircraftRegistryPanel
+              gateway={aircraftGateway}
+              organizationName={activeMembership.organizationName}
+              canManage={activeMembership.permissions.includes('aircraft.record.manage')}
+              onClose={() => setWorkspaceView('home')}
+              onAccessRevoked={handleAircraftAccessRevoked}
+            />
+          ) : null}
+
+          {route === 'sign-in' &&
+          state === 'success' &&
+          activeMembership &&
           workspaceView === 'home' ? (
-            <StatePanel
-              eyebrow="Access verified"
-              title={landingLabel(activeMembership.role, activeMembership.roleLabel)}
-              tone="success"
-            >
-              <p>
-                Signed in to <strong>{activeMembership.organizationName}</strong>. Your available
-                modules will be based on server-approved permissions.
-              </p>
-              <div className="permission-summary">
-                <span>Current role</span>
-                <strong>{activeMembership.role.replaceAll('_', ' ')}</strong>
-              </div>
-              <p className="placeholder-note">
-                Workspace features are intentionally outside FEAT-001.
-              </p>
-              {activeMembership.permissions.includes('membership.invitation.manage') ? (
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => setWorkspaceView('invitations')}
-                >
-                  Manage member invitations
-                </button>
-              ) : null}
-              {activeMembership.permissions.includes('membership.member.review') ? (
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => setWorkspaceView('members')}
-                >
-                  Manage organization members
-                </button>
-              ) : null}
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => setWorkspaceView('profile')}
-              >
-                View my basic profile
-              </button>
-              <button
-                className="primary-button"
-                type="button"
-                onClick={() => setWorkspaceView('security')}
-              >
-                Manage authenticator security
-              </button>
-              <button className="text-button" type="button" onClick={() => void handleSignOut()}>
-                Sign out
-              </button>
-            </StatePanel>
+            <WorkspaceHome
+              membership={activeMembership}
+              aircraftAvailable={Boolean(aircraftGateway)}
+              onNavigate={setWorkspaceView}
+              onSignOut={() => void handleSignOut()}
+            />
           ) : null}
         </div>
         <footer>
