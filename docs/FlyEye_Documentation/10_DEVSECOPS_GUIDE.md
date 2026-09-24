@@ -8,7 +8,13 @@ DevSecOps integrates build, test, security, deployment, monitoring, recovery, an
 
 Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Use one bounded `feat/*`, `fix/*`, `docs/*`, `chore/*`, or `security/*` branch per task. A requested bounded task carries standing authority to commit, push that task branch, and open a review-ready pull request after local verification and separate-agent review. Merge into stable `main` only through an explicit human merge decision. Never push or force-push feature work directly to `main`.
 
-GitHub-enforced branch protection is not available under the current repository plan. Until that changes, the project owner and implementation agent must apply the equivalent manual gate: use a pull request and checklist, require green CI, inspect the final diff and unresolved conversations, keep deployment separate, and obtain explicit authorization before every merge. Add required reviews/CODEOWNERS when additional qualified collaborators join and the repository plan supports the controls.
+Verify repository protection settings rather than assuming plan restrictions. Where GitHub-enforced protection is not configured, apply the manual gate: use a pull request and checklist, require green CI, inspect the final diff and unresolved conversations, keep deployment separate, and obtain explicit authorization before every merge. Add required reviews/CODEOWNERS when additional qualified collaborators join and the repository plan supports the controls.
+
+Before committing, stage only reviewed files and run `pnpm check:secrets`; rerun it after the final commit and before every push. It scans committed history, staged changes, and unstaged tracked changes using Gitleaks `8.30.1`, with complete value redaction and failure if the scanner is unavailable or mismatched. Install the official release after verifying its published checksum; expose the executable through `PATH` or `GITLEAKS_PATH`. Untracked files must be staged before this gate can cover them. Review exact-fingerprint or inline suppressions; never add a blanket exception to publish a credential.
+
+CI detects leaks after publication. Enable repository secret scanning and push protection through an authorized settings change to block supported credential patterns before GitHub accepts them. These controls supplement local scans and do not prove that arbitrary passwords, private documents, or every secret format are absent. If a real secret is exposed, stop publication and obtain authorization for revocation/rotation and coordinated cleanup; deleting the current file alone is insufficient.
+
+The Gitleaks configuration retains default rules and exempts only complete `sb_publishable_` values from its generic API-key rule because these are public client identifiers. It does not exempt a file, environment-variable name, or server-key format. Authorization still depends on the server controls in [Security Requirements](08_SECURITY_REQUIREMENTS.md#4-authorization-and-tenant-isolation).
 
 ## 3. Pull-request pipeline
 
@@ -30,6 +36,7 @@ deployment credentials.
 The pipeline exposes the same stable entry points to developers and AI agents:
 
 - `pnpm verify:app` runs the complete application-side quality group;
+- `pnpm check:secrets` is the redacted general prepublication gate;
 - `pnpm check:code` enforces production TypeScript file budgets, feature and
   Edge Function import boundaries, and acyclic production imports;
 - `pnpm check:docs` validates active-document size budgets, local links,
@@ -58,7 +65,7 @@ output out of CI logs. Diagnose failures locally with reviewed sanitizers or
 fixed-stage diagnostics in disposable CI when the local stack is occupied.
 Never print raw child errors or payloads to diagnose a failure.
 
-The schema-wide pgTAP guard discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails if any lacks enabled RLS. The general scanner uses the MIT-licensed Gitleaks CLI `8.30.1`, pinned by version and official Linux archive SHA-256, on a full Git-history checkout with 100% finding redaction. Gitleaks is feature-complete and receives security-maintenance releases. The separately licensed Gitleaks Action is not used, and the existing browser-specific Supabase key scan remains a distinct defense.
+The schema-wide pgTAP guard discovers ordinary and partitioned tables in the exposed `public` and `graphql_public` Data API schemas and fails if any lacks enabled RLS. The general scanner uses the MIT-licensed Gitleaks CLI `8.30.1`, pinned by version and official Linux archive SHA-256, on a full Git-history checkout with 100% finding redaction. Gitleaks is feature-complete and receives security-maintenance releases. The separately licensed Gitleaks Action is not used. The browser-specific scan separately rejects Supabase secret-key values, service-role JWTs, and forbidden browser environment names in source, HTML, and compiled output. `pnpm check:browser-secrets` also runs synthetic scanner regressions and a redacted general scan of `dist` to cover other recognized provider keys injected during builds.
 
 SAST/CodeQL, broader license review, SBOM generation, configuration scanning, staging smoke/DAST, artifact promotion, and deployment remain later pre-pilot gates. They must not be described as passing until implemented and evidenced.
 

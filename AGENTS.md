@@ -46,7 +46,7 @@ A direct request to build, fix, document, or continue a bounded outcome authoriz
 7. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
 8. Obtain a separate agent review of the stable target. Correct in-scope findings and reverify affected behavior.
 9. Update only the canonical documentation and evidence required by the task.
-10. Inspect and stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the issue, and follow CI through green.
+10. Inspect and stage only scoped files, apply the [prepublication secret gate](docs/FlyEye_Documentation/10_DEVSECOPS_GUIDE.md#2-source-control-model), commit, push the task branch, open a review-ready pull request linked to the issue, and follow CI through green.
 
 Do not claim completion when required checks fail. The detailed workflow lives in `09_AI_DEVELOPMENT_GUIDE.md` and `10_DEVSECOPS_GUIDE.md`; do not copy it into feature documents.
 
