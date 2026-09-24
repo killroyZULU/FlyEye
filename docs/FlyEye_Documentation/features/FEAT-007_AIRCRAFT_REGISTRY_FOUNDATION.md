@@ -1,11 +1,10 @@
 # Feature Specification: FEAT-007 — Aircraft Registry Foundation (Slice A)
 
-## Status
+## Contract references
 
-- State: Implementation, local synthetic verification, technical review, and required PR checks complete; merge decision pending
-- Current SDLC phase: Merge decision
 - Owner: Founder/Product Owner
-- Baseline: `main` at `1a85ae6`
+- Delivery status: [Current State](../CURRENT_STATE.md)
+- Evidence: [FEAT-007 Traceability](FEAT-007_TRACEABILITY.md)
 - Task issue: [#31](https://github.com/killroyZULU/FlyEye/issues/31)
 - Parent discovery: [#22](https://github.com/killroyZULU/FlyEye/issues/22)
 - Related requirements: SRS `CMP-001`, `IAM-003`, `IAM-005`, `IAM-008`–`IAM-011`,

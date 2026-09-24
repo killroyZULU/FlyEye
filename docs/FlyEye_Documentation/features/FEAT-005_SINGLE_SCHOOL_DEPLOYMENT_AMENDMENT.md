@@ -1,11 +1,10 @@
 # Feature Specification: FEAT-005 — Single-school deployment amendment (FIX-006)
 
-## Status
+## Contract references
 
-- State: Merged through PR #17 at `a162e0c`
-- Current SDLC phase: Merge complete
 - Owner: Founder/Product Owner
-- Baseline and task branch: PR #16 head `d415e09`; `fix/FIX-006-single-school-deployment`
+- Delivery status: [Current State](../CURRENT_STATE.md)
+- Evidence: [FIX-006 Traceability](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_TRACEABILITY.md)
 - Related requirements/decisions: IAM-002/003/005/008/010; ADR-0006
 
 ## User outcome

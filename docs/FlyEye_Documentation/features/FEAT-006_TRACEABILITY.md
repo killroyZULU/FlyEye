@@ -41,7 +41,7 @@ establish hosted, production, qualified aviation, or customer readiness.
 
 ## Runtime fixture maintenance
 
-[Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) tracks the
+[Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the
 `FEAT-006A-AC-09/10` cleanup correction after [PR #41 post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35732201053)
 passed persistence assertions but failed cleanup. The original log does not
 identify the failing cleanup substep.
@@ -54,8 +54,13 @@ verifies the limiter identity before the lost-response
 probe, awaits bounded shutdown, and reports allowlisted cleanup substeps. Auth
 deletion is verified directly in the local database; provider errors cannot count
 as proof of absence. Existing keyed-row, lost-response and baseline assertions
-remain mandatory. The correction PR owns final checks and separate review;
-the occupied local database is excluded from runtime execution.
+remain mandatory.
+
+The independently reviewed correction was delivered by [PR #43](https://github.com/killroyZULU/FlyEye/pull/43),
+head `ba70b9b`, merged at `813dbd9` on 2026-09-23. [Post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944)
+passed application, disposable database/runtime, and required quality gates.
+The occupied local database was excluded from runtime execution. This evidence
+verifies the correction; it does not identify the original failing cleanup substep.
 
 ## Evidence rules
 

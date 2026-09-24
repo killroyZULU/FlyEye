@@ -1,6 +1,6 @@
 # FEAT-007 Traceability
 
-## Evidence boundary
+## Slice A historical evidence boundary
 
 - Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; PR #32
 - Verification date: 2026-08-31
@@ -12,8 +12,8 @@
   accessibility review, qualified aviation workflow review, retention decision,
   deployment, or production approval
 
-The following baseline covers Slice A; Slice B evidence is recorded separately
-below. Neither slice establishes airworthiness, operational availability,
+The following counts and results apply to the recorded Slice A baseline;
+integration and Slice B evidence are recorded separately below. Neither slice establishes airworthiness, operational availability,
 compliance, registration validity, ownership, or dispatch authority.
 
 ## Requirements and results
@@ -43,28 +43,43 @@ compliance, registration validity, ownership, or dispatch authority.
 - Database lint reported no schema warnings, and generated types match the
   applied schema.
 
-Reviewed head `ef61821` is pushed, and all three required pull-request checks
-pass. Fail-closed diagnostics remain available if the intermittent FEAT-006
+All three required pull-request checks passed for `ef61821`. Fail-closed
+diagnostics remain available if the intermittent FEAT-006
 fixture failure recurs; their output is limited to approved stage, event, and
 error-category labels.
 
+## Final integration evidence
+
+The following CI runs passed Application quality, Local Supabase security, and
+Required quality gate on the final PR heads. These 2026-09-23 results supersede
+pending integration checks; they do not change the historical test counts below.
+
+| Slice | Final PR head | Merge commit | CI evidence |
+|---|---|---|---|
+| Registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32), `218b8b8` | `4500ad4` | [35855699099](https://github.com/killroyZULU/FlyEye/actions/runs/35855699099) |
+| Documents | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), `d386258` | `4ec81cb` | [35855985031](https://github.com/killroyZULU/FlyEye/actions/runs/35855985031) |
+
+The combined dashboard/aircraft verification is recorded in
+[FEAT-008 Traceability](FEAT-008_TRACEABILITY.md#reconciliation-verification).
+Live delivery status belongs in [Current State](../CURRENT_STATE.md).
+
 ## Slice B reconciliation
 
-[PR #38](https://github.com/killroyZULU/FlyEye/pull/38) owns the implementation and
-current-head verification for [Issue #37](https://github.com/killroyZULU/FlyEye/issues/37).
-Its original synthetic evidence is [CI run 34069500313](https://github.com/killroyZULU/FlyEye/actions/runs/34069500313)
-at `1e16af4`; fresh CI is required after reconciling the registry/specification
-stack with `main` at `813dbd9`.
+[PR #38](https://github.com/killroyZULU/FlyEye/pull/38) delivered
+[Issue #37](https://github.com/killroyZULU/FlyEye/issues/37).
+The earlier synthetic [CI run 34069500313](https://github.com/killroyZULU/FlyEye/actions/runs/34069500313)
+applies to `1e16af4`; the final integration evidence above covers the reconciled
+registry/specification stack and maintenance from `main` at `813dbd9`.
 
 | Requirement/AC ID | Evidence | Reconciliation result |
 |---|---|---|
-| `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; original PR #38 CI | Existing behavior retained; fresh full CI pending |
+| `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; final PR #38 CI above | Existing behavior retained; final application and database/runtime gates passed |
 | `FEAT-007B-AC-06/11` | `AircraftDocumentsPanel.test.tsx`, invalid-file metadata-only continuation | A009 reproduced before correction; regression passes with one metadata save, null file ID and no upload |
-| `FEAT-007B-AC-08`, `FEAT-007B-JOB-01` | Final stale-job SQL regression | CI exposed mixed fixed/live dates after aircraft reactivation. The regression now uses one non-decreasing evaluation date and compares all replacement notification fields before/after the stale job; fresh CI required |
+| `FEAT-007B-AC-08`, `FEAT-007B-JOB-01` | Final stale-job SQL regression | CI exposed mixed fixed/live dates after aircraft reactivation. The regression uses one non-decreasing evaluation date and compares all replacement notification fields before/after the stale job; final PR #38 CI passed |
 | `NFR-008/010`, `FEAT-007B-REG-01` | `local-edge-request.test.mjs`, `runtime-diagnostics.test.mjs`, nine-fixture discovery | Merged loopback-only retries and MFA cleanup retained; fixed aircraft diagnostic labels preserved without forwarding provider payloads. CI exposed omitted seeded-category cleanup in the reconciled MFA fixture; restored the organization-scoped deletion before organization cleanup |
 
-The occupied local database is excluded from reconciliation runtime execution;
-disposable CI owns SQL/RLS, real Auth/Edge/Storage, cleanup, schema lint and type
+The occupied local database was excluded from reconciliation runtime execution;
+disposable CI supplied SQL/RLS, real Auth/Edge/Storage, cleanup, schema lint and type
 drift evidence. Hosted file trust/scheduling, qualified review, real data,
 deployment and production remain outside this evidence.
 
@@ -77,7 +92,7 @@ deployment and production remain outside this evidence.
 - Update this record when the implementation, reviewed target, evidence, or
   limitation changes.
 
-## Slice B Aircraft Document Records evidence
+## Slice B historical Aircraft Document Records evidence
 
 - Delivery target: Issue #37 and [PR #38](https://github.com/killroyZULU/FlyEye/pull/38)
   on `feat/FEAT-007B-aircraft-documents`; implementation `cd93914`, stacked on

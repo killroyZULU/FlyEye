@@ -2,11 +2,10 @@
 
 ## Contract references
 
-- Baseline: merged through PR #15 at `a3a39ca68d86748728e49a2b39c81828bb8bb658`
-- State: Delivered; forward incomplete-profile directory correction merged through PR #16 at `b63b6a0`
 - Owner: Founder/Product Owner
-- Correction: [PR #16](https://github.com/killroyZULU/FlyEye/pull/16)
-- Evidence plan: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
+- Deployment contract: [Single-school amendment (FIX-006)](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_AMENDMENT.md)
+- Delivery status: [Current State](../CURRENT_STATE.md)
+- Evidence: [FEAT-005 Traceability](FEAT-005_TRACEABILITY.md)
 - Related requirements: SRS `IAM-002` through `IAM-012`, `REC-001` through
   `REC-003`, `NFR-004`, `NFR-008`, and `NFR-009`
 
@@ -51,7 +50,7 @@ Non-goals:
 | Item | Source/owner/version | State |
 |---|---|---|
 | Member review, suspension, reactivation, server authority, tenancy, and audit | SRS `IAM-002`–`IAM-012`; Security Requirements sections 3–4 and 9 | Verified |
-| Independent organization memberships and one initial role | Product and Governance Decisions, Organizations, memberships, and roles | Verified |
+| Sole-school membership and one initial role | [ADR-0006](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md), SRS `IAM-010`, FIX-006 | Accepted |
 | Organization-scoped minimal profile and approved management boundary | Founder/Product Owner decision, 2026-08-10 | Verified |
 | Profile fields: display name, optional contact number, read-only Auth email | Founder/Product Owner decision, 2026-08-10 | Verified |
 | Organization-only terminal revocation without Auth or record deletion | Founder/Product Owner decision, 2026-08-10 | Verified |
@@ -91,9 +90,9 @@ revoked --no FEAT-005 transition--> revoked
 
 1. Every command revalidates that the organization is active. A suspended or
    unknown organization returns no profile or directory data and permits no
-   profile or membership mutation. Member administration is organization-scoped;
-   the same Auth user can remain active in another organization when one
-   membership is suspended or revoked.
+   profile or membership mutation. The school and membership are server-derived
+   under [FIX-006](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_AMENDMENT.md); no school
+   selection or parallel membership in this deployment is supported.
 2. List and search return a cursor-paginated maximum of 50 members per page,
    ordered by immutable membership `created_at` descending and membership ID
    descending, with nulls prohibited in both keys. The server-issued opaque
@@ -130,8 +129,8 @@ revoked --no FEAT-005 transition--> revoked
    organization and preserved role are active. It never adds or changes a role.
 9. Revocation changes `active` or `suspended` to terminal `revoked`. It preserves
    the role link and records for evidence but creates no usable authority. It
-   never deletes or globally bans the Auth user and never affects another
-   organization membership.
+   never deletes or globally bans the Auth user and never changes another
+   member's records.
 10. Rejoining after revocation has no FEAT-005 path. A new invitation or direct
     update cannot bypass the existing membership conflict. A later approved
     workflow must define any restoration.
@@ -273,7 +272,7 @@ retention, alert ownership, and support remain environment-specific gates.
 ## Acceptance criteria
 
 - `FEAT-005-AC-01` Only an active permitted Organization Admin with AAL2/TOTP
-  can list, search, filter, and review members of the selected active
+  can list, search, filter, and review members of the server-derived active
   organization, and no directory data is returned unless the minimized access
   audit commits in the same transaction.
 - `FEAT-005-AC-02` Member results are bounded, cursor-paginated, consistently
@@ -294,7 +293,8 @@ retention, alert ownership, and support remain environment-specific gates.
   `temporary_access_hold` or `administrative_review` reason code; arbitrary,
   cross-action, and free-text reasons are rejected.
 - `FEAT-005-AC-09` Suspended membership loses all organization authority on
-  server and RLS paths while preserving profile, role, history, and other tenants.
+  server and RLS paths while preserving profile, role, and history; cross-school
+  requests cannot read or mutate protected data.
 - `FEAT-005-AC-10` Reactivation accepts only suspended membership with an active
   organization, preserved active role, and `hold_resolved` or
   `suspension_corrected`; it grants no additional role.

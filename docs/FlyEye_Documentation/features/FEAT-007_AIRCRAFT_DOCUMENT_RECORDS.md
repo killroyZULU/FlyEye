@@ -10,7 +10,7 @@
   `NFR-004`, `NFR-008`, `NFR-010`, and `NFR-011`
 
 Delivery status and dependencies are recorded in [Current State](../CURRENT_STATE.md).
-The implementation and its verification evidence are in [PR #38](https://github.com/killroyZULU/FlyEye/pull/38).
+Implementation and integration evidence are recorded in [FEAT-007 Traceability](FEAT-007_TRACEABILITY.md).
 
 ## User outcome
 
@@ -407,7 +407,7 @@ remains a release gate.
 
 - FEAT-007A supplies aircraft identity, lifecycle, permissions, and protected
   registry patterns. FEAT-008 supplies the authenticated shell and dashboard
-  placement; implementation must reconcile both after their merge decisions.
+  placement. Composition evidence belongs in [FEAT-008 Traceability](FEAT-008_TRACEABILITY.md#reconciliation-verification).
 - Supabase private Storage is already approved. No new file-processing package
   or scanner is selected by this specification. Before implementation, any new
   package requires maintenance, license, vulnerability, bundle/runtime, and
