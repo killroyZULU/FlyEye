@@ -63,13 +63,13 @@ Superseded decision processes remain available through Git history. They are not
 
 ## Delivery and review policy
 
-- A direct request for one bounded feature, fix, documentation task, or chore authorizes routine work through a green review-ready pull request under `AGENTS.md`.
-- The agent owns safe reversible choices supported by repository evidence. It does not request approval for each command, routine value, correction, local check, commit, push, or pull-request creation.
-- A separate agent review plus applicable automation is the default technical gate for bounded local or repository-only work. It is not qualified independent human review.
-- Detailed evidence is recorded once and referenced while the reviewed target remains unchanged.
-- Merge, real data, production deployment, destructive actions, branch deletion, unsupported regulated authority, and the other hard stops in `AGENTS.md` remain human or external boundaries.
-- Legal, aviation, privacy, security, customer, penetration-test, formal-accessibility, pilot-readiness, and production review is requested when the claim or risk inherently requires qualified human evidence.
-- Every substantive work update uses the compact SDLC progress strip in `AGENTS.md`; it is orientation, not authorization.
+The approved standing delivery envelope, hard stops and progress reporting live
+in [AGENTS.md](../../AGENTS.md), with execution in the [AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md).
+The agent owns safe reversible choices supported by repository evidence.
+[QA](11_QA_TEST_PLAN.md#verification-applicability) owns verification selection
+and evidence reuse; [QA responsibilities](11_QA_TEST_PLAN.md#11-responsibility)
+distinguish separate-agent technical review from risk-triggered qualified human
+review. These links preserve the approved boundaries without a second workflow.
 
 ## Delivery order
 

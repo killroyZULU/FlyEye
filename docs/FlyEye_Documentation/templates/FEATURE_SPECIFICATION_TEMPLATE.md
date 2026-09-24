@@ -79,6 +79,10 @@ Record only feature-specific controls and link global requirements by ID. Cover 
 
 ## Planned verification
 
+Select groups using [QA applicability](../11_QA_TEST_PLAN.md#verification-applicability).
+Record the environment supplying database/runtime evidence and any justified
+local N/A; all required CI remains mandatory. List feature-specific cases below.
+
 | Test ID | Level | Scenario | Expected result |
 |---|---|---|---|
 | | | | |

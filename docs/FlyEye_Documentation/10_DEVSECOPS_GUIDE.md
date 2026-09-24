@@ -33,7 +33,10 @@ integration, database lint, and generated database-type drift. It uses
 synthetic local data, least-privilege read-only repository permissions, and no
 deployment credentials.
 
-The pipeline exposes the same stable entry points to developers and AI agents:
+Select local groups using [QA verification applicability](11_QA_TEST_PLAN.md#verification-applicability).
+The following commands expose the checks; `package.json` and the workflow own
+their executable definitions. Do not assume exact local/CI parity without
+comparing them.
 
 - `pnpm verify:app` runs the complete application-side quality group;
 - `pnpm check:secrets` is the redacted general prepublication gate;
@@ -45,9 +48,56 @@ The pipeline exposes the same stable entry points to developers and AI agents:
 - `pnpm verify:database:running` runs reset, SQL/RLS, every automatically
   discovered `scripts/test-*-runtime.mjs` fixture through a body/output-suppressed
   runner, database lint, and a non-mutating generated-type comparison against an
-  already running local stack; and
+  already running local stack. **It starts with `db:reset` and is destructive**;
+  apply [database safety](#local-setup-and-database-safety) first; and
 - GitHub Actions publishes one aggregate `Required quality gate` result after
   the parallel application and database jobs finish.
+
+### Local setup and database safety
+
+Use the Node version pinned in [CI](../../.github/workflows/ci.yml) and pnpm from
+[`package.json`](../../package.json). Install with `pnpm install --frozen-lockfile`;
+on Windows, use `pnpm.cmd` if PowerShell blocks the script shim. Install the
+Playwright Chromium browser when required by the selected checks. The general
+secret scanner setup is in [Source-control model](#2-source-control-model).
+
+Before any local Supabase start, stop, restart, reset or fixture run, establish
+the exact repository/project, ports, containers/volumes, data and service users
+through non-sensitive inspection. A loopback URL, synthetic data or running
+container does not establish disposability or permission to interrupt it.
+
+Local Supabase development services may bind to `0.0.0.0` and use shared
+development credentials. Keep this stack synthetic-only and network-restricted;
+never copy its credentials or startup output into source, prompts, screenshots,
+logs, staging or production.
+
+- Reset only a verified disposable synthetic target whose disposal is authorized
+  for the task, including an already approved disposable fixture lifecycle.
+- Never reset, stop, reconfigure or run mutating fixtures against a stack occupied
+  by other work, shared, unknown or valuable. Use the existing disposable CI job or
+  an authorized isolated environment. A Git worktree alone does not isolate
+  Supabase resources; a backup alone does not authorize their destruction.
+- Keep hosted targets, real data, destructive operations and uncertain cleanup
+  under the hard stops in [AGENTS.md](../../AGENTS.md). Do not repeatedly ask to
+  reset an occupied stack when disposable CI can supply the required evidence.
+
+For an authorized disposable local target, configure ignored environment files
+from the checked-in examples only when absent; preserve existing values. Keep
+frontend values browser-safe and the Edge origin exact and loopback-only. See
+[`.env.example`](../../.env.example) and [Edge environment example](../../supabase/functions/.env.example).
+Do not print credentials from environment files or Supabase startup/status.
+
+Start the target with `pnpm db:start` using suppressed credential-bearing output,
+then run the selected checks. The complete `pnpm verify:database:running` group
+resets and rebuilds it; `pnpm test:runtime` creates/deletes synthetic records and
+restarts the stack for fixture isolation and readiness recovery; it is not
+read-only. `pnpm db:types:check` compares generated types;
+`pnpm db:types` writes them and is an implementation action. Stop only services
+owned by the task and verify fixture cleanup even after failure. Use reviewed
+fixed-stage diagnostics, not raw provider output. FEAT-001-specific Auth/TOTP
+controls and assertions remain in [local security testing](features/FEAT-001_LOCAL_SECURITY_TESTING.md).
+
+### Gate implementation and diagnostics
 
 Application tests enforce repository-level statement, branch, function, and
 line coverage floors in `vite.config.ts`. ESLint owns function complexity,

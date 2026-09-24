@@ -43,7 +43,7 @@ A direct request to build, fix, document, or continue a bounded outcome authoriz
 4. Create or continue the task branch from current `main`, or use the explicitly directed stack described in the integration checkpoint; preserve unrelated work.
 5. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
 6. Add positive, negative-authorization, and cross-school isolation tests where school-owned data or protected commands are involved; use rollback-only database fixtures or separate isolated test deployments for School A/School B cases.
-7. Run focused checks during correction, then one final applicable verification matrix. Inspect migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
+7. Select checks using [QA verification applicability](docs/FlyEye_Documentation/11_QA_TEST_PLAN.md#verification-applicability) and follow [database safety](docs/FlyEye_Documentation/10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety). Run focused checks during correction, then one final applicable matrix. Inspect affected migrations, grants, policies, views, triggers, privileged functions, generated types, secrets, scope, and cleanup.
 8. Obtain a separate agent review of the stable target. Correct in-scope findings and reverify affected behavior.
 9. Update only the canonical documentation and evidence required by the task.
 10. Inspect and stage only scoped files, apply the [prepublication secret gate](docs/FlyEye_Documentation/10_DEVSECOPS_GUIDE.md#2-source-control-model), commit, push the task branch, open a review-ready pull request linked to the issue, and follow CI through green.

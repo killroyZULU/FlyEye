@@ -10,14 +10,9 @@ Explicit narrower instructions override this default. The hard stops and exclude
 
 ## Required context
 
-Before changing the repository, read:
-
-- [README](README.md) and [Current State](CURRENT_STATE.md)
-- relevant SRS, architecture, security, privacy, data/API, and accepted ADR sections
-- the bounded feature specification and traceability record
-- existing implementation and tests in the affected area
-- [Documentation Standard](DOCUMENTATION_STANDARD.md) before editing Markdown
-
+Read the baseline required by [AGENTS.md](../../AGENTS.md), then use the
+[task routing table](README.md#task-routing) to select relevant sections and
+feature contracts/evidence. Inspect the affected implementation and tests.
 Repository authority cannot be silently overridden by chat.
 
 ## Planning and tracking
@@ -54,9 +49,11 @@ For a new dependency, record its purpose, maintenance, vulnerability posture, li
 
 ### 4. Verify
 
-Run the applicable formatting, documentation, lint, type, unit/component, SQL/RLS, Edge/runtime, browser/E2E, build, dependency, secret, generated-type, and cleanup checks. Include unauthorized and cross-tenant negatives whenever the outcome touches membership, tenant data, protected commands, files, reports, or exports.
-
-Use focused checks while correcting defects. Once the target stabilizes, run one final applicable matrix and record detailed evidence once.
+Use [QA applicability, tiers and evidence reuse](11_QA_TEST_PLAN.md#verification-applicability)
+to select the matrix and record the environment supplying each result. Use
+[DevSecOps setup and database safety](10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety)
+before executing commands. A missing local database result may be supplied by
+disposable CI under that policy; it cannot be marked passed before execution.
 
 ### 5. Review
 
@@ -80,18 +77,13 @@ Update stale canonical status, confirm the final remote state, and refresh a cle
 
 ## Documentation behavior
 
-AI-generated documentation must read like maintained engineering documentation, not a transcript.
-
-- Put each fact in its canonical home and link to it elsewhere.
-- Update stale text instead of appending another paragraph.
-- Keep feature specifications about the contract; keep evidence in traceability.
-- Keep current status in `CURRENT_STATE.md` and history in Git, pull requests, CI, and a concise change log.
-- Preserve stable requirement, decision, acceptance, and test IDs.
-- Avoid repeated disclaimers, approval chronology, command diaries, raw output, generic benefits, filler, and copy-ready authorization prompts.
-- Do not create a document merely because an AI workflow produced information.
-- Use the smallest sufficient update and run `pnpm check:docs`.
-
-If text exceeds a budget in [Documentation Standard](DOCUMENTATION_STANDARD.md), restructure or split it. Never weaken a control to meet a budget.
+Follow [Documentation Standard](DOCUMENTATION_STANDARD.md) for canonical homes,
+stable IDs, prospective contracts, retrospective evidence, budgets and checks.
+Make the smallest required update. Active work disposition belongs in the linked
+issue/PR; avoid a pending-review or pending-merge sentence in a specification or
+checkpoint that becomes false as soon as its own PR progresses. Current State
+should identify the work and link its live disposition, then record completed
+integration when next changed for a bounded outcome.
 
 ## Status reporting
 
@@ -99,17 +91,9 @@ Every substantive FlyEye update uses the compact phase bar defined in `AGENTS.md
 
 ## Implementation order
 
-1. Identity, organization membership, invitations, permissions, and audit foundation
-2. Aircraft records and compliance documents
-3. Personnel profiles and qualifications
-4. Dispatch draft and controlled state workflow
-5. Deterministic weight and balance
-6. Weather/NOTAM source records and final documents
-7. Training structures, assessment, progression, and reporting
-8. Offline drafts after online workflows stabilize
-9. AI assistance only after the corresponding non-AI workflow is stable
-
-The current sequence and blockers live in [Current State](CURRENT_STATE.md) and the [Product Roadmap](14_PRODUCT_ROADMAP.md), not in this guide.
+The sequence lives in [Product Roadmap](14_PRODUCT_ROADMAP.md); current work and
+blockers live in [Current State](CURRENT_STATE.md) and linked issues. Do not
+maintain a second ordered backlog in this guide.
 
 ## Prohibited patterns
 

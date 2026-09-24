@@ -39,10 +39,10 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 coverage and findings. Passing automated checks does not complete manual review.
 
 - Completed maintenance: PR #41 delivered CI/documentation/tooling corrections; [PR #43 evidence](features/FEAT-006_TRACEABILITY.md#runtime-fixture-maintenance) covers MFA cleanup. PR #45 integration checkpoints and PR #47 secret prevention are merged.
-- Guidance audit: all 59 tracked Markdown files and related instruction/check configuration were reviewed at `893a68b`. [Task 1 / Issue #48](https://github.com/killroyZULU/FlyEye/issues/48) addresses D01/D02 contract and status drift. Broader frontend, backend and fixture reviews remain incomplete.
+- Guidance audit: 59 tracked Markdown files and related instruction/check configuration reviewed at `893a68b`. Task 1 corrected D01/D02 through [PR #49](https://github.com/killroyZULU/FlyEye/pull/49), merged at `c2f6032` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35966616418). Broader frontend, backend and fixture reviews remain incomplete.
 - Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Next: complete Task 1 review/CI and merge decision, then verification workflow, checker alignment, session-contract applicability, and incremental evidence mappings (D03–D08). A013 toolchain patch, A002/A003 auth extraction/complexity, A010 limiting and H001/H002 authorization investigations remain queued in #39. Preserve the occupied local database.
+- Guidance sequence: [Task 2 / Issue #50](https://github.com/killroyZULU/FlyEye/issues/50) tracks D03 verification/workflow consolidation; then checker alignment, session-contract applicability and evidence mappings (Tasks 3–5). Remaining code/dependency findings and authorization hypotheses stay queued in #39. Preserve the occupied local database.
 
 ## Aircraft and dashboard integration
 
