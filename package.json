@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "format": "prettier --write . --ignore-unknown",
-    "format:check": "prettier --check . --ignore-unknown",
+    "format": "prettier --write . --ignore-unknown && pnpm format:docs",
+    "format:check": "prettier --check . --ignore-unknown && pnpm format:docs:check",
+    "format:docs": "node scripts/format-documentation.mjs --write",
+    "format:docs:check": "node scripts/format-documentation.mjs --check",
     "check:code": "node scripts/check-code-maintainability.mjs",
     "check:docs": "node scripts/check-documentation.mjs",
     "lint": "eslint . --max-warnings=0",

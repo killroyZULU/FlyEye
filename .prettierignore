@@ -1,13 +1,13 @@
 .git
 .agents
 .pnpm-store
-AGENTS.md
+# Markdown is handled by format:docs with a fixed gradual-adoption baseline.
+*.[mM][dD]
 node_modules
 dist
 coverage
 playwright-report
 test-results
 pnpm-lock.yaml
-docs/FlyEye_Documentation
 supabase/migrations
 supabase/tests
