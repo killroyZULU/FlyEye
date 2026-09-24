@@ -13,8 +13,10 @@
   privacy/retention review, hosted validation, rejoining after revocation, and
   production readiness remain pending
 
-This record covers the merged feature and its independently reviewed forward
-correction. Hosted, real-data, and production evidence remain separate gates.
+The PR #15/16 results cover the original feature and forward correction. Later
+single-school results referenced as FIX-006 below belong to the separate
+[amendment evidence](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_TRACEABILITY.md), not the
+PR #16 target. Hosted, real-data, and production evidence remain separate gates.
 
 ## Requirements and results
 

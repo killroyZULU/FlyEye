@@ -11,6 +11,9 @@
 
 Pre-merge CI run `30237389881`, post-merge run `30237614093`, and closure-documentation run `30238931694` passed Application quality and Local Supabase security. CI performed no deployment.
 
+These historical results predate ADR-0006. Later singleton-school and membership
+regression evidence is recorded in [FIX-006 Traceability](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_TRACEABILITY.md).
+
 ## Requirements and results
 
 | Requirement ID | Outcome/control | Evidence | Result and limitation |
@@ -24,7 +27,7 @@ Pre-merge CI run `30237389881`, post-merge run `30237614093`, and closure-docume
 | `FEAT-002-07` | Fail closed on partial provider/revocation failure | `AC-10`, `UNIT-02`, `COMP-02`, `AUTH-04`, `EVID-11` | Corrected tests pass; live hosted failure injection pending |
 | `FEAT-002-08` | Audit and user notification | `AC-11`, `AUTH-05/06`, `CONFIG-01`, `EVID-07/08` | Pass locally; production retention, drains, access, alerting, and ownership unresolved |
 | `FEAT-002-09` | Abuse and enumeration resistance | `AC-01/12`, `UNIT-01/02`, `COMP-01`, `ABUSE-01` | Local cooldown/guards pass; active CAPTCHA, distributed/IP/WAF, timing, and provider accessibility pending |
-| `FEAT-002-10` | Multi-organization isolation | `AC-13`, `TENANT-01`, `AUTH-01`, `REG-01` | Pass locally; no organization or membership state changed |
+| `FEAT-002-10` | Membership non-disclosure and non-mutation | `AC-13`, `TENANT-01`, `AUTH-01`, `REG-01` | Historical multi-organization fixture passed; no organization or membership state changed. Later deployment constraints use FIX-006 evidence above |
 | `FEAT-002-11` | Accessible responsive and offline-safe flow | `AC-15`, `COMP-01/02/03`, `E2E-02`, `EVID-10` | Automated/local scope pass; residual human observations listed below |
 | `FEAT-002-12` | Reproducible environment configuration | `AC-03/11/12/14`, `CONFIG-01`, `SCAN-01` | Pass locally; hosted origins, providers, secrets, and settings unresolved |
 | `FEAT-002-13` | Preserve FEAT-001 Auth, RLS, audit, and tenancy | `AC-05/09/13/14`, `AUTH-06`, `REG-01`, full matrix | Pass on recorded target |

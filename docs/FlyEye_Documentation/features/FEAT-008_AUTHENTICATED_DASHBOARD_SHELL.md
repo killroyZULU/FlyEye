@@ -1,11 +1,10 @@
 # Feature Specification: FEAT-008 — Authenticated dashboard shell
 
-## Status
+## Contract references
 
-- State: Review-ready
-- Current SDLC phase: Merge decision
 - Owner: Founder/Product Owner
-- Baseline and task branch: `main` at `1a85ae6`; `feat/FEAT-008-authenticated-dashboard-shell`
+- Delivery status: [Current State](../CURRENT_STATE.md)
+- Evidence: [FEAT-008 Traceability](FEAT-008_TRACEABILITY.md)
 - Related requirements and decisions: `REC-006`, UI/UX Guidelines Sections 1–3 and 10, `IAM-002/003/005/010/011`
 - Tracking: Issue #33
 

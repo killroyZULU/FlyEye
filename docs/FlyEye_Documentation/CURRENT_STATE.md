@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-09-23
+- Last updated: 2026-09-24
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -38,11 +38,11 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 [Issue #39](https://github.com/killroyZULU/FlyEye/issues/39) owns the remaining audit
 coverage and findings. Passing automated checks does not complete manual review.
 
-- Completed maintenance: PR #41 delivered CI, documentation and tooling corrections. [PR #43](https://github.com/killroyZULU/FlyEye/pull/43) corrected MFA fixture readiness and cleanup; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35843256944) passed all gates. Issue #42 is closed. The exact historical cleanup failure remains unconfirmed.
-- Audit coverage: the scoped documentation/tooling review is complete; broader Markdown, frontend and backend reviews remain incomplete.
-- Integration: PR #34 combines the aircraft modules and dashboard with permission-filtered navigation and access-revocation handling. PR #30 delivers the reversible visual checkpoint; Issue #20 is closed against merged FEAT-006 evidence. Linked PRs own merge state and exact-head checks.
+- Completed maintenance: PR #41 delivered CI/documentation/tooling corrections; [PR #43 evidence](features/FEAT-006_TRACEABILITY.md#runtime-fixture-maintenance) covers MFA cleanup. PR #45 integration checkpoints and PR #47 secret prevention are merged.
+- Guidance audit: all 59 tracked Markdown files and related instruction/check configuration were reviewed at `893a68b`. [Task 1 / Issue #48](https://github.com/killroyZULU/FlyEye/issues/48) addresses D01/D02 contract and status drift. Broader frontend, backend and fixture reviews remain incomplete.
+- Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Next: A013 test-toolchain security patch, then bounded extraction from the 1,629-line auth gateway and reduction of 13 legacy complexity exemptions. Verify A010 bootstrap limiting and H001/H002 authorization hypotheses before hosted exposure. Preserve the occupied local database.
+- Next: complete Task 1 review/CI and merge decision, then verification workflow, checker alignment, session-contract applicability, and incremental evidence mappings (D03–D08). A013 toolchain patch, A002/A003 auth extraction/complexity, A010 limiting and H001/H002 authorization investigations remain queued in #39. Preserve the occupied local database.
 
 ## Aircraft and dashboard integration
 
@@ -53,7 +53,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 | Aircraft documents | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38) | Metadata versions, private attachments, configured status, notifications and bounded status-only access |
 | Authenticated dashboard | [PR #34](https://github.com/killroyZULU/FlyEye/pull/34) | Persistent shell, role dashboards and available aircraft/member modules |
 
-PRs #30, #32, #36, #38, #34 merged with green CI between merges and on [main](https://github.com/killroyZULU/FlyEye/actions/runs/35861588094). Issue #22
+PRs #30, #32, #36, #38, #34 merged with green [integration CI](https://github.com/killroyZULU/FlyEye/actions/runs/35861588094); exact targets are in [FEAT-007](features/FEAT-007_TRACEABILITY.md#final-integration-evidence) and [FEAT-008](features/FEAT-008_TRACEABILITY.md#reconciliation-verification) traceability. Issue #22
 requires qualified school workflow evidence; Issue #39 remains the unfinished
 audit. The combined build still exceeds the 500 kB entry-bundle warning; measure
 route/module splitting without weakening the warning or security boundaries.

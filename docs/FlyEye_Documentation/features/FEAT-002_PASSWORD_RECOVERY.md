@@ -1,9 +1,9 @@
 # Feature Specification: FEAT-002 — Password Recovery
 
-## Status
+## Contract references
 
-- State: Merged through PR #5 at `4f993f0`
-- Outcome: Verified local synthetic password recovery for invited email/password users
+- Delivery status: [Current State](../CURRENT_STATE.md)
+- Deployment contract: [Single-school amendment (FIX-006)](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_AMENDMENT.md)
 - Evidence: [FEAT-002 Traceability](FEAT-002_TRACEABILITY.md)
 - Later gates: Hosted provider validation, remaining accessibility evidence, real data, deployment, and production
 
@@ -100,7 +100,9 @@ Raw provider audit rows are restricted because they include full email and IP fi
 - `FEAT-002-AC-10` Post-update revocation uncertainty is terminal and fail-closed.
 - `FEAT-002-AC-11` Audit and password-changed notification evidence is attributable and privacy-minimized.
 - `FEAT-002-AC-12` Cooldown, CAPTCHA, concurrency, and duplicate-submit behavior limit abuse without enumeration.
-- `FEAT-002-AC-13` Multi-organization recovery reveals and changes no membership data.
+- `FEAT-002-AC-13` Recovery reveals and changes no membership data in the
+  single-school deployment. Negative school-boundary tests remain required under
+  [FIX-006](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_AMENDMENT.md).
 - `FEAT-002-AC-14` Source/build evidence contains no service-role key, credential, password, arbitrary redirect, or real-person fixture.
 - `FEAT-002-AC-15` Required desktop/mobile, keyboard, focus, announcement, failure, and offline behavior is covered at the applicable evidence level.
 
