@@ -55,9 +55,9 @@ Before commercial pilot, rehearse approximately 100 authenticated sessions, 50 c
 
 Feature test entry: approved specification, traceable acceptance criteria, deployable build, migration/test data, and known dependencies.
 
-Feature publication exit: automated checks pass; applicable synthetic browser
-scenarios pass; RLS, protected functions, permissions, tenancy, Storage, and
-audit are verified; separate-agent review findings are corrected; no unresolved
+Feature publication exit: the [applicable verification](#verification-applicability)
+and required CI gates pass; affected RLS, protected functions, permissions,
+tenancy, Storage, and audit are verified; separate-agent review findings are corrected; no unresolved
 hard stop remains; and docs/traceability are updated. Aviation or other
 qualified-human acceptance is required only for the regulated or formal claim it
 covers, not for ordinary local feature publication.
@@ -77,7 +77,52 @@ Pilot release exit additionally requires security review, recovery drill, incide
 
 Store requirement ID, test ID, build/commit, Supabase/frontend environment identifiers, migration version, preconditions/data, steps or automated test link, expected/actual result, artifacts, tester, date, defect link, and reviewer. Evidence must be reproducible and privacy-safe.
 
-Detailed evidence is stored or referenced once. Later reports may summarize it when the branch, HEAD, complete working-tree content hashes, dependencies, configuration, and evidence are unchanged. After a correction, run focused affected checks and then one final required verification matrix; do not repeat the full matrix again without a review-target change.
+### Verification applicability
+
+Select checks from the actual diff and affected behavior, not the branch name.
+Use the union of rows for mixed changes. The approved specification and security
+requirements may add evidence; this table cannot waive them.
+
+Every change requires documentation/link/budget checks, applicable formatting,
+diff review, the [prepublication secret gate](10_DEVSECOPS_GUIDE.md#2-source-control-model),
+and separate agent review. Report formatter exclusions honestly; a skipped file
+is not a formatting pass.
+
+| Change | Local verification before publication | Database/runtime evidence |
+|---|---|---|
+| Documentation, guidance, or templates only | Documentation checks and manual review of changed rules, links, examples, and decision paths | No local reset or runtime run for prose alone; changed behavioral requirements must be assessed under the affected rows below |
+| Presentation/UI behavior | `pnpm verify:app`, including affected component, state, accessibility-supporting and browser scenarios | Unchanged database behavior needs no duplicate local run; auth/permission/command changes also use the protected row |
+| Protected server/data behavior, authentication, authorization, migrations, RLS, Storage or audit | `pnpm verify:app` and affected handler/contract checks | Complete database gate on a verified disposable target, plus feature-specific positive, negative-authorization, cross-school, replay/race and cleanup evidence |
+| Tooling, dependencies, build, CI or test configuration | Focused tool/regression checks and the application or database groups whose inputs or execution changed; both when shared | Exercise affected fixtures, configuration and environment behavior; review the gate itself rather than relying only on the tool's own success |
+
+For every row, **all existing required PR CI jobs must pass on the final head**,
+including Application quality, Local Supabase security and Required quality gate.
+Post-merge CI must pass on the merge commit. Local applicability does not permit
+path-based CI skips, a reused PR status, or weaker coverage/security thresholds.
+The workflow and commands are described in [DevSecOps](10_DEVSECOPS_GUIDE.md#3-pull-request-pipeline).
+
+When the local stack is occupied or its disposability is uncertain, preserve it
+and use authorized isolated verification or the existing disposable CI job for
+database/runtime evidence. Run safe applicable local checks first; record the
+database evidence as pending until CI passes. Publication to obtain CI is not a
+completed verification claim. Follow [database safety](10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety);
+unavailable required evidence blocks delivery, never justifies an unsafe reset.
+
+### Evidence reuse
+
+Record detailed evidence once with its original target, environment and result.
+For each expensive check group, identify the relevant source, tests/fixtures,
+contracts, lockfile/dependencies, tool versions, configuration and environment.
+Reuse earlier local results only when a reviewed comparison establishes that
+these inputs and the behavior under test are unchanged. Record the compared
+targets, relevant diff and reason in the PR or traceability; do not relabel an old
+run as a run on the new commit. If equivalence is uncertain, rerun the group.
+
+A narrative or evidence-link edit alone does not invalidate unrelated application
+or database results. A changed acceptance criterion, security rule, executable
+example or configuration may do so even without a source-code edit. Always
+rerun affected documentation/format/diff checks and the mandatory secret gate;
+required final-head and post-merge CI are never replaced by reused local evidence.
 
 ### Verification tiers
 
@@ -88,13 +133,13 @@ or Founder/Product Owner prompts:
 2. **Feature:** all feature-specific unit, component, SQL/RLS, handler, runtime,
    tenant, replay/concurrency, accessibility-supporting, privacy, and secret
    evidence required by the approved specification.
-3. **Final matrix:** the complete application and database quality gates once
-   the review target is stable.
+3. **Final matrix:** the union of applicable local groups and required CI above
+   once the review target is stable; identify which environment supplies each result.
 
 During an approved local-delivery envelope, a failed check returns to focused
 diagnosis and correction automatically. Run affected focused checks, then the
-feature tier if needed, and only one final matrix after the implementation and
-evidence stabilize. Ask the Founder/Product Owner for another decision only if
+feature tier if needed, and one final applicable matrix after the implementation
+stabilizes, using the evidence-reuse rule above. Ask the Founder/Product Owner for another decision only if
 the failure reveals a material stop condition, requires scope or authority
 expansion, or cannot be resolved safely inside the envelope.
 

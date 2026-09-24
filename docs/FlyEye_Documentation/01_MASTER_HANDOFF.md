@@ -62,11 +62,11 @@ See [Security Requirements](08_SECURITY_REQUIREMENTS.md), [Privacy and Data Prot
 
 ## Delivery model
 
-FlyEye uses bounded, contract-first vertical slices. A direct request authorizes routine specification, implementation, local synthetic verification, correction, separate agent review, documentation, scoped Git publication, and CI follow-up through a review-ready pull request.
-
-The agent stops for the hard-stop conditions in `AGENTS.md`. Merge, hosted mutation requiring a separate decision, real data, production deployment, destructive operations, and branch deletion remain outside the standing envelope.
-
-The detailed process is in [AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md) and [DevSecOps Guide](10_DEVSECOPS_GUIDE.md). Feature documents must not duplicate those global instructions.
+FlyEye uses bounded, contract-first vertical slices under [AGENTS.md](../../AGENTS.md).
+Use the [AI Development Guide](09_AI_DEVELOPMENT_GUIDE.md) for delivery,
+[QA applicability](11_QA_TEST_PLAN.md#verification-applicability) for evidence,
+and [DevSecOps](10_DEVSECOPS_GUIDE.md) for commands and environment safety.
+Feature documents link these policies rather than redefining them.
 
 ## Pilot boundary
 

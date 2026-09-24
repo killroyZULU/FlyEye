@@ -30,21 +30,27 @@ Follow the [integration checkpoint](../docs/FlyEye_Documentation/09_AI_DEVELOPME
 ## Database and migration review
 
 - [ ] Migrations, grants, policies, views, triggers, indexes, and privileged functions were inspected, or database behavior is unchanged.
-- [ ] Generated database types match the local migrated schema.
+- [ ] Generated database types match the migrated schema in the recorded local or disposable CI target, or schema/types are unchanged with linked CI evidence.
 - [ ] Migration and recovery limitations are documented.
 
 ## Verification
 
-- [ ] Frozen dependency installation passes.
-- [ ] Formatting, documentation architecture, ESLint, TypeScript, unit/component/handler tests, and production build pass.
-- [ ] Code-maintainability architecture checks and configured coverage floors pass.
+Use [QA applicability and evidence reuse](../docs/FlyEye_Documentation/11_QA_TEST_PLAN.md#verification-applicability).
+Identify the changed behavior, selected groups and evidence location. A local
+N/A needs a reason; CI-supplied evidence must link the run and commit. Earlier
+local evidence retains its original target. Never mark pending checks passed.
+
+| Verification group                                                                   | Result and evidence (local / CI / reused local / justified local N/A) |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Documentation, applicable formatting, diff and mandatory prepublication secret scans |                                                                       |
+| Application checks and feature-specific acceptance/security scenarios                |                                                                       |
+| Database, SQL/RLS, Auth/Edge/Storage runtime, cleanup, lint and type drift           |                                                                       |
+
+- [ ] Local selection follows QA policy; all mandatory CI jobs pass on the final head, including frozen installation, application quality, database/security verification and the aggregate gate.
+- [ ] Database/runtime evidence identifies a verified disposable target; no occupied stack was reset or interrupted. Follow [database safety](../docs/FlyEye_Documentation/10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety).
 - [ ] React components keep reusable or authoritative business rules in typed feature modules or protected server commands, or presentation behavior is unchanged.
-- [ ] Browser-specific Supabase and general repository secret scans pass.
-- [ ] Playwright tests pass.
-- [ ] Local Supabase reset, schema-wide SQL/RLS tests, real Auth/TOTP/Edge/cross-organization integration, and database lint pass.
-- [ ] Dependency audit passes without an unresolved high or critical advisory.
 - [ ] Loading, error, empty, unauthorized, conflict, and success states were considered where applicable.
-- [ ] Focused correction checks and one final matrix were used; unchanged evidence was not rerun without a fingerprint change.
+- [ ] Reused local evidence has a reviewed input comparison; affected checks were rerun and required CI was not substituted.
 
 ## Merge and release gates
 

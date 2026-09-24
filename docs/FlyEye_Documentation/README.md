@@ -16,6 +16,21 @@ This repository describes a product under development. It does not claim CAAP ce
 
 AI contributors must also read the root `AGENTS.md`. Anyone editing Markdown must follow the [Documentation Standard](DOCUMENTATION_STANDARD.md).
 
+## Task routing
+
+After the baseline reading above, load the relevant sections for the bounded
+outcome rather than every feature document. Combine rows when concerns overlap.
+
+| Work | Additional context |
+|---|---|
+| Documentation or agent workflow | Canonical owner from [Documentation Standard](DOCUMENTATION_STANDARD.md); [AI workflow](09_AI_DEVELOPMENT_GUIDE.md); affected templates |
+| UI or user workflow | Approved feature contract/evidence; [UI/UX](07_UI_UX_GUIDELINES.md); [Design](DESIGN.md); affected components and tests |
+| Authentication, authority, data or files | Feature contract/evidence; [Security](08_SECURITY_REQUIREMENTS.md); relevant [database](05_DATABASE_DESIGN.md), [API](06_API_SPECIFICATION.md), privacy and ADR sections; handlers/migrations/tests |
+| Tooling, setup or verification | [QA applicability](11_QA_TEST_PLAN.md#verification-applicability); [DevSecOps setup](10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety); affected scripts/configuration/tests |
+
+Every delivery uses the [integration checkpoint](09_AI_DEVELOPMENT_GUIDE.md#integration-checkpoint)
+and QA applicability policy. Portable templates do not override FlyEye's active guides.
+
 ## Documentation map
 
 | Area | Documents |
