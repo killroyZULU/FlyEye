@@ -8,19 +8,19 @@ The governing rule is **one fact, one canonical home**. Other documents link to 
 
 ## Canonical homes
 
-| Information | Canonical home | Do not place in |
-|---|---|---|
-| Product requirements | `03_PRODUCT_REQUIREMENTS_SRS.md` | Handoff or change log prose |
-| Architecture decisions | Accepted ADRs, summarized by `04_SYSTEM_ARCHITECTURE.md` | Feature evidence |
-| Security controls | `08_SECURITY_REQUIREMENTS.md` | Repeated feature disclaimers |
-| Active product-owner decisions | `17_PRODUCT_AND_GOVERNANCE_DECISIONS.md` | Feature chronology |
-| Active work coordination | GitHub Issues and the FlyEye Delivery project | Requirements, durable decisions, or detailed evidence |
-| Current project and feature state | `CURRENT_STATE.md` | Durable requirements or architecture |
-| Bounded feature contract | Feature specification | Change log or handoff |
-| Requirement-to-test result | Feature traceability record | Feature specification narrative |
-| Historical implementation evidence | Git commits, pull requests, CI runs, and concise traceability links | README, handoff, or governance narrative |
-| Material release/documentation milestone | `16_CHANGE_LOG.md` | Per-command or per-amendment diary |
-| AI execution policy | `AGENTS.md` and `09_AI_DEVELOPMENT_GUIDE.md` | Every feature document |
+| Information                              | Canonical home                                                      | Do not place in                                       |
+| ---------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------- |
+| Product requirements                     | `03_PRODUCT_REQUIREMENTS_SRS.md`                                    | Handoff or change log prose                           |
+| Architecture decisions                   | Accepted ADRs, summarized by `04_SYSTEM_ARCHITECTURE.md`            | Feature evidence                                      |
+| Security controls                        | `08_SECURITY_REQUIREMENTS.md`                                       | Repeated feature disclaimers                          |
+| Active product-owner decisions           | `17_PRODUCT_AND_GOVERNANCE_DECISIONS.md`                            | Feature chronology                                    |
+| Active work coordination                 | GitHub Issues and the FlyEye Delivery project                       | Requirements, durable decisions, or detailed evidence |
+| Current project and feature state        | `CURRENT_STATE.md`                                                  | Durable requirements or architecture                  |
+| Bounded feature contract                 | Feature specification                                               | Change log or handoff                                 |
+| Requirement-to-test result               | Feature traceability record                                         | Feature specification narrative                       |
+| Historical implementation evidence       | Git commits, pull requests, CI runs, and concise traceability links | README, handoff, or governance narrative              |
+| Material release/documentation milestone | `16_CHANGE_LOG.md`                                                  | Per-command or per-amendment diary                    |
+| AI execution policy                      | `AGENTS.md` and `09_AI_DEVELOPMENT_GUIDE.md`                        | Every feature document                                |
 
 ## Writing rules
 
@@ -44,21 +44,44 @@ The governing rule is **one fact, one canonical home**. Other documents link to 
 
 The automated documentation check enforces budgets on active entry-point files. A budget is a design signal, not permission to omit a rule.
 
-| Document | Budget |
-|---|---:|
-| `AGENTS.md` | 1,600 words |
-| `README.md` | 900 words |
-| `CURRENT_STATE.md` | 900 words |
-| `01_MASTER_HANDOFF.md` | 1,500 words |
-| `09_AI_DEVELOPMENT_GUIDE.md` | 1,600 words |
-| `16_CHANGE_LOG.md` | 1,200 words |
+| Document                                 |      Budget |
+| ---------------------------------------- | ----------: |
+| `AGENTS.md`                              | 1,600 words |
+| `README.md`                              |   900 words |
+| `CURRENT_STATE.md`                       |   900 words |
+| `01_MASTER_HANDOFF.md`                   | 1,500 words |
+| `09_AI_DEVELOPMENT_GUIDE.md`             | 1,600 words |
+| `16_CHANGE_LOG.md`                       | 1,200 words |
 | `17_PRODUCT_AND_GOVERNANCE_DECISIONS.md` | 2,000 words |
-| New feature specification | 4,000 words |
-| New feature traceability record | 2,500 words |
+| New feature specification                | 4,000 words |
+| New feature traceability record          | 2,500 words |
 
 If a durable feature contract genuinely needs more space, split a focused reference from the specification and record the reason in both files. Do not increase a budget simply because generated prose exceeded it.
 
 ## Required document lifecycle
+
+### Markdown inventory and formatting
+
+`pnpm check:docs` examines tracked Markdown plus unignored new documents before
+staging. Git-ignored scratch files and package stores are excluded; tracked files
+remain checked even if an ignore rule matches them. Run from the repository root.
+Git discovery failures block the check; do not delete local scratch files to pass it.
+
+`pnpm format:docs:check` uses the pinned Prettier and repository configuration;
+`pnpm format:docs` applies it to the same scope. Normal `format:check` and `format`
+include these commands. Prose wrapping is preserved and embedded code examples
+are not reformatted. Review any Markdown normalization for meaning and links.
+
+Gradual adoption applies only to previously excluded `AGENTS.md` and
+`docs/FlyEye_Documentation/`: documents unchanged from commit
+`a61fe352af846f80a0de7b2fd48f7dd74a2129f5` are reported as deferred, not verified.
+New documents and differences from that fixed baseline are checked, including
+committed, staged and unstaged changes. Other repository Markdown remains fully
+checked. Commands validate working-tree content; stage the formatted result before
+committing. Keep the baseline available in local clones and CI (`fetch-depth: 0`);
+missing history fails the check. Do not advance the baseline to waive formatting.
+
+### Editing and publication
 
 Before editing:
 

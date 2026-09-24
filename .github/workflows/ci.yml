@@ -82,6 +82,9 @@ jobs:
       - name: Check TypeScript
         run: pnpm typecheck
 
+      - name: Validate checked-in staging configuration
+        run: pnpm validate:feat003-staging
+
       - name: Run unit, component, and Edge-handler tests with coverage
         run: pnpm test:coverage
 

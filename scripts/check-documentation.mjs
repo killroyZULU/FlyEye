@@ -1,31 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 
 import { validateMarkdownLinks } from './lib/markdown-links.mjs';
+import { repositoryMarkdown } from './lib/repository-markdown.mjs';
 
 const root = process.cwd();
 const failures = [];
-const excludedDirectories = new Set([
-  '.git',
-  'coverage',
-  'dist',
-  'node_modules',
-  'playwright-report',
-  'test-results',
-]);
-
-function walk(directory) {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.isDirectory() && excludedDirectories.has(entry.name)) {
-      return [];
-    }
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      return walk(path);
-    }
-    return entry.isFile() && entry.name.toLowerCase().endsWith('.md') ? [path] : [];
-  });
-}
 
 function words(text) {
   return text.trim() ? text.trim().split(/\s+/u).length : 0;
@@ -97,7 +77,7 @@ function runSelfTests() {
 
 runSelfTests();
 
-const markdownFiles = walk(root);
+const markdownFiles = repositoryMarkdown(root).map((name) => resolve(root, name));
 const contents = new Map(markdownFiles.map((path) => [path, readFileSync(path, 'utf8')]));
 const exactBudgets = new Map([
   ['AGENTS.md', 1600],
@@ -142,7 +122,11 @@ const seenParagraphs = new Map();
 for (const [path, content] of contents) {
   const name = display(path);
   for (const paragraph of content.split(/\r?\n\s*\r?\n/gu)) {
-    if (words(paragraph) < 40 || paragraph.startsWith('```') || paragraph.includes('|---')) {
+    if (
+      words(paragraph) < 40 ||
+      paragraph.startsWith('```') ||
+      /^\|[\s:|-]+\|$/mu.test(paragraph)
+    ) {
       continue;
     }
     const normalizedParagraph = paragraph.replace(/\s+/gu, ' ').trim().toLowerCase();
