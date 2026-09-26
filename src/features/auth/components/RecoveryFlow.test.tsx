@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -237,5 +238,240 @@ describe('FEAT-002 recovery UI', () => {
     expect(rejectedHeading).toBeInTheDocument();
     expect(rejectedHeading).toHaveFocus();
     expect(screen.queryByText('raw provider detail')).not.toBeInTheDocument();
+  });
+});
+
+function deferredOperation() {
+  let resolve!: () => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function recoveryUrl() {
+  window.history.replaceState(
+    null,
+    '',
+    '/auth/recovery?token_hash=synthetic-transition-token-1234567890',
+  );
+}
+
+function fillRecoveredPassword() {
+  fireEvent.change(screen.getByLabelText('New password'), {
+    target: { value: 'synthetic recovery password' },
+  });
+  fireEvent.change(screen.getByLabelText('Confirm new password'), {
+    target: { value: 'synthetic recovery password' },
+  });
+  return screen.getByRole('button', { name: 'Change password and end sessions' }).closest('form')!;
+}
+
+describe('FEAT-002 recovery transitions', () => {
+  it.each(['resolve', 'reject'] as const)(
+    'sends one recovery request for concurrent submissions and retains generic acknowledgement on %s',
+    async (outcome) => {
+      const pending = deferredOperation();
+      const request = vi.fn().mockReturnValue(pending.promise);
+      render(<RecoveryRequestForm gateway={gateway({ requestPasswordRecovery: request })} />);
+      fireEvent.change(screen.getByLabelText('Email address'), {
+        target: { value: 'synthetic@example.test' },
+      });
+      const form = screen
+        .getByRole('button', { name: 'Send recovery instructions' })
+        .closest('form')!;
+      act(() => {
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+      });
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(screen.getByLabelText('Email address')).toBeDisabled();
+      await act(async () => {
+        pending[outcome](new Error('private provider error'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(screen.getByRole('heading', { name: 'Recovery request received' })).toHaveFocus();
+      expect(screen.queryByText('private provider error')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Email address')).not.toBeInTheDocument();
+    },
+  );
+
+  it('verifies once when confirmation is activated twice before rendering', async () => {
+    recoveryUrl();
+    const pending = deferredOperation();
+    const verify = vi.fn().mockReturnValue(pending.promise);
+    render(
+      <StrictMode>
+        <PasswordRecoveryFlow gateway={gateway({ verifyRecoveryCredential: verify })} />
+      </StrictMode>,
+    );
+    const button = screen.getByRole('button', { name: 'Continue securely' });
+    act(() => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+    expect(screen.getByRole('heading', { name: 'Protect your account' })).toHaveFocus();
+  });
+
+  it('submits one password update and cannot restart it while revocation is pending', async () => {
+    recoveryUrl();
+    const update = deferredOperation();
+    const revoke = deferredOperation();
+    const gatewayUnderTest = gateway({
+      updateRecoveredPassword: vi.fn().mockReturnValue(update.promise),
+      signOutEverywhere: vi.fn().mockReturnValue(revoke.promise),
+    });
+    render(<PasswordRecoveryFlow gateway={gatewayUnderTest} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    const form = fillRecoveredPassword();
+    act(() => {
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+    });
+    expect(gatewayUnderTest.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+    expect(gatewayUnderTest.signOutEverywhere).not.toHaveBeenCalled();
+    await act(async () => {
+      update.resolve();
+      await update.promise;
+    });
+    expect(gatewayUnderTest.signOutEverywhere).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('New password')).toHaveValue('');
+    expect(screen.getByLabelText('Confirm new password')).toHaveValue('');
+    fireEvent.submit(form);
+    expect(screen.queryByText('Use at least 15 characters.')).not.toBeInTheDocument();
+    expect(gatewayUnderTest.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      revoke.resolve();
+      await revoke.promise;
+    });
+    expect(screen.getByRole('heading', { name: 'Your password has changed' })).toHaveFocus();
+    expect(gatewayUnderTest.loadAccessContext).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
+  });
+
+  it('retries a network verification failure only after another explicit confirmation', async () => {
+    recoveryUrl();
+    const verify = vi
+      .fn()
+      .mockRejectedValueOnce(new AuthGatewayError('network_error', 'Connect and retry.'))
+      .mockResolvedValueOnce(undefined);
+    render(<PasswordRecoveryFlow gateway={gateway({ verifyRecoveryCredential: verify })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByText('Connect and retry.');
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(window.location.search).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    expect(verify).toHaveBeenCalledTimes(2);
+    expect(verify.mock.calls[1]).toEqual(verify.mock.calls[0]);
+  });
+
+  it('clears rejected password input and permits one explicit corrected retry', async () => {
+    recoveryUrl();
+    const update = vi
+      .fn()
+      .mockRejectedValueOnce(new AuthGatewayError('weak_password', 'Choose a stronger password.'))
+      .mockResolvedValueOnce(undefined);
+    const gatewayUnderTest = gateway({ updateRecoveredPassword: update });
+    render(<PasswordRecoveryFlow gateway={gatewayUnderTest} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    fireEvent.submit(fillRecoveredPassword());
+    await screen.findByText('Choose a stronger password.');
+    expect(screen.getByLabelText('New password')).toHaveValue('');
+    expect(screen.getByLabelText('Confirm new password')).toHaveValue('');
+    expect(gatewayUnderTest.signOutEverywhere).not.toHaveBeenCalled();
+    fireEvent.submit(fillRecoveredPassword());
+    await screen.findByRole('heading', { name: 'Your password has changed' });
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(gatewayUnderTest.signOutEverywhere).toHaveBeenCalledTimes(1);
+    expect(gatewayUnderTest.loadAccessContext).not.toHaveBeenCalled();
+  });
+
+  it('does not queue offline password updates or automatically submit on reconnection', async () => {
+    recoveryUrl();
+    let online = true;
+    const gatewayUnderTest = gateway();
+    const props = { gateway: gatewayUnderTest, isOnline: () => online };
+    const view = render(<PasswordRecoveryFlow {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    online = false;
+    const form = fillRecoveredPassword();
+    fireEvent.submit(form);
+    expect(
+      screen.getByText('Connect to the internet before changing your password.'),
+    ).toBeInTheDocument();
+    expect(gatewayUnderTest.updateRecoveredPassword).not.toHaveBeenCalled();
+    online = true;
+    view.rerender(<PasswordRecoveryFlow {...props} />);
+    expect(gatewayUnderTest.updateRecoveredPassword).not.toHaveBeenCalled();
+    fireEvent.submit(form);
+    await screen.findByRole('heading', { name: 'Your password has changed' });
+    expect(gatewayUnderTest.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'does not let a disposed verification %s alter a newer recovery instance',
+    async (outcome) => {
+      recoveryUrl();
+      const pending = deferredOperation();
+      const oldGateway = gateway({
+        verifyRecoveryCredential: vi
+          .fn()
+          .mockReturnValueOnce(pending.promise)
+          .mockResolvedValueOnce(undefined),
+      });
+      const old = render(<PasswordRecoveryFlow gateway={oldGateway} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+      old.unmount();
+      recoveryUrl();
+      render(<PasswordRecoveryFlow gateway={oldGateway} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+      await screen.findByRole('heading', { name: 'Protect your account' });
+      fillRecoveredPassword();
+      await act(async () => {
+        pending[outcome](new Error('old verification failed'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(screen.getByRole('heading', { name: 'Protect your account' })).toBeInTheDocument();
+      expect(screen.getByLabelText('New password')).toHaveValue('synthetic recovery password');
+      expect(oldGateway.verifyRecoveryCredential).toHaveBeenCalledTimes(2);
+      expect(oldGateway.updateRecoveredPassword).not.toHaveBeenCalled();
+      expect(oldGateway.loadAccessContext).not.toHaveBeenCalled();
+    },
+  );
+
+  it('finishes required revocation for an issued password update without changing a newer recovery screen', async () => {
+    recoveryUrl();
+    const pending = deferredOperation();
+    const oldGateway = gateway({
+      updateRecoveredPassword: vi.fn().mockReturnValue(pending.promise),
+    });
+    const old = render(<PasswordRecoveryFlow gateway={oldGateway} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    fireEvent.submit(fillRecoveredPassword());
+    old.unmount();
+    recoveryUrl();
+    render(<PasswordRecoveryFlow gateway={oldGateway} />);
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+    expect(oldGateway.signOutEverywhere).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('heading', { name: 'Continue password recovery?' })).toHaveFocus();
+    expect(oldGateway.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+    expect(oldGateway.verifyRecoveryCredential).toHaveBeenCalledTimes(1);
+    expect(oldGateway.loadAccessContext).not.toHaveBeenCalled();
   });
 });

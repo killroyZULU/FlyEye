@@ -20,6 +20,7 @@ export function RecoveryRequestForm({
   const [fieldError, setFieldError] = useState<string>();
   const [message, setMessage] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const submittedRef = useRef(false);
 
   useLayoutEffect(() => {
     if (acknowledged) headingRef.current?.focus();
@@ -27,6 +28,7 @@ export function RecoveryRequestForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittedRef.current) return;
     const parsed = recoveryRequestSchema.safeParse({ email });
     if (!parsed.success) {
       setFieldError('Enter a valid email address.');
@@ -41,6 +43,7 @@ export function RecoveryRequestForm({
 
     setFieldError(undefined);
     setMessage(undefined);
+    submittedRef.current = true;
     setBusy(true);
     try {
       await gateway.requestPasswordRecovery(parsed.data.email, captchaToken);

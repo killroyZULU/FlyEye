@@ -4,6 +4,11 @@ import process from 'node:process';
 
 import { chromium } from '@playwright/test';
 
+import {
+  checkCompletedRecoveryNavigation,
+  checkUnverifiedRecoveryNavigation,
+} from './lib/recovery-browser-navigation.mjs';
+
 const projectEnvironment = {
   ...process.env,
   VITE_SUPABASE_URL: 'http://127.0.0.1:55321',
@@ -510,6 +515,8 @@ async function runScenario(browser, viewport, scenario) {
     }
 
     if (scenario.name === 'recovery') {
+      await checkUnverifiedRecoveryNavigation(page);
+      await page.goto('http://127.0.0.1:4173/auth/forgot-password');
       await page.getByLabel('Email address').fill('student@example.test');
       await page.getByRole('button', { name: 'Send recovery instructions' }).click();
       const acknowledgementHeading = page.getByRole('heading', {
@@ -561,6 +568,7 @@ async function runScenario(browser, viewport, scenario) {
       ]) {
         assert.equal(await page.getByRole('heading', { name: heading }).count(), 0);
       }
+      await checkCompletedRecoveryNavigation(page);
       return;
     }
 
