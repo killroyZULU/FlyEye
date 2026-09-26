@@ -9,6 +9,10 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-007');
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -20,7 +24,7 @@ const local = JSON.parse(status.stdout);
 const apiUrl = local.API_URL;
 const publishableKey = local.PUBLISHABLE_KEY ?? local.ANON_KEY;
 const serviceRoleKey = local.SERVICE_ROLE_KEY;
-const origin = 'http://127.0.0.1:5173';
+const origin = `https://${randomUUID()}.localhost`;
 if (!['127.0.0.1', 'localhost', '::1'].includes(new URL(apiUrl).hostname)) {
   throw new Error('FEAT-007 runtime evidence is restricted to the local synthetic stack.');
 }
@@ -134,151 +138,118 @@ async function signIn(identity, withTotp) {
 }
 
 async function invoke(token, body) {
-  const response = await fetchLocalEdge(`${apiUrl}/functions/v1/aircraft-registry`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      origin,
+  const response = await fetchLocalEdge(
+    `${apiUrl}/functions/v1/aircraft-registry`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
-  return { response, payload: await response.json() };
-}
-
-async function waitForEdge() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    try {
-      const response = await fetch(`${apiUrl}/functions/v1/aircraft-registry`, {
-        method: 'POST',
-        headers: {
-          apikey: publishableKey,
-          authorization: `Bearer ${serviceRoleKey}`,
-          'content-type': 'application/json',
-          origin,
-        },
-        body: '{}',
-        signal: AbortSignal.timeout(1_000),
-      });
-      if ([400, 401, 403, 405, 422].includes(response.status)) return;
-    } catch {
-      // The bounded local worker is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('The FEAT-007 Edge worker did not become ready.');
-}
-
-async function stopEdge() {
-  if (!edgeProcess || edgeProcess.exitCode !== null) return;
-  const stopped = new Promise((resolve) => {
-    const timeout = setTimeout(resolve, 5_000);
-    const finish = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-    edgeProcess.once('exit', finish);
-    edgeProcess.once('error', finish);
-  });
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(edgeProcess.pid), '/t', '/f'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-  } else {
-    edgeProcess.kill('SIGTERM');
-  }
-  await stopped;
+    diagnostics.retry,
+  );
+  return diagnostics.readResponse(response);
 }
 
 async function cleanup() {
   const failures = [];
   try {
     try {
-      await stopEdge();
+      await diagnostics.run('cleanup-edge-shutdown', () => stopLocalEdge(edgeProcess));
     } catch (error) {
       failures.push(error);
     }
     const limiterValues = [...limiterKeys].map((value) => `'${value}'`).join(',');
     try {
-      psql(`
-        begin;
-        delete from public.aircraft_registry_events
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_registry_idempotency
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_records
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_registry_rate_limit_events
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.aircraft_registry_rate_limit_state
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.member_mfa_readiness
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.authentication_events
-        where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid);
-        delete from public.organization_member_profiles
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.membership_roles
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.organization_memberships
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_categories
-        where organization_id = '${organizationId}'::uuid;
-        delete from public.organizations where id = '${organizationId}'::uuid;
-        commit;
-      `);
+      await diagnostics.run('cleanup-domain-rows', async () => {
+        psql(`
+          begin;
+          delete from public.aircraft_registry_events
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_registry_idempotency
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_records
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_registry_rate_limit_events
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.aircraft_registry_rate_limit_state
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.member_mfa_readiness
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.authentication_events
+          where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid);
+          delete from public.organization_member_profiles
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.membership_roles
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.organization_memberships
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_categories
+          where organization_id = '${organizationId}'::uuid;
+          delete from public.organizations where id = '${organizationId}'::uuid;
+          commit;
+        `);
+      });
     } catch (error) {
       failures.push(error);
     }
     for (const identity of [admin, student]) {
       try {
-        const { error } = await server.auth.admin.deleteUser(identity.id);
-        if (error && error.status !== 404) throw error;
+        await diagnostics.run('cleanup-auth-users', async () => {
+          const { error } = await server.auth.admin.deleteUser(identity.id);
+          if (error && error.status !== 404) throw error;
+        });
       } catch (error) {
         failures.push(error);
       }
     }
     try {
-      assert.equal(
-        psql(`
-          select
-            (select count(*) from public.organizations
-             where id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_records
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_registry_events
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_registry_idempotency
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_registry_rate_limit_events
-               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-            + (select count(*) from public.aircraft_registry_rate_limit_state
-               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-            + (select count(*) from public.member_mfa_readiness
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.authentication_events
-               where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid))
-            + (select count(*) from public.organization_member_profiles
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.membership_roles
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.organization_memberships
-               where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from auth.users
-               where id in ('${admin.id}'::uuid, '${student.id}'::uuid));
-        `),
-        '0',
-      );
+      await diagnostics.run('cleanup-assertions', async () => {
+        assert.equal(
+          psql(`
+            select
+              (select count(*) from public.organizations
+               where id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_records
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_registry_events
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_registry_idempotency
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_registry_rate_limit_events
+                 ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+              + (select count(*) from public.aircraft_registry_rate_limit_state
+                 ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+              + (select count(*) from public.member_mfa_readiness
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.authentication_events
+                 where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid))
+              + (select count(*) from public.organization_member_profiles
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.membership_roles
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.organization_memberships
+                 where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from auth.users
+                 where id in ('${admin.id}'::uuid, '${student.id}'::uuid));
+          `),
+          '0',
+        );
+      });
     } catch (error) {
       failures.push(error);
     }
   } finally {
     if (temporaryDirectory) {
       try {
-        rmSync(temporaryDirectory, { recursive: true, force: true });
+        await diagnostics.run('cleanup-temporary-files', async () => {
+          rmSync(temporaryDirectory, { recursive: true, force: true });
+        });
       } catch (error) {
         failures.push(error);
       }
@@ -290,6 +261,7 @@ async function cleanup() {
 }
 
 try {
+  diagnostics.enter('identity-creation');
   for (const identity of [admin, student]) {
     const { error } = await server.auth.admin.createUser({
       id: identity.id,
@@ -300,6 +272,7 @@ try {
     if (error) throw new Error('Synthetic FEAT-007 Auth fixture creation failed.');
   }
 
+  diagnostics.enter('database-fixture');
   psql(`
     begin;
     insert into public.organizations (id, name, status)
@@ -319,11 +292,13 @@ try {
     commit;
   `);
 
+  diagnostics.enter('authentication');
   const adminSession = await signIn(admin, true);
   const studentSession = await signIn(student, false);
   limiterKeys.add(limiterHash(admin.id));
   limiterKeys.add(limiterHash(student.id));
 
+  diagnostics.enter('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat007-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -341,10 +316,25 @@ try {
   edgeProcess = spawn(
     process.execPath,
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
-    { cwd: process.cwd(), windowsHide: true, stdio: 'ignore' },
+    {
+      cwd: process.cwd(),
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: process.platform !== 'win32',
+    },
   );
-  await waitForEdge();
+  await waitForLocalEdgeWorker(
+    `${apiUrl}/functions/v1/aircraft-registry`,
+    origin,
+    edgeProcess,
+    {
+      apikey: publishableKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    'aircraft_registry',
+  );
 
+  diagnostics.enter('empty-list');
   const empty = await invoke(adminSession.session.access_token, {
     action: 'list',
     includeArchived: false,
@@ -362,17 +352,20 @@ try {
     model: 'Trainer One',
     idempotencyKey: createKey,
   };
+  diagnostics.enter('registry-create');
   const created = await invoke(adminSession.session.access_token, createRequest);
   assert.equal(created.response.status, 200, JSON.stringify(created.payload));
   assert.equal(created.payload.record.registrationMark, 'RP-C1234');
   assert.equal(created.payload.replayed, false);
   const recordId = created.payload.record.id;
 
+  diagnostics.enter('registry-replay');
   const replayed = await invoke(adminSession.session.access_token, createRequest);
   assert.equal(replayed.response.status, 200, JSON.stringify(replayed.payload));
   assert.equal(replayed.payload.replayed, true);
   assert.equal(replayed.payload.record.id, recordId);
 
+  diagnostics.enter('duplicate-registration');
   const duplicate = await invoke(adminSession.session.access_token, {
     ...createRequest,
     registrationMark: 'RP C1234',
@@ -381,6 +374,7 @@ try {
   assert.equal(duplicate.response.status, 409);
   assert.equal(duplicate.payload.error.code, 'aircraft_registry.duplicate_registration');
 
+  diagnostics.enter('concurrent-create');
   const concurrentCreates = await Promise.all([
     invoke(adminSession.session.access_token, {
       ...createRequest,
@@ -395,6 +389,7 @@ try {
   ]);
   assert.deepEqual(concurrentCreates.map((item) => item.response.status).sort(), [200, 409]);
 
+  diagnostics.enter('registry-search');
   const found = await invoke(adminSession.session.access_token, {
     action: 'list',
     search: 'C1234',
@@ -405,6 +400,7 @@ try {
   assert.equal(found.response.status, 200, JSON.stringify(found.payload));
   assert.equal(found.payload.records.length, 1);
 
+  diagnostics.enter('record-concealment');
   const concealed = await invoke(adminSession.session.access_token, {
     action: 'get',
     recordId: concealedRecordId,
@@ -412,6 +408,7 @@ try {
   assert.equal(concealed.response.status, 404);
   assert.equal(concealed.payload.error.code, 'aircraft_registry.not_found');
 
+  diagnostics.enter('stale-update');
   const stale = await invoke(adminSession.session.access_token, {
     action: 'update',
     recordId,
@@ -424,6 +421,7 @@ try {
   assert.equal(stale.response.status, 409);
   assert.equal(stale.payload.error.code, 'aircraft_registry.version_conflict');
 
+  diagnostics.enter('registry-update');
   const updated = await invoke(adminSession.session.access_token, {
     action: 'update',
     recordId,
@@ -436,6 +434,7 @@ try {
   assert.equal(updated.response.status, 200, JSON.stringify(updated.payload));
   assert.equal(updated.payload.record.version, 2);
 
+  diagnostics.enter('concurrent-archive');
   const archiveRace = await Promise.all([
     invoke(adminSession.session.access_token, {
       action: 'archive',
@@ -458,6 +457,7 @@ try {
   assert.equal(archived.response.status, 200, JSON.stringify(archived.payload));
   assert.equal(archived.payload.record.registryState, 'archived');
 
+  diagnostics.enter('registry-reactivate');
   const reactivated = await invoke(adminSession.session.access_token, {
     action: 'reactivate',
     recordId,
@@ -468,6 +468,7 @@ try {
   assert.equal(reactivated.response.status, 200, JSON.stringify(reactivated.payload));
   assert.equal(reactivated.payload.record.registryState, 'tracked');
 
+  diagnostics.enter('role-boundary');
   const denied = await invoke(studentSession.session.access_token, {
     action: 'list',
     includeArchived: false,
@@ -477,6 +478,7 @@ try {
   assert.equal(denied.response.status, 403);
   assert.equal(denied.payload.error.code, 'aircraft_registry.unauthorized');
 
+  diagnostics.enter('direct-data-audit');
   const { data: directRows, error: directError } = await studentSession.client
     .from('aircraft_records')
     .select('id');
@@ -494,9 +496,13 @@ try {
     '5',
   );
 
-  process.stdout.write(
-    'Local FEAT-007 Auth, TOTP, Edge registry, normalization, concurrent duplicate prevention, replay, conflict, record concealment, direct-data denial, audit, and cleanup checks passed.\n',
-  );
+  diagnostics.pass();
+} catch (error) {
+  diagnostics.fail(error);
+  throw error;
 } finally {
-  await cleanup();
+  await diagnostics.run('fixture-cleanup', cleanup);
 }
+process.stdout.write(
+  'Local FEAT-007 Auth, TOTP, Edge registry, normalization, concurrent duplicate prevention, replay, conflict, record concealment, direct-data denial, audit, and cleanup checks passed.\n',
+);
