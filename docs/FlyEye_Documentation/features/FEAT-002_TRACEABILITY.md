@@ -3,35 +3,35 @@
 ## Evidence boundary
 
 - Feature commit: `fd1bd2f9aef9bce159b93ce76dd7530371f2d897`
-- Merge: PR #5 at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`
-- Closure documentation: PR #6 at `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66`
+- Merge: [PR #5](https://github.com/killroyZULU/FlyEye/pull/5) at `4f993f0d0dc40f8a5783ae5176ffe2ef6000ca94`
+- Closure documentation: [PR #6](https://github.com/killroyZULU/FlyEye/pull/6) at `b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66`
 - Environment: Pinned local Supabase stack and local browser tests
 - Data: Randomized synthetic `.test` identities and organizations only
 - Review: Separate Codex review and automated evidence; no qualified independent human technical/security/privacy review
 
-Pre-merge CI run `30237389881`, post-merge run `30237614093`, and closure-documentation run `30238931694` passed Application quality and Local Supabase security. CI performed no deployment.
+Pre-merge CI run [30237389881](https://github.com/killroyZULU/FlyEye/actions/runs/30237389881), post-merge run [30237614093](https://github.com/killroyZULU/FlyEye/actions/runs/30237614093), and closure-documentation run [30238931694](https://github.com/killroyZULU/FlyEye/actions/runs/30238931694) passed Application quality and Local Supabase security. CI performed no deployment.
 
 These historical results predate ADR-0006. Later singleton-school and membership
 regression evidence is recorded in [FIX-006 Traceability](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_TRACEABILITY.md).
 
 ## Requirements and results
 
-| Requirement ID | Outcome/control | Evidence | Result and limitation |
-|---|---|---|---|
-| `FEAT-002-01` | Generic self-service request | `AC-01/02`, `UNIT-01`, `COMP-01`, `AUTH-01`, `ABUSE-01` | Partial pass: generic UI, malformed/offline, provider failure, cooldown, and unknown-account non-creation passed; suspended, banned, deleted, invited-unconfirmed, provider-only, timing-distribution, and active-CAPTCHA cases remain pending |
-| `FEAT-002-02` | Recovery creates no account or authority | `AC-02/13`, `AUTH-01`, `TENANT-01`, `REG-01` | Pass locally; no Auth/application record, schema, role, or membership was created |
-| `FEAT-002-03` | Short-lived, single-use, prefetch-safe credential | `AC-03`–`AC-06/08`, `UNIT-03`, `AUTH-02/06`, `SEC-01`, `E2E-01` | Pass locally; reverify on Auth/provider upgrade |
-| `FEAT-002-04` | Credential secrecy | `AC-06/07/14`, `UNIT-03/04`, `SEC-01`, `SCAN-01` | Pass locally; no durable credential path found |
-| `FEAT-002-05` | Server-authoritative password policy | `AC-07/08`, `UNIT-04`, `AUTH-03`, `E2E-01` | Pass locally; breached-password production control pending |
-| `FEAT-002-06` | Revoke old sessions and require fresh sign-in | `AC-05/08/09/10`, `UNIT-02`, `COMP-02`, `AUTH-04/06`, `E2E-01`, `REG-01` | Pass locally; hosted session behavior must be reverified |
-| `FEAT-002-07` | Fail closed on partial provider/revocation failure | `AC-10`, `UNIT-02`, `COMP-02`, `AUTH-04`, `EVID-11` | Corrected tests pass; live hosted failure injection pending |
-| `FEAT-002-08` | Audit and user notification | `AC-11`, `AUTH-05/06`, `CONFIG-01`, `EVID-07/08` | Pass locally; production retention, drains, access, alerting, and ownership unresolved |
-| `FEAT-002-09` | Abuse and enumeration resistance | `AC-01/12`, `UNIT-01/02`, `COMP-01`, `ABUSE-01` | Local cooldown/guards pass; active CAPTCHA, distributed/IP/WAF, timing, and provider accessibility pending |
-| `FEAT-002-10` | Membership non-disclosure and non-mutation | `AC-13`, `TENANT-01`, `AUTH-01`, `REG-01` | Historical multi-organization fixture passed; no organization or membership state changed. Later deployment constraints use FIX-006 evidence above |
-| `FEAT-002-11` | Accessible responsive and offline-safe flow | `AC-15`, `COMP-01/02/03`, `E2E-02`, `EVID-10` | Automated/local scope pass; residual human observations listed below |
-| `FEAT-002-12` | Reproducible environment configuration | `AC-03/11/12/14`, `CONFIG-01`, `SCAN-01` | Pass locally; hosted origins, providers, secrets, and settings unresolved |
-| `FEAT-002-13` | Preserve FEAT-001 Auth, RLS, audit, and tenancy | `AC-05/09/13/14`, `AUTH-06`, `REG-01`, full matrix | Pass on recorded target |
-| `FEAT-002-14` | Keep implementation evidence separate from later gates | `EVID-07`–`EVID-12`, PR #5/6, CI | Local implementation and merge evidenced; hosted, real-data, deployment, and production gates remain open |
+| Requirement ID | Outcome/control                                        | Evidence                                                                                                                                                                                                                                                                                                                   | Result and limitation                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FEAT-002-01`  | Generic self-service request                           | [AC-01, AC-02](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-01](#feat-002-unit-01), [COMP-01](#feat-002-comp-01), [AUTH-01](#feat-002-auth-01), [ABUSE-01](#feat-002-abuse-01)                                                                                                                                | Partial pass: generic UI, malformed/offline, provider failure, cooldown, and unknown-account non-creation passed; suspended, banned, deleted, invited-unconfirmed, provider-only, timing-distribution, and active-CAPTCHA cases remain pending |
+| `FEAT-002-02`  | Recovery creates no account or authority               | [AC-02, AC-13](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [AUTH-01](#feat-002-auth-01), [TENANT-01](#feat-002-tenant-01), [REG-01](#feat-002-reg-01)                                                                                                                                                              | Pass locally; no Auth/application record, schema, role, or membership was created                                                                                                                                                              |
+| `FEAT-002-03`  | Short-lived, single-use, prefetch-safe credential      | [AC-03–06, AC-08](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-03](#feat-002-unit-03), [AUTH-02](#feat-002-auth-02), [AUTH-06](#feat-002-auth-06), [SEC-01](#feat-002-sec-01), [E2E-01](#feat-002-e2e-01)                                                                                                     | Pass locally; reverify on Auth/provider upgrade                                                                                                                                                                                                |
+| `FEAT-002-04`  | Credential secrecy                                     | [AC-06, AC-07, AC-14](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-03](#feat-002-unit-03), [UNIT-04](#feat-002-unit-04), [SEC-01](#feat-002-sec-01), [SCAN-01](#feat-002-scan-01)                                                                                                                             | Pass locally; no durable credential path found                                                                                                                                                                                                 |
+| `FEAT-002-05`  | Server-authoritative password policy                   | [AC-07, AC-08](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-04](#feat-002-unit-04), [AUTH-03](#feat-002-auth-03), [E2E-01](#feat-002-e2e-01)                                                                                                                                                                  | Pass locally; breached-password production control pending                                                                                                                                                                                     |
+| `FEAT-002-06`  | Revoke old sessions and require fresh sign-in          | [AC-05, AC-08, AC-09, AC-10](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-02](#feat-002-unit-02), [COMP-02](#feat-002-comp-02), [AUTH-04](#feat-002-auth-04), [AUTH-06](#feat-002-auth-06), [E2E-01](#feat-002-e2e-01), [REG-01](#feat-002-reg-01)                                                            | Pass locally; hosted session behavior must be reverified                                                                                                                                                                                       |
+| `FEAT-002-07`  | Fail closed on partial provider/revocation failure     | [AC-10](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-02](#feat-002-unit-02), [COMP-02](#feat-002-comp-02), [AUTH-04](#feat-002-auth-04), [EVID-11](#feat-002-evid-11)                                                                                                                                         | Corrected tests pass; live hosted failure injection pending                                                                                                                                                                                    |
+| `FEAT-002-08`  | Audit and user notification                            | [AC-11](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [AUTH-05](#feat-002-auth-05), [AUTH-06](#feat-002-auth-06), [CONFIG-01](#feat-002-config-01), [EVID-07](#feat-002-evid-07), [EVID-08](#feat-002-evid-08)                                                                                                       | Pass locally; production retention, drains, access, alerting, and ownership unresolved                                                                                                                                                         |
+| `FEAT-002-09`  | Abuse and enumeration resistance                       | [AC-01, AC-12](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [UNIT-01](#feat-002-unit-01), [UNIT-02](#feat-002-unit-02), [COMP-01](#feat-002-comp-01), [ABUSE-01](#feat-002-abuse-01)                                                                                                                                | Local cooldown/guards pass; active CAPTCHA, distributed/IP/WAF, timing, and provider accessibility pending                                                                                                                                     |
+| `FEAT-002-10`  | Membership non-disclosure and non-mutation             | [AC-13](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [TENANT-01](#feat-002-tenant-01), [AUTH-01](#feat-002-auth-01), [REG-01](#feat-002-reg-01)                                                                                                                                                                     | Historical multi-organization fixture passed; no organization or membership state changed. Later deployment constraints use FIX-006 evidence above                                                                                             |
+| `FEAT-002-11`  | Accessible responsive and offline-safe flow            | [AC-15](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [COMP-01](#feat-002-comp-01), [COMP-02](#feat-002-comp-02), [COMP-03](#feat-002-comp-03), [E2E-02](#feat-002-e2e-02), [EVID-10](#feat-002-evid-10)                                                                                                             | Automated/local scope pass; residual human observations listed below                                                                                                                                                                           |
+| `FEAT-002-12`  | Reproducible environment configuration                 | [AC-03, AC-11, AC-12, AC-14](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [CONFIG-01](#feat-002-config-01), [SCAN-01](#feat-002-scan-01)                                                                                                                                                                            | Pass locally; hosted origins, providers, secrets, and settings unresolved                                                                                                                                                                      |
+| `FEAT-002-13`  | Preserve FEAT-001 Auth, RLS, audit, and tenancy        | [AC-05, AC-09, AC-13, AC-14](FEAT-002_PASSWORD_RECOVERY.md#acceptance-criteria), [AUTH-06](#feat-002-auth-06), [REG-01](#feat-002-reg-01), [full matrix](#feat-002-reg-01)                                                                                                                                                 | Pass on recorded target                                                                                                                                                                                                                        |
+| `FEAT-002-14`  | Keep implementation evidence separate from later gates | [EVID-07](#feat-002-evid-07), [EVID-08](#feat-002-evid-08), [EVID-09](#feat-002-evid-09), [EVID-10](#feat-002-evid-10), [EVID-11](#feat-002-evid-11), [EVID-12](#feat-002-evid-12), [PR #5](https://github.com/killroyZULU/FlyEye/pull/5), [PR #6](https://github.com/killroyZULU/FlyEye/pull/6), [CI](#evidence-boundary) | Local implementation and merge evidenced; hosted, real-data, deployment, and production gates remain open                                                                                                                                      |
 
 ## Pinned provider findings
 
@@ -45,15 +45,235 @@ Reverify these findings when the pinned Auth implementation changes.
 
 ## Stable evidence and automated identifiers
 
-- `FEAT-002-EVID-01`, `FEAT-002-EVID-02`, `FEAT-002-EVID-02A`, `FEAT-002-EVID-03`, `FEAT-002-EVID-04`, `FEAT-002-EVID-05`, and `FEAT-002-EVID-06` record pinned provider, AMR, access, audit, privacy, and cleanup observations.
-- `FEAT-002-EVID-07` records OTP-only bootstrap denial and protected audit.
-- `FEAT-002-EVID-08` records recovery, password, notification, and old-session/path denial.
-- `FEAT-002-EVID-09` records SQL/RLS, tenancy, generated-type, and FEAT-001 regression evidence.
-- `FEAT-002-EVID-10` records automated UI/browser evidence and the focused desktop walkthrough boundary.
-- `FEAT-002-EVID-11` records corrected terminal post-password-change failure behavior.
-- `FEAT-002-EVID-12` records PR #5 merge and CI publication evidence.
+Historical IDs link to their original records at closure commit `b2ee3d7`.
+Those records retain their original observations and limitations; they are not
+current requirements or fresh execution results.
 
-Stable automated IDs are `FEAT-002-UNIT-01`, `FEAT-002-UNIT-02`, `FEAT-002-UNIT-03`, `FEAT-002-UNIT-04`, `FEAT-002-COMP-01`, `FEAT-002-COMP-02`, `FEAT-002-COMP-03`, `FEAT-002-AUTH-01`, `FEAT-002-AUTH-02`, `FEAT-002-AUTH-03`, `FEAT-002-AUTH-04`, `FEAT-002-AUTH-05`, `FEAT-002-AUTH-06`, `FEAT-002-ABUSE-01`, `FEAT-002-SEC-01`, `FEAT-002-TENANT-01`, `FEAT-002-E2E-01`, `FEAT-002-E2E-02`, `FEAT-002-CONFIG-01`, `FEAT-002-SCAN-01`, and `FEAT-002-REG-01`.
+### FEAT-002-EVID-01
+
+[Provider token-type matrix](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L39).
+
+### FEAT-002-EVID-02
+
+[Client events and JWT claims](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L40).
+
+### FEAT-002-EVID-02A
+
+[Password/TOTP AMR compatibility](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L41).
+
+### FEAT-002-EVID-03
+
+[Pre-amendment bootstrap gap; historical, corrected by EVID-07](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L42).
+
+### FEAT-002-EVID-04
+
+[Initial post-change sign-out probes](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L43).
+
+### FEAT-002-EVID-05
+
+[Auth audit action and field structure](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L44).
+
+### FEAT-002-EVID-06
+
+[Evidence minimization and temporary-harness cleanup](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L45).
+
+### FEAT-002-EVID-07
+
+[Implemented OTP-only denial and audit](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L46).
+
+### FEAT-002-EVID-08
+
+[Recovery, notification and two-client revocation](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L47).
+
+### FEAT-002-EVID-09
+
+[Original regression and multi-organization evidence; superseded deployment contract](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L48).
+
+### FEAT-002-EVID-10
+
+[Automated UI and bounded human desktop observations](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L49).
+
+### FEAT-002-EVID-11
+
+[Terminal post-password-change correction](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L50).
+
+### FEAT-002-EVID-12
+
+[Publication, merge and CI](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L51).
+
+## Automated evidence map
+
+Locators below were inspected at `a3d0df7`; file links track the checked-out
+revision. IDs retain the `FEAT-002-` prefix and identify evidence families, not
+literal runner filters. This source map does not rerun tests, change the historical
+results above, or claim every planned family case is automated. Gaps identified
+here remain follow-up verification work under [#39](https://github.com/killroyZULU/FlyEye/issues/39).
+
+### FEAT-002-UNIT-01
+
+[Recovery contracts](../../../src/features/auth/recovery.test.ts), test
+`normalizes email and permits only the exact local recovery callbacks`;
+[gateway suite](../../../src/features/auth/services/auth-gateway.test.ts),
+`uses the exact recovery redirect and keeps provider outcomes generic`.
+
+### FEAT-002-UNIT-02
+
+[Gateway suite](../../../src/features/auth/services/auth-gateway.test.ts),
+`maps revocation_failed and attempts local cleanup when global logout %s`;
+[recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
+`fails closed and clears recovery state after an unexpected post-change revocation failure`.
+These cover terminal failure/local cleanup. Dedicated recovery stale-operation,
+duplicate-submit and Back/refresh assertions were not found in these files.
+
+### FEAT-002-UNIT-03
+
+[Recovery contracts](../../../src/features/auth/recovery.test.ts),
+`reads only one token hash from the fixed route and rejects supplied workflow authority`
+and `scrubs credential material from browser history`;
+[gateway suite](../../../src/features/auth/services/auth-gateway.test.ts),
+`always verifies token hashes as recovery and maps rejection safely`.
+
+### FEAT-002-UNIT-04
+
+[Recovery contracts](../../../src/features/auth/recovery.test.ts),
+`applies the approved password baseline without composition rules`;
+[gateway suite](../../../src/features/auth/services/auth-gateway.test.ts),
+`maps %s without exposing provider details`.
+
+### FEAT-002-COMP-01
+
+[Recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
+`shows the same acknowledgement for %s` and
+`validates malformed email and blocks offline submission without queueing it`.
+
+### FEAT-002-COMP-02
+
+[Recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
+`does not consume a recovery credential until explicit confirmation`,
+`changes the password, globally signs out, and requires fresh sign-in`,
+`uses the same safe invalid state for missing and rejected credentials`,
+and the terminal-failure test in [UNIT-02](#feat-002-unit-02).
+
+### FEAT-002-COMP-03
+
+[Recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
+`validates malformed email and blocks offline submission without queueing it`.
+This asserts offline request denial; dedicated offline password-update/retry
+assertions were not found in this suite.
+
+### FEAT-002-AUTH-01
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs):
+`usersBeforeUnknownRequest` checks unknown-email non-creation; `recoveryMessage`
+checks the known user's Mailpit callback. This is not the full account-state matrix.
+
+### FEAT-002-AUTH-02
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs):
+`verifyProviderAlias`, `recoveryData` and `replayError` cover provider aliases,
+verification and replay. Expiry, concurrent redemption and resend/supersession
+assertions are not present in this fixture; historical provider observations
+remain in [EVID-01](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L39).
+
+### FEAT-002-AUTH-03
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs):
+`samePasswordError`, `weakPasswordError`, `recoveredPassword` and `updateError`
+cover provider policy/errors and update. Browser input attributes and schema
+checks do not establish human password-manager/autofill behavior; see
+[residual limitations](#residual-evidence-limitations).
+
+### FEAT-002-AUTH-04
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs): the two
+`oldSession` loops after global sign-out check refresh rejection and
+`directPathStatuses` (Auth user, bootstrap, organizations table, resolver RPC).
+This combined password-change/sign-out scenario does not establish ordinary
+logout, all later endpoints or hosted revocation; see
+[session evidence](FEAT-001_TRACEABILITY.md#session-control-evidence).
+
+### FEAT-002-AUTH-05
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs):
+`passwordChangedContent` and `auditActions` check notification exclusions and
+observed actions, including the absence of `token_revoked`. Historical field
+inspection is [EVID-05](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L44); it is not a current field-structure assertion.
+
+### FEAT-002-AUTH-06
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs):
+`assertOtpBootstrapDenied`, `assertOtpDenialAudit`, `directBeforePassword`
+and `fresh`; [bootstrap handler tests](../../../supabase/functions/auth-bootstrap/handler.test.ts),
+OTP-only denial cases and `retains password plus TOTP sessions for the existing AAL2 authorization path`.
+
+### FEAT-002-ABUSE-01
+
+[Recovery runtime](../../../scripts/test-recovery-runtime.mjs), `cooldownError`
+asserts HTTP 429; [UNIT-01](#feat-002-unit-01) and [COMP-01](#feat-002-comp-01)
+cover generic outcomes and CAPTCHA-token forwarding. Active CAPTCHA, timing and
+distributed abuse remain unverified; forwarding a token is not provider validation.
+
+### FEAT-002-SEC-01
+
+[UNIT-03](#feat-002-unit-03) locates parser/history assertions;
+[recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
+`does not consume a recovery credential until explicit confirmation`, checks
+URL removal and no automatic verification. These are not exhaustive browser
+storage, logging, analytics or referrer-leakage tests.
+
+### FEAT-002-TENANT-01
+
+The original multi-organization result is [EVID-09](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L48).
+Current [recovery runtime](../../../scripts/test-recovery-runtime.mjs) uses one
+organization and checks tenant-neutral mail and `protectedDenial` audit context.
+[FIX-006 evidence](FEAT-005_SINGLE_SCHOOL_DEPLOYMENT_TRACEABILITY.md) and
+[single-school SQL tests](../../../supabase/tests/fix_006_single_school_deployment_test.sql)
+own the later singleton/forged-ID regression boundary. No equivalence with the
+old multi-membership fixture is asserted.
+
+### FEAT-002-E2E-01
+
+[Browser suite](../../../tests/e2e/login.spec.ts),
+`password recovery requires explicit confirmation and fresh sign-in`, uses
+mocked Supabase responses. Real Mailpit/password/replay probes are in
+[AUTH-01](#feat-002-auth-01), [AUTH-02](#feat-002-auth-02) and
+[AUTH-04](#feat-002-auth-04); these separate checks do not demonstrate one
+provider-backed recovery browser journey.
+
+### FEAT-002-E2E-02
+
+The same [browser test](../../../tests/e2e/login.spec.ts) checks visible/focused
+headings and URL scrubbing in the configured desktop/mobile projects.
+[COMP-01](#feat-002-comp-01) and [COMP-02](#feat-002-comp-02) supply bounded
+failure, offline and focus assertions; [EVID-10](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L49) records the
+human walkthrough and its exclusions. Formal accessibility acceptance remains open.
+
+### FEAT-002-CONFIG-01
+
+[Auth configuration](../../../supabase/config.toml), sections `auth` and
+`auth.email`; [recovery template](../../../supabase/templates/recovery.html);
+[runtime orchestration](../../../scripts/run-runtime-matrix.mjs),
+`waitForRecoveryTemplate`; [AUTH-01](#feat-002-auth-01),
+[AUTH-03](#feat-002-auth-03) and [ABUSE-01](#feat-002-abuse-01) exercise selected
+settings. Configuration inspection is not a complete settings-drift test.
+
+### FEAT-002-SCAN-01
+
+[Browser scanner](../../../scripts/check-browser-secrets.mjs),
+[general scanner](../../../scripts/check-repository-secrets.mjs) and
+[CI workflow](../../../.github/workflows/ci.yml), application secret-scan steps.
+The original result is bounded by the [recorded target](#evidence-boundary);
+current scanner rules do not prove historical coverage or detect every sensitive value.
+
+### FEAT-002-REG-01
+
+[Identity SQL suite](../../../supabase/tests/feat_001_identity_rbac_test.sql),
+[Auth/Edge runtime](../../../scripts/test-edge-runtime.mjs),
+[AuthApp tests](../../../src/features/auth/AuthApp.test.tsx) and
+[CI workflow](../../../.github/workflows/ci.yml), application/database jobs.
+Original result: [EVID-09](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L48) and
+[recorded CI](#evidence-boundary). These are regression entry points, not a new
+claim that every historical assertion still exists unchanged.
 
 ## Residual evidence limitations
 

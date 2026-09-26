@@ -60,6 +60,28 @@ If a durable feature contract genuinely needs more space, split a focused refere
 
 ## Required document lifecycle
 
+### Navigable evidence
+
+For new or changed traceability rows, make each requirement and evidence ID a
+link to its canonical definition, test location, or evidence-map heading; an ID
+defined by that row needs no self-link. Expand
+ambiguous ranges when their members have different targets; preserve stable IDs.
+An evidence map belongs in the feature's existing traceability record.
+
+For automated evidence, link the repository file and name the exact test, suite,
+function or assertion block. A family ID is not necessarily a literal test name
+or runner filter. Keep these locators current when moving or renaming tests.
+For historical results, link the immutable commit/file location, PR or CI run and
+retain its target, environment, outcome and limitations. A current source link
+helps navigation but does not prove an earlier execution or complete coverage.
+
+Mark missing assertions or unavailable records explicitly; do not invent a
+mapping or turn a planned test family into a pass. Apply this convention to the
+next touched area, leaving unrelated historical records for later bounded work.
+See the [recovery evidence map](features/FEAT-002_TRACEABILITY.md#automated-evidence-map)
+for an example. Verification and evidence reuse follow
+[QA policy](11_QA_TEST_PLAN.md#9-test-evidence).
+
 ### Markdown inventory and formatting
 
 `pnpm check:docs` examines tracked Markdown plus unignored new documents before
