@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import process from 'node:process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemberMfaHandler } from '../../supabase/functions/member-mfa/handler.ts';
+import { createMemberInvitationsHandler } from '../../supabase/functions/member-invitations/handler.ts';
 import { createMemberAdministrationHandler } from '../../supabase/functions/member-administration/handler.ts';
 import { createAircraftRegistryHandler } from '../../supabase/functions/aircraft-registry/handler.ts';
 import { createAircraftDocumentHandler } from '../../supabase/functions/aircraft-documents/handler.ts';
@@ -26,6 +27,7 @@ afterEach(() => {
 describe('fixture-specific Edge readiness', () => {
   it.each([
     ['member_mfa', createMemberMfaHandler],
+    ['member_invitation', createMemberInvitationsHandler],
     ['member_administration', createMemberAdministrationHandler],
     ['aircraft_registry', createAircraftRegistryHandler],
     ['aircraft_documents', createAircraftDocumentHandler],
