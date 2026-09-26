@@ -10,6 +10,10 @@ import { createClient } from '@supabase/supabase-js';
 
 import { reconcileAircraftDocumentStorage } from './lib/aircraft-document-reconciliation.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-007B');
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -21,7 +25,7 @@ const local = JSON.parse(status.stdout);
 const apiUrl = local.API_URL;
 const publishableKey = local.PUBLISHABLE_KEY ?? local.ANON_KEY;
 const serviceRoleKey = local.SERVICE_ROLE_KEY;
-const origin = 'http://127.0.0.1:5173';
+const origin = `https://${randomUUID()}.localhost`;
 if (!['127.0.0.1', 'localhost', '::1'].includes(new URL(apiUrl).hostname)) {
   throw new Error('FEAT-007B runtime evidence is restricted to the local synthetic stack.');
 }
@@ -39,57 +43,10 @@ const limiterKeys = new Set();
 let edgeProcess;
 let temporaryDirectory;
 const uploadedObjectKeys = new Set();
-const runtimeDiagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
-let currentRuntimeStage;
 
 const server = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
-
-function enterRuntimeStage(stage) {
-  if (currentRuntimeStage && runtimeDiagnosticsEnabled) {
-    process.stdout.write(
-      `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=passed.\n`,
-    );
-  }
-  currentRuntimeStage = stage;
-  if (runtimeDiagnosticsEnabled) {
-    process.stdout.write(`FEAT-007B runtime diagnostic: stage=${stage} event=enter.\n`);
-  }
-}
-
-function failRuntimeStage(error) {
-  if (!runtimeDiagnosticsEnabled || !currentRuntimeStage) return;
-  const assertedHttpStatus =
-    error?.name === 'AssertionError' &&
-    Number.isInteger(error.actual) &&
-    error.actual >= 400 &&
-    error.actual <= 599
-      ? error.actual
-      : undefined;
-  const detail =
-    assertedHttpStatus !== undefined
-      ? [400, 401, 403, 404, 409, 429, 500, 502, 503, 504].includes(assertedHttpStatus)
-        ? `http-${assertedHttpStatus}`
-        : 'http-other'
-      : error?.name === 'AssertionError'
-        ? 'assertion'
-        : error?.name === 'TimeoutError'
-          ? 'timeout'
-          : 'unclassified';
-  process.stdout.write(
-    `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=failed detail=${detail}.\n`,
-  );
-}
-
-function completeRuntimeStages() {
-  if (currentRuntimeStage && runtimeDiagnosticsEnabled) {
-    process.stdout.write(
-      `FEAT-007B runtime diagnostic: stage=${currentRuntimeStage} event=passed.\n`,
-    );
-  }
-  currentRuntimeStage = undefined;
-}
 
 function psql(sql) {
   const result = spawnSync(
@@ -196,149 +153,117 @@ async function signIn(identity, withTotp) {
 }
 
 async function invoke(token, body) {
-  const response = await fetchLocalEdge(`${apiUrl}/functions/v1/aircraft-documents`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      origin,
+  const response = await fetchLocalEdge(
+    `${apiUrl}/functions/v1/aircraft-documents`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
-  return { response, payload: await response.json() };
-}
-
-async function waitForEdge() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    if (edgeProcess?.exitCode !== null) {
-      throw new Error('The FEAT-007B Edge worker exited during startup.');
-    }
-    try {
-      const response = await fetch(`${apiUrl}/functions/v1/aircraft-documents`, {
-        method: 'POST',
-        headers: {
-          apikey: publishableKey,
-          authorization: `Bearer ${serviceRoleKey}`,
-          'content-type': 'application/json',
-          origin,
-        },
-        body: '{}',
-        signal: AbortSignal.timeout(1_000),
-      });
-      if ([400, 401, 403, 405, 422].includes(response.status)) return;
-    } catch {
-      // The bounded local worker is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('The FEAT-007B Edge worker did not become ready.');
-}
-
-async function stopEdge() {
-  if (!edgeProcess || edgeProcess.exitCode !== null) return;
-  const stopped = new Promise((resolve) => {
-    const timeout = setTimeout(resolve, 5_000);
-    const finish = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-    edgeProcess.once('exit', finish);
-    edgeProcess.once('error', finish);
-  });
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(edgeProcess.pid), '/t', '/f'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-  } else {
-    edgeProcess.kill('SIGTERM');
-  }
-  await stopped;
+    diagnostics.retry,
+  );
+  return diagnostics.readResponse(response);
 }
 
 async function cleanup() {
   const failures = [];
   try {
     try {
-      await stopEdge();
+      await diagnostics.run('cleanup-edge-shutdown', () => stopLocalEdge(edgeProcess));
     } catch (error) {
       failures.push(error);
     }
     if (uploadedObjectKeys.size > 0) {
       try {
-        const { error } = await server.storage
-          .from('aircraft-documents')
-          .remove([...uploadedObjectKeys]);
-        if (error) throw error;
+        await diagnostics.run('cleanup-storage', async () => {
+          const { error } = await server.storage
+            .from('aircraft-documents')
+            .remove([...uploadedObjectKeys]);
+          if (error) throw error;
+        });
       } catch (error) {
         failures.push(error);
       }
     }
     const limiterValues = [...limiterKeys].map((value) => `'${value}'`).join(',');
     try {
-      psql(`
-        begin;
-        delete from public.aircraft_document_events where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_idempotency where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_notifications where organization_id = '${organizationId}'::uuid;
-        set local session_replication_role = replica;
-        delete from public.aircraft_document_versions where organization_id = '${organizationId}'::uuid;
-        set local session_replication_role = origin;
-        delete from public.aircraft_documents where organization_id = '${organizationId}'::uuid;
-        delete from public.stored_files where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_requirements where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_categories where organization_id = '${organizationId}'::uuid;
-        delete from public.aircraft_document_rate_limit_events
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.aircraft_document_rate_limit_state
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.aircraft_records where organization_id = '${organizationId}'::uuid;
-        delete from public.member_mfa_readiness where organization_id = '${organizationId}'::uuid;
-        delete from public.authentication_events
-        where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid);
-        delete from public.organization_member_profiles where organization_id = '${organizationId}'::uuid;
-        delete from public.membership_roles where organization_id = '${organizationId}'::uuid;
-        delete from public.organization_memberships where organization_id = '${organizationId}'::uuid;
-        delete from public.organizations where id = '${organizationId}'::uuid;
-        commit;
-      `);
+      await diagnostics.run('cleanup-domain-rows', async () => {
+        psql(`
+          begin;
+          delete from public.aircraft_document_events where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_idempotency where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_notifications where organization_id = '${organizationId}'::uuid;
+          set local session_replication_role = replica;
+          delete from public.aircraft_document_versions where organization_id = '${organizationId}'::uuid;
+          set local session_replication_role = origin;
+          delete from public.aircraft_documents where organization_id = '${organizationId}'::uuid;
+          delete from public.stored_files where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_requirements where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_categories where organization_id = '${organizationId}'::uuid;
+          delete from public.aircraft_document_rate_limit_events
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.aircraft_document_rate_limit_state
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.aircraft_records where organization_id = '${organizationId}'::uuid;
+          delete from public.member_mfa_readiness where organization_id = '${organizationId}'::uuid;
+          delete from public.authentication_events
+          where actor_user_id in ('${admin.id}'::uuid, '${student.id}'::uuid);
+          delete from public.organization_member_profiles where organization_id = '${organizationId}'::uuid;
+          delete from public.membership_roles where organization_id = '${organizationId}'::uuid;
+          delete from public.organization_memberships where organization_id = '${organizationId}'::uuid;
+          delete from public.organizations where id = '${organizationId}'::uuid;
+          commit;
+        `);
+      });
     } catch (error) {
       failures.push(error);
     }
     for (const identity of [admin, student]) {
       try {
-        const { error } = await server.auth.admin.deleteUser(identity.id);
-        if (error && error.status !== 404) throw error;
+        await diagnostics.run('cleanup-auth-users', async () => {
+          const { error } = await server.auth.admin.deleteUser(identity.id);
+          if (error && error.status !== 404) throw error;
+        });
       } catch (error) {
         failures.push(error);
       }
     }
     try {
-      assert.equal(
-        psql(`
-          select
-            (select count(*) from public.organizations where id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_documents where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_document_events where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_document_idempotency where organization_id = '${organizationId}'::uuid)
-            + (select count(*) from public.aircraft_document_rate_limit_events
-               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-            + (select count(*) from public.aircraft_document_rate_limit_state
-               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-            + (select count(*) from auth.users
-               where id in ('${admin.id}'::uuid, '${student.id}'::uuid));
-        `),
-        '0',
-      );
+      await diagnostics.run('cleanup-assertions', async () => {
+        assert.equal(
+          psql(`
+            select
+              (select count(*) from public.organizations where id = '${organizationId}'::uuid)
+              + (select count(*) from storage.objects
+                 where bucket_id = 'aircraft-documents' and name like '${organizationId}/%')
+              + (select count(*) from public.aircraft_documents where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_document_events where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_document_idempotency where organization_id = '${organizationId}'::uuid)
+              + (select count(*) from public.aircraft_document_rate_limit_events
+                 ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+              + (select count(*) from public.aircraft_document_rate_limit_state
+                 ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+              + (select count(*) from auth.users
+                 where id in ('${admin.id}'::uuid, '${student.id}'::uuid));
+          `),
+          '0',
+        );
+      });
     } catch (error) {
       failures.push(error);
     }
   } finally {
     if (temporaryDirectory) {
       try {
-        rmSync(temporaryDirectory, { recursive: true, force: true });
+        await diagnostics.run('cleanup-temporary-files', async () => {
+          rmSync(temporaryDirectory, { recursive: true, force: true });
+        });
       } catch (error) {
         failures.push(error);
       }
@@ -350,7 +275,7 @@ async function cleanup() {
 }
 
 try {
-  enterRuntimeStage('identity-creation');
+  diagnostics.enter('identity-creation');
   for (const identity of [admin, student]) {
     const { error } = await server.auth.admin.createUser({
       id: identity.id,
@@ -361,7 +286,7 @@ try {
     if (error) throw new Error('Synthetic FEAT-007B Auth fixture creation failed.');
   }
 
-  enterRuntimeStage('database-fixture');
+  diagnostics.enter('database-fixture');
   psql(`
     begin;
     insert into public.organizations (id, name, status)
@@ -395,13 +320,13 @@ try {
   `);
   assert.match(categoryId, /^[0-9a-f-]{36}$/);
 
-  enterRuntimeStage('authentication');
+  diagnostics.enter('authentication');
   const adminSession = await signIn(admin, true);
   const studentSession = await signIn(student, false);
   limiterKeys.add(limiterHash(admin.id));
   limiterKeys.add(limiterHash(student.id));
 
-  enterRuntimeStage('edge-runtime-startup');
+  diagnostics.enter('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat007b-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -421,11 +346,25 @@ try {
   edgeProcess = spawn(
     process.execPath,
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
-    { cwd: process.cwd(), windowsHide: true, stdio: 'ignore' },
+    {
+      cwd: process.cwd(),
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: process.platform !== 'win32',
+    },
   );
-  await waitForEdge();
+  await waitForLocalEdgeWorker(
+    `${apiUrl}/functions/v1/aircraft-documents`,
+    origin,
+    edgeProcess,
+    {
+      apikey: publishableKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    'aircraft_documents',
+  );
 
-  enterRuntimeStage('role-boundary');
+  diagnostics.enter('role-boundary');
   const studentStatus = await invoke(studentSession.session.access_token, {
     action: 'status_list',
     aircraftId,
@@ -441,7 +380,7 @@ try {
   assert.equal(concealed.response.status, 403);
   assert.equal(concealed.payload.error.code, 'aircraft_documents.unauthorized');
 
-  enterRuntimeStage('file-lifecycle');
+  diagnostics.enter('file-initiate');
   const fileBytes = new Uint8Array(24);
   fileBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
   new DataView(fileBytes.buffer).setUint32(16, 10);
@@ -459,12 +398,14 @@ try {
   assert.equal(fileStage.response.status, 200, JSON.stringify(fileStage.payload));
   const uploadedObjectKey = fileStage.payload.uploadPath;
   uploadedObjectKeys.add(uploadedObjectKey);
+  diagnostics.enter('file-upload');
   const { error: uploadError } = await adminSession.client.storage
     .from('aircraft-documents')
     .uploadToSignedUrl(fileStage.payload.uploadPath, fileStage.payload.uploadToken, fileBytes, {
       contentType: 'image/png',
     });
   if (uploadError) throw new Error('Synthetic aircraft document upload failed.');
+  diagnostics.enter('file-complete');
   const fileComplete = await invoke(adminSession.session.access_token, {
     action: 'file_complete',
     fileId: fileStage.payload.fileId,
@@ -472,6 +413,7 @@ try {
   });
   assert.equal(fileComplete.response.status, 200, JSON.stringify(fileComplete.payload));
   assert.equal(fileComplete.payload.scanState, 'clean');
+  diagnostics.enter('file-resume');
   const resumedUpload = await invoke(adminSession.session.access_token, {
     action: 'file_initiate',
     aircraftId,
@@ -486,7 +428,7 @@ try {
   assert.equal(resumedUpload.payload.fileId, fileStage.payload.fileId);
   assert.equal(resumedUpload.payload.uploadToken, undefined);
 
-  enterRuntimeStage('metadata-create');
+  diagnostics.enter('metadata-create');
   const createKey = randomBytes(32).toString('hex');
   const createRequest = {
     action: 'create',
@@ -508,13 +450,13 @@ try {
   assert.equal(typeof created.payload.replayed, 'boolean');
   const documentId = created.payload.documentId;
 
-  enterRuntimeStage('metadata-replay');
+  diagnostics.enter('metadata-replay');
   const replayed = await invoke(adminSession.session.access_token, createRequest);
   assert.equal(replayed.response.status, 200, JSON.stringify(replayed.payload));
   assert.equal(replayed.payload.replayed, true);
   assert.equal(replayed.payload.documentId, documentId);
 
-  enterRuntimeStage('status-after-create');
+  diagnostics.enter('status-after-create');
   const statusAfterCreate = await invoke(studentSession.session.access_token, {
     action: 'status_list',
     aircraftId,
@@ -525,7 +467,7 @@ try {
     'expiring_soon',
   );
 
-  enterRuntimeStage('detail-after-create');
+  diagnostics.enter('detail-after-create');
   const detail = await invoke(adminSession.session.access_token, {
     action: 'detail',
     documentId,
@@ -534,7 +476,7 @@ try {
   assert.equal(detail.payload.document.currentVersion.versionNumber, 1);
   assert.equal(detail.payload.document.currentVersion.attachment.scanState, 'clean');
 
-  enterRuntimeStage('concealed-detail-audit');
+  diagnostics.enter('concealed-detail-audit');
   const guessedDetail = await invoke(adminSession.session.access_token, {
     action: 'detail',
     documentId: randomUUID(),
@@ -553,7 +495,7 @@ try {
     '1',
   );
 
-  enterRuntimeStage('attachment-download');
+  diagnostics.enter('attachment-download');
   const download = await invoke(adminSession.session.access_token, {
     action: 'attachment_download',
     fileId: fileStage.payload.fileId,
@@ -564,11 +506,11 @@ try {
   });
   assert.equal(downloaded.status, 200);
   assert.deepEqual(new Uint8Array(await downloaded.arrayBuffer()), fileBytes);
-  enterRuntimeStage('reconciliation-ready');
+  diagnostics.enter('reconciliation-ready');
   const ready = await reconcileAircraftDocumentStorage(server, organizationId, randomUUID());
   assert.equal(ready.decision, 'ready', JSON.stringify(ready));
 
-  enterRuntimeStage('reconciliation-orphan-row');
+  diagnostics.enter('reconciliation-orphan-row');
   const abandonedFileId = randomUUID();
   const abandonedObjectKey = `${organizationId}/${aircraftId}/${abandonedFileId}/${abandonedFileId}.png`;
   uploadedObjectKeys.add(abandonedObjectKey);
@@ -603,7 +545,7 @@ try {
     `delete from public.stored_files where organization_id = '${organizationId}'::uuid and id = '${abandonedFileId}'::uuid;`,
   );
 
-  enterRuntimeStage('reconciliation-hash-mismatch');
+  diagnostics.enter('reconciliation-hash-mismatch');
   const mismatched = await server.rpc('reconcile_aircraft_document_storage', {
     p_organization_id: organizationId,
     p_observed_hashes: { [uploadedObjectKey]: '0'.repeat(64) },
@@ -613,7 +555,7 @@ try {
   assert.equal(mismatched.data.decision, 'reconciliation_failed');
   assert.ok(mismatched.data.failures.some((failure) => failure.reason === 'hash_mismatch'));
 
-  enterRuntimeStage('reconciliation-missing-object');
+  diagnostics.enter('reconciliation-missing-object');
   const { error: missingRemovalError } = await server.storage
     .from('aircraft-documents')
     .remove([uploadedObjectKey]);
@@ -626,7 +568,7 @@ try {
     .upload(uploadedObjectKey, fileBytes, { contentType: 'image/png', upsert: false });
   if (restoreError) throw restoreError;
 
-  enterRuntimeStage('reconciliation-orphan-object');
+  diagnostics.enter('reconciliation-orphan-object');
   const orphanId = randomUUID();
   const orphanObjectKey = `${organizationId}/${aircraftId}/${orphanId}/${orphanId}.png`;
   uploadedObjectKeys.add(orphanObjectKey);
@@ -643,7 +585,7 @@ try {
   if (orphanRemovalError) throw orphanRemovalError;
   uploadedObjectKeys.delete(orphanObjectKey);
 
-  enterRuntimeStage('reconciliation-wrong-scope');
+  diagnostics.enter('reconciliation-wrong-scope');
   const wrongScopeFileId = randomUUID();
   const wrongScopeOrganizationId = randomUUID();
   psql(`
@@ -662,7 +604,7 @@ try {
   assert.ok(wrongScope.failures.some((failure) => failure.reason === 'wrong_scope'));
   psql(`delete from public.stored_files where id = '${wrongScopeFileId}'::uuid;`);
 
-  enterRuntimeStage('reconciliation-unclean-object');
+  diagnostics.enter('reconciliation-unclean-object');
   psql(`
     update public.stored_files set scan_state = 'staged', updated_at = now()
     where id = '${fileStage.payload.fileId}'::uuid;
@@ -677,7 +619,7 @@ try {
   // The local Kong/Edge bridge can briefly recycle its upstream after serving Storage bytes.
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  enterRuntimeStage('renewal-conflict');
+  diagnostics.enter('renewal-conflict');
   const stale = await invoke(adminSession.session.access_token, {
     ...createRequest,
     action: 'renew',
@@ -691,7 +633,7 @@ try {
   assert.equal(stale.response.status, 409);
   assert.equal(stale.payload.error.code, 'aircraft_documents.version_conflict');
 
-  enterRuntimeStage('renewal-success');
+  diagnostics.enter('renewal-success');
   const renewed = await invoke(adminSession.session.access_token, {
     ...createRequest,
     action: 'renew',
@@ -706,7 +648,7 @@ try {
   assert.equal(renewed.payload.decision, 'renewed');
   assert.equal(renewed.payload.currentVersionNumber, 2);
 
-  enterRuntimeStage('history-read');
+  diagnostics.enter('history-read');
   const history = await invoke(adminSession.session.access_token, {
     action: 'history',
     documentId,
@@ -716,7 +658,7 @@ try {
   assert.equal(history.response.status, 200, JSON.stringify(history.payload));
   assert.equal(history.payload.items.length, 2);
 
-  enterRuntimeStage('notification-read');
+  diagnostics.enter('notification-read');
   const notifications = await invoke(adminSession.session.access_token, {
     action: 'notifications_list',
     page: 1,
@@ -727,7 +669,7 @@ try {
   assert.equal(notifications.payload.items.length, 1);
   assert.equal(notifications.payload.items[0].state, 'resolved');
 
-  enterRuntimeStage('archived-download');
+  diagnostics.enter('archived-download');
   psql(`
     update public.aircraft_records
     set registry_state = 'archived', archive_reason = 'no_longer_tracked',
@@ -742,7 +684,7 @@ try {
   assert.equal(archivedDownload.response.status, 404);
   assert.equal(archivedDownload.payload.error.code, 'aircraft_documents.not_found');
 
-  enterRuntimeStage('direct-data-audit');
+  diagnostics.enter('direct-data-audit');
   const { data: directRows, error: directError } = await studentSession.client
     .from('aircraft_documents')
     .select('id');
@@ -757,13 +699,13 @@ try {
     '2',
   );
 
-  completeRuntimeStages();
-  process.stdout.write(
-    'Local FEAT-007B Auth, TOTP, status-only access, protected metadata, versioning, replay, conflict, warning lifecycle, Storage reconciliation, direct-data denial, audit, and cleanup checks passed.\n',
-  );
+  diagnostics.pass();
 } catch (error) {
-  failRuntimeStage(error);
+  diagnostics.fail(error);
   throw error;
 } finally {
-  await cleanup();
+  await diagnostics.run('fixture-cleanup', cleanup);
 }
+process.stdout.write(
+  'Local FEAT-007B Auth, TOTP, status-only access, protected metadata, versioning, replay, conflict, warning lifecycle, Storage reconciliation, direct-data denial, audit, and cleanup checks passed.\n',
+);

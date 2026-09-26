@@ -4,8 +4,15 @@ import { once } from 'node:events';
 import process from 'node:process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemberMfaHandler } from '../../supabase/functions/member-mfa/handler.ts';
+import { createMemberAdministrationHandler } from '../../supabase/functions/member-administration/handler.ts';
+import { createAircraftRegistryHandler } from '../../supabase/functions/aircraft-registry/handler.ts';
+import { createAircraftDocumentHandler } from '../../supabase/functions/aircraft-documents/handler.ts';
 
-import { stopLocalEdge, waitForMemberMfaWorker } from './local-edge-lifecycle.mjs';
+import {
+  stopLocalEdge,
+  waitForLocalEdgeWorker,
+  waitForMemberMfaWorker,
+} from './local-edge-lifecycle.mjs';
 
 const url = 'http://127.0.0.1:55321/functions/v1/member-mfa';
 const origin = 'https://synthetic-fixture.localhost';
@@ -17,40 +24,48 @@ afterEach(() => {
 });
 
 describe('fixture-specific Edge readiness', () => {
-  it('rejects the old worker response before accepting the fixture environment', async () => {
-    vi.useFakeTimers();
-    const authenticate = vi.fn();
-    const consumeLimit = vi.fn();
-    const makeWorker = (allowedOrigin) =>
-      createMemberMfaHandler({ allowedOrigin, authenticate, consumeLimit });
-    const oldWorker = makeWorker('http://127.0.0.1:5173');
-    const expectedWorker = makeWorker(origin);
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(null, {
-          status: 204,
-          headers: { 'access-control-allow-origin': 'http://127.0.0.1:5173' },
-        }),
-      )
-      .mockImplementationOnce((input, init) => oldWorker(new Request(input, init)))
-      .mockResolvedValueOnce(
-        Response.json({ error: { code: 'gateway.method_not_allowed' } }, { status: 405 }),
-      )
-      .mockImplementationOnce((input, init) => expectedWorker(new Request(input, init)));
-    vi.stubGlobal('fetch', fetchMock);
-    const ready = waitForMemberMfaWorker(url, origin, runningChild());
-    await vi.runAllTimersAsync();
-    await ready;
-    expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(
-      fetchMock.mock.calls.every(
-        ([, init]) => init.method === 'GET' && init.headers.origin === origin,
-      ),
-    ).toBe(true);
-    expect(authenticate).not.toHaveBeenCalled();
-    expect(consumeLimit).not.toHaveBeenCalled();
-  });
+  it.each([
+    ['member_mfa', createMemberMfaHandler],
+    ['member_administration', createMemberAdministrationHandler],
+    ['aircraft_registry', createAircraftRegistryHandler],
+    ['aircraft_documents', createAircraftDocumentHandler],
+  ])(
+    'identifies %s and rejects the old worker before accepting the fixture environment',
+    async (handler, createHandler) => {
+      vi.useFakeTimers();
+      const authenticate = vi.fn();
+      const consumeLimit = vi.fn();
+      const makeWorker = (allowedOrigin) =>
+        createHandler({ allowedOrigin, authenticate, consumeLimit });
+      const oldWorker = makeWorker('http://127.0.0.1:5173');
+      const expectedWorker = makeWorker(origin);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(null, {
+            status: 204,
+            headers: { 'access-control-allow-origin': 'http://127.0.0.1:5173' },
+          }),
+        )
+        .mockImplementationOnce((input, init) => oldWorker(new Request(input, init)))
+        .mockResolvedValueOnce(
+          Response.json({ error: { code: 'gateway.method_not_allowed' } }, { status: 405 }),
+        )
+        .mockImplementationOnce((input, init) => expectedWorker(new Request(input, init)));
+      vi.stubGlobal('fetch', fetchMock);
+      const ready = waitForLocalEdgeWorker(url, origin, runningChild(), {}, handler);
+      await vi.runAllTimersAsync();
+      await ready;
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(
+        fetchMock.mock.calls.every(
+          ([, init]) => init.method === 'GET' && init.headers.origin === origin,
+        ),
+      ).toBe(true);
+      expect(authenticate).not.toHaveBeenCalled();
+      expect(consumeLimit).not.toHaveBeenCalled();
+    },
+  );
 
   it('bounds retries when only a stale worker is available', async () => {
     vi.useFakeTimers();

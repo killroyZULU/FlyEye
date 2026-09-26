@@ -6,6 +6,17 @@ const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mil
 // Gateway preflight responses cannot identify a function worker. The MFA
 // handler rejects GET after checking its exact origin, before any data work.
 export async function waitForMemberMfaWorker(url, origin, child, authHeaders) {
+  return waitForLocalEdgeWorker(url, origin, child, authHeaders, 'member_mfa');
+}
+
+export async function waitForLocalEdgeWorker(url, origin, child, authHeaders, handler) {
+  if (
+    !['member_mfa', 'member_administration', 'aircraft_registry', 'aircraft_documents'].includes(
+      handler,
+    )
+  ) {
+    throw new Error('Unsupported local Edge readiness handler.');
+  }
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname)) {
     throw new Error('Local Edge readiness requires a loopback URL.');
   }
@@ -21,7 +32,7 @@ export async function waitForMemberMfaWorker(url, origin, child, authHeaders) {
       });
       if (
         response.status === 405 &&
-        (await response.json())?.error?.code === 'member_mfa.method_not_allowed'
+        (await response.json())?.error?.code === `${handler}.method_not_allowed`
       ) {
         return;
       }

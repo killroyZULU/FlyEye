@@ -9,6 +9,10 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-005');
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -20,7 +24,7 @@ const local = JSON.parse(status.stdout);
 const apiUrl = local.API_URL;
 const publishableKey = local.PUBLISHABLE_KEY ?? local.ANON_KEY;
 const serviceRoleKey = local.SERVICE_ROLE_KEY;
-const origin = 'http://127.0.0.1:5173';
+const origin = `https://${randomUUID()}.localhost`;
 if (!['127.0.0.1', 'localhost', '::1'].includes(new URL(apiUrl).hostname)) {
   throw new Error('FEAT-005 runtime evidence is restricted to the local synthetic stack.');
 }
@@ -140,64 +144,22 @@ async function signInAal2(identity) {
 }
 
 async function invoke(token, body) {
-  const response = await fetchLocalEdge(`${apiUrl}/functions/v1/member-administration`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      origin,
+  const response = await fetchLocalEdge(
+    `${apiUrl}/functions/v1/member-administration`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const payload = await response.json();
-  return { response, payload };
-}
-
-async function waitForEdge() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    try {
-      const response = await fetch(`${apiUrl}/functions/v1/member-administration`, {
-        method: 'POST',
-        headers: {
-          apikey: publishableKey,
-          authorization: `Bearer ${serviceRoleKey}`,
-          'content-type': 'application/json',
-          origin,
-        },
-        body: '{}',
-        signal: AbortSignal.timeout(1_000),
-      });
-      if ([400, 401, 403, 405, 422].includes(response.status)) return;
-    } catch {
-      // The bounded local worker is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('The FEAT-005 Edge worker did not become ready.');
-}
-
-async function stopEdge() {
-  if (!edgeProcess || edgeProcess.exitCode !== null) return;
-  const stopped = new Promise((resolve) => {
-    const timeout = setTimeout(resolve, 5_000);
-    const finish = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-    edgeProcess.once('exit', finish);
-    edgeProcess.once('error', finish);
-  });
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(edgeProcess.pid), '/t', '/f'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-  } else {
-    edgeProcess.kill('SIGTERM');
-  }
-  await stopped;
+    diagnostics.retry,
+  );
+  return diagnostics.readResponse(response);
 }
 
 async function cleanup() {
@@ -205,85 +167,95 @@ async function cleanup() {
   const limiterValues = [...limiterKeys].map((value) => `'${value}'`).join(',');
   try {
     try {
-      await stopEdge();
+      await diagnostics.run('cleanup-edge-shutdown', () => stopLocalEdge(edgeProcess));
     } catch (error) {
       failures.push(error);
     }
     if (adminRoleNeedsRestoration) {
       try {
-        psql("update public.roles set is_active = true where code = 'admin';");
-        adminRoleNeedsRestoration = false;
+        await diagnostics.run('cleanup-role-restoration', async () => {
+          psql("update public.roles set is_active = true where code = 'admin';");
+          adminRoleNeedsRestoration = false;
+        });
       } catch (error) {
         failures.push(error);
       }
     }
     try {
-      psql(`
-        begin;
-        delete from public.member_administration_events
-        where organization_id = '${organizationA}'::uuid
-           or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
-        delete from public.member_administration_rate_limit_events
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.member_administration_rate_limit_state
-        ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
-        delete from public.authentication_events
-        where actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
-        delete from public.organization_member_profiles
-        where organization_id = '${organizationA}'::uuid;
-        delete from public.membership_roles
-        where organization_id = '${organizationA}'::uuid;
-        delete from public.organization_memberships
-        where organization_id = '${organizationA}'::uuid;
-        delete from public.aircraft_document_categories
-        where organization_id = '${organizationA}'::uuid;
-        delete from public.organizations
-        where id = '${organizationA}'::uuid;
-        commit;
-      `);
+      await diagnostics.run('cleanup-domain-rows', async () => {
+        psql(`
+          begin;
+          delete from public.member_administration_events
+          where organization_id = '${organizationA}'::uuid
+             or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
+          delete from public.member_administration_rate_limit_events
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.member_administration_rate_limit_state
+          ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'};
+          delete from public.authentication_events
+          where actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid);
+          delete from public.organization_member_profiles
+          where organization_id = '${organizationA}'::uuid;
+          delete from public.membership_roles
+          where organization_id = '${organizationA}'::uuid;
+          delete from public.organization_memberships
+          where organization_id = '${organizationA}'::uuid;
+          delete from public.aircraft_document_categories
+          where organization_id = '${organizationA}'::uuid;
+          delete from public.organizations
+          where id = '${organizationA}'::uuid;
+          commit;
+        `);
+      });
     } catch (error) {
       failures.push(error);
     }
     for (const identity of [adminA, adminTwo, member]) {
       try {
-        const { error } = await server.auth.admin.deleteUser(identity.id);
-        if (error && error.status !== 404) {
-          throw new Error(`Synthetic FEAT-005 Auth cleanup failed for ${identity.id}.`);
-        }
+        await diagnostics.run('cleanup-auth-users', async () => {
+          const { error } = await server.auth.admin.deleteUser(identity.id);
+          if (error && error.status !== 404) {
+            throw new Error(`Synthetic FEAT-005 Auth cleanup failed for ${identity.id}.`);
+          }
+        });
       } catch (error) {
         failures.push(error);
       }
     }
     try {
-      const residue = psql(`
-        select
-          (select count(*) from public.organizations where id = '${organizationA}'::uuid)
-          + (select count(*) from public.organization_memberships where id in (
-              '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
-              '${memberMembershipA}'::uuid
-            ))
-          + (select count(*) from public.organization_member_profiles where membership_id in (
-              '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
-              '${memberMembershipA}'::uuid
-            ))
-          + (select count(*) from public.member_administration_events
-             where organization_id = '${organizationA}'::uuid
-                or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid))
-          + (select count(*) from public.member_administration_rate_limit_events
-             ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-          + (select count(*) from public.member_administration_rate_limit_state
-             ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
-          + (select count(*) from auth.users
-             where id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid));
-      `);
-      assert.equal(residue, '0');
+      await diagnostics.run('cleanup-assertions', async () => {
+        const residue = psql(`
+          select
+            (select count(*) from public.organizations where id = '${organizationA}'::uuid)
+            + (select count(*) from public.organization_memberships where id in (
+                '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
+                '${memberMembershipA}'::uuid
+              ))
+            + (select count(*) from public.organization_member_profiles where membership_id in (
+                '${adminMembership}'::uuid, '${adminTwoMembership}'::uuid,
+                '${memberMembershipA}'::uuid
+              ))
+            + (select count(*) from public.member_administration_events
+               where organization_id = '${organizationA}'::uuid
+                  or actor_user_id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid))
+            + (select count(*) from public.member_administration_rate_limit_events
+               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+            + (select count(*) from public.member_administration_rate_limit_state
+               ${limiterValues ? `where limiter_key_hash in (${limiterValues})` : 'where false'})
+            + (select count(*) from auth.users
+               where id in ('${adminA.id}'::uuid, '${adminTwo.id}'::uuid, '${member.id}'::uuid));
+        `);
+        assert.equal(residue, '0');
+      });
     } catch (error) {
       failures.push(error);
     }
   } finally {
     if (temporaryDirectory) {
       try {
-        rmSync(temporaryDirectory, { recursive: true, force: true });
+        await diagnostics.run('cleanup-temporary-files', async () => {
+          rmSync(temporaryDirectory, { recursive: true, force: true });
+        });
       } catch (error) {
         failures.push(error);
       }
@@ -295,6 +267,7 @@ async function cleanup() {
 }
 
 try {
+  diagnostics.enter('identity-creation');
   for (const identity of [adminA, adminTwo, member]) {
     const { error } = await server.auth.admin.createUser({
       id: identity.id,
@@ -305,6 +278,7 @@ try {
     if (error) throw new Error('Synthetic FEAT-005 Auth fixture creation failed.');
   }
 
+  diagnostics.enter('database-fixture');
   psql(`
     begin;
     insert into public.organizations (id, name, status) values
@@ -326,6 +300,7 @@ try {
     commit;
   `);
 
+  diagnostics.enter('authentication');
   const adminSession = await signInAal2(adminA);
   const adminTwoSession = await signInAal2(adminTwo);
   const memberClient = browserClient();
@@ -334,6 +309,7 @@ try {
   if (memberSignInError || !memberSignIn.session)
     throw new Error('Synthetic member sign-in failed.');
 
+  diagnostics.enter('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat005-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -361,10 +337,25 @@ try {
   edgeProcess = spawn(
     process.execPath,
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
-    { cwd: process.cwd(), windowsHide: true, stdio: 'ignore' },
+    {
+      cwd: process.cwd(),
+      windowsHide: true,
+      stdio: 'ignore',
+      detached: process.platform !== 'win32',
+    },
   );
-  await waitForEdge();
+  await waitForLocalEdgeWorker(
+    `${apiUrl}/functions/v1/member-administration`,
+    origin,
+    edgeProcess,
+    {
+      apikey: publishableKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    'member_administration',
+  );
 
+  diagnostics.enter('privileged-aal1');
   const adminAal1Client = browserClient();
   const { data: adminAal1, error: adminAal1Error } = await adminAal1Client.auth.signInWithPassword({
     email: adminA.email,
@@ -379,6 +370,7 @@ try {
   });
   assert.equal(privilegedProfileAtAal1.response.status, 403);
 
+  diagnostics.enter('inactive-role');
   psql("update public.roles set is_active = false where code = 'admin';");
   adminRoleNeedsRestoration = true;
   try {
@@ -394,6 +386,7 @@ try {
   }
 
   trackLimit(member.id, 'get_profile', memberMembershipA);
+  diagnostics.enter('initial-profile');
   const initialProfile = await invoke(memberSignIn.session.access_token, {
     action: 'get_profile',
     membershipId: memberMembershipA,
@@ -402,6 +395,7 @@ try {
   assert.equal(initialProfile.payload.profile.complete, false);
 
   trackLimit(member.id, 'update_profile', memberMembershipA);
+  diagnostics.enter('profile-update');
   const updatedProfile = await invoke(memberSignIn.session.access_token, {
     action: 'update_profile',
     membershipId: memberMembershipA,
@@ -422,6 +416,7 @@ try {
   );
 
   trackLimit(member.id, 'get_profile', member.id);
+  diagnostics.enter('profile-concealment');
   const crossProfile = await invoke(memberSignIn.session.access_token, {
     action: 'get_profile',
     membershipId: adminMembership,
@@ -429,6 +424,7 @@ try {
   assert.equal(crossProfile.response.status, 404);
 
   trackLimit(adminA.id, 'list', organizationA);
+  diagnostics.enter('directory-list');
   const listed = await invoke(adminSession.session.access_token, {
     action: 'list',
     organizationId: organizationA,
@@ -439,6 +435,7 @@ try {
   assert.equal(listed.payload.members[0].membershipId, memberMembershipA);
 
   trackLimit(adminA.id, 'detail', organizationA);
+  diagnostics.enter('directory-detail');
   const detail = await invoke(adminSession.session.access_token, {
     action: 'detail',
     organizationId: organizationA,
@@ -457,6 +454,7 @@ try {
   );
 
   trackLimit(adminA.id, 'list', adminA.id);
+  diagnostics.enter('forged-school');
   const forgedSchool = await invoke(adminSession.session.access_token, {
     action: 'list',
     organizationId: organizationB,
@@ -464,18 +462,21 @@ try {
   assert.equal(forgedSchool.response.status, 404);
 
   trackLimit(member.id, 'list', member.id);
+  diagnostics.enter('aal1-directory');
   const aal1Directory = await invoke(memberSignIn.session.access_token, {
     action: 'list',
     organizationId: organizationA,
   });
   assert.equal(aal1Directory.response.status, 403);
 
+  diagnostics.enter('direct-data-denial');
   const { error: directProfileReadError } = await memberClient
     .from('organization_member_profiles')
     .select('*');
   assert.ok(directProfileReadError);
 
   trackLimit(adminA.id, 'suspend', organizationA);
+  diagnostics.enter('suspension');
   const suspension = await invoke(adminSession.session.access_token, {
     action: 'suspend',
     organizationId: organizationA,
@@ -488,6 +489,7 @@ try {
   assert.equal(suspension.payload.status, 'suspended');
 
   trackLimit(member.id, 'get_profile', member.id);
+  diagnostics.enter('suspended-access');
   const suspendedAccess = await invoke(memberSignIn.session.access_token, {
     action: 'get_profile',
     membershipId: memberMembershipA,
@@ -495,6 +497,7 @@ try {
   assert.equal(suspendedAccess.response.status, 404);
 
   trackLimit(adminTwo.id, 'reactivate', organizationA);
+  diagnostics.enter('reactivation');
   const reactivation = await invoke(adminTwoSession.session.access_token, {
     action: 'reactivate',
     organizationId: organizationA,
@@ -508,6 +511,7 @@ try {
 
   trackLimit(adminA.id, 'revoke', organizationA);
   const revokeKey = randomBytes(16).toString('hex');
+  diagnostics.enter('revocation');
   const revocation = await invoke(adminSession.session.access_token, {
     action: 'revoke',
     organizationId: organizationA,
@@ -528,6 +532,7 @@ try {
     '1:true',
   );
   await new Promise((resolve) => setTimeout(resolve, 11_000));
+  diagnostics.enter('revocation-replay');
   const replay = await invoke(adminSession.session.access_token, {
     action: 'revoke',
     organizationId: organizationA,
@@ -543,6 +548,7 @@ try {
 
   trackLimit(adminA.id, 'suspend', organizationA);
   trackLimit(adminTwo.id, 'suspend', organizationA);
+  diagnostics.enter('concurrent-admin-status');
   const concurrent = await Promise.all([
     invoke(adminSession.session.access_token, {
       action: 'suspend',
@@ -575,6 +581,7 @@ try {
     '1',
   );
 
+  diagnostics.enter('audit-privacy');
   assert.equal(
     psql(`
       select count(*) from public.member_administration_events
@@ -586,9 +593,13 @@ try {
     ),
   );
 
-  process.stdout.write(
-    'Local FEAT-005 Auth, TOTP, Edge, profile, school-boundary, status, concurrency, audit, and cleanup checks passed.\n',
-  );
+  diagnostics.pass();
+} catch (error) {
+  diagnostics.fail(error);
+  throw error;
 } finally {
-  await cleanup();
+  await diagnostics.run('fixture-cleanup', cleanup);
 }
+process.stdout.write(
+  'Local FEAT-005 Auth, TOTP, Edge, profile, school-boundary, status, concurrency, audit, and cleanup checks passed.\n',
+);
