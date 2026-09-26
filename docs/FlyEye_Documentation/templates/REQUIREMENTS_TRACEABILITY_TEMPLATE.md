@@ -8,13 +8,22 @@
 - Pull request and CI:
 - Known limitations:
 
-Do not repeat the feature specification or global project rules. Link to requirement, decision, test, pull-request, CI, or evidence identifiers.
+Do not repeat the feature specification or global project rules. Follow
+[navigable evidence](../DOCUMENTATION_STANDARD.md#navigable-evidence): link IDs
+to their definitions, exact test locators or immutable historical records.
 
 ## Requirements and results
 
-| Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
-|---|---|---|---|---|
-| | | | Pass / Fail / Pending | |
+| Requirement/AC ID | Design or control | Test/evidence ID | Result                | Limitation or later gate |
+| ----------------- | ----------------- | ---------------- | --------------------- | ------------------------ |
+|                   |                   |                  | Pass / Fail / Pending |                          |
+
+## Evidence map
+
+Use only when a table link needs additional locators or scope. Give each referenced
+ID an ATX heading, a linked file plus exact test/suite/function/assertion locator,
+and any uncovered scope. Link historical results separately with their original
+target and run; source inspection alone is not execution evidence.
 
 ## Evidence rules
 
