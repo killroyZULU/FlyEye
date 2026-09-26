@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -9,11 +9,20 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+import {
+  cleanupInvitationRuntime,
+  cleanInvitationMail,
+} from './lib/invitation-runtime-cleanup.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-004');
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
   windowsHide: true,
+  timeout: 30_000,
 });
 if (status.status !== 0) throw new Error('The local Supabase stack is not running.');
 const local = JSON.parse(status.stdout);
@@ -47,6 +56,9 @@ let temporaryDirectory;
 
 const server = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  global: {
+    fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(30_000) }),
+  },
 });
 
 function psql(sql) {
@@ -65,7 +77,7 @@ function psql(sql) {
       '-v',
       'ON_ERROR_STOP=1',
     ],
-    { input: sql, encoding: 'utf8', windowsHide: true },
+    { input: sql, encoding: 'utf8', windowsHide: true, timeout: 30_000 },
   );
   if (result.status !== 0) throw new Error('The synthetic database fixture failed.');
   return result.stdout.trim();
@@ -112,48 +124,31 @@ function limiterHash(subjectId, action, scopeId) {
 }
 
 async function invoke(token, body) {
-  const response = await fetchLocalEdge(`${apiUrl}/functions/v1/member-invitations`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      origin,
+  const response = await fetchLocalEdge(
+    `${apiUrl}/functions/v1/member-invitations`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const payload = await response.json();
+    diagnostics.retry,
+  );
+  const { payload } = await diagnostics.readResponse(response);
   if (typeof payload?.correlationId === 'string') correlations.add(payload.correlationId);
   return { response, payload };
 }
 
-async function waitForEdge() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    try {
-      const response = await fetch(`${apiUrl}/functions/v1/member-invitations`, {
-        method: 'POST',
-        headers: {
-          apikey: publishableKey,
-          authorization: `Bearer ${serviceRoleKey}`,
-          'content-type': 'application/json',
-          origin,
-        },
-        body: '{}',
-        signal: AbortSignal.timeout(1_000),
-      });
-      if ([400, 401, 403, 405, 422].includes(response.status)) return;
-    } catch {
-      // The bounded local worker is still starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('The FEAT-004 Edge worker did not become ready.');
-}
-
 async function waitForInvitationMail(recipient) {
   for (let attempt = 0; attempt < 80; attempt += 1) {
-    const listResponse = await fetch(`${mailpitUrl}/api/v1/messages`);
+    const listResponse = await fetch(`${mailpitUrl}/api/v1/messages`, {
+      signal: AbortSignal.timeout(5_000),
+    });
     assert.equal(listResponse.status, 200);
     const list = await listResponse.json();
     const summary = (list.messages ?? []).find((message) => {
@@ -164,7 +159,9 @@ async function waitForInvitationMail(recipient) {
     });
     if (summary) {
       const id = summary.ID ?? summary.Id ?? summary.id;
-      const messageResponse = await fetch(`${mailpitUrl}/api/v1/message/${id}`);
+      const messageResponse = await fetch(`${mailpitUrl}/api/v1/message/${id}`, {
+        signal: AbortSignal.timeout(5_000),
+      });
       assert.equal(messageResponse.status, 200);
       return messageResponse.json();
     }
@@ -184,70 +181,32 @@ function confirmationUrl(message) {
   return candidate;
 }
 
-async function stopEdge() {
-  if (!edgeProcess || edgeProcess.exitCode !== null) return;
-  const stopped = new Promise((resolve) => {
-    const timeout = setTimeout(resolve, 5_000);
-    const finish = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-    edgeProcess.once('exit', finish);
-    edgeProcess.once('error', finish);
-  });
-  if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(edgeProcess.pid), '/t', '/f'], {
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-  } else {
-    edgeProcess.kill('SIGTERM');
-  }
-  await stopped;
-}
-
 async function cleanup() {
-  await stopEdge();
-  const correlationValues = [...correlations].map((value) => `'${value}'::uuid`).join(',');
-  const limiterValues = [...limiterKeys].map((value) => `'${value}'`).join(',');
-  psql(`
-    begin;
-    delete from public.member_invitation_events
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.organization_invitations
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.organization_member_profiles
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.membership_roles
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.organization_memberships
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.aircraft_document_categories
-    where organization_id = '${organizationA}'::uuid;
-    delete from public.organizations where id = '${organizationA}'::uuid;
-    ${correlationValues ? `delete from public.member_invitation_rate_limit_events where correlation_id in (${correlationValues});` : ''}
-    ${limiterValues ? `delete from public.member_invitation_rate_limit_state where limiter_key_hash in (${limiterValues});` : ''}
-    commit;
-  `);
-  const { data: syntheticUsers } = await server.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  for (const user of syntheticUsers?.users ?? []) {
-    if (
-      user.id === recipientId ||
-      /^invite-(?:recipient|existing)-[0-9a-f]{12}@example\.test$/.test(user.email ?? '')
-    ) {
-      await server.auth.admin.deleteUser(user.id);
-    }
-  }
-  await server.auth.admin.deleteUser(admin.id);
-  try {
-    await fetch(`${mailpitUrl}/api/v1/messages`, { method: 'DELETE' });
-  } catch {
-    // Public database and Auth cleanup remain authoritative for fixture residue.
-  }
-  if (temporaryDirectory) rmSync(temporaryDirectory, { recursive: true, force: true });
+  await cleanupInvitationRuntime({
+    diagnostics,
+    psql,
+    deleteUser: (id) => server.auth.admin.deleteUser(id),
+    stopEdge: () => stopLocalEdge(edgeProcess),
+    removeTemporaryFiles: async () => {
+      if (!temporaryDirectory) return;
+      const resolved = path.resolve(temporaryDirectory);
+      assert.equal(path.dirname(resolved), path.resolve(tmpdir()));
+      assert.ok(path.basename(resolved).startsWith('flyeye-feat004-'));
+      rmSync(resolved, { recursive: true, force: true });
+      assert.equal(existsSync(resolved), false);
+    },
+    cleanMail: (emails) => cleanInvitationMail(mailpitUrl, emails),
+    organizationId: organizationA,
+    identities: [admin, existing],
+    recipientEmail,
+    recipientId,
+    limiterKeys,
+    correlations,
+  });
 }
 
 try {
+  diagnostics.enter('identity-creation');
   const { error: adminError } = await server.auth.admin.createUser({
     id: admin.id,
     email: admin.email,
@@ -262,6 +221,7 @@ try {
     email_confirm: true,
   });
   if (existingError) throw existingError;
+  diagnostics.enter('database-fixture');
   psql(`
     begin;
     insert into public.organizations (id, name, status)
@@ -277,17 +237,20 @@ try {
     commit;
   `);
 
+  diagnostics.enter('authentication');
   const adminClient = browserClient();
   const { data: signIn, error: signInError } = await adminClient.auth.signInWithPassword({
     email: admin.email,
     password,
   });
   if (signInError || !signIn.session) throw new Error('Synthetic admin sign-in failed.');
+  diagnostics.enter('totp-enroll');
   const { data: enrollment, error: enrollmentError } = await adminClient.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: `FlyEye FEAT-004 ${runId}`,
   });
   if (enrollmentError) throw new Error('Synthetic admin TOTP enrollment failed.');
+  diagnostics.enter('totp-verify');
   const { error: verificationError } = await adminClient.auth.mfa.challengeAndVerify({
     factorId: enrollment.id,
     code: currentTotp(enrollment.totp.secret),
@@ -296,6 +259,7 @@ try {
   const { data: aal2Data } = await adminClient.auth.getSession();
   assert.ok(aal2Data.session);
 
+  diagnostics.enter('edge-runtime-startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat004-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
@@ -325,12 +289,20 @@ try {
     [cliPath, 'functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
     {
       cwd: process.cwd(),
+      detached: process.platform !== 'win32',
       windowsHide: true,
       stdio: 'ignore',
     },
   );
-  await waitForEdge();
+  await waitForLocalEdgeWorker(
+    `${apiUrl}/functions/v1/member-invitations`,
+    origin,
+    edgeProcess,
+    { apikey: publishableKey, authorization: `Bearer ${serviceRoleKey}` },
+    'member_invitation',
+  );
 
+  diagnostics.enter('invitation-list');
   limiterKeys.add(limiterHash(admin.id, 'list', organizationA));
   const initialList = await invoke(aal2Data.session.access_token, {
     action: 'list',
@@ -340,6 +312,7 @@ try {
   assert.equal(initialList.payload.roles.length, 3);
   assert.equal(initialList.payload.invitations.length, 0);
 
+  diagnostics.enter('new-invitation-create');
   limiterKeys.add(limiterHash(admin.id, 'create', organizationA));
   const created = await invoke(aal2Data.session.access_token, {
     action: 'create',
@@ -352,6 +325,7 @@ try {
   assert.equal(created.payload.decision, 'pending');
   invitationId = created.payload.invitationId;
 
+  diagnostics.enter('new-invitation-readback');
   const listed = await invoke(aal2Data.session.access_token, {
     action: 'list',
     organizationId: organizationA,
@@ -361,7 +335,9 @@ try {
   assert.equal(invitation.status, 'pending');
   assert.equal(invitation.email, recipientEmail);
 
+  diagnostics.enter('new-recipient-mail');
   const message = await waitForInvitationMail(recipientEmail);
+  diagnostics.enter('new-recipient-verification');
   const verification = await fetch(confirmationUrl(message), {
     redirect: 'manual',
     signal: AbortSignal.timeout(30_000),
@@ -382,6 +358,7 @@ try {
   if (sessionError || !invitedSession.user)
     throw new Error('Synthetic invite verification failed.');
   recipientId = invitedSession.user.id;
+  diagnostics.enter('new-recipient-prepare');
   limiterKeys.add(limiterHash(recipientId, 'prepare', invitationId));
   const preparedNewIdentity = await invoke(invitedSession.session.access_token, {
     action: 'prepare',
@@ -390,10 +367,12 @@ try {
   });
   assert.equal(preparedNewIdentity.response.status, 200);
   assert.equal(preparedNewIdentity.payload.credentialMode, 'new');
+  diagnostics.enter('new-recipient-password');
   const { error: passwordError } = await recipientClient.auth.updateUser({
     password: recipientPassword,
   });
   if (passwordError) throw new Error('Synthetic invite credential setup failed.');
+  diagnostics.enter('new-recipient-sign-in');
   const { data: recipientSignIn, error: recipientSignInError } =
     await recipientClient.auth.signInWithPassword({
       email: recipientEmail,
@@ -402,6 +381,7 @@ try {
   if (recipientSignInError || !recipientSignIn.session)
     throw new Error('Synthetic recipient password sign-in failed.');
 
+  diagnostics.enter('acceptance-race');
   limiterKeys.add(limiterHash(recipientId, 'accept', invitationId));
   const acceptanceAttempts = await Promise.all(
     Array.from({ length: 2 }, () =>
@@ -418,6 +398,7 @@ try {
     acceptanceAttempts.filter((attempt) => attempt.payload.decision === 'accepted').length,
     1,
   );
+  diagnostics.enter('new-membership-evidence');
   const membershipEvidence = psql(`
     select count(*) from public.organization_memberships membership
     join public.membership_roles membership_role
@@ -430,6 +411,7 @@ try {
   `);
   assert.equal(membershipEvidence.trim(), '1');
 
+  diagnostics.enter('existing-invitation-create');
   const existingCreated = await invoke(aal2Data.session.access_token, {
     action: 'create',
     organizationId: organizationA,
@@ -441,11 +423,13 @@ try {
   assert.equal(existingCreated.payload.decision, 'pending');
   const existingInvitationId = existingCreated.payload.invitationId;
   limiterKeys.add(limiterHash(admin.id, 'create', organizationA));
+  diagnostics.enter('existing-recipient-mail');
   const existingMessage = await waitForInvitationMail(existing.email);
   const existingLink = new URL(confirmationUrl(existingMessage));
   const existingRedirect = new URL(existingLink.searchParams.get('redirect_to'));
   assert.equal(existingRedirect.searchParams.get('invitation'), existingInvitationId);
 
+  diagnostics.enter('existing-recipient-verification');
   const existingClient = browserClient();
   const existingVerification = await fetch(confirmationUrl(existingMessage), {
     redirect: 'manual',
@@ -463,6 +447,7 @@ try {
   if (existingMagicSessionError || !existingMagicSession.session) {
     throw new Error('Synthetic existing-recipient verification failed.');
   }
+  diagnostics.enter('existing-recipient-prepare');
   limiterKeys.add(limiterHash(existing.id, 'prepare', existingInvitationId));
   const preparedExistingIdentity = await invoke(existingMagicSession.session.access_token, {
     action: 'prepare',
@@ -471,6 +456,7 @@ try {
   });
   assert.equal(preparedExistingIdentity.response.status, 200);
   assert.equal(preparedExistingIdentity.payload.credentialMode, 'existing');
+  diagnostics.enter('existing-recipient-sign-in');
   const { data: existingSignIn, error: existingSignInError } =
     await existingClient.auth.signInWithPassword({
       email: existing.email,
@@ -479,6 +465,7 @@ try {
   if (existingSignInError || !existingSignIn.session) {
     throw new Error('Synthetic existing recipient sign-in failed.');
   }
+  diagnostics.enter('existing-recipient-accept');
   limiterKeys.add(limiterHash(existing.id, 'accept', existingInvitationId));
   const existingAccepted = await invoke(existingSignIn.session.access_token, {
     action: 'accept',
@@ -488,6 +475,7 @@ try {
   });
   assert.equal(existingAccepted.response.status, 200);
   assert.equal(existingAccepted.payload.decision, 'accepted');
+  diagnostics.enter('existing-membership-evidence');
   assert.equal(
     psql(`
       select count(*) from public.organization_memberships membership
@@ -502,20 +490,26 @@ try {
     '1',
   );
 
+  diagnostics.enter('forged-school');
   limiterKeys.add(limiterHash(admin.id, 'list', '00000000-0000-0000-0000-000000000000'));
   const forgedSchool = await invoke(aal2Data.session.access_token, {
     action: 'list',
     organizationId: organizationB,
   });
   assert.equal(forgedSchool.response.status, 404);
+  diagnostics.enter('direct-data-denial');
   const { error: directReadError } = await recipientClient
     .from('organization_invitations')
     .select('*');
   assert.ok(directReadError);
 
-  process.stdout.write(
-    'Local FEAT-004 new/existing Auth, TOTP, Edge, Mailpit, explicit acceptance, school-boundary, and cleanup checks passed.\n',
-  );
+  diagnostics.pass();
+} catch (error) {
+  diagnostics.fail(error);
+  throw error;
 } finally {
-  await cleanup();
+  await diagnostics.run('fixture-cleanup', cleanup);
 }
+process.stdout.write(
+  'Local FEAT-004 new/existing Auth, TOTP, Edge, Mailpit, explicit acceptance, school-boundary, and cleanup checks passed.\n',
+);

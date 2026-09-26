@@ -12,7 +12,7 @@ function recorder(feature = 'FEAT-007B', enabled = true) {
 }
 
 describe('sanitized fixture failure evidence', () => {
-  it.each(['FEAT-005', 'FEAT-007', 'FEAT-007B'])(
+  it.each(['FEAT-004', 'FEAT-005', 'FEAT-007', 'FEAT-007B'])(
     'keeps %s scenario failure distinct from cleanup success',
     async (feature) => {
       const { lines, diagnostics } = recorder(feature);
