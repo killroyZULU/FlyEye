@@ -38,6 +38,25 @@ Superseded decision processes remain available through Git history. They are not
 - Password recovery uses a short-lived single-use email link, generic non-enumerating responses, throttling, and session revocation. Administrators never view or assign passwords.
 - A production domain, email identity, provider configuration, and support process are not yet selected.
 
+### Session-control decision gate
+
+Retain the existing browser-managed Supabase sessions for local synthetic
+development. This is not approval of browser token storage for real-data, pilot
+or production use and does not waive the secure-cookie requirement.
+
+Before release approval, the Founder/Product Owner and qualified security reviewer
+must resolve [SESS-01 through SESS-05](08_SECURITY_REQUIREMENTS.md#session-control-applicability):
+the credential storage/transport model and threat controls; inactivity definition
+and session lifetimes; termination events, scope and permitted enforcement delay;
+and any action-specific freshness still unspecified. Record the selected policy,
+verification evidence and unresolved risks. A material architecture change requires
+an accepted ADR; provider/plan/cost decisions follow [Hosting and environments](#hosting-and-environments).
+
+Until then, agents may document gaps and preserve approved behavior during bounded
+refactors. They must not invent timeout values, equate local test passes with
+hosted guarantees, silently waive session controls or implement a replacement
+architecture. Implementation evidence belongs in [session traceability](features/FEAT-001_TRACEABILITY.md#session-control-evidence).
+
 ## Privacy, minors, and test data
 
 - Development, tests, logs, screenshots, demonstrations, and prompts use synthetic data unless a later explicit real-data decision is made.

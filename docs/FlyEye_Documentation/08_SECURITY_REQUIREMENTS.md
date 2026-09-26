@@ -17,9 +17,31 @@ Release-blocking threats include authentication bypass, cross-school data access
 - TOTP/AAL2 mandatory for administrators, instructors, and any privileged, instructional, approval, safety, configuration, export, or access-management authority; student non-privileged portal access may use password-authenticated AAL1
 - Email links/codes limited to mailbox verification and recovery, not privileged MFA; single-use recovery codes, audited factor replacement, supervised recovery, and throttling remain production requirements
 - Login/reset throttling, non-enumerating responses, lockout/risk detection
-- Secure session cookies, CSRF defense, session rotation, inactivity/absolute expiry, revocation
+- Secure session cookies, CSRF defense, session rotation, inactivity/absolute expiry, revocation; apply the explicit boundaries below
 - Reauthentication for exports, role changes, record reopening, sensitive document access, configuration/limit changes, and support elevation
 - Rapid deprovisioning and periodic access review
+
+### Session-control applicability
+
+These requirements remain mandatory. The local synthetic baseline does not establish
+release compliance. [Session decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#session-control-decision-gate)
+own unresolved choices; [session evidence](features/FEAT-001_TRACEABILITY.md#session-control-evidence)
+records implementation observations and limitations. Do not silently replace a
+requirement with current SDK behavior or provider defaults during refactoring.
+
+| Control                               | Requirement and applicability                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESS-01` Storage, transport and CSRF | Resolve the secure-cookie requirement against the browser-managed bearer-token architecture before release approval. Record credential storage, request transport, XSS/token-theft exposure and CSRF defenses for each flow. Cookie attributes and CSRF checks apply wherever cookies authenticate requests; origin checks alone do not establish complete session protection. A different model or exception needs an explicit reviewed decision, and an ADR where architecture changes. |
+| `SESS-02` Rotation                    | Verify refresh-token rotation and reuse/replay behavior against the pinned implementation and intended hosted configuration. Automatic refresh, a new access token, or library defaults alone do not prove the control. Never log tokens to collect evidence.                                                                                                                                                                                                                             |
+| `SESS-03` Expiry                      | Define inactivity, absolute session lifetime, access-token lifetime and server enforcement explicitly. Distinguish user inactivity from background token refresh; an expiring JWT does not necessarily end a refreshable session. Document enforcement delay and test active/idle, sleeping/offline and multiple-tab behavior. Values remain a product/security decision, not an agent-selected constant.                                                                                 |
+| `SESS-04` Revocation                  | Define termination events, session scope, enforcement point and acceptable delay. Verify ordinary logout, password recovery and membership/role changes separately. Distinguish refresh-token invalidation, issued access-token acceptance, server authorization and local UI cleanup. Recovery evidence cannot establish universal immediate logout revocation. Preserve stronger denial requirements already approved in feature contracts.                                             |
+| `SESS-05` Recent authentication       | Preserve `IAM-005/006` and each approved feature's action-specific assurance, authentication method and freshness rules. A current session or AAL2 claim alone does not prove recent authentication. Apply the reauthentication requirement above to new sensitive operations; resolve unspecified freshness before implementation. Existing feature-specific windows are not a global idle or absolute-session policy.                                                                   |
+
+Before an authorized hosted validation, its plan must identify the applicable
+controls, target settings, unresolved tests and required reviewers. Validation may
+supply missing evidence; it is not release approval. Unresolved decisions or failed
+controls block real-data, pilot and production approval. This documentation does
+not authorize a session redesign, hosted setting change or weaker feature contract.
 
 ## 4. Authorization and tenant isolation
 
@@ -112,11 +134,11 @@ Required before pilot: threat model, Supabase configuration and RLS review, SAST
 
 ## 15. Severity and gate
 
-| Severity | Example | Release rule |
-|---|---|---|
-| Critical | Auth bypass, cross-tenant access, RCE, data loss, wrong W&B result | Block |
-| High | Unauthorized change, exposed restricted file, missing audit, exploitable dependency | Block unless eliminated; no routine waiver |
-| Medium | Limited non-critical inconsistency or information leak | Fix or documented owner/time-bound acceptance |
-| Low | Cosmetic/security hardening issue | Backlog with owner |
+| Severity | Example                                                                             | Release rule                                  |
+| -------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| Critical | Auth bypass, cross-tenant access, RCE, data loss, wrong W&B result                  | Block                                         |
+| High     | Unauthorized change, exposed restricted file, missing audit, exploitable dependency | Block unless eliminated; no routine waiver    |
+| Medium   | Limited non-critical inconsistency or information leak                              | Fix or documented owner/time-bound acceptance |
+| Low      | Cosmetic/security hardening issue                                                   | Backlog with owner                            |
 
 See [DevSecOps Guide](10_DEVSECOPS_GUIDE.md), [QA Plan](11_QA_TEST_PLAN.md), and [Production Release Checklist](templates/PRODUCTION_RELEASE_CHECKLIST.md).
