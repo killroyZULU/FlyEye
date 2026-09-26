@@ -42,6 +42,7 @@ export function PasswordRecoveryFlow({
 }: PasswordRecoveryFlowProps) {
   const initialCredential = recoveryCredentialFromUrl(new URL(window.location.href)) ?? undefined;
   const [state, setState] = useState<RecoveryState>(initialCredential ? 'confirmation' : 'invalid');
+  const stateRef = useRef<RecoveryState>(initialCredential ? 'confirmation' : 'invalid');
   const [message, setMessage] = useState<string>();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -54,16 +55,12 @@ export function PasswordRecoveryFlow({
   const operationRef = useRef(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  function beginOperation(): number {
-    operationRef.current += 1;
-    return operationRef.current;
-  }
-
   function operationIsCurrent(operation: number): boolean {
     return operationRef.current === operation;
   }
 
   function moveTo(nextState: RecoveryState) {
+    stateRef.current = nextState;
     setState(nextState);
   }
 
@@ -84,6 +81,7 @@ export function PasswordRecoveryFlow({
   }, [state]);
 
   async function handleVerification() {
+    if (stateRef.current !== 'confirmation') return;
     const tokenHash = tokenHashRef.current;
     if (!tokenHash) {
       moveTo('invalid');
@@ -94,9 +92,9 @@ export function PasswordRecoveryFlow({
       return;
     }
 
-    const operation = beginOperation();
+    const operation = ++operationRef.current;
     setMessage(undefined);
-    setState('verifying');
+    moveTo('verifying');
     try {
       await gateway.verifyRecoveryCredential(tokenHash);
       if (!operationIsCurrent(operation)) return;
@@ -106,7 +104,7 @@ export function PasswordRecoveryFlow({
       if (!operationIsCurrent(operation)) return;
       if (error instanceof AuthGatewayError && error.code === 'network_error') {
         setMessage(error.message);
-        setState('confirmation');
+        moveTo('confirmation');
         return;
       }
       tokenHashRef.current = undefined;
@@ -116,6 +114,7 @@ export function PasswordRecoveryFlow({
 
   async function handlePasswordUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (stateRef.current !== 'password') return;
     const parsed = recoveredPasswordSchema.safeParse({ password, confirmation });
     if (!parsed.success) {
       const nextErrors: { password?: string; confirmation?: string } = {};
@@ -136,10 +135,10 @@ export function PasswordRecoveryFlow({
       return;
     }
 
-    const operation = beginOperation();
+    const operation = ++operationRef.current;
     setFieldErrors({});
     setMessage(undefined);
-    setState('updating');
+    moveTo('updating');
     try {
       await gateway.updateRecoveredPassword(parsed.data.password);
     } catch (error) {
@@ -147,7 +146,7 @@ export function PasswordRecoveryFlow({
       setPassword('');
       setConfirmation('');
       setMessage(safeMessage(error));
-      setState('password');
+      moveTo('password');
       return;
     }
 
@@ -155,7 +154,7 @@ export function PasswordRecoveryFlow({
       if (!operationIsCurrent(operation)) return;
       setPassword('');
       setConfirmation('');
-      setState('revoking');
+      moveTo('revoking');
       await gateway.signOutEverywhere();
       if (!operationIsCurrent(operation)) return;
       moveTo('complete');

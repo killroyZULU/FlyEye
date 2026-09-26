@@ -103,11 +103,11 @@ current requirements or fresh execution results.
 
 ## Automated evidence map
 
-Locators below were inspected at `a3d0df7`; file links track the checked-out
-revision. IDs retain the `FEAT-002-` prefix and identify evidence families, not
-literal runner filters. This source map does not rerun tests, change the historical
-results above, or claim every planned family case is automated. Gaps identified
-here remain follow-up verification work under [#39](https://github.com/killroyZULU/FlyEye/issues/39).
+File links track the checked-out revision; execution results belong to the
+historical boundary above or the bounded evidence below. IDs retain the
+`FEAT-002-` prefix and identify evidence families, not literal runner filters.
+Source navigation does not establish execution or complete planned-family coverage.
+Remaining gaps stay under [#39](https://github.com/killroyZULU/FlyEye/issues/39).
 
 ### FEAT-002-UNIT-01
 
@@ -122,8 +122,11 @@ here remain follow-up verification work under [#39](https://github.com/killroyZU
 `maps revocation_failed and attempts local cleanup when global logout %s`;
 [recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
 `fails closed and clears recovery state after an unexpected post-change revocation failure`.
-These cover terminal failure/local cleanup. Dedicated recovery stale-operation,
-duplicate-submit and Back/refresh assertions were not found in these files.
+The same file's `FEAT-002 recovery transitions` suite covers concurrent dispatch,
+pending update/revocation, verification retry, rejected-password clearing and
+late verification success/failure after remount with the same gateway.
+`finishes required revocation for an issued password update without changing a newer recovery screen`
+preserves post-update cleanup. Browser navigation is mapped under [E2E-02](#feat-002-e2e-02).
 
 ### FEAT-002-UNIT-03
 
@@ -158,8 +161,8 @@ and the terminal-failure test in [UNIT-02](#feat-002-unit-02).
 
 [Recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
 `validates malformed email and blocks offline submission without queueing it`.
-This asserts offline request denial; dedicated offline password-update/retry
-assertions were not found in this suite.
+The transition test `does not queue offline password updates or automatically submit on reconnection`
+also asserts no update while offline or on reconnection, followed by an explicit successful retry.
 
 ### FEAT-002-AUTH-01
 
@@ -233,17 +236,19 @@ old multi-membership fixture is asserted.
 
 ### FEAT-002-E2E-01
 
-[Browser suite](../../../tests/e2e/login.spec.ts),
-`password recovery requires explicit confirmation and fresh sign-in`, uses
-mocked Supabase responses. Real Mailpit/password/replay probes are in
+[Active browser runner](../../../scripts/run-e2e.mjs), `runScenario`'s `recovery`
+branch, uses mocked Supabase responses. Real Mailpit/password/replay probes are in
 [AUTH-01](#feat-002-auth-01), [AUTH-02](#feat-002-auth-02) and
 [AUTH-04](#feat-002-auth-04); these separate checks do not demonstrate one
 provider-backed recovery browser journey.
 
 ### FEAT-002-E2E-02
 
-The same [browser test](../../../tests/e2e/login.spec.ts) checks visible/focused
-headings and URL scrubbing in the configured desktop/mobile projects.
+The same [browser runner](../../../scripts/run-e2e.mjs) checks visible/focused
+headings and URL scrubbing at desktop/mobile viewports.
+[Navigation assertions](../../../scripts/lib/recovery-browser-navigation.mjs),
+`checkUnverifiedRecoveryNavigation` and `checkCompletedRecoveryNavigation`,
+cover reload/Back with no recovered credential, completed UI or automatic mutation.
 [COMP-01](#feat-002-comp-01) and [COMP-02](#feat-002-comp-02) supply bounded
 failure, offline and focus assertions; [EVID-10](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L49) records the
 human walkthrough and its exclusions. Formal accessibility acceptance remains open.
@@ -274,6 +279,27 @@ current scanner rules do not prove historical coverage or detect every sensitive
 Original result: [EVID-09](https://github.com/killroyZULU/FlyEye/blob/b2ee3d786a45cb9ea65842bca3ccd2030ffcbd66/docs/FlyEye_Documentation/features/FEAT-002_TRACEABILITY.md#L48) and
 [recorded CI](#evidence-boundary). These are regression entry points, not a new
 claim that every historical assertion still exists unchanged.
+
+## Recovery transition regression evidence
+
+[FIX-007 / #60](https://github.com/killroyZULU/FlyEye/issues/60) records the reviewed
+target and delivery checks. On 2026-09-26, four new component cases failed against
+`7b6bdeb`: concurrent events invoked request, verification or password-update
+methods twice before disabled controls rendered. Synchronous guards corrected
+these duplicates without changing provider/session policy. The focused recovery,
+contract and gateway group passed 62 tests (17 recovery UI cases, including 10 new
+cases); the active browser runner passed 26 desktop/mobile scenarios, including
+the added navigation assertions. Existing terminal revocation failure remains
+fail-closed. These results cover the FIX-007 worktree based on `7b6bdeb`; final
+publication evidence is linked from #60.
+
+Delayed-result tests establish component-instance isolation and continuation of
+required revocation after an issued password update. They do not establish
+cancellation of provider operations, cross-tab/session-identity races or real
+provider revocation timing. Browser evidence covers normal document navigation
+with synthetic responses; back-forward-cache restoration, real Auth expiry,
+concurrent redemption/resend and the combined real-provider browser journey remain
+unverified. The original result cells above retain their historical scope.
 
 ## Residual evidence limitations
 

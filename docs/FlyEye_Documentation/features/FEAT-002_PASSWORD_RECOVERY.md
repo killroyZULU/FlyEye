@@ -46,13 +46,13 @@ Vendor behavior must be reverified when pinned Auth versions change.
 
 ## Roles and authority
 
-| Action | Authority and record boundary |
-|---|---|
-| Request recovery | Public, rate-limited Auth action; accepts no organization, membership, role, or redirect authority |
-| Verify credential | Possession of the current credential; Auth identity only; no FlyEye organization context |
-| Set password | Updates only the authenticated user's Supabase Auth password |
-| Revoke sessions | Same recovered identity; changes no application or organization record |
-| Review provider evidence | Restricted support/security access under a separately approved procedure |
+| Action                   | Authority and record boundary                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| Request recovery         | Public, rate-limited Auth action; accepts no organization, membership, role, or redirect authority |
+| Verify credential        | Possession of the current credential; Auth identity only; no FlyEye organization context           |
+| Set password             | Updates only the authenticated user's Supabase Auth password                                       |
+| Revoke sessions          | Same recovered identity; changes no application or organization record                             |
+| Review provider evidence | Restricted support/security access under a separately approved procedure                           |
 
 Organization Admin cannot view, choose, assign, or reset a user's password.
 
@@ -109,6 +109,17 @@ Raw provider audit rows are restricted because they include full email and IP fi
 ## Verification contract
 
 Stable test families are `FEAT-002-UNIT-*`, `COMP-*`, `AUTH-*`, `ABUSE-*`, `SEC-*`, `TENANT-*`, `E2E-*`, `CONFIG-*`, `SCAN-*`, and `REG-*`. The traceability record maps acceptance criteria to exact evidence and limitations.
+
+For the recovery UI transition slice (`UNIT-02`, `COMP-01/02/03`, `E2E-02`):
+
+- Dispatch duplicate events before rendering and while a provider response is pending; assert one request, verification or password update and one required revocation.
+- Exercise verification retry, rejected-password clearing, offline/reconnection and terminal revocation outcomes; no operation queues offline or opens a workspace.
+- Resolve and reject delayed verification after remounting with the same gateway; the old result must not replace the newer UI. A successful password update already issued still requires revocation; ignoring UI results does not cancel provider work.
+- Check scrubbed URLs on reload and Back navigation before verification and after completion, with no automatic verification or password resubmission.
+
+Component tests use controlled promises; browser tests use synthetic provider
+responses. They do not replace real Auth token-expiry/concurrent-redemption,
+cross-tab/session-identity, back-forward-cache restoration or hosted evidence.
 
 No new application dependency or schema migration was required. Any future migration or provider dependency requires a specification amendment and the normal dependency/architecture review.
 

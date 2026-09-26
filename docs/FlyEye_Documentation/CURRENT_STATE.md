@@ -42,7 +42,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Guidance audit: Task 1 corrected D01/D02 through [PR #49](https://github.com/killroyZULU/FlyEye/pull/49), merged at `c2f6032` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35966616418). Broader frontend, backend and fixture reviews remain incomplete.
 - Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Guidance: Tasks 1-4 and runtime recovery are integrated through [PR #57](https://github.com/killroyZULU/FlyEye/pull/57) at `a3d0df7` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36216083318); #52/#54/#56 are closed. [Task 5 / #58](https://github.com/killroyZULU/FlyEye/issues/58) links recovery evidence; other features follow incrementally. Session-policy release gates remain. Preserve the occupied local database.
+- Guidance: Tasks 1-5 are integrated through [PR #59](https://github.com/killroyZULU/FlyEye/pull/59) at `7b6bdeb` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36221764259); #58 is closed. [Recovery transitions / #60](https://github.com/killroyZULU/FlyEye/issues/60) tests recovery transitions/navigation. Mapping adoption remains incremental. Session-policy release gates remain. Preserve the occupied local database.
 
 ## Aircraft and dashboard integration
 
