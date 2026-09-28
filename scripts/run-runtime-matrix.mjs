@@ -127,6 +127,7 @@ for (const fixture of fixtures) {
 
   const hasDiagnostics =
     fixture === 'test-feat-003-runtime.mjs' ||
+    fixture === 'test-feat-004-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
     fixture === 'test-feat-006-runtime.mjs' ||
     fixture === 'test-feat-007-runtime.mjs' ||

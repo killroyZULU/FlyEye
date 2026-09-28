@@ -11,9 +11,13 @@ export async function waitForMemberMfaWorker(url, origin, child, authHeaders) {
 
 export async function waitForLocalEdgeWorker(url, origin, child, authHeaders, handler) {
   if (
-    !['member_mfa', 'member_administration', 'aircraft_registry', 'aircraft_documents'].includes(
-      handler,
-    )
+    ![
+      'member_mfa',
+      'member_invitation',
+      'member_administration',
+      'aircraft_registry',
+      'aircraft_documents',
+    ].includes(handler)
   ) {
     throw new Error('Unsupported local Edge readiness handler.');
   }

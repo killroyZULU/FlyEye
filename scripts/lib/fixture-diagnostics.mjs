@@ -15,6 +15,35 @@ const commonStages = [
 ];
 const stages = new Map([
   [
+    'FEAT-004',
+    new Set([
+      ...commonStages,
+      'totp-enroll',
+      'totp-verify',
+      'invitation-list',
+      'new-invitation-create',
+      'new-invitation-readback',
+      'new-recipient-mail',
+      'new-recipient-verification',
+      'new-recipient-prepare',
+      'new-recipient-password',
+      'new-recipient-sign-in',
+      'acceptance-race',
+      'new-membership-evidence',
+      'existing-invitation-create',
+      'existing-recipient-mail',
+      'existing-recipient-verification',
+      'existing-recipient-prepare',
+      'existing-recipient-sign-in',
+      'existing-recipient-accept',
+      'existing-membership-evidence',
+      'forged-school',
+      'direct-data-denial',
+      'cleanup-identity-discovery',
+      'cleanup-mail',
+    ]),
+  ],
+  [
     'FEAT-005',
     new Set([
       ...commonStages,
@@ -155,6 +184,7 @@ function responseDetail(feature, response, payload) {
     return 'proxy-name-resolution';
   }
   const namespace = {
+    'FEAT-004': 'member_invitation',
     'FEAT-005': 'member_administration',
     'FEAT-007': 'aircraft_registry',
     'FEAT-007B': 'aircraft_documents',
