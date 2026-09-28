@@ -116,6 +116,81 @@ const createBody = {
 } as const;
 
 describe('aircraft documents Edge handler', () => {
+  describe.each(['aircraft_list', 'status_list'] as const)(
+    'Student %s password-session boundary',
+    (action) => {
+      const body =
+        action === 'status_list' ? { action, aircraftId } : { action, page: 1, pageSize: 25 };
+      const studentAccess = { ...access, roleCode: 'student_pilot' };
+
+      it.each(['otp', 'recovery', 'magiclink', 'invite', 'totp'])(
+        'denies %s-only sessions before data access and records the denial',
+        async (method) => {
+          const deps = dependencies({
+            authenticate: vi.fn().mockResolvedValue({
+              ...actor,
+              assuranceLevel: 'aal1',
+              authenticationMethods: [method],
+              passwordAuthenticatedAt: null,
+              totpAuthenticatedAt: null,
+            }),
+            resolveContext: vi.fn().mockResolvedValue(studentAccess),
+          });
+          const response = await createAircraftDocumentHandler(deps)(request(body));
+          expect(response.status).toBe(401);
+          expect(await errorCode(response)).toBe('aircraft_documents.unauthenticated');
+          expect(deps.rpc).not.toHaveBeenCalled();
+          expect(deps.consumeLimit).toHaveBeenCalledTimes(1);
+          expect(deps.recordSecurity).toHaveBeenCalledWith({
+            actorUserId: actorId,
+            organizationId,
+            action,
+            outcome: 'denied',
+            reason: 'unauthenticated',
+            correlationId,
+          });
+        },
+      );
+
+      it('accepts older password evidence without adding a freshness window', async () => {
+        const deps = dependencies({
+          authenticate: vi.fn().mockResolvedValue({
+            ...actor,
+            assuranceLevel: 'aal1',
+            authenticationMethods: ['password'],
+            passwordAuthenticatedAt: 1,
+            totpAuthenticatedAt: null,
+          }),
+          resolveContext: vi.fn().mockResolvedValue(studentAccess),
+        });
+        if (action === 'aircraft_list')
+          vi.mocked(deps.rpc).mockResolvedValue({
+            decision: 'listed',
+            aircraft: [],
+            page: 1,
+            pageSize: 25,
+            hasNext: false,
+            correlationId,
+          });
+        const response = await createAircraftDocumentHandler(deps)(request(body));
+        expect(response.status).toBe(200);
+        expect(deps.rpc).toHaveBeenCalledOnce();
+        expect(deps.recordSecurity).not.toHaveBeenCalled();
+      });
+
+      it('fails closed when password-session denial auditing fails', async () => {
+        const deps = dependencies({
+          authenticate: vi.fn().mockResolvedValue({ ...actor, passwordAuthenticatedAt: null }),
+          resolveContext: vi.fn().mockResolvedValue(studentAccess),
+          recordSecurity: vi.fn().mockRejectedValue(new Error('synthetic audit failure')),
+        });
+        const response = await createAircraftDocumentHandler(deps)(request(body));
+        expect(response.status).toBe(503);
+        expect(deps.rpc).not.toHaveBeenCalled();
+      });
+    },
+  );
+
   it('allows a Student AAL1 status-only read and applies general then read limits', async () => {
     const deps = dependencies({
       authenticate: vi.fn().mockResolvedValue({

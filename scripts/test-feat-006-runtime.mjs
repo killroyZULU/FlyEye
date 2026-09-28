@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
+import { recoveryOnlyAccessToken } from './lib/password-session-probe.mjs';
 import { stopLocalEdge, waitForMemberMfaWorker } from './lib/local-edge-lifecycle.mjs';
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
@@ -212,6 +213,35 @@ try {
     apikey: publishableKey,
     authorization: `Bearer ${signedIn.data.session.access_token}`,
   });
+
+  enterStage('password-session-denial');
+  const recoveryToken = await recoveryOnlyAccessToken(admin, apiUrl, publishableKey, email);
+  const denied = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
+    method: 'POST',
+    headers: {
+      apikey: publishableKey,
+      authorization: `Bearer ${recoveryToken}`,
+      'content-type': 'application/json',
+      origin,
+    },
+    body: JSON.stringify({ action: 'status' }),
+  });
+  assert.equal(denied.status, 403);
+  const denial = await denied.json();
+  assert.equal(denial.error?.code, 'member_mfa.recent_authentication_required');
+  assert.match(denial.correlationId, /^[0-9a-f-]{36}$/);
+  limiterCorrelationIds.push(denial.correlationId);
+  assert.equal(
+    psql(
+      `select count(*) from public.authentication_events
+    where actor_user_id = '${userId}'::uuid
+      and correlation_id = '${denial.correlationId}'::uuid
+      and event_name = 'member_mfa.denied' and outcome = 'denied'
+      and reason_code = 'password_authentication_required';`,
+      true,
+    ),
+    '1',
+  );
 
   enterStage('readiness-status');
   const identity = await invoke({ action: 'status' });

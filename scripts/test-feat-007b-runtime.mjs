@@ -7,6 +7,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
+import { recoveryOnlyAccessToken } from './lib/password-session-probe.mjs';
 
 import { reconcileAircraftDocumentStorage } from './lib/aircraft-document-reconciliation.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
@@ -363,6 +364,30 @@ try {
     },
     'aircraft_documents',
   );
+
+  diagnostics.enter('password-session-denial');
+  const recoveryToken = await recoveryOnlyAccessToken(
+    server,
+    apiUrl,
+    publishableKey,
+    student.email,
+  );
+  for (const body of [
+    { action: 'aircraft_list', page: 1, pageSize: 25 },
+    { action: 'status_list', aircraftId },
+  ]) {
+    const denied = await invoke(recoveryToken, body);
+    assert.equal(denied.response.status, 401);
+    assert.equal(denied.payload.error?.code, 'aircraft_documents.unauthenticated');
+    assert.match(denied.payload.correlationId, /^[0-9a-f-]{36}$/);
+    assert.equal(
+      psql(`select count(*) from public.aircraft_document_events
+      where actor_user_id = '${student.id}'::uuid
+        and correlation_id = '${denied.payload.correlationId}'::uuid
+        and outcome = 'denied' and reason_code = 'unauthenticated';`),
+      '1',
+    );
+  }
 
   diagnostics.enter('role-boundary');
   const studentStatus = await invoke(studentSession.session.access_token, {

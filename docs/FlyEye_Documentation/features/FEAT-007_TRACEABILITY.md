@@ -18,16 +18,16 @@ compliance, registration validity, ownership, or dispatch authority.
 
 ## Requirements and results
 
-| Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
-|---|---|---|---|---|
-| `CMP-001`, `AC-01/02/09` | Server-derived sole-school context; Admin-only read/manage permissions; AAL2/TOTP; protected Edge/RPC boundary; no browser grants | `FEAT-007A-EDGE-01`, `SQL-01`, `TENANT-01`, local Auth/Edge runtime | Local app, SQL, and runtime pass | Hosted and qualified workflow validation remain later |
-| `AC-03/04/05` | Three-field identity aggregate; complete pinned Unicode 15.1 C/F map; partial unique Tracked key | `FEAT-007A-UNIT-01`, `SQL-01`, live concurrent-create runtime | Local app, SQL, and runtime pass | No regulatory registration-format claim is made |
-| `AC-06/07/08` | Versioned reversible lifecycle, retained uncertain-retry keys, row locking, and atomic mutation audit | `FEAT-007A-RPC-01`, `RACE-01`, `SEC-01`, runtime replay/conflict/audit checks | Local app, SQL, and runtime pass | Retention and permanent deletion remain excluded |
-| `AC-09/11` | Deny-by-default tables; same-school functions; strict schemas, late-denial audit, and safe errors; no operational fields or actions | `FEAT-007A-SQL-01`, `EDGE-01`, `TENANT-01`, source/diff review | Local app, SQL, and runtime pass | No qualified aviation or production approval |
-| `NFR-004`, `AC-10/14` | Structured responsive rows, semantic forms, focus-managed confirmation, conflict preservation, in-memory-only offline display | `FEAT-007A-COMP-01`; 22 desktop/mobile `E2E-01` scenarios | Local supporting pass | Formal accessibility and 200% reflow review remain later |
-| `AC-12` | Rollback-only SQL plus unconditional runtime teardown with exact zero-residue assertions | `FEAT-007A-SQL-01`, `REG-01`; eight-fixture runtime matrix | Local SQL and runtime pass | Synthetic data only |
-| `AC-13` | Parameterized literal substring search, bounded offset pages, repeated criteria, stable ordering, audited reads | `FEAT-007A-SEARCH-01`, `READ-01`, component and SQL assertions | Local app, SQL, and runtime pass | Representative hosted query-plan evidence remains later |
-| `NFR-008/010`, `AC-15` | General/read/mutation/lifecycle token buckets, HMAC keys, pre-limit replay lookup, fail-closed limiter/audit behavior | Handler/config tests, expanded SQL limiter assertions, local runtime; schema lint and generated-type check | Local app, SQL, runtime, lint, and type checks pass | Hosted telemetry and alert routing remain later |
+| Requirement/AC ID        | Design or control                                                                                                                   | Test/evidence ID                                                                                           | Result                                              | Limitation or later gate                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `CMP-001`, `AC-01/02/09` | Server-derived sole-school context; Admin-only read/manage permissions; AAL2/TOTP; protected Edge/RPC boundary; no browser grants   | `FEAT-007A-EDGE-01`, `SQL-01`, `TENANT-01`, local Auth/Edge runtime                                        | Local app, SQL, and runtime pass                    | Hosted and qualified workflow validation remain later    |
+| `AC-03/04/05`            | Three-field identity aggregate; complete pinned Unicode 15.1 C/F map; partial unique Tracked key                                    | `FEAT-007A-UNIT-01`, `SQL-01`, live concurrent-create runtime                                              | Local app, SQL, and runtime pass                    | No regulatory registration-format claim is made          |
+| `AC-06/07/08`            | Versioned reversible lifecycle, retained uncertain-retry keys, row locking, and atomic mutation audit                               | `FEAT-007A-RPC-01`, `RACE-01`, `SEC-01`, runtime replay/conflict/audit checks                              | Local app, SQL, and runtime pass                    | Retention and permanent deletion remain excluded         |
+| `AC-09/11`               | Deny-by-default tables; same-school functions; strict schemas, late-denial audit, and safe errors; no operational fields or actions | `FEAT-007A-SQL-01`, `EDGE-01`, `TENANT-01`, source/diff review                                             | Local app, SQL, and runtime pass                    | No qualified aviation or production approval             |
+| `NFR-004`, `AC-10/14`    | Structured responsive rows, semantic forms, focus-managed confirmation, conflict preservation, in-memory-only offline display       | `FEAT-007A-COMP-01`; 22 desktop/mobile `E2E-01` scenarios                                                  | Local supporting pass                               | Formal accessibility and 200% reflow review remain later |
+| `AC-12`                  | Rollback-only SQL plus unconditional runtime teardown with exact zero-residue assertions                                            | `FEAT-007A-SQL-01`, `REG-01`; eight-fixture runtime matrix                                                 | Local SQL and runtime pass                          | Synthetic data only                                      |
+| `AC-13`                  | Parameterized literal substring search, bounded offset pages, repeated criteria, stable ordering, audited reads                     | `FEAT-007A-SEARCH-01`, `READ-01`, component and SQL assertions                                             | Local app, SQL, and runtime pass                    | Representative hosted query-plan evidence remains later  |
+| `NFR-008/010`, `AC-15`   | General/read/mutation/lifecycle token buckets, HMAC keys, pre-limit replay lookup, fail-closed limiter/audit behavior               | Handler/config tests, expanded SQL limiter assertions, local runtime; schema lint and generated-type check | Local app, SQL, runtime, lint, and type checks pass | Hosted telemetry and alert routing remain later          |
 
 ## Verification summary
 
@@ -54,10 +54,10 @@ The following CI runs passed Application quality, Local Supabase security, and
 Required quality gate on the final PR heads. These 2026-09-23 results supersede
 pending integration checks; they do not change the historical test counts below.
 
-| Slice | Final PR head | Merge commit | CI evidence |
-|---|---|---|---|
-| Registry | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32), `218b8b8` | `4500ad4` | [35855699099](https://github.com/killroyZULU/FlyEye/actions/runs/35855699099) |
-| Documents | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), `d386258` | `4ec81cb` | [35855985031](https://github.com/killroyZULU/FlyEye/actions/runs/35855985031) |
+| Slice     | Final PR head                                                      | Merge commit | CI evidence                                                                   |
+| --------- | ------------------------------------------------------------------ | ------------ | ----------------------------------------------------------------------------- |
+| Registry  | [PR #32](https://github.com/killroyZULU/FlyEye/pull/32), `218b8b8` | `4500ad4`    | [35855699099](https://github.com/killroyZULU/FlyEye/actions/runs/35855699099) |
+| Documents | [PR #38](https://github.com/killroyZULU/FlyEye/pull/38), `d386258` | `4ec81cb`    | [35855985031](https://github.com/killroyZULU/FlyEye/actions/runs/35855985031) |
 
 The combined dashboard/aircraft verification is recorded in
 [FEAT-008 Traceability](FEAT-008_TRACEABILITY.md#reconciliation-verification).
@@ -71,17 +71,35 @@ The earlier synthetic [CI run 34069500313](https://github.com/killroyZULU/FlyEye
 applies to `1e16af4`; the final integration evidence above covers the reconciled
 registry/specification stack and maintenance from `main` at `813dbd9`.
 
-| Requirement/AC ID | Evidence | Reconciliation result |
-|---|---|---|
-| `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; final PR #38 CI above | Existing behavior retained; final application and database/runtime gates passed |
-| `FEAT-007B-AC-06/11` | `AircraftDocumentsPanel.test.tsx`, invalid-file metadata-only continuation | A009 reproduced before correction; regression passes with one metadata save, null file ID and no upload |
-| `FEAT-007B-AC-08`, `FEAT-007B-JOB-01` | Final stale-job SQL regression | CI exposed mixed fixed/live dates after aircraft reactivation. The regression uses one non-decreasing evaluation date and compares all replacement notification fields before/after the stale job; final PR #38 CI passed |
-| `NFR-008/010`, `FEAT-007B-REG-01` | `local-edge-request.test.mjs`, `runtime-diagnostics.test.mjs`, nine-fixture discovery | Merged loopback-only retries and MFA cleanup retained; fixed aircraft diagnostic labels preserved without forwarding provider payloads. CI exposed omitted seeded-category cleanup in the reconciled MFA fixture; restored the organization-scoped deletion before organization cleanup |
+| Requirement/AC ID                                      | Evidence                                                                                         | Reconciliation result                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FEAT-007B-AC-01`–`AC-05`, `AC-07`–`AC-10`, `AC-12/13` | Existing document domain/handler, SQL/RLS, component and runtime fixtures; final PR #38 CI above | Existing behavior retained; final application and database/runtime gates passed                                                                                                                                                                                                         |
+| `FEAT-007B-AC-06/11`                                   | `AircraftDocumentsPanel.test.tsx`, invalid-file metadata-only continuation                       | A009 reproduced before correction; regression passes with one metadata save, null file ID and no upload                                                                                                                                                                                 |
+| `FEAT-007B-AC-08`, `FEAT-007B-JOB-01`                  | Final stale-job SQL regression                                                                   | CI exposed mixed fixed/live dates after aircraft reactivation. The regression uses one non-decreasing evaluation date and compares all replacement notification fields before/after the stale job; final PR #38 CI passed                                                               |
+| `NFR-008/010`, `FEAT-007B-REG-01`                      | `local-edge-request.test.mjs`, `runtime-diagnostics.test.mjs`, nine-fixture discovery            | Merged loopback-only retries and MFA cleanup retained; fixed aircraft diagnostic labels preserved without forwarding provider payloads. CI exposed omitted seeded-category cleanup in the reconciled MFA fixture; restored the organization-scoped deletion before organization cleanup |
 
 The occupied local database was excluded from reconciliation runtime execution;
 disposable CI supplied SQL/RLS, real Auth/Edge/Storage, cleanup, schema lint and type
 drift evidence. Hosted file trust/scheduling, qualified review, real data,
 deployment and production remain outside this evidence.
+
+## Password-session read boundary
+
+[FIX-009 / #64](https://github.com/killroyZULU/FlyEye/issues/64) applies the
+[ADR-0006 authentication consequence](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md#authentication-consequence)
+to Student `aircraft_list` and `status_list`. The
+[handler suite](../../../supabase/functions/aircraft-documents/handler.test.ts),
+`Student %s password-session boundary`, reproduces the missing check and passes
+method-only denial, older-password acceptance, and denial-audit-failure cases.
+Denials preserve the general limiter and stop before protected data RPCs. Existing
+permission, school-scope, Instructor/Admin AAL2 and mutation controls remain.
+
+The [runtime fixture](../../../scripts/test-feat-007b-runtime.mjs),
+`password-session-denial` stage, adds real local Auth recovery-session rejection
+for both reads and persisted denial-audit assertions. Its execution is delegated
+to disposable CI; the occupied local database is preserved. #64's linked PR owns
+the execution results. This correction does not resolve the separate SQL
+authorization-during-lock-wait hypothesis in audit #39.
 
 ## Evidence rules
 
@@ -106,14 +124,14 @@ deployment and production remain outside this evidence.
   retention/deletion approval, qualified aviation review, deployment, or
   production approval
 
-| Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
-|---|---|---|---|---|
-| `CMP-002`, `AC-01/02/03` | Six seeded categories, explicit custom assignments, required metadata, Philippine date calculation, non-operational configured status | `FEAT-007B-UNIT-01`, `SQL-01`, `JOB-01`, component and runtime status checks | Local unit, SQL, UI, and runtime pass | Regulatory meaning and operational use remain excluded |
-| `AC-04/08/09` | Immutable versions, expected aggregate version, target-independent create replay, atomic audit, idempotent notification lifecycle | `FEAT-007B-RPC-01`, `RACE-01`, `JOB-01`, runtime replay/conflict/renewal | Local SQL, handler, and runtime pass | Hosted scheduling and alert ownership remain later gates |
-| `AC-05/10` | Server-derived role and school context, Student/Instructor status-only projection, Admin AAL2, no browser table grants | `FEAT-007B-EDGE-01`, `TENANT-01`, SQL and real Auth/TOTP runtime | Local SQL and runtime pass | Hosted access review remains later |
-| `AC-06/07/12` | Generated private object keys, signed upload, deterministic magic/size/hash/content validation, clean-only link, recent-password download, exact cleanup | `FEAT-007B-FILE-01`, `REC-01`, handler tests and real local Storage runtime | Local unit, SQL, Storage, download, and cleanup pass | Provider malware scanning and hosted recovery remain disabled |
-| `NFR-004`, `AC-11` | Structured responsive rows, status text/icons, role-scoped actions, retained retry key, explicit stale/offline and safe failure states | `FEAT-007B-COMP-01`, `E2E-01`; desktop/mobile Admin and Student journeys | Local component and browser pass | Formal accessibility review remains later |
-| `AC-13`, `CMP-006` boundary | No dispatch/preflight decision, W&B values, public files, permanent deletion, email, hosted activation, or production path | Source, migration, UI, configuration, and diff review | Local source boundary passes | `CMP-006` remains dependent on a separately approved immutable preflight snapshot |
+| Requirement/AC ID           | Design or control                                                                                                                                        | Test/evidence ID                                                             | Result                                               | Limitation or later gate                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `CMP-002`, `AC-01/02/03`    | Six seeded categories, explicit custom assignments, required metadata, Philippine date calculation, non-operational configured status                    | `FEAT-007B-UNIT-01`, `SQL-01`, `JOB-01`, component and runtime status checks | Local unit, SQL, UI, and runtime pass                | Regulatory meaning and operational use remain excluded                            |
+| `AC-04/08/09`               | Immutable versions, expected aggregate version, target-independent create replay, atomic audit, idempotent notification lifecycle                        | `FEAT-007B-RPC-01`, `RACE-01`, `JOB-01`, runtime replay/conflict/renewal     | Local SQL, handler, and runtime pass                 | Hosted scheduling and alert ownership remain later gates                          |
+| `AC-05/10`                  | Server-derived role and school context, Student/Instructor status-only projection, Admin AAL2, no browser table grants                                   | `FEAT-007B-EDGE-01`, `TENANT-01`, SQL and real Auth/TOTP runtime             | Local SQL and runtime pass                           | Hosted access review remains later                                                |
+| `AC-06/07/12`               | Generated private object keys, signed upload, deterministic magic/size/hash/content validation, clean-only link, recent-password download, exact cleanup | `FEAT-007B-FILE-01`, `REC-01`, handler tests and real local Storage runtime  | Local unit, SQL, Storage, download, and cleanup pass | Provider malware scanning and hosted recovery remain disabled                     |
+| `NFR-004`, `AC-11`          | Structured responsive rows, status text/icons, role-scoped actions, retained retry key, explicit stale/offline and safe failure states                   | `FEAT-007B-COMP-01`, `E2E-01`; desktop/mobile Admin and Student journeys     | Local component and browser pass                     | Formal accessibility review remains later                                         |
+| `AC-13`, `CMP-006` boundary | No dispatch/preflight decision, W&B values, public files, permanent deletion, email, hosted activation, or production path                               | Source, migration, UI, configuration, and diff review                        | Local source boundary passes                         | `CMP-006` remains dependent on a separately approved immutable preflight snapshot |
 
 Slice B adds one local runtime fixture to the regression matrix. The nine-fixture
 matrix passes with real Auth, TOTP, protected Edge reads and mutations, private

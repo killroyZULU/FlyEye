@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
+import { decisionError, headers, json } from './responses.ts';
+
 import {
   classifyCompleteFactorInventory,
+  passwordAuthenticationIsPresent,
   passwordAuthenticationIsRecent,
   type FactorInventoryClassification,
   type VerifiedAuthenticationEvidence,
@@ -124,21 +127,6 @@ export type MemberMfaDependencies = {
 
 class RequestTooLargeError extends Error {}
 
-function headers(origin: string): HeadersInit {
-  return {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Cache-Control': 'no-store',
-    'Content-Type': 'application/json',
-    Vary: 'Origin',
-  };
-}
-
-function json(origin: string, status: number, body: object, extra: HeadersInit = {}): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...headers(origin), ...extra } });
-}
-
 async function readBody(request: Request): Promise<string> {
   if (!request.body) return '';
   const reader = request.body.getReader();
@@ -167,24 +155,6 @@ async function readBody(request: Request): Promise<string> {
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function decisionError(origin: string, decision: string, correlationId: string): Response {
-  const definitions: Record<string, [number, string, string]> = {
-    not_available: [404, 'member_mfa.not_available', 'Member MFA setup is not available.'],
-    conflict: [409, 'member_mfa.state_conflict', 'Authenticator setup needs review.'],
-    recent_authentication_required: [
-      403,
-      'member_mfa.recent_authentication_required',
-      'Sign in with your password again to continue.',
-    ],
-  };
-  const [status, code, message] = definitions[decision] ?? [
-    500,
-    'member_mfa.service_unavailable',
-    'Authenticator setup could not be confirmed.',
-  ];
-  return json(origin, status, { error: { code, message }, correlationId });
 }
 
 async function inventory(
@@ -343,16 +313,19 @@ export function createMemberMfaHandler(dependencies: MemberMfaDependencies) {
     }
 
     if (
-      input.action !== 'status' &&
-      input.action !== 'cancel' &&
-      !passwordAuthenticationIsRecent(actor, nowSeconds())
+      input.action === 'status'
+        ? !passwordAuthenticationIsPresent(actor, nowSeconds())
+        : input.action !== 'cancel' && !passwordAuthenticationIsRecent(actor, nowSeconds())
     ) {
       try {
         await dependencies.recordDenied({
           actorUserId: actor.actorUserId,
           eventName: 'member_mfa.denied',
           correlationId,
-          reasonCode: 'recent_authentication_required',
+          reasonCode:
+            input.action === 'status'
+              ? 'password_authentication_required'
+              : 'recent_authentication_required',
           operationId: 'operationId' in input ? input.operationId : undefined,
         });
       } catch {

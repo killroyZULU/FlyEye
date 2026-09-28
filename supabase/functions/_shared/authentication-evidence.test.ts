@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   authenticationEvidenceFromVerifiedToken,
   classifyCompleteFactorInventory,
+  passwordAuthenticationIsPresent,
   passwordAuthenticationIsRecent,
 } from './authentication-evidence.ts';
 
@@ -39,6 +40,45 @@ function factor(status: 'verified' | 'unverified' = 'verified') {
 }
 
 describe('FEAT-003 verified authentication evidence', () => {
+  it('accepts an older verified password session without implying recent authentication', () => {
+    const evidence = authenticationEvidenceFromVerifiedToken(
+      token(payload([{ method: 'password', timestamp: 1 }])),
+      USER_ID,
+      1_000,
+    );
+    expect(passwordAuthenticationIsPresent(evidence, 1_000)).toBe(true);
+    expect(passwordAuthenticationIsRecent(evidence, 1_000)).toBe(false);
+  });
+
+  it.each(['otp', 'recovery', 'invite', 'magiclink', 'totp'])(
+    'does not treat verified %s evidence as password authentication',
+    (method) => {
+      const evidence = authenticationEvidenceFromVerifiedToken(
+        token(payload([{ method, timestamp: 999 }])),
+        USER_ID,
+        1_000,
+      );
+      expect(passwordAuthenticationIsPresent(evidence, 1_000)).toBe(false);
+    },
+  );
+
+  it.each([null, -1, 1_001, Number.NaN, Infinity, 1.5])(
+    'rejects invalid password timestamp %s even when the method is present',
+    (timestamp) => {
+      const evidence = authenticationEvidenceFromVerifiedToken(
+        token(payload([{ method: 'password', timestamp: 1 }])),
+        USER_ID,
+        1_000,
+      );
+      expect(
+        passwordAuthenticationIsPresent({ ...evidence, passwordAuthenticatedAt: timestamp }, 1_000),
+      ).toBe(false);
+      expect(
+        passwordAuthenticationIsPresent({ ...evidence, authenticationMethods: ['otp'] }, 1_000),
+      ).toBe(false);
+    },
+  );
+
   it('accepts password authentication exactly 600 seconds old and rejects 601 seconds', () => {
     const evidence = authenticationEvidenceFromVerifiedToken(
       token(payload([{ method: 'password', timestamp: 400 }])),
