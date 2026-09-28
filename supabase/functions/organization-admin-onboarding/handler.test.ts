@@ -1,3 +1,4 @@
+import { streamedRequest } from '../../../src/test/request-stream';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
@@ -313,5 +314,63 @@ describe('FEAT-003 organization admin onboarding handler', () => {
     expect(deps.status).not.toHaveBeenCalled();
     expect(deps.start).not.toHaveBeenCalled();
     expect(deps.complete).not.toHaveBeenCalled();
+  });
+});
+
+describe('streaming request-body contract', () => {
+  it('preserves strict UTF-8 rejection before authentication', async () => {
+    const deps = dependencies();
+    const fixture = streamedRequest([new Uint8Array([0x7b, 0x22, 0xff, 0x22, 0x3a, 0x30, 0x7d])], {
+      origin: deps.allowedOrigin,
+      authorization: 'Bearer synthetic-token',
+    });
+    const response = await createAdminOnboardingHandler(deps)(fixture.request);
+    expect(response.status).toBe(400);
+    expect(deps.authenticate).not.toHaveBeenCalled();
+    expect(fixture.cancel).toHaveBeenCalledOnce();
+    expect(fixture.stream.locked).toBe(false);
+  });
+
+  it.each([undefined, '1'])(
+    'stops oversized input with declared length %s before protected work',
+    async (declaredLength) => {
+      const deps = dependencies();
+      const headers = new Headers({
+        origin: deps.allowedOrigin,
+        authorization: 'Bearer synthetic-token',
+      });
+      if (declaredLength !== undefined) headers.set('content-length', declaredLength);
+      const fixture = streamedRequest(
+        [new Uint8Array(4096), new Uint8Array(1), new Uint8Array(10)],
+        headers,
+      );
+      const response = await createAdminOnboardingHandler(deps)(fixture.request);
+      expect(response.status).toBe(413);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: 'admin_onboarding.request_too_large' },
+      });
+      expect(fixture.pull).toHaveBeenCalledTimes(2);
+      expect(fixture.cancel).toHaveBeenCalledOnce();
+      expect(fixture.stream.locked).toBe(false);
+      for (const dependency of Object.values(deps)) {
+        if (vi.isMockFunction(dependency)) expect(dependency).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('accepts an exactly bounded valid body through to authentication', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockRejectedValue(new Error('Synthetic invalid credential')),
+    });
+    const body = '{"action":"status"}'.padEnd(4096, ' ');
+    const fixture = streamedRequest([new TextEncoder().encode(body)], {
+      origin: deps.allowedOrigin,
+      authorization: 'Bearer synthetic-token',
+    });
+    const response = await createAdminOnboardingHandler(deps)(fixture.request);
+    expect(response.status).toBe(401);
+    expect(deps.authenticate).toHaveBeenCalledOnce();
+    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.stream.locked).toBe(false);
   });
 });

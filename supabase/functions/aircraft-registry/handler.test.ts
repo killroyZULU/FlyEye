@@ -1,3 +1,4 @@
+import { streamedRequest } from '../../../src/test/request-stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAircraftRegistryHandler, type AircraftRegistryDependencies } from './handler';
@@ -376,5 +377,53 @@ describe('aircraft registry Edge handler', () => {
       recordSecurity: vi.fn().mockRejectedValue(new Error('synthetic audit failure')),
     });
     expect((await createAircraftRegistryHandler(unavailable)(request(body))).status).toBe(503);
+  });
+});
+
+describe('streaming request-body contract', () => {
+  it.each([undefined, '1'])(
+    'stops oversized input with declared length %s before protected work',
+    async (declaredLength) => {
+      const deps = dependencies();
+      const headers = new Headers({
+        origin: deps.allowedOrigin,
+        authorization: 'Bearer synthetic-token',
+      });
+      if (declaredLength !== undefined) headers.set('content-length', declaredLength);
+      const fixture = streamedRequest(
+        [new Uint8Array(8192), new Uint8Array(1), new Uint8Array(10)],
+        headers,
+      );
+      const response = await createAircraftRegistryHandler(deps)(fixture.request);
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: 'aircraft_registry.validation_failed' },
+      });
+      expect(fixture.pull).toHaveBeenCalledTimes(2);
+      expect(fixture.cancel).toHaveBeenCalledOnce();
+      expect(fixture.stream.locked).toBe(false);
+      for (const dependency of Object.values(deps)) {
+        if (vi.isMockFunction(dependency)) expect(dependency).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('accepts an exactly bounded valid body through to authentication', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockRejectedValue(new Error('Synthetic invalid credential')),
+    });
+    const body = '{"action":"list","includeArchived":false,"page":1,"pageSize":25}'.padEnd(
+      8192,
+      ' ',
+    );
+    const fixture = streamedRequest([new TextEncoder().encode(body)], {
+      origin: deps.allowedOrigin,
+      authorization: 'Bearer synthetic-token',
+    });
+    const response = await createAircraftRegistryHandler(deps)(fixture.request);
+    expect(response.status).toBe(401);
+    expect(deps.authenticate).toHaveBeenCalledOnce();
+    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.stream.locked).toBe(false);
   });
 });

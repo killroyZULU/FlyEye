@@ -1,5 +1,40 @@
 # FEAT-007 Traceability
 
+## Bounded request-body transport
+
+[FIX-010 / #66](https://github.com/killroyZULU/FlyEye/issues/66) records delivery
+disposition for the [shared transport contract](../06_API_SPECIFICATION.md#bounded-request-body-transport).
+The aircraft-document regression fails against `6898682`: absent or understated
+Content-Length allows the previous reader to consume the tail after overflow.
+The corrected reader passes the focused suite, stops at the excess chunk,
+cancels the stream and releases its lock.
+
+- [Shared reader tests](../../../supabase/functions/_shared/request-body.test.ts),
+  suite `bounded request-body reader`: exact byte boundary, split UTF-8,
+  absent/understated/invalid length hints, oversize chunks, decoder modes,
+  source failure, and rejected/non-settling cancellation.
+- Suite `streaming request-body contract` in
+  [auth bootstrap](../../../supabase/functions/auth-bootstrap/handler.test.ts),
+  [admin onboarding](../../../supabase/functions/organization-admin-onboarding/handler.test.ts),
+  [invitations](../../../supabase/functions/member-invitations/handler.test.ts),
+  [member administration](../../../supabase/functions/member-administration/handler.test.ts),
+  [member MFA](../../../supabase/functions/member-mfa/handler.test.ts),
+  [aircraft registry](../../../supabase/functions/aircraft-registry/handler.test.ts),
+  and [aircraft documents](../../../supabase/functions/aircraft-documents/handler.test.ts):
+  exact endpoint limits reach authentication; overflow preserves error contracts
+  and calls no protected dependency.
+- [Aircraft-document transport](../../../supabase/functions/aircraft-documents/transport.test.ts)
+  and [registry transport](../../../supabase/functions/aircraft-registry/transport.test.ts),
+  suites `aircraft-document body transport compatibility` and
+  `aircraft-registry body transport compatibility`: replacement decoding and
+  declared-size fast rejection remain unchanged. The five authentication/member
+  handler suites also verify strict UTF-8 rejection before authentication.
+
+Evidence uses synthetic Web Streams and existing handler doubles. Provider,
+SQL/RLS and runtime evidence comes from the complete disposable CI gate linked
+by #66; the occupied local database is preserved. Request deadlines, hosted
+capacity and operational authority are outside this correction.
+
 ## Slice A historical evidence boundary
 
 - Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; PR #32

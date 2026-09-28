@@ -1,6 +1,11 @@
+import {
+  readBoundedRequestBody,
+  RequestTooLargeError as AircraftRequestTooLargeError,
+} from '../_shared/request-body.ts';
+
 export const MAX_AIRCRAFT_REQUEST_BYTES = 8192;
 
-export class AircraftRequestTooLargeError extends Error {}
+export { AircraftRequestTooLargeError };
 
 export function isAircraftAuditFailure(error: unknown): boolean {
   return error instanceof Error && error.name === 'AircraftAuditError';
@@ -31,19 +36,7 @@ export function aircraftJson(
 export async function readAircraftBody(request: Request): Promise<string> {
   const declaredLength = Number(request.headers.get('content-length') ?? 0);
   if (declaredLength > MAX_AIRCRAFT_REQUEST_BYTES) throw new AircraftRequestTooLargeError();
-  const reader = request.body?.getReader();
-  if (!reader) return '';
-  const decoder = new TextDecoder();
-  let body = '';
-  let length = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    length += value.byteLength;
-    if (length > MAX_AIRCRAFT_REQUEST_BYTES) throw new AircraftRequestTooLargeError();
-    body += decoder.decode(value, { stream: true });
-  }
-  return body + decoder.decode();
+  return readBoundedRequestBody(request, MAX_AIRCRAFT_REQUEST_BYTES, { fatalUtf8: false });
 }
 
 export function aircraftFailure(

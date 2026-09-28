@@ -1,3 +1,5 @@
+import { readBoundedRequestBody } from '../_shared/request-body.ts';
+
 export const MAX_AIRCRAFT_DOCUMENT_REQUEST_BYTES = 16_384;
 
 export function responseHeaders(origin: string): HeadersInit {
@@ -18,9 +20,7 @@ export function json(origin: string, status: number, body: object, extra: Header
 export async function readBody(request: Request): Promise<string> {
   const declared = Number(request.headers.get('content-length') ?? 0);
   if (declared > MAX_AIRCRAFT_DOCUMENT_REQUEST_BYTES) throw new Error('request_too_large');
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  if (bytes.byteLength > MAX_AIRCRAFT_DOCUMENT_REQUEST_BYTES) throw new Error('request_too_large');
-  return new TextDecoder().decode(bytes);
+  return readBoundedRequestBody(request, MAX_AIRCRAFT_DOCUMENT_REQUEST_BYTES, { fatalUtf8: false });
 }
 
 export function failure(

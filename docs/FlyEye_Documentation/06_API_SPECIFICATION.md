@@ -35,16 +35,16 @@ Direct access is a privilege granted per table/action, not the default architect
 
 ## 4. Protected command catalog
 
-| Domain | Candidate Edge Function / RPC |
-|---|---|
-| Membership | `invite-member`, `revoke-invitation`, `change-member-roles`, `suspend-member` |
-| Dispatch | `submit-dispatch`, `start-dispatch-review`, `return-dispatch`, `approve-dispatch`, `reject-dispatch`, `cancel-dispatch`, `complete-dispatch`, `reopen-dispatch` |
-| Weight and balance | `calculate-weight-balance`, `finalize-weight-balance-snapshot` |
-| Assessment | `finalize-assessment`, `reopen-assessment`, `acknowledge-assessment` |
-| Documents | `create-upload-session`, `complete-upload`, `authorize-download`, `generate-dispatch-pdf` |
-| Reports | `request-export`, `get-export-status`, `authorize-export-download` |
-| Integrations | `retrieve-weather`, `retrieve-notams`, `send-notification` |
-| AI | `structure-instructor-comment`, later narrowly scoped assistants |
+| Domain             | Candidate Edge Function / RPC                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Membership         | `invite-member`, `revoke-invitation`, `change-member-roles`, `suspend-member`                                                                                   |
+| Dispatch           | `submit-dispatch`, `start-dispatch-review`, `return-dispatch`, `approve-dispatch`, `reject-dispatch`, `cancel-dispatch`, `complete-dispatch`, `reopen-dispatch` |
+| Weight and balance | `calculate-weight-balance`, `finalize-weight-balance-snapshot`                                                                                                  |
+| Assessment         | `finalize-assessment`, `reopen-assessment`, `acknowledge-assessment`                                                                                            |
+| Documents          | `create-upload-session`, `complete-upload`, `authorize-download`, `generate-dispatch-pdf`                                                                       |
+| Reports            | `request-export`, `get-export-status`, `authorize-export-download`                                                                                              |
+| Integrations       | `retrieve-weather`, `retrieve-notams`, `send-notification`                                                                                                      |
+| AI                 | `structure-instructor-comment`, later narrowly scoped assistants                                                                                                |
 
 Names may change during feature specification; their authority boundaries may not be weakened casually.
 
@@ -140,6 +140,31 @@ Local Supabase Auth quotas are configured in [supabase/config.toml](../../supaba
 Provider quotas, Edge runtime/resource limits, frontend button disabling, and client counters do not replace application abuse controls. Before any custom protected endpoint is exposed in a hosted or real-data environment, its feature contract must define and test server-enforced limits appropriate to the action. Limits should combine the authenticated subject, safely obtained network source where approved, action, organization after authorization, failure pattern, and operation cost without becoming a tenant or account-enumeration channel. Sensitive mutations fail closed when required limiter state is unavailable. Rate-limit responses use safe `429` errors and bounded retry guidance without exposing hidden users, tenants, grants, factors, records, provider internals, or limit state.
 
 Exact thresholds, windows, burst behavior, storage/atomicity, proxy/IP trust, privacy/retention, availability behavior, monitoring, alert ownership, and emergency override require environment-specific specification and review. Local declarations must not be copied to hosted environments without representative abuse, accessibility, cost, and provider evidence.
+
+### Bounded request-body transport
+
+`FIX-010` applies the [Web/API body-limit requirement](08_SECURITY_REQUIREMENTS.md#6-webapi-controls)
+through one [shared Edge reader](../../supabase/functions/_shared/request-body.ts).
+Count actual bytes as chunks arrive, before decoding or retaining their content;
+accept the exact limit and stop at the first chunk that exceeds it. A missing or
+understated `Content-Length` must not bypass this check. Existing aircraft header
+fast-rejection checks remain supplementary.
+
+Preserve current limits: auth bootstrap 2,048 bytes; admin onboarding and member
+MFA 4,096; invitations, member administration and aircraft registry 8,192;
+aircraft documents 16,384. The five authentication/member endpoints reject invalid
+UTF-8; the two aircraft endpoints retain replacement decoding. Split multibyte
+characters must decode correctly. Endpoint schema validation and existing safe
+error status/code mapping remain unchanged.
+
+Release each acquired reader lock on success or failure. Request cancellation
+after overflow, read failure or decoding failure; cancellation rejection or
+non-settlement must not mask or delay the original rejection. Do not read later
+chunks after a failure. This contract bounds application body accumulation, not
+platform chunk allocation or request duration; timeout and hosted abuse controls
+remain separately governed above.
+
+Verification locators are in [transport evidence](features/FEAT-007_TRACEABILITY.md#bounded-request-body-transport).
 
 ## 12. External providers
 

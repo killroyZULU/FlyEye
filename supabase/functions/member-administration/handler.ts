@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { readBoundedRequestBody, RequestTooLargeError } from '../_shared/request-body.ts';
+
 import {
   classifyCompleteFactorInventory,
   passwordAuthenticationIsRecent,
@@ -337,8 +339,6 @@ export type MemberAdministrationDependencies = {
   nowSeconds?: () => number;
 };
 
-class RequestTooLargeError extends Error {}
-
 function headers(origin: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -352,31 +352,6 @@ function headers(origin: string): HeadersInit {
 
 function json(origin: string, status: number, body: object, extra: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...headers(origin), ...extra } });
-}
-
-async function readBody(request: Request): Promise<string> {
-  if (!request.body) return '';
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_REQUEST_BYTES) throw new RequestTooLargeError();
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const combined = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    combined.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8', { fatal: true }).decode(combined);
 }
 
 async function sha256(value: string): Promise<string> {
@@ -521,7 +496,7 @@ export function createMemberAdministrationHandler(
 
     let body: unknown;
     try {
-      body = JSON.parse(await readBody(request));
+      body = JSON.parse(await readBoundedRequestBody(request, MAX_REQUEST_BYTES));
     } catch (error) {
       return json(origin, error instanceof RequestTooLargeError ? 413 : 400, {
         error: {
