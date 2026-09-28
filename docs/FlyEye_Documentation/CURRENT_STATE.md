@@ -39,11 +39,11 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 coverage and findings. Passing automated checks does not complete manual review.
 
 - Maintenance: PRs #41, #43, #45 and #47 delivered tooling, [MFA cleanup](features/FEAT-006_TRACEABILITY.md#runtime-fixture-maintenance), integration checkpoints and secret prevention.
-- Guidance audit: Task 1 corrected D01/D02 through [PR #49](https://github.com/killroyZULU/FlyEye/pull/49), merged at `c2f6032` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35966616418). Broader frontend, backend and fixture reviews remain incomplete.
 - Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. The historical FEAT-004 failure cause remains unknown.
-- Authentication: [FIX-009 / #64](https://github.com/killroyZULU/FlyEye/issues/64) tracks password-session read enforcement; [MFA evidence](features/FEAT-006_TRACEABILITY.md#password-session-read-boundary), [aircraft evidence](features/FEAT-007_TRACEABILITY.md#password-session-read-boundary). Preserve the occupied local database and session-policy gates.
+- Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
+- Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Audit #39 retains the first-attempt invitation HTTP 503 with confirmed cleanup and unknown cause.
+- Transport: [FIX-010 / #66](https://github.com/killroyZULU/FlyEye/issues/66) tracks shared streaming request limits; [contract](06_API_SPECIFICATION.md#bounded-request-body-transport), [evidence](features/FEAT-007_TRACEABILITY.md#bounded-request-body-transport). Preserve the occupied local database and session-policy gates.
 
 ## Aircraft and dashboard integration
 

@@ -1,3 +1,4 @@
+import { streamedRequest } from '../../../src/test/request-stream';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createAircraftDocumentHandler, type AircraftDocumentDependencies } from './handler';
@@ -511,5 +512,50 @@ describe('aircraft documents Edge handler', () => {
       'complete_aircraft_document_file',
       expect.objectContaining({ p_scan_state: 'clean', p_verified_size_bytes: bytes.length }),
     );
+  });
+});
+
+describe('streaming request-body contract', () => {
+  it.each([undefined, '1'])(
+    'stops oversized input with declared length %s before protected work',
+    async (declaredLength) => {
+      const deps = dependencies();
+      const headers = new Headers({
+        origin: deps.allowedOrigin,
+        authorization: 'Bearer synthetic-token',
+      });
+      if (declaredLength !== undefined) headers.set('content-length', declaredLength);
+      const fixture = streamedRequest(
+        [new Uint8Array(16384), new Uint8Array(1), new Uint8Array(10)],
+        headers,
+      );
+      const response = await createAircraftDocumentHandler(deps)(fixture.request);
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: 'aircraft_documents.validation_failed' },
+      });
+      expect(fixture.pull).toHaveBeenCalledTimes(2);
+      expect(fixture.cancel).toHaveBeenCalledOnce();
+      expect(fixture.stream.locked).toBe(false);
+      for (const dependency of Object.values(deps)) {
+        if (vi.isMockFunction(dependency)) expect(dependency).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('accepts an exactly bounded valid body through to authentication', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockRejectedValue(new Error('Synthetic invalid credential')),
+    });
+    const body = '{"action":"aircraft_list","page":1,"pageSize":25}'.padEnd(16384, ' ');
+    const fixture = streamedRequest([new TextEncoder().encode(body)], {
+      origin: deps.allowedOrigin,
+      authorization: 'Bearer synthetic-token',
+    });
+    const response = await createAircraftDocumentHandler(deps)(fixture.request);
+    expect(response.status).toBe(401);
+    expect(deps.authenticate).toHaveBeenCalledOnce();
+    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.stream.locked).toBe(false);
   });
 });

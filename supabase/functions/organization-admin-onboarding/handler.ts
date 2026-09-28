@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { readBoundedRequestBody, RequestTooLargeError } from '../_shared/request-body.ts';
+
 import {
   classifyCompleteFactorInventory,
   passwordAuthenticationIsRecent,
@@ -154,8 +156,6 @@ export type AdminOnboardingDependencies = {
   nowSeconds?: () => number;
 };
 
-class RequestTooLargeError extends Error {}
-
 function responseHeaders(origin: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -177,36 +177,6 @@ function jsonResponse(
     status,
     headers: { ...responseHeaders(origin), ...additionalHeaders },
   });
-}
-
-async function readRequestBody(request: Request): Promise<string> {
-  if (!request.body) return '';
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let bytesRead = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytesRead += value.byteLength;
-      if (bytesRead > MAX_REQUEST_BYTES) {
-        throw new RequestTooLargeError('Request body exceeds the configured byte limit.');
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const bytes = new Uint8Array(bytesRead);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -335,7 +305,7 @@ export function createAdminOnboardingHandler(
 
     let requestBody: unknown;
     try {
-      requestBody = JSON.parse(await readRequestBody(request));
+      requestBody = JSON.parse(await readBoundedRequestBody(request, MAX_REQUEST_BYTES));
     } catch (error) {
       if (error instanceof RequestTooLargeError) {
         return jsonResponse(allowedOrigin, 413, {

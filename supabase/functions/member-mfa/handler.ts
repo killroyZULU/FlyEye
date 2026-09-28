@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { readBoundedRequestBody, RequestTooLargeError } from '../_shared/request-body.ts';
+
 import { decisionError, headers, json } from './responses.ts';
 
 import {
@@ -125,33 +127,6 @@ export type MemberMfaDependencies = {
   nowSeconds?: () => number;
 };
 
-class RequestTooLargeError extends Error {}
-
-async function readBody(request: Request): Promise<string> {
-  if (!request.body) return '';
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_REQUEST_BYTES) throw new RequestTooLargeError();
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-}
-
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -247,7 +222,9 @@ export function createMemberMfaHandler(dependencies: MemberMfaDependencies) {
 
     let input: z.infer<typeof requestSchema>;
     try {
-      const parsed = requestSchema.safeParse(JSON.parse(await readBody(request)));
+      const parsed = requestSchema.safeParse(
+        JSON.parse(await readBoundedRequestBody(request, MAX_REQUEST_BYTES)),
+      );
       if (!parsed.success)
         return json(origin, 422, {
           error: { code: 'member_mfa.validation_failed', message: 'The request is invalid.' },
