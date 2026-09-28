@@ -4,6 +4,7 @@ const feat006Stages = new Set([
   'fixture-setup',
   'edge-startup',
   'password-sign-in',
+  'password-session-denial',
   'readiness-status',
   'enrollment-start',
   'totp-enroll',

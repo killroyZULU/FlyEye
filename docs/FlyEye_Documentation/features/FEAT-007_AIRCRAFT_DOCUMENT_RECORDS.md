@@ -62,15 +62,15 @@ snapshots using qualified workflow sources.
 
 ## Sources, decisions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| Metadata fields, required expiration, optional file, role visibility, and one-file versioning | Founder/Product Owner, 2026-09-01 | Approved |
-| Six seeded categories and custom per-aircraft assignment | Founder/Product Owner, 2026-08-28 and 2026-09-01 | Approved product configuration |
-| Philippine date, seven-day warning, dashboard notification, and versioned renewal | Founder/Product Owner, 2026-08-28 | Approved product behavior |
-| Private file, authority, audit, and isolation controls | SRS `CMP-002`, `REC-001`–`REC-003`; Security Requirements sections 4, 7–9 | Required |
-| Malware scanner/provider and hosted scheduler | Provider, cost, privacy, and security review | Unresolved; hosted activation blocked |
-| Retention and end-of-contract deletion | School controller and qualified privacy/legal reviewer | Unresolved; permanent deletion excluded |
-| Regulatory meaning, preflight effect, and operational authority | Approved school source owner and qualified aviation reviewer | Unresolved; excluded |
+| Item                                                                                          | Source/owner/version                                                      | State                                   |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------- |
+| Metadata fields, required expiration, optional file, role visibility, and one-file versioning | Founder/Product Owner, 2026-09-01                                         | Approved                                |
+| Six seeded categories and custom per-aircraft assignment                                      | Founder/Product Owner, 2026-08-28 and 2026-09-01                          | Approved product configuration          |
+| Philippine date, seven-day warning, dashboard notification, and versioned renewal             | Founder/Product Owner, 2026-08-28                                         | Approved product behavior               |
+| Private file, authority, audit, and isolation controls                                        | SRS `CMP-002`, `REC-001`–`REC-003`; Security Requirements sections 4, 7–9 | Required                                |
+| Malware scanner/provider and hosted scheduler                                                 | Provider, cost, privacy, and security review                              | Unresolved; hosted activation blocked   |
+| Retention and end-of-contract deletion                                                        | School controller and qualified privacy/legal reviewer                    | Unresolved; permanent deletion excluded |
+| Regulatory meaning, preflight effect, and operational authority                               | Approved school source owner and qualified aviation reviewer              | Unresolved; excluded                    |
 
 Requiring `expiration_date` is a FlyEye record rule approved for later form use.
 It is not a claim that every named real-world document has a legally prescribed
@@ -79,15 +79,15 @@ already expired document.
 
 ## Roles and authority
 
-| Action | Permission | Record rule | Execution boundary | Reauthentication |
-|---|---|---|---|---|
-| Read aircraft/category/status/expiry summary | `aircraft.document.status.read` | Active membership; Tracked aircraft; current requirement only | Protected audited read | Student AAL1; Instructor/Admin AAL2 |
-| Read full metadata and version history | `aircraft.document.read` | Active Admin; same organization | Protected audited read | Current AAL2/TOTP |
-| List/open document notifications | `aircraft.document.notification.read` | Active Admin recipient; same organization; bounded current/history pages | Protected audited read | Current AAL2/TOTP |
-| Create, renew, correct, suspend, or restore | `aircraft.document.manage` | Active Admin; Tracked aircraft; active requirement; expected version where applicable | Protected audited command | Current AAL2/TOTP |
-| Configure/assign custom categories | `aircraft.document.category.manage` | Active Admin; same organization; expected version | Protected audited command | Current AAL2 plus password AMR within 10 minutes |
-| Stage/complete an attachment | `aircraft.document.manage` | Active Admin; one pending file for the intended new version | Protected upload flow | Current AAL2/TOTP |
-| Download a clean attachment | `aircraft.document.attachment.read` | Active Admin; same aircraft/version; clean attached file | Short-lived protected download | Current AAL2 plus password AMR within 10 minutes |
+| Action                                       | Permission                            | Record rule                                                                           | Execution boundary             | Reauthentication                                                                                                                                            |
+| -------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Read aircraft/category/status/expiry summary | `aircraft.document.status.read`       | Active membership; Tracked aircraft; current requirement only                         | Protected audited read         | Student password-authenticated AAL1 per [ADR-0006](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md#authentication-consequence); Instructor/Admin AAL2 |
+| Read full metadata and version history       | `aircraft.document.read`              | Active Admin; same organization                                                       | Protected audited read         | Current AAL2/TOTP                                                                                                                                           |
+| List/open document notifications             | `aircraft.document.notification.read` | Active Admin recipient; same organization; bounded current/history pages              | Protected audited read         | Current AAL2/TOTP                                                                                                                                           |
+| Create, renew, correct, suspend, or restore  | `aircraft.document.manage`            | Active Admin; Tracked aircraft; active requirement; expected version where applicable | Protected audited command      | Current AAL2/TOTP                                                                                                                                           |
+| Configure/assign custom categories           | `aircraft.document.category.manage`   | Active Admin; same organization; expected version                                     | Protected audited command      | Current AAL2 plus password AMR within 10 minutes                                                                                                            |
+| Stage/complete an attachment                 | `aircraft.document.manage`            | Active Admin; one pending file for the intended new version                           | Protected upload flow          | Current AAL2/TOTP                                                                                                                                           |
+| Download a clean attachment                  | `aircraft.document.attachment.read`   | Active Admin; same aircraft/version; clean attached file                              | Short-lived protected download | Current AAL2 plus password AMR within 10 minutes                                                                                                            |
 
 Organization Admin receives all six permissions. Instructor Pilot and Student
 Pilot receive only `aircraft.document.status.read`. Their response contains the
@@ -388,20 +388,20 @@ remains a release gate.
 
 ## Planned verification
 
-| Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| `FEAT-007B-UNIT-01` | Unit | Metadata schemas, dates, status boundaries, reason/file rules | Only approved inputs and deterministic statuses pass |
-| `FEAT-007B-COMP-01` | Component | Role views, category rows, forms, history, conflicts, offline, upload/scan states | Responsive accessible contract holds |
-| `FEAT-007B-SQL-01` | SQL/RLS | Schema, seeded/custom requirements, immutability, grants, indexes, direct denial | Integrity and least privilege fail closed |
-| `FEAT-007B-RPC-01` | SQL/RPC | Create/correct/renew/suspend/restore/category actions, audit failure, replay | State/version/audit changes are atomic |
-| `FEAT-007B-RACE-01` | SQL/runtime | Concurrent renewal/correction, job/mutation notification, upload completion | One current version/file link and no duplicate event |
-| `FEAT-007B-EDGE-01` | Handler/runtime | Auth, assurance, permission, schemas, limiters, safe errors | Protected boundaries reject invalid/uncertain requests |
-| `FEAT-007B-FILE-01` | Storage/runtime | Magic/type/size/page/dimension/hash/scan states, signed download, orphan cleanup | Only clean authorized object is available |
-| `FEAT-007B-TENANT-01` | SQL/runtime | School A/B metadata, history, notification, object key, direct-ID/download | No cross-school read, inference, or mutation |
-| `FEAT-007B-JOB-01` | SQL/runtime | Philippine date boundaries, late/repeated runs, renewal/archival/reactivation | Status and notifications remain deterministic/idempotent |
-| `FEAT-007B-E2E-01` | Browser | Admin and status-only role journeys on desktop/mobile | Approved UI and role boundary pass |
-| `FEAT-007B-REC-01` | Recovery | Database/object backup fixture and reconciliation failures | Missing/orphan/mismatched evidence blocks readiness |
-| `FEAT-007B-REG-01` | Regression | Existing identity, dashboard, and aircraft registry matrices | Earlier behavior remains green |
+| Test ID               | Level           | Scenario                                                                          | Expected result                                          |
+| --------------------- | --------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `FEAT-007B-UNIT-01`   | Unit            | Metadata schemas, dates, status boundaries, reason/file rules                     | Only approved inputs and deterministic statuses pass     |
+| `FEAT-007B-COMP-01`   | Component       | Role views, category rows, forms, history, conflicts, offline, upload/scan states | Responsive accessible contract holds                     |
+| `FEAT-007B-SQL-01`    | SQL/RLS         | Schema, seeded/custom requirements, immutability, grants, indexes, direct denial  | Integrity and least privilege fail closed                |
+| `FEAT-007B-RPC-01`    | SQL/RPC         | Create/correct/renew/suspend/restore/category actions, audit failure, replay      | State/version/audit changes are atomic                   |
+| `FEAT-007B-RACE-01`   | SQL/runtime     | Concurrent renewal/correction, job/mutation notification, upload completion       | One current version/file link and no duplicate event     |
+| `FEAT-007B-EDGE-01`   | Handler/runtime | Auth, assurance, permission, schemas, limiters, safe errors                       | Protected boundaries reject invalid/uncertain requests   |
+| `FEAT-007B-FILE-01`   | Storage/runtime | Magic/type/size/page/dimension/hash/scan states, signed download, orphan cleanup  | Only clean authorized object is available                |
+| `FEAT-007B-TENANT-01` | SQL/runtime     | School A/B metadata, history, notification, object key, direct-ID/download        | No cross-school read, inference, or mutation             |
+| `FEAT-007B-JOB-01`    | SQL/runtime     | Philippine date boundaries, late/repeated runs, renewal/archival/reactivation     | Status and notifications remain deterministic/idempotent |
+| `FEAT-007B-E2E-01`    | Browser         | Admin and status-only role journeys on desktop/mobile                             | Approved UI and role boundary pass                       |
+| `FEAT-007B-REC-01`    | Recovery        | Database/object backup fixture and reconciliation failures                        | Missing/orphan/mismatched evidence blocks readiness      |
+| `FEAT-007B-REG-01`    | Regression      | Existing identity, dashboard, and aircraft registry matrices                      | Earlier behavior remains green                           |
 
 ## Dependencies
 

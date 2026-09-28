@@ -108,6 +108,19 @@ export function authenticationEvidenceFromVerifiedToken(
   };
 }
 
+export function passwordAuthenticationIsPresent(
+  evidence: VerifiedAuthenticationEvidence,
+  serverNowSeconds = Math.floor(Date.now() / 1000),
+): boolean {
+  return (
+    evidence.authenticationMethods.includes('password') &&
+    evidence.passwordAuthenticatedAt !== null &&
+    Number.isInteger(evidence.passwordAuthenticatedAt) &&
+    evidence.passwordAuthenticatedAt >= 0 &&
+    evidence.passwordAuthenticatedAt <= serverNowSeconds
+  );
+}
+
 export function passwordAuthenticationIsRecent(
   evidence: VerifiedAuthenticationEvidence,
   serverNowSeconds = Math.floor(Date.now() / 1000),

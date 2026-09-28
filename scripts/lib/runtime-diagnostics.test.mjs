@@ -5,6 +5,15 @@ import { feat006Diagnostic, runtimeDiagnosticLines } from './runtime-diagnostics
 describe('runtime diagnostic output boundary', () => {
   const fixture = 'test-feat-006-runtime.mjs';
 
+  it('retains password-session denial stages only for the affected fixtures', () => {
+    const mfa = feat006Diagnostic('password-session-denial', 'enter');
+    const documents = 'FEAT-007B runtime diagnostic: stage=password-session-denial event=enter.';
+    expect(runtimeDiagnosticLines(fixture, mfa)).toEqual([mfa]);
+    expect(runtimeDiagnosticLines('test-feat-007b-runtime.mjs', documents)).toEqual([documents]);
+    expect(runtimeDiagnosticLines('test-feat-007-runtime.mjs', documents)).toEqual([]);
+    expect(runtimeDiagnosticLines(fixture, `${mfa} synthetic-private-token`)).toEqual([]);
+  });
+
   it('retains aircraft file diagnostics without leaking payloads or accepting MFA stages', () => {
     const entered = 'FEAT-007B runtime diagnostic: stage=file-lifecycle event=enter.';
     const failed =

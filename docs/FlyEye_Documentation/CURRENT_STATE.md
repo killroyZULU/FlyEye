@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-09-26
+- Last updated: 2026-09-28
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -42,7 +42,8 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Guidance audit: Task 1 corrected D01/D02 through [PR #49](https://github.com/killroyZULU/FlyEye/pull/49), merged at `c2f6032` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/35966616418). Broader frontend, backend and fixture reviews remain incomplete.
 - Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Guidance: Tasks 1-5 are integrated through [PR #59](https://github.com/killroyZULU/FlyEye/pull/59) at `7b6bdeb` with green [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36221764259). Recovery transitions merged via [PR #61](https://github.com/killroyZULU/FlyEye/pull/61) at `feb16bb`; post-merge CI failed in FEAT-004 without cleanup evidence. [FIX-008 / #62](https://github.com/killroyZULU/FlyEye/issues/62) owns diagnostics and integration recovery. Preserve the occupied local database, incremental mappings and session-policy gates.
+- Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. The historical FEAT-004 failure cause remains unknown.
+- Authentication: [FIX-009 / #64](https://github.com/killroyZULU/FlyEye/issues/64) tracks password-session read enforcement; [MFA evidence](features/FEAT-006_TRACEABILITY.md#password-session-read-boundary), [aircraft evidence](features/FEAT-007_TRACEABILITY.md#password-session-read-boundary). Preserve the occupied local database and session-policy gates.
 
 ## Aircraft and dashboard integration
 

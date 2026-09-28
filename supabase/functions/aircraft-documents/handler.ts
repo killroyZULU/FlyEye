@@ -1,4 +1,7 @@
-import { passwordAuthenticationIsRecent } from '../_shared/authentication-evidence.ts';
+import {
+  passwordAuthenticationIsPresent,
+  passwordAuthenticationIsRecent,
+} from '../_shared/authentication-evidence.ts';
 import {
   aircraftDocumentRequestSchema,
   type AircraftDocumentAction,
@@ -50,15 +53,19 @@ function permissionFor(
   return access.canManage;
 }
 
-function assuranceAllows(context: ProcessingContext): boolean {
-  if (
+function isStudentStatusRead(context: ProcessingContext): boolean {
+  return (
     (context.requestData.action === 'aircraft_list' ||
       context.requestData.action === 'status_list') &&
     context.access.roleCode === 'student_pilot'
-  ) {
-    return true;
-  }
-  return context.actor.assuranceLevel === 'aal2' && context.actor.totpAuthenticatedAt !== null;
+  );
+}
+
+function assuranceAllows(context: ProcessingContext): boolean {
+  return (
+    isStudentStatusRead(context) ||
+    (context.actor.assuranceLevel === 'aal2' && context.actor.totpAuthenticatedAt !== null)
+  );
 }
 
 async function parseRequest(origin: string, request: Request) {
@@ -128,6 +135,9 @@ async function prepareContext(
   }
   if (!permissionFor(parsed.requestData.action, access.data)) {
     return securityFailure(dependencies, context, 'unauthorized');
+  }
+  if (isStudentStatusRead(context) && !passwordAuthenticationIsPresent(actor)) {
+    return securityFailure(dependencies, context, 'unauthenticated');
   }
   if (!assuranceAllows(context)) return securityFailure(dependencies, context, 'mfa_required');
   if (

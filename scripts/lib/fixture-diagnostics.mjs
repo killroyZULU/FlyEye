@@ -89,6 +89,7 @@ const stages = new Map([
     'FEAT-007B',
     new Set([
       ...commonStages,
+      'password-session-denial',
       'role-boundary',
       'file-lifecycle',
       'file-initiate',

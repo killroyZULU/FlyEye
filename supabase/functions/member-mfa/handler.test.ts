@@ -109,6 +109,58 @@ async function payload(response: Response) {
 }
 
 describe('FEAT-006A member MFA handler', () => {
+  it.each(['otp', 'recovery', 'magiclink', 'invite', 'totp'])(
+    'denies %s-only readiness reads before factor or status access',
+    async (method) => {
+      const deps = dependencies({
+        authenticate: vi.fn().mockResolvedValue({
+          ...actor,
+          authenticationMethods: [method],
+          passwordAuthenticatedAt: null,
+        }),
+      });
+      const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+      expect(response.status).toBe(403);
+      expect(await payload(response)).toMatchObject({
+        error: { code: 'member_mfa.recent_authentication_required' },
+      });
+      expect(deps.recordDenied).toHaveBeenCalledWith({
+        actorUserId: USER_ID,
+        eventName: 'member_mfa.denied',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'password_authentication_required',
+        operationId: undefined,
+      });
+      expect(deps.consumeLimit).toHaveBeenCalledOnce();
+      expect(deps.listFactors).not.toHaveBeenCalled();
+      expect(deps.status).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts older password evidence for readiness without requiring recent authentication', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockResolvedValue({ ...actor, passwordAuthenticatedAt: 1 }),
+    });
+    const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+    expect(response.status).toBe(200);
+    expect(deps.status).toHaveBeenCalledOnce();
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when password-session denial auditing fails', async () => {
+    const deps = dependencies({
+      authenticate: vi.fn().mockResolvedValue({ ...actor, passwordAuthenticatedAt: null }),
+      recordDenied: vi.fn().mockRejectedValue(new Error('synthetic audit failure')),
+    });
+    const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+    expect(response.status).toBe(500);
+    expect(await payload(response)).toMatchObject({
+      error: { code: 'member_mfa.audit_unavailable' },
+    });
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(deps.status).not.toHaveBeenCalled();
+  });
+
   it('rejects foreign origins before authentication', async () => {
     const deps = dependencies();
     const response = await createMemberMfaHandler(deps)(
