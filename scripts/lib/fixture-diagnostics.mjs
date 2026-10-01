@@ -49,6 +49,11 @@ const stages = new Map([
       ...commonStages,
       'privileged-aal1',
       'inactive-role',
+      'inactive-role-disable',
+      'inactive-role-request',
+      'inactive-role-response',
+      'inactive-role-status',
+      'inactive-role-restore',
       'initial-profile',
       'profile-update',
       'profile-concealment',
@@ -123,6 +128,7 @@ const failureDetails = new Set([
   'assertion',
   'timeout',
   'transport-failed',
+  'database-operation-failed',
   'response-decoding-failed',
   'unclassified',
   'http-other',
@@ -225,8 +231,8 @@ export function createFixtureDiagnostics(
       emit(stage, 'enter');
     },
     pass,
-    fail(error) {
-      if (currentStage) emit(currentStage, 'failed', failureDetail(error));
+    fail(error, detail = failureDetail(error)) {
+      if (currentStage) emit(currentStage, 'failed', detail);
       currentStage = undefined;
     },
     retry(status) {

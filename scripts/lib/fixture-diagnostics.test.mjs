@@ -126,4 +126,17 @@ describe('sanitized fixture failure evidence', () => {
     expect(lines).toEqual([]);
     expect(operation).toHaveBeenCalledOnce();
   });
+
+  it('accepts only fixed failure detail overrides', () => {
+    const { diagnostics, lines } = recorder('FEAT-005');
+    diagnostics.enter('inactive-role-disable');
+    expect(() => diagnostics.fail(new Error(), 'synthetic-private-error')).toThrow(
+      'Unsupported fixture diagnostic.',
+    );
+    expect(lines).toHaveLength(1);
+    diagnostics.fail(new Error('synthetic-private-sql'), 'database-operation-failed');
+    expect(lines.at(-1)).toBe(
+      fixtureDiagnostic('FEAT-005', 'inactive-role-disable', 'failed', 'database-operation-failed'),
+    );
+  });
 });
