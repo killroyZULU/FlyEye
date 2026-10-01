@@ -48,6 +48,12 @@ The local stack uses the repository-pinned Supabase JavaScript client `2.110.7`
 and CLI `2.109.1`. Separate technical review passed with no remaining actionable
 findings.
 
+## Invitation gateway extraction evidence
+
+[A002 / #76](https://github.com/killroyZULU/FlyEye/issues/76) records the extraction target, separate review and final CI evidence. The [compatibility tests](../../../src/features/auth/services/member-invitation-gateway.test.ts), suites `member invitation gateway compatibility` and `invitation credential preparation compatibility`, cover the frontend portion of [FEAT-004 acceptance](FEAT-004_MEMBER_INVITATIONS.md#acceptance-criteria): exact command payloads, versions/idempotency, replay responses, malformed results, safe error/retry guidance and new/existing credential ordering with failure short circuits.
+
+The focused gateway/invitation group passed 93 tests on baseline `d9ec310` and after extraction. Synthetic SDK responses establish compatibility, not server authorization or delivery; the [runtime fixture](../../../scripts/test-feat-004-runtime.mjs) and existing SQL/RLS checks supply those separate local integration boundaries through required CI. The occupied local database remains preserved.
+
 ## Invitation runtime diagnostic evidence
 
 [FIX-008 / #62](https://github.com/killroyZULU/FlyEye/issues/62) records the reviewed
