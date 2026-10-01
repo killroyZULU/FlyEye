@@ -143,6 +143,12 @@ and `scrubs credential material from browser history`;
 [gateway suite](../../../src/features/auth/services/auth-gateway.test.ts),
 `maps %s without exposing provider details`.
 
+### Recovery gateway extraction evidence
+
+[A002 / #74](https://github.com/killroyZULU/FlyEye/issues/74) extracts the provider operations behind [UNIT-01](#feat-002-unit-01), [UNIT-02](#feat-002-unit-02), [UNIT-03](#feat-002-unit-03) and [UNIT-04](#feat-002-unit-04). The [password recovery gateway compatibility](../../../src/features/auth/services/password-recovery-gateway.test.ts) suite checks lazy callback resolution, exact provider calls, generic request failures, credential/password error semantics, shared error identity and ordered global/local cleanup. Its `retains the %s global failure after local cleanup %s` cases preserve the original revocation cause across cleanup outcomes.
+
+The focused gateway/recovery matrix passed 75 tests against `4f72c40` and after extraction. These synthetic provider mocks characterize client behavior; they do not establish hosted revocation or replace the [runtime evidence](#feat-002-auth-04). Final review and CI results belong to the linked delivery issue/PR.
+
 ### FEAT-002-COMP-01
 
 [Recovery UI](../../../src/features/auth/components/RecoveryFlow.test.tsx),
