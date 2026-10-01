@@ -150,11 +150,11 @@ Use OIDC/short-lived federation for CI-to-cloud authentication, not permanent pu
 
 ## 4. Environments
 
-| Environment | Purpose | Data |
-|---|---|---|
-| Development | Local Vite plus local Supabase CLI or isolated dev project | Synthetic only |
-| Staging | Separate frontend deployment and Supabase project for release/security/UAT | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
-| Production | Separate frontend deployment and Supabase project | Approved real customer data |
+| Environment | Purpose                                                                    | Data                                                                                       |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Development | Local Vite plus local Supabase CLI or isolated dev project                 | Synthetic only                                                                             |
+| Staging     | Separate frontend deployment and Supabase project for release/security/UAT | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
+| Production  | Separate frontend deployment and Supabase project                          | Approved real customer data                                                                |
 
 Separate credentials, databases, storage, keys, monitoring, and AI configuration. Production access is least-privileged, time-limited where possible, and audited.
 
@@ -184,12 +184,12 @@ Manage schema, RLS, functions, triggers, Storage policy, and security-relevant c
 
 Pin supported versions, use lockfiles, review new packages and licenses, run vulnerability alerts, generate an SBOM per release, protect workflows from untrusted PR execution, pin third-party actions appropriately, and define update SLAs based on severity/exposure.
 
-The development toolchain pins the transitive MIT-licensed `brace-expansion`
-package to `5.0.9`, `undici` package to `7.29.0`, and `postcss` package to
-`8.5.23` through pnpm overrides. These patched resolutions remediate
-GHSA-rgw5-rvv9-x895, GHSA-4cwx-7wf7-3272, and GHSA-fxqj-rqcc-2cmp without
-adding direct application dependencies. They affect lint, test, and build
-tooling only; the direct production dependency surface is unchanged.
+Exact direct dependency pins live in [`package.json`](../../package.json),
+security overrides in [`pnpm-workspace.yaml`](../../pnpm-workspace.yaml), and
+resolved versions in [`pnpm-lock.yaml`](../../pnpm-lock.yaml). Keep paired tooling
+packages compatible with their declared peer requirements. Advisory remediation
+and verification evidence belong in the bounded issue/PR linked from
+[Current State](CURRENT_STATE.md).
 
 ## 9. Release process
 
