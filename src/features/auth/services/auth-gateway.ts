@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { normalizeTotpQrSvg } from './totp-qr-svg';
+import { AuthGatewayError, asGatewayError, errorCode, responseStatus } from './auth-gateway-errors';
+import { PasswordRecoveryGateway } from './password-recovery-gateway';
 
 import {
   accessContextResponseSchema,
@@ -39,7 +41,6 @@ import {
   type InvitationMutation,
   type MemberInvitationList,
 } from '../member-invitations';
-import { approvedRecoveryRedirect } from '../recovery';
 import {
   memberMfaBoundSchema,
   memberMfaCompleteSchema,
@@ -50,59 +51,7 @@ import {
   type MemberMfaStatus,
 } from '../member-mfa';
 
-export type AuthGatewayErrorCode =
-  | 'invalid_credentials'
-  | 'rate_limited'
-  | 'network_error'
-  | 'configuration_error'
-  | 'access_context_conflict'
-  | 'access_context_unavailable'
-  | 'admin_onboarding_conflict'
-  | 'admin_onboarding_not_available'
-  | 'admin_onboarding_recent_authentication_required'
-  | 'admin_onboarding_provider_unavailable'
-  | 'admin_onboarding_audit_unavailable'
-  | 'admin_onboarding_limiter_unavailable'
-  | 'member_invitation_not_available'
-  | 'member_invitation_conflict'
-  | 'member_invitation_recent_authentication_required'
-  | 'member_invitation_delivery_failed'
-  | 'member_invitation_delivery_uncertain'
-  | 'member_invitation_unavailable'
-  | 'member_administration_not_found'
-  | 'member_administration_validation_failed'
-  | 'member_administration_state_conflict'
-  | 'member_administration_last_administrator'
-  | 'member_administration_self_action'
-  | 'member_administration_target_mfa_not_ready'
-  | 'member_administration_recent_authentication_required'
-  | 'member_administration_assurance_required'
-  | 'member_administration_unavailable'
-  | 'mfa_invalid'
-  | 'mfa_enrollment_required'
-  | 'member_mfa_not_available'
-  | 'member_mfa_recent_authentication_required'
-  | 'member_mfa_factor_conflict'
-  | 'member_mfa_state_conflict'
-  | 'member_mfa_cleanup_uncertain'
-  | 'member_mfa_unavailable'
-  | 'recovery_invalid'
-  | 'weak_password'
-  | 'same_password'
-  | 'password_update_failed'
-  | 'revocation_failed'
-  | 'unknown';
-
-export class AuthGatewayError extends Error {
-  constructor(
-    public readonly code: AuthGatewayErrorCode,
-    message: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = 'AuthGatewayError';
-  }
-}
+export { AuthGatewayError, type AuthGatewayErrorCode } from './auth-gateway-errors';
 
 export type MfaAssurance = {
   currentLevel: 'aal1' | 'aal2' | null;
@@ -203,27 +152,6 @@ export interface AuthGateway {
   onSignedOut(callback: () => void): () => void;
 }
 
-function responseStatus(error: unknown): number {
-  if (typeof error !== 'object' || error === null) {
-    return 0;
-  }
-
-  const context: unknown = Reflect.get(error, 'context');
-  return context instanceof Response ? context.status : 0;
-}
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) return undefined;
-  const code: unknown = Reflect.get(error, 'code');
-  return typeof code === 'string' ? code : undefined;
-}
-
-function providerStatus(error: unknown): number {
-  if (typeof error !== 'object' || error === null) return 0;
-  const status: unknown = Reflect.get(error, 'status') as unknown;
-  return typeof status === 'number' ? status : responseStatus(error);
-}
-
 function supportedAssuranceLevel(level: string | null): 'aal1' | 'aal2' | null {
   return level === 'aal1' || level === 'aal2' ? level : null;
 }
@@ -306,35 +234,15 @@ function factorInventory(input: unknown): Array<{
   return factors;
 }
 
-function asGatewayError(error: unknown): AuthGatewayError {
-  if (error instanceof AuthGatewayError) {
-    return error;
-  }
-
-  if (providerStatus(error) === 429) {
-    return new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.', {
-      cause: error,
-    });
-  }
-
-  if (error instanceof TypeError) {
-    return new AuthGatewayError(
-      'network_error',
-      'FlyEye could not reach the authentication service.',
-      {
-        cause: error,
-      },
-    );
-  }
-
-  return new AuthGatewayError('unknown', 'FlyEye could not verify your access.', { cause: error });
-}
-
 export class SupabaseAuthGateway implements AuthGateway {
+  private readonly passwordRecovery: PasswordRecoveryGateway;
+
   constructor(
     private readonly client: SupabaseClient<Database>,
-    private readonly recoveryOrigin = () => window.location.origin,
-  ) {}
+    recoveryOrigin = () => window.location.origin,
+  ) {
+    this.passwordRecovery = new PasswordRecoveryGateway(client.auth, recoveryOrigin);
+  }
 
   async hasSession(): Promise<boolean> {
     const { data, error } = await this.client.auth.getSession();
@@ -365,101 +273,20 @@ export class SupabaseAuthGateway implements AuthGateway {
     throw asGatewayError(error);
   }
 
-  async requestPasswordRecovery(email: string, captchaToken?: string): Promise<void> {
-    let redirectTo: string;
-    try {
-      redirectTo = approvedRecoveryRedirect(this.recoveryOrigin());
-    } catch (error) {
-      throw new AuthGatewayError(
-        'configuration_error',
-        'Password recovery is not configured for this environment.',
-        { cause: error },
-      );
-    }
-
-    try {
-      await this.client.auth.resetPasswordForEmail(email, {
-        redirectTo,
-        captchaToken,
-      });
-    } catch {
-      // A syntactically valid public request always receives the same visible acknowledgement.
-    }
+  requestPasswordRecovery(email: string, captchaToken?: string): Promise<void> {
+    return this.passwordRecovery.requestPasswordRecovery(email, captchaToken);
   }
 
-  async verifyRecoveryCredential(tokenHash: string): Promise<void> {
-    try {
-      const { error } = await this.client.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: 'recovery',
-      });
-      if (!error) return;
-      throw error;
-    } catch (error) {
-      if (error instanceof TypeError) {
-        throw asGatewayError(error);
-      }
-      throw new AuthGatewayError(
-        'recovery_invalid',
-        'This recovery link cannot be used. Request a new one.',
-        { cause: error },
-      );
-    }
+  verifyRecoveryCredential(tokenHash: string): Promise<void> {
+    return this.passwordRecovery.verifyRecoveryCredential(tokenHash);
   }
 
-  async updateRecoveredPassword(password: string): Promise<void> {
-    try {
-      const { error } = await this.client.auth.updateUser({ password });
-      if (!error) return;
-
-      const code = errorCode(error);
-      if (code === 'weak_password') {
-        throw new AuthGatewayError(
-          'weak_password',
-          'Choose a stronger password that follows the guidance shown.',
-          { cause: error },
-        );
-      }
-      if (code === 'same_password') {
-        throw new AuthGatewayError(
-          'same_password',
-          'Choose a password that is different from your current password.',
-          { cause: error },
-        );
-      }
-      throw error;
-    } catch (error) {
-      if (error instanceof AuthGatewayError) throw error;
-      if (error instanceof TypeError) throw asGatewayError(error);
-      throw new AuthGatewayError(
-        'password_update_failed',
-        'Your password could not be changed. Try again.',
-        { cause: error },
-      );
-    }
+  updateRecoveredPassword(password: string): Promise<void> {
+    return this.passwordRecovery.updateRecoveredPassword(password);
   }
 
-  async signOutEverywhere(): Promise<void> {
-    let revocationError: unknown;
-    try {
-      const { error } = await this.client.auth.signOut({ scope: 'global' });
-      if (!error) return;
-      revocationError = error;
-    } catch (error) {
-      revocationError = error;
-    }
-
-    try {
-      await this.client.auth.signOut({ scope: 'local' });
-    } catch {
-      // The recovery UI remains fail-closed even if local SDK cleanup also reports a failure.
-    }
-
-    throw new AuthGatewayError(
-      'revocation_failed',
-      'Your password changed, but session closure could not be confirmed. Sign in again or contact support.',
-      { cause: revocationError },
-    );
+  signOutEverywhere(): Promise<void> {
+    return this.passwordRecovery.signOutEverywhere();
   }
 
   async loadAccessContext(): Promise<AccessContextResponse> {

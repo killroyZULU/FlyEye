@@ -12,7 +12,7 @@ export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
   'src/features/auth/components/MemberInvitationsPanel.tsx': 282,
   'src/features/auth/components/MemberMfaEnrollmentFlow.tsx': 495,
   'src/features/auth/components/PasswordRecoveryFlow.tsx': 325,
-  'src/features/auth/services/auth-gateway.ts': 1392,
+  'src/features/auth/services/auth-gateway.ts': 1219,
   'src/features/members/components/MemberAdministrationPanel.tsx': 627,
   'src/features/members/components/MemberProfilePanel.tsx': 242,
   'supabase/functions/auth-bootstrap/handler.ts': 365,
