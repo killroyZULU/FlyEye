@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
 import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
 import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+import { runInactiveRoleProbe } from './lib/feat-005-inactive-role-probe.mjs';
 
 const diagnostics = createFixtureDiagnostics('FEAT-005');
 
@@ -143,8 +144,8 @@ async function signInAal2(identity) {
   return { client, session: data.session };
 }
 
-async function invoke(token, body) {
-  const response = await fetchLocalEdge(
+async function request(token, body) {
+  return fetchLocalEdge(
     `${apiUrl}/functions/v1/member-administration`,
     {
       method: 'POST',
@@ -159,7 +160,10 @@ async function invoke(token, body) {
     },
     diagnostics.retry,
   );
-  return diagnostics.readResponse(response);
+}
+
+async function invoke(token, body) {
+  return diagnostics.readResponse(await request(token, body));
 }
 
 async function cleanup() {
@@ -370,20 +374,24 @@ try {
   });
   assert.equal(privilegedProfileAtAal1.response.status, 403);
 
-  diagnostics.enter('inactive-role');
-  psql("update public.roles set is_active = false where code = 'admin';");
-  adminRoleNeedsRestoration = true;
-  try {
-    trackLimit(adminA.id, 'get_profile', adminMembership);
-    const inactivePrivilegedProfile = await invoke(adminAal1.session.access_token, {
-      action: 'get_profile',
-      membershipId: adminMembership,
-    });
-    assert.equal(inactivePrivilegedProfile.response.status, 404);
-  } finally {
-    psql("update public.roles set is_active = true where code = 'admin';");
-    adminRoleNeedsRestoration = false;
-  }
+  await runInactiveRoleProbe({
+    diagnostics,
+    disableRole() {
+      adminRoleNeedsRestoration = true;
+      psql("update public.roles set is_active = false where code = 'admin';");
+    },
+    requestProfile() {
+      trackLimit(adminA.id, 'get_profile', adminMembership);
+      return request(adminAal1.session.access_token, {
+        action: 'get_profile',
+        membershipId: adminMembership,
+      });
+    },
+    restoreRole() {
+      psql("update public.roles set is_active = true where code = 'admin';");
+      adminRoleNeedsRestoration = false;
+    },
+  });
 
   trackLimit(member.id, 'get_profile', memberMembershipA);
   diagnostics.enter('initial-profile');

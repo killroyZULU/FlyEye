@@ -47,16 +47,16 @@ Non-goals:
 
 ## Sources, assumptions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| Member review, suspension, reactivation, server authority, tenancy, and audit | SRS `IAM-002`–`IAM-012`; Security Requirements sections 3–4 and 9 | Verified |
-| Sole-school membership and one initial role | [ADR-0006](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md), SRS `IAM-010`, FIX-006 | Accepted |
-| Organization-scoped minimal profile and approved management boundary | Founder/Product Owner decision, 2026-08-10 | Verified |
-| Profile fields: display name, optional contact number, read-only Auth email | Founder/Product Owner decision, 2026-08-10 | Verified |
-| Organization-only terminal revocation without Auth or record deletion | Founder/Product Owner decision, 2026-08-10 | Verified |
-| Existing `active`, `suspended`, and `revoked` membership states | Versioned FEAT-001 schema at the baseline | Verified locally |
-| Exact real-data purpose, retention, correction, and contact-number procedure | School controller and qualified privacy/legal owner | Unresolved; blocks real-data use, not local synthetic delivery |
-| Rejoining an organization after terminal revocation | Founder/Product Owner and future workflow specification | Unresolved; outside FEAT-005 |
+| Item                                                                          | Source/owner/version                                                                      | State                                                          |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Member review, suspension, reactivation, server authority, tenancy, and audit | SRS `IAM-002`–`IAM-012`; Security Requirements sections 3–4 and 9                         | Verified                                                       |
+| Sole-school membership and one initial role                                   | [ADR-0006](../adr/ADR-0006-SINGLE-SCHOOL-ISOLATED-DEPLOYMENTS.md), SRS `IAM-010`, FIX-006 | Accepted                                                       |
+| Organization-scoped minimal profile and approved management boundary          | Founder/Product Owner decision, 2026-08-10                                                | Verified                                                       |
+| Profile fields: display name, optional contact number, read-only Auth email   | Founder/Product Owner decision, 2026-08-10                                                | Verified                                                       |
+| Organization-only terminal revocation without Auth or record deletion         | Founder/Product Owner decision, 2026-08-10                                                | Verified                                                       |
+| Existing `active`, `suspended`, and `revoked` membership states               | Versioned FEAT-001 schema at the baseline                                                 | Verified locally                                               |
+| Exact real-data purpose, retention, correction, and contact-number procedure  | School controller and qualified privacy/legal owner                                       | Unresolved; blocks real-data use, not local synthetic delivery |
+| Rejoining an organization after terminal revocation                           | Founder/Product Owner and future workflow specification                                   | Unresolved; outside FEAT-005                                   |
 
 No profile value is verified legal or aviation identity. Display name and
 contact number are administrative convenience data only and never grant
@@ -64,14 +64,14 @@ authority.
 
 ## Roles and authority
 
-| Action | Permission | Tenant/record rule | Execution boundary | Reauthentication |
-|---|---|---|---|---|
-| List, search, and review members | `membership.member.review` | Active administrator membership in the deployment's active school; return that school only | Protected Edge Function and atomic server-only RPC | Current AAL2/TOTP session |
-| View own profile | Active membership | Exact authenticated subject and membership in the deployment school | Protected Edge Function and server-only RPC | Current authenticated session and applicable portal MFA |
-| Update own profile | Active membership | Exact authenticated subject and membership in the deployment school; no role or status fields accepted | Protected Edge Function and atomic server-only RPC | Current authenticated session and applicable portal MFA |
-| Suspend member | `membership.member.manage_status` | Same active organization; target active; actor cannot target self or last active administrator | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
-| Reactivate member | `membership.member.manage_status` | Same active organization; target suspended; preserved role must remain active | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
-| Revoke member | `membership.member.manage_status` | Same active organization; target active or suspended; actor cannot target self or last active administrator | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
+| Action                           | Permission                        | Tenant/record rule                                                                                          | Execution boundary                                 | Reauthentication                                        |
+| -------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------- |
+| List, search, and review members | `membership.member.review`        | Active administrator membership in the deployment's active school; return that school only                  | Protected Edge Function and atomic server-only RPC | Current AAL2/TOTP session                               |
+| View own profile                 | Active membership                 | Exact authenticated subject and membership in the deployment school                                         | Protected Edge Function and server-only RPC        | Current authenticated session and applicable portal MFA |
+| Update own profile               | Active membership                 | Exact authenticated subject and membership in the deployment school; no role or status fields accepted      | Protected Edge Function and atomic server-only RPC | Current authenticated session and applicable portal MFA |
+| Suspend member                   | `membership.member.manage_status` | Same active organization; target active; actor cannot target self or last active administrator              | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP   |
+| Reactivate member                | `membership.member.manage_status` | Same active organization; target suspended; preserved role must remain active                               | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP   |
+| Revoke member                    | `membership.member.manage_status` | Same active organization; target active or suspended; actor cannot target self or last active administrator | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP   |
 
 The built-in `admin` role initially receives both permissions. Browser roles
 receive no direct membership-status, profile-audit, or administration-event
@@ -140,18 +140,19 @@ revoked --no FEAT-005 transition--> revoked
     rejected. Same-scope replay returns the stable result; changed input, stale
     version, invalid state, or concurrent action returns a safe conflict.
 
-    | Action | Code | UI label |
-    |---|---|---|
-    | Suspend | `temporary_access_hold` | Temporary access hold |
-    | Suspend | `administrative_review` | Administrative review |
-    | Reactivate | `hold_resolved` | Hold resolved |
-    | Reactivate | `suspension_corrected` | Suspension corrected |
-    | Revoke | `membership_ended` | Membership ended |
-    | Revoke | `membership_created_in_error` | Membership created in error |
+    | Action     | Code                          | UI label                    |
+    | ---------- | ----------------------------- | --------------------------- |
+    | Suspend    | `temporary_access_hold`       | Temporary access hold       |
+    | Suspend    | `administrative_review`       | Administrative review       |
+    | Reactivate | `hold_resolved`               | Hold resolved               |
+    | Reactivate | `suspension_corrected`        | Suspension corrected        |
+    | Revoke     | `membership_ended`            | Membership ended            |
+    | Revoke     | `membership_created_in_error` | Membership created in error |
 
     The server returns only the codes valid for the requested action. These
     categories document an administrative access decision; they do not state a
     legal, aviation, employment, disciplinary, or security conclusion.
+
 12. Self-suspension and self-revocation are prohibited. Suspended users cannot
     reactivate themselves because they lack active administration authority.
 13. The database locks the target membership and relevant active administrator
@@ -241,11 +242,11 @@ exists; destructive profile or audit removal is not an ordinary rollback.
 
 Local atomic token buckets use a dedicated FEAT-005 limiter secret:
 
-| Action | Local limit | Burst | Failure behavior |
-|---|---:|---:|---|
-| Member list/detail | 30 per 60 seconds per actor and organization | 10 | Fail closed without directory data |
-| Own-profile read/update | 12 per 60 seconds per subject and membership | 4 | Preserve profile on denial |
-| Suspend/reactivate/revoke | 6 per 60 seconds per actor and organization | 2 | Preserve membership and audit no false success |
+| Action                    |                                  Local limit | Burst | Failure behavior                               |
+| ------------------------- | -------------------------------------------: | ----: | ---------------------------------------------- |
+| Member list/detail        | 30 per 60 seconds per actor and organization |    10 | Fail closed without directory data             |
+| Own-profile read/update   | 12 per 60 seconds per subject and membership |     4 | Preserve profile on denial                     |
+| Suspend/reactivate/revoke |  6 per 60 seconds per actor and organization |     2 | Preserve membership and audit no false success |
 
 Unauthorized organization or membership hints collapse to one actor-and-action
 denial scope. Hosted thresholds, network-source trust, capacity, monitoring,
@@ -324,27 +325,38 @@ retention, alert ownership, and support remain environment-specific gates.
 
 ## Planned verification
 
-| Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| `FEAT-005-UNIT-01` | Unit | Profile, search, reason-code, status, cursor binding, error, and request schemas | Exact bounded validation and safe failures |
-| `FEAT-005-COMP-01` | Component | Member list/search/filter/detail states | Accessible organization-only behavior |
-| `FEAT-005-COMP-02` | Component | Own-profile completion/update and conflict states | Values preserved safely and fields remain bounded |
-| `FEAT-005-COMP-03` | Component | Suspend/reactivate/revoke confirmations and errors | Clear authority, permanence, and recovery guidance |
-| `FEAT-005-SQL-01` | SQL | Profile/event schema, constraints, backfill, indexes, statuses | Schema invariants and no invented profile data |
-| `FEAT-005-RLS-01` | SQL/RLS | `PUBLIC`, `anon`, and `authenticated` direct operations | Prohibited access denied |
-| `FEAT-005-RPC-01` | SQL/RPC | Profile update atomicity, versioning, and audit failure | One complete update or rollback |
-| `FEAT-005-RPC-02` | SQL/RPC | Status transitions, exact per-action reason-code allowlists, replay, stale versions, invalid states | Exact transition and audit behavior; arbitrary and cross-action codes denied |
-| `FEAT-005-RPC-03` | SQL/RPC | Self-action and last-admin concurrent races | At least one active administrator remains |
-| `FEAT-005-RPC-04` | SQL/RPC | Directory list/detail audit success and injected audit failure | Data returns only with committed minimized access event |
-| `FEAT-005-EDGE-01` | Edge | JWT, origin, body, active organization, AAL2, fresh password, permission, lookup failure | Protected commands fail closed |
-| `FEAT-005-TENANT-01` | Runtime/SQL | Forged school list/search/IDs and rollback-only cross-school access | No leakage or cross-school effect |
-| `FEAT-005-AUTH-01` | Runtime | Active, suspended, reactivated, and revoked sessions | Server access tracks membership state immediately |
-| `FEAT-005-PAGE-01` | Integration | Profile/email change and new/status-changed rows between cursor pages | Stable tuple order, valid filter behavior, no mutable-key duplication |
-| `FEAT-005-E2E-01` | Browser | Admin review/status flow and member profile on desktop/mobile | End-to-end approved behavior |
-| `FEAT-005-A11Y-01` | Browser/manual support | Keyboard, focus, announcements, reflow, contrast, target size | Automated scope pass; formal review later |
-| `FEAT-005-SEC-01` | Security | Enumeration, injection, metadata, replay, races, limiter, secret scans | No bypass or prohibited disclosure |
-| `FEAT-005-REG-01` | Regression | Complete application and database/runtime matrices | FEAT-001–004 remain green |
-| `FEAT-005-FIXTURE-01` | Runtime | Random synthetic profiles/members and unconditional cleanup | Zero unintended residue or uncertain cleanup |
+| Test ID               | Level                  | Scenario                                                                                            | Expected result                                                              |
+| --------------------- | ---------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `FEAT-005-UNIT-01`    | Unit                   | Profile, search, reason-code, status, cursor binding, error, and request schemas                    | Exact bounded validation and safe failures                                   |
+| `FEAT-005-COMP-01`    | Component              | Member list/search/filter/detail states                                                             | Accessible organization-only behavior                                        |
+| `FEAT-005-COMP-02`    | Component              | Own-profile completion/update and conflict states                                                   | Values preserved safely and fields remain bounded                            |
+| `FEAT-005-COMP-03`    | Component              | Suspend/reactivate/revoke confirmations and errors                                                  | Clear authority, permanence, and recovery guidance                           |
+| `FEAT-005-SQL-01`     | SQL                    | Profile/event schema, constraints, backfill, indexes, statuses                                      | Schema invariants and no invented profile data                               |
+| `FEAT-005-RLS-01`     | SQL/RLS                | `PUBLIC`, `anon`, and `authenticated` direct operations                                             | Prohibited access denied                                                     |
+| `FEAT-005-RPC-01`     | SQL/RPC                | Profile update atomicity, versioning, and audit failure                                             | One complete update or rollback                                              |
+| `FEAT-005-RPC-02`     | SQL/RPC                | Status transitions, exact per-action reason-code allowlists, replay, stale versions, invalid states | Exact transition and audit behavior; arbitrary and cross-action codes denied |
+| `FEAT-005-RPC-03`     | SQL/RPC                | Self-action and last-admin concurrent races                                                         | At least one active administrator remains                                    |
+| `FEAT-005-RPC-04`     | SQL/RPC                | Directory list/detail audit success and injected audit failure                                      | Data returns only with committed minimized access event                      |
+| `FEAT-005-EDGE-01`    | Edge                   | JWT, origin, body, active organization, AAL2, fresh password, permission, lookup failure            | Protected commands fail closed                                               |
+| `FEAT-005-TENANT-01`  | Runtime/SQL            | Forged school list/search/IDs and rollback-only cross-school access                                 | No leakage or cross-school effect                                            |
+| `FEAT-005-AUTH-01`    | Runtime                | Active, suspended, reactivated, and revoked sessions                                                | Server access tracks membership state immediately                            |
+| `FEAT-005-PAGE-01`    | Integration            | Profile/email change and new/status-changed rows between cursor pages                               | Stable tuple order, valid filter behavior, no mutable-key duplication        |
+| `FEAT-005-E2E-01`     | Browser                | Admin review/status flow and member profile on desktop/mobile                                       | End-to-end approved behavior                                                 |
+| `FEAT-005-A11Y-01`    | Browser/manual support | Keyboard, focus, announcements, reflow, contrast, target size                                       | Automated scope pass; formal review later                                    |
+| `FEAT-005-SEC-01`     | Security               | Enumeration, injection, metadata, replay, races, limiter, secret scans                              | No bypass or prohibited disclosure                                           |
+| `FEAT-005-REG-01`     | Regression             | Complete application and database/runtime matrices                                                  | FEAT-001–004 remain green                                                    |
+| `FEAT-005-FIXTURE-01` | Runtime                | Random synthetic profiles/members and unconditional cleanup                                         | Zero unintended residue or uncertain cleanup                                 |
+
+### Inactive-role runtime diagnostics
+
+The synthetic inactive-role probe must distinguish role disable, HTTP request,
+response decoding, expected-status assertion, and role restoration using fixed
+diagnostic stages. Preserve the existing 404 expectation and transport retry
+policy. Record primary and restoration failures independently; either fails the
+fixture. Attempt restoration after every disable attempt, including an uncertain
+database failure, and retain the outer cleanup fallback until restoration succeeds.
+Fault-injection tests must cover each phase, dual failure, disabled logging, and
+the [runtime output boundary](../10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety).
 
 ## Dependencies
 
