@@ -51,6 +51,12 @@ PR #16 target. Hosted, real-data, and production evidence remain separate gates.
 | Database lint and generated types        | No schema warnings; generated types are current                                                                                    |
 | Separate-agent review                    | Pass; PR #15 findings were corrected, and the forward correction review found no actionable findings                               |
 
+## Member-administration gateway extraction evidence
+
+[A002 / #78](https://github.com/killroyZULU/FlyEye/issues/78) records the extraction target, separate review and final CI evidence. The [compatibility tests](../../../src/features/auth/services/member-administration-gateway.test.ts), suite `member administration gateway compatibility`, cover frontend preservation of [FEAT-005 acceptance](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#acceptance-criteria) and [role assignment](FEAT-006_ROLE_ASSIGNMENT.md#slice-b-workflow-and-rules): exact scope/filter/cursor and mutation payloads, versions/idempotency, replay results, response unwrapping, invalid responses and safe protected-error guidance without automatic retries.
+
+The focused gateway/member-contract group passed 92 tests on baseline `3250a6b` and after extraction. Synthetic SDK responses establish frontend compatibility; existing SQL/RLS and [member-administration](../../../scripts/test-feat-005-runtime.mjs) and [role-assignment](../../../scripts/test-feat-006b-runtime.mjs) fixtures supply separate authorization, isolation, audit and cleanup evidence through disposable CI. The occupied local database remains preserved.
+
 ## Inactive-role runtime diagnostics
 
 [FIX-011 / #68](https://github.com/killroyZULU/FlyEye/issues/68) tracks delivery of

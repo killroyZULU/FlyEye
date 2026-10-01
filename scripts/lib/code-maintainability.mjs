@@ -12,7 +12,7 @@ export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
   'src/features/auth/components/MemberInvitationsPanel.tsx': 282,
   'src/features/auth/components/MemberMfaEnrollmentFlow.tsx': 495,
   'src/features/auth/components/PasswordRecoveryFlow.tsx': 325,
-  'src/features/auth/services/auth-gateway.ts': 1073,
+  'src/features/auth/services/auth-gateway.ts': 941,
   'src/features/members/components/MemberAdministrationPanel.tsx': 627,
   'src/features/members/components/MemberProfilePanel.tsx': 242,
   'supabase/functions/auth-bootstrap/handler.ts': 365,
@@ -27,7 +27,6 @@ export const LEGACY_CROSS_FEATURE_IMPORTS = Object.freeze([
   'src/features/auth/AuthApp.tsx -> src/features/members/components/MemberProfilePanel.tsx',
   'src/features/members/components/MemberAdministrationPanel.tsx -> src/features/auth/services/auth-gateway.ts',
   'src/features/members/components/MemberProfilePanel.tsx -> src/features/auth/services/auth-gateway.ts',
-  'src/features/auth/services/auth-gateway.ts -> src/features/members/member-administration.ts',
 ]);
 
 export const LEGACY_LAYER_IMPORTS = Object.freeze([
