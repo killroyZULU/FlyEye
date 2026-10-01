@@ -13,31 +13,31 @@ Detailed output and chronology remain in Git, PR #7, PR #8, CI, and reviewed scr
 
 ## Requirements and results
 
-| Requirement ID | Outcome/control | Evidence | Result and boundary |
-|---|---|---|---|
-| `FEAT-003-01` | Controlled first administrator before invitations | `DEC-02/04`, `AMD-01`, `AC-01/02/11/13/23/24/25`, SQL/RPC/Edge/fixture | Pass locally; production issuance unresolved |
-| `FEAT-003-02` | First-admin privileged MFA | `DEC-01`, `AC-20/21/22`, `REG-01` | Pass for bounded scope; recovery gates remain |
-| `FEAT-003-03` | TOTP possession without secret leakage | `AC-04/05/19`, `UNIT-05`, `AUTH-01`, `SCAN-01` | Pass locally; hosted/formal review not claimed |
-| `FEAT-003-04` | No silent duplicate-factor enrollment | `DEC-05`, `AC-07/08`, `UNIT-04`, `AUTH-03`, `COMP-04` | Pass locally; conflict fails closed |
-| `FEAT-003-05` | Invalid/cancelled/stale/failed flow creates no authority | `AMD-01`, `AC-06/09/10/18/29/30`, component/Auth/security tests | Pass locally; no unproven factor deletion |
-| `FEAT-003-06` | Fresh password plus current TOTP evidence | `DEC-03`, `AMD-01`, `AC-02/05/11/14/26/30`, `UNIT-03`, `EDGE-01`, security runtime | Pass locally at exact 600-second boundary |
-| `FEAT-003-07` | Forged school context cannot widen access | `AC-03`, `COMP-03`, `RLS-02`, `TENANT-01`, `E2E-02`, FIX-006 | Historical and amended local evidence pass |
-| `FEAT-003-08` | Organization Admin remains administrative only | `AC-15`, scope review, `REG-01` | Pass; no operational or aviation authority |
-| `FEAT-003-09` | Atomic attributable completion | `AMD-01`, `AC-11/13/25`, `RPC-01/03`, `AUDIT-01` | Pass locally; audit failure rolls back |
-| `FEAT-003-10` | Concurrent attempts create at most one first admin | `AC-12/27`, `RPC-04`, `SEC-02` | Pass locally for same/different grants and replay |
-| `FEAT-003-11` | Existing and last-active admins remain protected | `AC-16`, `RPC-02`, scope review | Pass; no removal/demotion path exists |
-| `FEAT-003-12` | Browser roles cannot mutate tenant authority | `AMD-01`, `AC-01/02/19/28`, `RLS-01/02`, `EDGE-01`, `SCAN-01` | Pass locally; server-only execution retained |
-| `FEAT-003-13` | Keep invitations outside FEAT-003 | Scope review, `AC-21`, `REG-01` | Pass; invitations remained outside FEAT-003 and are owned by FEAT-004 |
-| `FEAT-003-14` | Keep user/profile management outside FEAT-003 | Scope review, `AC-21`, `REG-01` | Pass; separate contract in [FEAT-005](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) |
-| `FEAT-003-15` | First-admin assignment is not general role assignment | `AC-11/15/16`, `RPC-01/02`, `REG-01` | Pass; separate contract in [FEAT-006](FEAT-006_ROLE_ASSIGNMENT.md) |
-| `FEAT-003-16` | Complete safe states on weak connectivity/failure | `AC-06/10/18`, `COMP-01/02`, `E2E-03` | Pass for automated/local scope |
-| `FEAT-003-17` | Accessible MFA onboarding | `AC-17`, component/E2E/A11Y/CAPTCHA families | Automated/local scope pass; formal and active-provider evidence pending |
-| `FEAT-003-18` | Lost-device/replacement uncertainty creates no bypass | `AC-08/22`, `COMP-04`, `AUTH-03` | Deferred behavior explicitly blocks real-data/production readiness |
-| `FEAT-003-19` | Provider behavior is evidenced, not assumed | `AMD-01`, `AC-29/30`, Auth/audit/config/security runtime | Pass locally; reverify for exact hosted target |
-| `FEAT-003-20` | Preserve FEAT-001/002 Auth, RLS, recovery, audit, and tenancy | `AC-20`, `REG-01`, final matrix | Pass on recorded target |
-| `FEAT-003-21` | Keep local/hosted/real-data/deployment/production gates distinct | `AC-21`, PR #7, CI, scope review | Local feature merged; later lifecycle gates remain open |
-| `FEAT-003-22` | Provider limits do not replace endpoint abuse control | `AMD-02/04`, `AC-06/19/31`, `EDGE-02`, `MON-01`, `SEC-02`, `CONFIG-01` | Pass for local token buckets; hosted values unresolved |
-| `FEAT-003-23` | Hosted validation cannot target production or reuse local provenance | `AMD-05`, `HS-AC-01`–`HS-AC-08`, manifest/config/SQL checks, final matrix | Hardening merged but disabled/target-free; hosted activation unresolved |
+| Requirement ID | Outcome/control                                                      | Evidence                                                                           | Result and boundary                                                                   |
+| -------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `FEAT-003-01`  | Controlled first administrator before invitations                    | `DEC-02/04`, `AMD-01`, `AC-01/02/11/13/23/24/25`, SQL/RPC/Edge/fixture             | Pass locally; production issuance unresolved                                          |
+| `FEAT-003-02`  | First-admin privileged MFA                                           | `DEC-01`, `AC-20/21/22`, `REG-01`                                                  | Pass for bounded scope; recovery gates remain                                         |
+| `FEAT-003-03`  | TOTP possession without secret leakage                               | `AC-04/05/19`, `UNIT-05`, `AUTH-01`, `SCAN-01`                                     | Pass locally; hosted/formal review not claimed                                        |
+| `FEAT-003-04`  | No silent duplicate-factor enrollment                                | `DEC-05`, `AC-07/08`, `UNIT-04`, `AUTH-03`, `COMP-04`                              | Pass locally; conflict fails closed                                                   |
+| `FEAT-003-05`  | Invalid/cancelled/stale/failed flow creates no authority             | `AMD-01`, `AC-06/09/10/18/29/30`, component/Auth/security tests                    | Pass locally; no unproven factor deletion                                             |
+| `FEAT-003-06`  | Fresh password plus current TOTP evidence                            | `DEC-03`, `AMD-01`, `AC-02/05/11/14/26/30`, `UNIT-03`, `EDGE-01`, security runtime | Pass locally at exact 600-second boundary                                             |
+| `FEAT-003-07`  | Forged school context cannot widen access                            | `AC-03`, `COMP-03`, `RLS-02`, `TENANT-01`, `E2E-02`, FIX-006                       | Historical and amended local evidence pass                                            |
+| `FEAT-003-08`  | Organization Admin remains administrative only                       | `AC-15`, scope review, `REG-01`                                                    | Pass; no operational or aviation authority                                            |
+| `FEAT-003-09`  | Atomic attributable completion                                       | `AMD-01`, `AC-11/13/25`, `RPC-01/03`, `AUDIT-01`                                   | Pass locally; audit failure rolls back                                                |
+| `FEAT-003-10`  | Concurrent attempts create at most one first admin                   | `AC-12/27`, `RPC-04`, `SEC-02`                                                     | Pass locally for same/different grants and replay                                     |
+| `FEAT-003-11`  | Existing and last-active admins remain protected                     | `AC-16`, `RPC-02`, scope review                                                    | Pass; no removal/demotion path exists                                                 |
+| `FEAT-003-12`  | Browser roles cannot mutate tenant authority                         | `AMD-01`, `AC-01/02/19/28`, `RLS-01/02`, `EDGE-01`, `SCAN-01`                      | Pass locally; server-only execution retained                                          |
+| `FEAT-003-13`  | Keep invitations outside FEAT-003                                    | Scope review, `AC-21`, `REG-01`                                                    | Pass; invitations remained outside FEAT-003 and are owned by FEAT-004                 |
+| `FEAT-003-14`  | Keep user/profile management outside FEAT-003                        | Scope review, `AC-21`, `REG-01`                                                    | Pass; separate contract in [FEAT-005](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md) |
+| `FEAT-003-15`  | First-admin assignment is not general role assignment                | `AC-11/15/16`, `RPC-01/02`, `REG-01`                                               | Pass; separate contract in [FEAT-006](FEAT-006_ROLE_ASSIGNMENT.md)                    |
+| `FEAT-003-16`  | Complete safe states on weak connectivity/failure                    | `AC-06/10/18`, `COMP-01/02`, `E2E-03`                                              | Pass for automated/local scope                                                        |
+| `FEAT-003-17`  | Accessible MFA onboarding                                            | `AC-17`, component/E2E/A11Y/CAPTCHA families                                       | Automated/local scope pass; formal and active-provider evidence pending               |
+| `FEAT-003-18`  | Lost-device/replacement uncertainty creates no bypass                | `AC-08/22`, `COMP-04`, `AUTH-03`                                                   | Deferred behavior explicitly blocks real-data/production readiness                    |
+| `FEAT-003-19`  | Provider behavior is evidenced, not assumed                          | `AMD-01`, `AC-29/30`, Auth/audit/config/security runtime                           | Pass locally; reverify for exact hosted target                                        |
+| `FEAT-003-20`  | Preserve FEAT-001/002 Auth, RLS, recovery, audit, and tenancy        | `AC-20`, `REG-01`, final matrix                                                    | Pass on recorded target                                                               |
+| `FEAT-003-21`  | Keep local/hosted/real-data/deployment/production gates distinct     | `AC-21`, PR #7, CI, scope review                                                   | Local feature merged; later lifecycle gates remain open                               |
+| `FEAT-003-22`  | Provider limits do not replace endpoint abuse control                | `AMD-02/04`, `AC-06/19/31`, `EDGE-02`, `MON-01`, `SEC-02`, `CONFIG-01`             | Pass for local token buckets; hosted values unresolved                                |
+| `FEAT-003-23`  | Hosted validation cannot target production or reuse local provenance | `AMD-05`, `HS-AC-01`–`HS-AC-08`, manifest/config/SQL checks, final matrix          | Hardening merged but disabled/target-free; hosted activation unresolved               |
 
 ## Final local matrix
 
@@ -72,6 +72,12 @@ Retained IDs are `FEAT-003-UNIT-01`, `FEAT-003-UNIT-02`, `FEAT-003-UNIT-03`, `FE
 Separate reviews drove corrections for mandatory-audit error classification, stale review-gate wording, arbitrary remote-host acceptance, dormant staging enablement, limiter-key separation, limiter-evidence wording, and JWT-test targeting. Focused checks and the final matrix passed after correction.
 
 Agent review is technical evidence, not qualified independent human review or risk acceptance.
+
+## QR validation extraction evidence
+
+[A002 / #72](https://github.com/killroyZULU/FlyEye/issues/72) isolates the validator for the [TOTP factor contract](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#totp-factor-contract), also used by [member enrollment](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules). The `TOTP QR SVG provider contract` suite in [totp-qr-svg.test.ts](../../../src/features/auth/services/totp-qr-svg.test.ts) covers exact normalized output, wrapper restrictions, XML declarations, comment limits, active/malformed content, attributes/styles, dimensions and the byte boundary.
+
+The focused 98-case matrix passed against the unchanged parser extracted from `c3141f9` and again after its stage decomposition. [Gateway tests](../../../src/features/auth/services/auth-gateway.test.ts) retain `FEAT-003 Supabase auth gateway` coverage and add `normalizes member QR data before binding and returns only the approved preparation` plus `rejects unsafe member QR data without binding when cleanup results in %s` under `FEAT-006A Supabase auth gateway`. These are synthetic DOM/provider-mock results; they do not establish hosted provider behavior. Final review and CI evidence belong to the linked delivery issue/PR.
 
 ## Remaining gates
 

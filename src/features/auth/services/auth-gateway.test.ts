@@ -300,7 +300,13 @@ describe('FEAT-006A Supabase auth gateway', () => {
     correlationId: '70000000-0000-4000-8000-000000000001',
   };
 
-  function memberEnrollmentGateway(unenrollError: unknown = null) {
+  const memberQrSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black"/></svg>';
+
+  function memberEnrollmentGateway(
+    unenrollError: unknown = null,
+    qrCode = `data:image/svg+xml;utf-8,${memberQrSvg}`,
+  ) {
     const unenroll = vi.fn().mockResolvedValue({ data: {}, error: unenrollError });
     const invoke = vi.fn().mockResolvedValue({ data: { decision: 'unexpected' }, error: null });
     const gateway = new SupabaseAuthGateway(
@@ -316,8 +322,7 @@ describe('FEAT-006A Supabase auth gateway', () => {
                 id: '60000000-0000-4000-8000-000000000001',
                 type: 'totp',
                 totp: {
-                  qr_code:
-                    'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="0" y="0" width="1" height="1" style="fill:black"/></svg>',
+                  qr_code: qrCode,
                   secret: syntheticProviderSecret,
                   uri: syntheticProviderUri,
                 },
@@ -332,6 +337,67 @@ describe('FEAT-006A Supabase auth gateway', () => {
     );
     return { gateway, invoke, unenroll };
   }
+
+  it('normalizes member QR data before binding and returns only the approved preparation', async () => {
+    const idempotencyKey = 'a'.repeat(32);
+    const { gateway, invoke, unenroll } = memberEnrollmentGateway(
+      null,
+      `data:image/svg+xml;utf-8,<?xml version="1.0"?><!-- synthetic -->${memberQrSvg}`,
+    );
+    invoke.mockResolvedValueOnce({
+      data: {
+        decision: 'bound',
+        operationId: start.operationId,
+        operationVersion: 2,
+        replayed: false,
+        correlationId: start.correlationId,
+      },
+      error: null,
+    });
+    const mutableStart = { ...start };
+
+    await expect(gateway.prepareMemberTotp(mutableStart, idempotencyKey)).resolves.toEqual({
+      kind: 'enrollment',
+      factorId: '60000000-0000-4000-8000-000000000001',
+      qrSvg: memberQrSvg,
+      manualSecret: syntheticProviderSecret,
+    });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('member-mfa', {
+      body: {
+        action: 'bind_factor',
+        operationId: start.operationId,
+        expectedVersion: 1,
+        factorId: '60000000-0000-4000-8000-000000000001',
+        idempotencyKey,
+      },
+    });
+    expect(mutableStart.operationVersion).toBe(2);
+    expect(unenroll).not.toHaveBeenCalled();
+  });
+
+  it.each(['success', 'error', 'rejection'] as const)(
+    'rejects unsafe member QR data without binding when cleanup results in %s',
+    async (cleanupResult) => {
+      const { gateway, invoke, unenroll } = memberEnrollmentGateway(
+        cleanupResult === 'error' ? { code: 'provider_failure' } : null,
+        `data:image/svg+xml;utf-8,${memberQrSvg.replace('<rect ', '<rect onload="alert(1)" ')}`,
+      );
+      if (cleanupResult === 'rejection') unenroll.mockRejectedValueOnce(new Error('synthetic'));
+      const mutableStart = { ...start };
+
+      await expect(
+        gateway.prepareMemberTotp(mutableStart, '0123456789abcdef0123456789abcdef'),
+      ).rejects.toMatchObject({
+        code:
+          cleanupResult === 'success' ? 'member_mfa_unavailable' : 'member_mfa_cleanup_uncertain',
+      });
+      expect(unenroll).toHaveBeenCalledExactlyOnceWith({
+        factorId: '60000000-0000-4000-8000-000000000001',
+      });
+      expect(invoke).not.toHaveBeenCalled();
+      expect(mutableStart.operationVersion).toBe(1);
+    },
+  );
 
   it('retains a newly enrolled factor when a binding outcome cannot be reconciled', async () => {
     const { gateway, unenroll } = memberEnrollmentGateway();
