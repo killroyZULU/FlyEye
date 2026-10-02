@@ -81,6 +81,12 @@ This new runtime evidence requires disposable CI execution; it has not been run
 against the occupied local database. Publication and CI results belong to #64's
 linked PR. These checks do not establish global session expiry or revocation.
 
+## Member MFA gateway extraction evidence
+
+[A002 / #82](https://github.com/killroyZULU/FlyEye/issues/82) isolates the existing [Slice A workflow](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules). The `Member MFA facade commands` and `Member MFA preparation and binding compatibility` suites in [member-mfa-gateway.test.ts](../../../src/features/auth/services/member-mfa-gateway.test.ts) cover payload/version/replay propagation, schemas, error guidance, provider order, initial/resumed challenges, invalid-enrollment cleanup, same-operation binding reconciliation, error causes and cancellation.
+
+All 148 focused cases passed on baseline `6a844b4` and after extraction, including the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts) and `Shared onboarding authenticator compatibility` in [administrator tests](../../../src/features/auth/services/admin-onboarding-gateway.test.ts). Synthetic provider mocks establish compatibility, not hosted behavior. Final application checks, separate review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
+
 ## Evidence rules
 
 - Do not mark `Pass` without reproducible evidence for the reviewed slice target.

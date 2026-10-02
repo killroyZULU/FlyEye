@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-10-01
+- Last updated: 2026-10-02
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -43,7 +43,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [PR #79](https://github.com/killroyZULU/FlyEye/pull/79) extracted member administration at `5ab90f5`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/36860263501) passed all gates and cleanup. [A002 / #80](https://github.com/killroyZULU/FlyEye/issues/80) tracks administrator-onboarding extraction. Preserve the occupied local database and session-policy gates.
+- Maintenance: [PR #81](https://github.com/killroyZULU/FlyEye/pull/81) extracted administrator onboarding at `6a844b4`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/36982763921) passed all gates and cleanup. [A002 / #82](https://github.com/killroyZULU/FlyEye/issues/82) tracks member MFA extraction. Preserve the occupied local database and session-policy gates.
 
 ## Aircraft and dashboard integration
 
