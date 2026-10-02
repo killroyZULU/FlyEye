@@ -79,6 +79,12 @@ Agent review is technical evidence, not qualified independent human review or ri
 
 The focused 98-case matrix passed against the unchanged parser extracted from `c3141f9` and again after its stage decomposition. [Gateway tests](../../../src/features/auth/services/auth-gateway.test.ts) retain `FEAT-003 Supabase auth gateway` coverage and add `normalizes member QR data before binding and returns only the approved preparation` plus `rejects unsafe member QR data without binding when cleanup results in %s` under `FEAT-006A Supabase auth gateway`. These are synthetic DOM/provider-mock results; they do not establish hosted provider behavior. Final review and CI evidence belong to the linked delivery issue/PR.
 
+## Administrator gateway extraction evidence
+
+[A002 / #80](https://github.com/killroyZULU/FlyEye/issues/80) isolates the existing [administrator onboarding contract](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#totp-factor-contract) and shared authenticator helpers used by [member enrollment](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules). The `Administrator onboarding facade compatibility` and `Shared onboarding authenticator compatibility` suites in [admin-onboarding-gateway.test.ts](../../../src/features/auth/services/admin-onboarding-gateway.test.ts) cover payload/version/replay propagation, start-key entropy, response validation, protected errors, factor inventories, provider failure, AAL2 verification and cancellation cleanup.
+
+Together with the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts), 105 focused tests passed on baseline `5ab90f5` and after extraction. Synthetic provider mocks preserve both callers' existing error classifications and SDK call order; they do not establish hosted behavior. Final application, separate-review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
+
 ## Remaining gates
 
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.

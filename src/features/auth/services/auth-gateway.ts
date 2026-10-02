@@ -5,6 +5,8 @@ import { AuthGatewayError, asGatewayError, responseStatus } from './auth-gateway
 import { PasswordRecoveryGateway } from './password-recovery-gateway';
 import { MemberInvitationGateway } from './member-invitation-gateway';
 import { MemberAdministrationGateway } from './member-administration-gateway';
+import { AdminOnboardingGateway } from './admin-onboarding-gateway';
+import { factorInventory, verifyEnrollmentTotp } from './onboarding-authenticator';
 import { edgeErrorDetails } from './edge-error-details';
 
 import {
@@ -22,15 +24,12 @@ import type {
   MemberStatusAction,
   MemberStatusResult,
 } from '../../members';
-import {
-  adminOnboardingCompleteSchema,
-  adminOnboardingStartSchema,
-  adminOnboardingStatusSchema,
-  type AdminBootstrapGrant,
-  type AdminOnboardingComplete,
-  type AdminOnboardingStart,
-  type AdminOnboardingStatus,
-  type TotpPreparation,
+import type {
+  AdminBootstrapGrant,
+  AdminOnboardingComplete,
+  AdminOnboardingStart,
+  AdminOnboardingStatus,
+  TotpPreparation,
 } from '../admin-onboarding';
 import type { InvitationMutation, MemberInvitationList } from '../member-invitations';
 import {
@@ -148,56 +147,8 @@ function supportedAssuranceLevel(level: string | null): 'aal1' | 'aal2' | null {
   return level === 'aal1' || level === 'aal2' ? level : null;
 }
 
-function factorInventory(input: unknown): Array<{
-  id: string;
-  factor_type: 'totp' | 'phone' | 'webauthn';
-  status: 'verified' | 'unverified';
-}> {
-  if (!Array.isArray(input) || input.length > 16) {
-    throw new AuthGatewayError(
-      'admin_onboarding_conflict',
-      'Your authenticator information needs administrator review.',
-    );
-  }
-
-  const factors = input.map((factor) => {
-    if (typeof factor !== 'object' || factor === null) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your authenticator information needs administrator review.',
-      );
-    }
-    const id: unknown = Reflect.get(factor, 'id') as unknown;
-    const factorType: unknown = Reflect.get(factor, 'factor_type') as unknown;
-    const status: unknown = Reflect.get(factor, 'status') as unknown;
-    if (
-      typeof id !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ||
-      !['totp', 'phone', 'webauthn'].includes(String(factorType)) ||
-      !['verified', 'unverified'].includes(String(status))
-    ) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your authenticator information needs administrator review.',
-      );
-    }
-    return {
-      id,
-      factor_type: factorType as 'totp' | 'phone' | 'webauthn',
-      status: status as 'verified' | 'unverified',
-    };
-  });
-
-  if (new Set(factors.map((factor) => factor.id)).size !== factors.length) {
-    throw new AuthGatewayError(
-      'admin_onboarding_conflict',
-      'Your authenticator information needs administrator review.',
-    );
-  }
-  return factors;
-}
-
 export class SupabaseAuthGateway implements AuthGateway {
+  private readonly adminOnboarding: AdminOnboardingGateway;
   private readonly passwordRecovery: PasswordRecoveryGateway;
   private readonly memberInvitations: MemberInvitationGateway;
   private readonly memberAdministration: MemberAdministrationGateway;
@@ -206,6 +157,7 @@ export class SupabaseAuthGateway implements AuthGateway {
     private readonly client: SupabaseClient<Database>,
     recoveryOrigin = () => window.location.origin,
   ) {
+    this.adminOnboarding = new AdminOnboardingGateway(client);
     this.passwordRecovery = new PasswordRecoveryGateway(client.auth, recoveryOrigin);
     this.memberInvitations = new MemberInvitationGateway(client);
     this.memberAdministration = new MemberAdministrationGateway(client);
@@ -296,236 +248,31 @@ export class SupabaseAuthGateway implements AuthGateway {
     return parsed.data;
   }
 
-  private async invokeAdminOnboarding(body: Record<string, unknown>): Promise<unknown> {
-    const invocation: unknown = await this.client.functions.invoke(
-      'organization-admin-onboarding',
-      { body },
-    );
-    if (typeof invocation !== 'object' || invocation === null) {
-      throw new AuthGatewayError(
-        'admin_onboarding_audit_unavailable',
-        'Administrator onboarding could not be verified. Try again.',
-      );
-    }
-
-    const data: unknown = Reflect.get(invocation, 'data');
-    const error: unknown = Reflect.get(invocation, 'error');
-    if (!error) return data;
-
-    const details = await edgeErrorDetails(error);
-    switch (details.code) {
-      case 'admin_onboarding.rate_limited':
-        throw new AuthGatewayError(
-          'rate_limited',
-          details.retryAfterSeconds
-            ? `Wait ${details.retryAfterSeconds} seconds before trying again.`
-            : 'Too many attempts. Wait before trying again.',
-        );
-      case 'admin_onboarding.recent_authentication_required':
-        throw new AuthGatewayError(
-          'admin_onboarding_recent_authentication_required',
-          'Sign in with your password again to continue.',
-        );
-      case 'admin_onboarding.not_available':
-      case 'admin_onboarding.not_eligible':
-        throw new AuthGatewayError(
-          'admin_onboarding_not_available',
-          'This administrator onboarding request is not available.',
-        );
-      case 'admin_onboarding.conflict':
-        throw new AuthGatewayError(
-          'admin_onboarding_conflict',
-          'Your administrator onboarding information needs review.',
-        );
-      case 'admin_onboarding.provider_unavailable':
-        throw new AuthGatewayError(
-          'admin_onboarding_provider_unavailable',
-          'Authenticator state could not be confirmed. Try again.',
-        );
-      case 'admin_onboarding.limiter_unavailable':
-        throw new AuthGatewayError(
-          'admin_onboarding_limiter_unavailable',
-          'Administrator onboarding is temporarily unavailable. Try again later.',
-        );
-      case 'admin_onboarding.audit_unavailable':
-        throw new AuthGatewayError(
-          'admin_onboarding_audit_unavailable',
-          'Administrator onboarding could not be verified. Try again.',
-        );
-      default:
-        if (details.status === 429) {
-          throw new AuthGatewayError(
-            'rate_limited',
-            'Too many attempts. Wait before trying again.',
-          );
-        }
-        throw new AuthGatewayError(
-          'admin_onboarding_audit_unavailable',
-          'Administrator onboarding could not be verified. Try again.',
-        );
-    }
+  loadAdminOnboardingStatus(): Promise<AdminOnboardingStatus> {
+    return this.adminOnboarding.loadAdminOnboardingStatus();
   }
 
-  async loadAdminOnboardingStatus(): Promise<AdminOnboardingStatus> {
-    const parsed = adminOnboardingStatusSchema.safeParse(
-      await this.invokeAdminOnboarding({ action: 'status' }),
-    );
-    if (!parsed.success) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your administrator onboarding information needs review.',
-      );
-    }
-    return parsed.data;
+  startAdminOnboarding(grant: AdminBootstrapGrant): Promise<AdminOnboardingStart> {
+    return this.adminOnboarding.startAdminOnboarding(grant);
   }
 
-  async startAdminOnboarding(grant: AdminBootstrapGrant): Promise<AdminOnboardingStart> {
-    const parsed = adminOnboardingStartSchema.safeParse(
-      await this.invokeAdminOnboarding({
-        action: 'start',
-        bootstrapGrantId: grant.bootstrapGrantId,
-        expectedVersion: grant.grantVersion,
-        idempotencyKey: crypto
-          .getRandomValues(new Uint8Array(16))
-          .reduce((value, byte) => `${value}${byte.toString(16).padStart(2, '0')}`, ''),
-      }),
-    );
-    if (!parsed.success) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your administrator onboarding information needs review.',
-      );
-    }
-    return parsed.data;
+  prepareAdminTotp(factorState: AdminOnboardingStart['factorState']): Promise<TotpPreparation> {
+    return this.adminOnboarding.prepareAdminTotp(factorState);
   }
 
-  async prepareAdminTotp(
-    factorState: AdminOnboardingStart['factorState'],
-  ): Promise<TotpPreparation> {
-    const { data, error } = await this.client.auth.mfa.listFactors();
-    if (error) throw asGatewayError(error);
-
-    const all = factorInventory(data.all);
-    const allTotpIds = all
-      .filter((factor) => factor.factor_type === 'totp')
-      .map((factor) => factor.id)
-      .sort();
-    const convenienceTotpIds = factorInventory(data.totp)
-      .map((factor) => factor.id)
-      .sort();
-    if (
-      allTotpIds.length !== convenienceTotpIds.length ||
-      allTotpIds.some((id, index) => id !== convenienceTotpIds[index])
-    ) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your authenticator information needs administrator review.',
-      );
-    }
-
-    if (factorState === 'challenge_required') {
-      if (all.length !== 1 || all[0]?.factor_type !== 'totp' || all[0].status !== 'verified') {
-        throw new AuthGatewayError(
-          'admin_onboarding_conflict',
-          'Your authenticator information needs administrator review.',
-        );
-      }
-      return { kind: 'challenge', factorId: all[0].id };
-    }
-
-    if (all.length !== 0) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Your authenticator information needs administrator review.',
-      );
-    }
-
-    const { data: enrollment, error: enrollmentError } = await this.client.auth.mfa.enroll({
-      factorType: 'totp',
-      friendlyName: 'FlyEye authenticator',
-    });
-    if (enrollmentError) throw asGatewayError(enrollmentError);
-
-    const qrSvg = normalizeTotpQrSvg(enrollment.totp.qr_code);
-    const manualSecret = enrollment.totp.secret;
-    const uri = enrollment.totp.uri;
-    if (
-      !qrSvg ||
-      !/^[A-Z2-7]+=*$/i.test(manualSecret) ||
-      manualSecret.length < 16 ||
-      manualSecret.length > 256 ||
-      !uri.startsWith('otpauth://totp/') ||
-      uri.length > 2048
-    ) {
-      throw new AuthGatewayError(
-        'admin_onboarding_provider_unavailable',
-        'Authenticator enrollment could not be prepared safely.',
-      );
-    }
-
-    return {
-      kind: 'enrollment',
-      factorId: enrollment.id,
-      qrSvg,
-      manualSecret,
-    };
+  verifyAdminTotp(factorId: string, code: string): Promise<void> {
+    return this.adminOnboarding.verifyAdminTotp(factorId, code);
   }
 
-  async verifyAdminTotp(factorId: string, code: string): Promise<void> {
-    const { error } = await this.client.auth.mfa.challengeAndVerify({ factorId, code });
-    if (error) {
-      if (error.status === 429) {
-        throw new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.');
-      }
-      throw new AuthGatewayError('mfa_invalid', 'The verification code is invalid or expired.');
-    }
-
-    const { data: assurance, error: assuranceError } =
-      await this.client.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assuranceError) throw asGatewayError(assuranceError);
-    if (assurance.currentLevel !== 'aal2') {
-      throw new AuthGatewayError(
-        'admin_onboarding_provider_unavailable',
-        'Authenticator verification could not be confirmed.',
-      );
-    }
-  }
-
-  async completeAdminOnboarding(
+  completeAdminOnboarding(
     start: AdminOnboardingStart,
     idempotencyKey: string,
   ): Promise<AdminOnboardingComplete> {
-    const parsed = adminOnboardingCompleteSchema.safeParse(
-      await this.invokeAdminOnboarding({
-        action: 'complete',
-        bootstrapGrantId: start.bootstrapGrantId,
-        expectedVersion: start.grantVersion,
-        idempotencyKey,
-      }),
-    );
-    if (!parsed.success) {
-      throw new AuthGatewayError(
-        'admin_onboarding_conflict',
-        'Administrator onboarding completion could not be revalidated.',
-      );
-    }
-    return parsed.data;
+    return this.adminOnboarding.completeAdminOnboarding(start, idempotencyKey);
   }
 
-  async cancelAdminOnboarding(bootstrapGrantId: string, idempotencyKey: string): Promise<void> {
-    try {
-      await this.invokeAdminOnboarding({
-        action: 'cancel',
-        bootstrapGrantId,
-        idempotencyKey,
-      });
-    } finally {
-      try {
-        await this.client.auth.signOut({ scope: 'local' });
-      } catch {
-        // The UI clears in-memory enrollment state even if local SDK cleanup reports failure.
-      }
-    }
+  cancelAdminOnboarding(bootstrapGrantId: string, idempotencyKey: string): Promise<void> {
+    return this.adminOnboarding.cancelAdminOnboarding(bootstrapGrantId, idempotencyKey);
   }
 
   private async invokeMemberMfa(body: Record<string, unknown>): Promise<unknown> {
@@ -749,7 +496,7 @@ export class SupabaseAuthGateway implements AuthGateway {
   }
 
   async verifyMemberTotp(factorId: string, code: string): Promise<void> {
-    await this.verifyAdminTotp(factorId, code);
+    await verifyEnrollmentTotp(this.client.auth.mfa, factorId, code);
   }
 
   async completeMemberMfaEnrollment(
