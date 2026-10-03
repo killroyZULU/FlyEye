@@ -16,6 +16,21 @@
 
 The local evidence uses synthetic users and organizations only. On 2026-07-19, formatting, lint, type checking, 32 unit/component/Edge-handler tests, 45 SQL/RLS tests, actual local Auth/TOTP/Edge/browser integration, 8 Playwright E2E scenarios, database lint, dependency audit, production build, generated-type hash comparison, and source/build secret scans passed. This is not production validation, an independent penetration test, privacy approval, aviation-SME approval, or deployment authorization.
 
+## Gateway contract separation
+
+[A002 / #84](https://github.com/killroyZULU/FlyEye/issues/84) separates the
+[gateway contract](../../../src/features/auth/services/auth-gateway-contract.ts)
+from its [Supabase implementation](../../../src/features/auth/services/auth-gateway.ts),
+which retains the existing type exports. Compared with `3ca82f5`, the moved
+declarations and emitted gateway JavaScript are identical; the contract emits no
+runtime imports. Both files satisfy the normal file-size limit. The existing
+[gateway service suites](../../../src/features/auth/services/auth-gateway.test.ts)
+and sibling service suites, plus the
+[maintainability suite](../../../scripts/lib/code-maintainability.test.mjs), passed
+all 322 focused tests before and after extraction. Existing consumers type-check
+through the original exports. This evidence does not extend session or hosted
+validation coverage.
+
 ## Session-control evidence
 
 Source inspection at `4e21562` supports the observations below. These are bounded
