@@ -130,6 +130,7 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-004-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
     fixture === 'test-feat-006-runtime.mjs' ||
+    fixture === 'test-feat-006b-runtime.mjs' ||
     fixture === 'test-feat-007-runtime.mjs' ||
     fixture === 'test-feat-007b-runtime.mjs';
   const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {

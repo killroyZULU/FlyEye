@@ -65,6 +65,7 @@ export function runtimeDiagnosticLines(fixture, output) {
   const feature = {
     'test-feat-004-runtime.mjs': 'FEAT-004',
     'test-feat-005-runtime.mjs': 'FEAT-005',
+    'test-feat-006b-runtime.mjs': 'FEAT-006B',
     'test-feat-007-runtime.mjs': 'FEAT-007',
     'test-feat-007b-runtime.mjs': 'FEAT-007B',
   }[fixture];
