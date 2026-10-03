@@ -1,9 +1,13 @@
 import { StrictMode } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AdminOnboardingComplete, AdminOnboardingStart } from '../admin-onboarding';
+import type {
+  AdminOnboardingComplete,
+  AdminOnboardingStart,
+  TotpPreparation,
+} from '../admin-onboarding';
 import { AuthGatewayError, type AuthGateway } from '../services/auth-gateway';
 import { AdminOnboardingFlow } from './AdminOnboardingFlow';
 
@@ -33,6 +37,23 @@ const complete: AdminOnboardingComplete = {
 const syntheticManualSecret = 'A'.repeat(16);
 const syntheticQrSvg =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><rect x="0" y="0" width="1" height="1"/></svg>';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((accept, deny) => {
+    resolve = accept;
+    reject = deny;
+  });
+  return { promise, resolve, reject };
+}
+
+const enrollment: TotpPreparation = {
+  kind: 'enrollment',
+  factorId: '60000000-0000-4000-8000-000000000001',
+  qrSvg: syntheticQrSvg,
+  manualSecret: syntheticManualSecret,
+};
 
 function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
   return {
@@ -253,4 +274,245 @@ describe('FEAT-003 administrator onboarding UI', () => {
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:flyeye-synthetic-qr');
   });
+
+  it.each(['rate-limit', 'unknown'] as const)(
+    'maps %s preparation failure to safe, focused guidance',
+    async (kind) => {
+      const error =
+        kind === 'rate-limit'
+          ? new AuthGatewayError('rate_limited', 'Wait before trying again.')
+          : new Error('private-provider-details');
+      const api = gateway({ prepareAdminTotp: vi.fn().mockRejectedValue(error) });
+      render(
+        <AdminOnboardingFlow
+          gateway={api}
+          start={start}
+          onCompleted={vi.fn()}
+          onCancelled={vi.fn()}
+        />,
+      );
+      const heading = await screen.findByRole('heading', {
+        name: kind === 'rate-limit' ? 'Wait before trying again' : 'Onboarding is blocked',
+      });
+      await waitFor(() => expect(heading).toHaveFocus());
+      expect(document.body.textContent).not.toContain('private-provider-details');
+      expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed when the QR image cannot be created', async () => {
+    vi.mocked(URL.createObjectURL).mockImplementation(() => {
+      throw new Error('private-image-error');
+    });
+    const api = gateway();
+    render(
+      <AdminOnboardingFlow
+        gateway={api}
+        start={start}
+        onCompleted={vi.fn()}
+        onCancelled={vi.fn()}
+      />,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Authenticator enrollment could not be prepared safely.',
+    );
+    expect(document.body.textContent).not.toContain(syntheticManualSecret);
+    expect(document.body.textContent).not.toContain('private-image-error');
+    expect(api.verifyAdminTotp).not.toHaveBeenCalled();
+    expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('validates the six-digit input before contacting the gateway and permits a valid retry', async () => {
+    const api = gateway({
+      verifyAdminTotp: vi
+        .fn()
+        .mockRejectedValueOnce(new AuthGatewayError('mfa_invalid', 'Try another code.'))
+        .mockResolvedValue(undefined),
+    });
+    const onCompleted = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AdminOnboardingFlow
+        gateway={api}
+        start={start}
+        onCompleted={onCompleted}
+        onCancelled={vi.fn()}
+      />,
+    );
+    const code = await screen.findByLabelText('Verification code');
+    await user.type(code, '12');
+    await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+    await waitFor(() => expect(code).toHaveFocus());
+    expect(api.verifyAdminTotp).not.toHaveBeenCalled();
+    await user.type(code, 'a34567');
+    expect(code).toHaveValue('123456');
+    await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Try another code.');
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+    await waitFor(() => expect(onCompleted).toHaveBeenCalledWith(complete));
+    expect(api.prepareAdminTotp).toHaveBeenCalledOnce();
+    expect(api.verifyAdminTotp).toHaveBeenNthCalledWith(2, enrollment.factorId, '123456');
+    expect(api.completeAdminOnboarding).toHaveBeenCalledWith(
+      start,
+      expect.stringMatching(/^[0-9a-f]{32}$/),
+    );
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores preparation %s after unmount without creating a credential URL',
+    async (outcome) => {
+      const pending = deferred<TotpPreparation>();
+      const api = gateway({ prepareAdminTotp: vi.fn().mockReturnValue(pending.promise) });
+      const onCompleted = vi.fn();
+      const view = render(
+        <AdminOnboardingFlow
+          gateway={api}
+          start={start}
+          onCompleted={onCompleted}
+          onCancelled={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Confirming the current factor inventory',
+      );
+      view.unmount();
+      await act(async () => {
+        if (outcome === 'resolve') pending.resolve(enrollment);
+        else pending.reject(new Error('private-provider-details'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+      expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+      expect(onCompleted).not.toHaveBeenCalled();
+    },
+  );
+
+  it('ignores a superseded enrollment response after switching to a verified-factor challenge', async () => {
+    const pending = deferred<TotpPreparation>();
+    const api = gateway({
+      prepareAdminTotp: vi
+        .fn()
+        .mockReturnValueOnce(pending.promise)
+        .mockResolvedValueOnce({ kind: 'challenge', factorId: 'verified-factor' }),
+    });
+    const props = { gateway: api, start, onCompleted: vi.fn(), onCancelled: vi.fn() };
+    const view = render(<AdminOnboardingFlow {...props} />);
+    view.rerender(
+      <AdminOnboardingFlow {...props} start={{ ...start, factorState: 'challenge_required' }} />,
+    );
+    await screen.findByRole('heading', { name: 'Verify your authenticator' });
+    await act(async () => {
+      pending.resolve(enrollment);
+      await pending.promise;
+    });
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(screen.queryByAltText('Authenticator setup QR code')).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Verification code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+    await waitFor(() =>
+      expect(api.verifyAdminTotp).toHaveBeenCalledWith('verified-factor', '123456'),
+    );
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores verification %s after unmount',
+    async (outcome) => {
+      const pending = deferred<void>();
+      const api = gateway({ verifyAdminTotp: vi.fn().mockReturnValue(pending.promise) });
+      const onCompleted = vi.fn();
+      const user = userEvent.setup();
+      const view = render(
+        <AdminOnboardingFlow
+          gateway={api}
+          start={start}
+          onCompleted={onCompleted}
+          onCancelled={vi.fn()}
+        />,
+      );
+      await user.type(await screen.findByLabelText('Verification code'), '123456');
+      await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+      expect(screen.getByRole('button', { name: 'Verifying code…' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Cancel and sign out' })).toBeDisabled();
+      expect(screen.getByLabelText('Verification code')).toBeDisabled();
+      view.unmount();
+      await act(async () => {
+        if (outcome === 'resolve') pending.resolve();
+        else pending.reject(new Error('private-provider-details'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+      expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+      expect(onCompleted).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores completion %s after unmount',
+    async (outcome) => {
+      const pending = deferred<AdminOnboardingComplete>();
+      const api = gateway({ completeAdminOnboarding: vi.fn().mockReturnValue(pending.promise) });
+      const onCompleted = vi.fn();
+      const user = userEvent.setup();
+      const view = render(
+        <AdminOnboardingFlow
+          gateway={api}
+          start={start}
+          onCompleted={onCompleted}
+          onCancelled={vi.fn()}
+        />,
+      );
+      await user.type(await screen.findByLabelText('Verification code'), '123456');
+      await user.click(screen.getByRole('button', { name: 'Verify and create administrator' }));
+      await screen.findByRole('button', { name: 'Creating administrator…' });
+      expect(screen.queryByAltText('Authenticator setup QR code')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Verification code')).toHaveValue('');
+      view.unmount();
+      await act(async () => {
+        if (outcome === 'resolve') pending.resolve(complete);
+        else pending.reject(new Error('private-provider-details'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+      expect(onCompleted).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['resolve', 'reject'] as const)(
+    'clears credentials before cancellation settles by %s',
+    async (outcome) => {
+      const pending = deferred<void>();
+      const api = gateway({ cancelAdminOnboarding: vi.fn().mockReturnValue(pending.promise) });
+      const onCancelled = vi.fn();
+      const onCompleted = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <AdminOnboardingFlow
+          gateway={api}
+          start={start}
+          onCompleted={onCompleted}
+          onCancelled={onCancelled}
+        />,
+      );
+      await user.click(await screen.findByRole('button', { name: 'Show manual setup key' }));
+      await user.type(screen.getByLabelText('Verification code'), '123456');
+      await user.click(screen.getByRole('button', { name: 'Cancel and sign out' }));
+      expect(onCancelled).not.toHaveBeenCalled();
+      expect(screen.queryByText(syntheticManualSecret)).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Authenticator setup QR code')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Verification code')).toHaveValue('');
+      expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+      await act(async () => {
+        if (outcome === 'resolve') pending.resolve();
+        else pending.reject(new Error('private-provider-details'));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(onCancelled).toHaveBeenCalledOnce();
+      expect(onCompleted).not.toHaveBeenCalled();
+      expect(api.completeAdminOnboarding).not.toHaveBeenCalled();
+    },
+  );
 });

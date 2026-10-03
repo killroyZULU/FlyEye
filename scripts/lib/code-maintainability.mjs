@@ -8,7 +8,6 @@ export const DEFAULT_MAX_EDGE_ENTRYPOINT_LINES = 250;
 
 export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
   'src/features/auth/AuthApp.tsx': 628,
-  'src/features/auth/components/AdminOnboardingFlow.tsx': 334,
   'src/features/auth/components/MemberInvitationsPanel.tsx': 282,
   'src/features/auth/components/MemberMfaEnrollmentFlow.tsx': 495,
   'src/features/members/components/MemberAdministrationPanel.tsx': 627,

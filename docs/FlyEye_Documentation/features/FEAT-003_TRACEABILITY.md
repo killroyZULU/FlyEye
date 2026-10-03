@@ -85,6 +85,12 @@ The focused 98-case matrix passed against the unchanged parser extracted from `c
 
 Together with the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts), 105 focused tests passed on baseline `5ab90f5` and after extraction. Synthetic provider mocks preserve both callers' existing error classifications and SDK call order; they do not establish hosted behavior. Final application, separate-review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
 
+## Administrator UI extraction evidence
+
+[A003 / #90](https://github.com/killroyZULU/FlyEye/issues/90) separates workflow state from rendering under the unchanged [TOTP](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#totp-factor-contract) and [UI contracts](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#ui-and-accessibility). The `FEAT-003 administrator onboarding UI` suite in [AdminOnboardingFlow.test.tsx](../../../src/features/auth/components/AdminOnboardingFlow.test.tsx) adds preparation errors, QR failure, input validation/retry, superseded preparation, delayed verification/completion after unmount, and immediate credential clearing before cancellation settles. Existing StrictMode, focus, secret-reveal and QR disposal assertions remain.
+
+The 95-case matrix covering that suite, [administrator gateway compatibility](../../../src/features/auth/services/admin-onboarding-gateway.test.ts) and [AuthApp](../../../src/features/auth/AuthApp.test.tsx) passed on baseline `b7be2f9` and after extraction. This supports `FEAT-003-AC-04/05/06/07/09/10/17/18/19` within synthetic component/provider mocks; it does not establish all session-change, hosted or formal accessibility behavior. The component and hook satisfy normal limits without a legacy exemption. Final application checks, separate review and disposable integration evidence belong to #90's linked PR.
+
 ## Remaining gates
 
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
