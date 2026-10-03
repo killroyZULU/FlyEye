@@ -43,7 +43,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [PR #85](https://github.com/killroyZULU/FlyEye/pull/85) completed A002 at `95d09f1`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37083673688) passed all gates and cleanup. [A003 / #86](https://github.com/killroyZULU/FlyEye/issues/86) tracks recovery-flow extraction. Preserve the occupied local database and session-policy gates.
+- Maintenance: [PR #87](https://github.com/killroyZULU/FlyEye/pull/87) merged recovery at `20c3bca`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37089121604) failed FEAT-006B without cause/cleanup evidence. [FIX-012 / #88](https://github.com/killroyZULU/FlyEye/issues/88) tracks the correction before refactoring. Verified baseline: `95d09f1`. Preserve occupied database/session-policy gates.
 
 ## Aircraft and dashboard integration
 

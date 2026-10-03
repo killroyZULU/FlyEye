@@ -87,6 +87,14 @@ linked PR. These checks do not establish global session expiry or revocation.
 
 All 148 focused cases passed on baseline `6a844b4` and after extraction, including the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts) and `Shared onboarding authenticator compatibility` in [administrator tests](../../../src/features/auth/services/admin-onboarding-gateway.test.ts). Synthetic provider mocks establish compatibility, not hosted behavior. Final application checks, separate review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
 
+## Slice B runtime diagnostic and cleanup evidence
+
+[FIX-012 / #88](https://github.com/killroyZULU/FlyEye/issues/88) addresses the missing diagnostic and cleanup evidence in [PR #87 post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37089121604), targeting `FEAT-006B-REG-01` and `FEAT-006B-AC-08` in the [Slice B contract](FEAT-006_ROLE_ASSIGNMENT.md#slice-b-workflow-and-rules). That run does not identify the original failure cause.
+
+The [runtime fixture](../../../scripts/test-feat-006b-runtime.mjs) retains its role-assignment, forged-school, replay, audit and last-admin assertions. The `role assignment fixture cleanup` and `role assignment fixture completion` suites in [fixture tests](../../../scripts/lib/role-assignment-runtime-fixture.test.mjs) pass synthetic failure injections for cleanup continuation, exact-run scopes, residue rejection and success only after verified cleanup. The `runtime matrix FEAT-006B diagnostics integration` suite in [runner tests](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs) verifies capture and filtering on both successful and failed child exits. Worker readiness and shutdown reuse the [tested lifecycle helper](../../../scripts/lib/local-edge-lifecycle.test.mjs).
+
+These unit results do not establish database cleanup. Disposable CI must supply SQL/RLS, all runtime cleanup, lint/types and teardown evidence; delivery results belong to #88's linked PR. The occupied local database remains excluded, and a later passing run cannot establish the historical failure cause.
+
 ## Evidence rules
 
 - Do not mark `Pass` without reproducible evidence for the reviewed slice target.

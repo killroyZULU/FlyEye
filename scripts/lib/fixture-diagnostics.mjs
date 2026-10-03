@@ -72,6 +72,21 @@ const stages = new Map([
     ]),
   ],
   [
+    'FEAT-006B',
+    new Set([
+      ...commonStages,
+      'runtime-configuration',
+      ...['actor', 'second-admin', 'target'].flatMap((identity) =>
+        ['sign-in', 'totp-enroll', 'totp-verify', 'session'].map((step) => identity + '-' + step),
+      ),
+      'forged-school',
+      'target-readiness',
+      'role-assignment',
+      'role-replay',
+      'last-admin-concurrency',
+    ]),
+  ],
+  [
     'FEAT-007',
     new Set([
       ...commonStages,
@@ -193,6 +208,7 @@ function responseDetail(feature, response, payload) {
   const namespace = {
     'FEAT-004': 'member_invitation',
     'FEAT-005': 'member_administration',
+    'FEAT-006B': 'member_administration',
     'FEAT-007': 'aircraft_registry',
     'FEAT-007B': 'aircraft_documents',
   }[feature];
