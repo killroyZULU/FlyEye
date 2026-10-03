@@ -80,7 +80,6 @@ export default tseslint.config(
       'src/features/auth/components/MemberInvitationsPanel.tsx',
       'src/features/auth/components/MemberMfaEnrollmentFlow.tsx',
       'src/features/auth/components/PasswordRecoveryFlow.tsx',
-      'src/features/auth/services/auth-gateway.ts',
       'src/features/members/components/MemberAdministrationPanel.tsx',
       'src/features/members/components/MemberProfilePanel.tsx',
       'supabase/functions/auth-bootstrap/handler.ts',
