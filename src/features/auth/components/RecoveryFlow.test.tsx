@@ -269,6 +269,93 @@ function fillRecoveredPassword() {
   return screen.getByRole('button', { name: 'Change password and end sessions' }).closest('form')!;
 }
 
+describe('FEAT-002 recovery presentation compatibility', () => {
+  it('preserves validation associations and password visibility without submitting invalid input', async () => {
+    recoveryUrl();
+    const gatewayUnderTest = gateway();
+    render(<PasswordRecoveryFlow gateway={gatewayUnderTest} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    const password = screen.getByLabelText('New password');
+    const confirmation = screen.getByLabelText('Confirm new password');
+    const form = screen
+      .getByRole('button', { name: 'Change password and end sessions' })
+      .closest('form')!;
+
+    fireEvent.change(password, { target: { value: 'short' } });
+    fireEvent.change(confirmation, { target: { value: 'different' } });
+    fireEvent.submit(form);
+    expect(password).toHaveAttribute('aria-invalid', 'true');
+    expect(password).toHaveAttribute('aria-describedby', 'new-password-error');
+    expect(password).toHaveAccessibleDescription('Use at least 15 characters.');
+    expect(confirmation).toHaveAttribute('aria-invalid', 'true');
+    expect(confirmation).toHaveAccessibleDescription('Passwords must match.');
+    expect(gatewayUnderTest.updateRecoveredPassword).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(confirmation).toHaveAttribute('type', 'text');
+    expect(password).toHaveValue('short');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(password).toHaveAttribute('type', 'password');
+    expect(confirmation).toHaveAttribute('type', 'password');
+    fireEvent.submit(fillRecoveredPassword());
+    expect(await screen.findByRole('heading', { name: 'Your password has changed' })).toHaveFocus();
+    expect(gatewayUnderTest.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+    expect(gatewayUnderTest.signOutEverywhere).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires explicit confirmation after offline verification is restored', async () => {
+    recoveryUrl();
+    let online = false;
+    const gatewayUnderTest = gateway();
+    const props = { gateway: gatewayUnderTest, isOnline: () => online };
+    const view = render(<PasswordRecoveryFlow {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Connect to the internet before continuing.',
+    );
+    expect(gatewayUnderTest.verifyRecoveryCredential).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
+    online = true;
+    view.rerender(<PasswordRecoveryFlow {...props} />);
+    expect(gatewayUnderTest.verifyRecoveryCredential).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    expect(await screen.findByRole('heading', { name: 'Protect your account' })).toHaveFocus();
+    expect(gatewayUnderTest.verifyRecoveryCredential).toHaveBeenCalledWith(
+      'synthetic-transition-token-1234567890',
+    );
+    expect(gatewayUnderTest.verifyRecoveryCredential).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the safe revocation failure message and clears the controlled password form', async () => {
+    recoveryUrl();
+    const gatewayUnderTest = gateway({
+      signOutEverywhere: vi
+        .fn()
+        .mockRejectedValue(
+          new AuthGatewayError(
+            'revocation_failed',
+            'Session closure is unconfirmed. Sign in again.',
+          ),
+        ),
+    });
+    render(<PasswordRecoveryFlow gateway={gatewayUnderTest} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue securely' }));
+    await screen.findByRole('heading', { name: 'Protect your account' });
+    fireEvent.submit(fillRecoveredPassword());
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in again before continuing' }),
+    ).toHaveFocus();
+    expect(screen.getByText('Session closure is unconfirmed. Sign in again.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Confirm new password')).not.toBeInTheDocument();
+    expect(gatewayUnderTest.updateRecoveredPassword).toHaveBeenCalledTimes(1);
+    expect(gatewayUnderTest.signOutEverywhere).toHaveBeenCalledTimes(1);
+    expect(gatewayUnderTest.loadAccessContext).not.toHaveBeenCalled();
+  });
+});
+
 describe('FEAT-002 recovery transitions', () => {
   it.each(['resolve', 'reject'] as const)(
     'sends one recovery request for concurrent submissions and retains generic acknowledgement on %s',

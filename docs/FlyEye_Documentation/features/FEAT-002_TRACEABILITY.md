@@ -307,6 +307,24 @@ with synthetic responses; back-forward-cache restoration, real Auth expiry,
 concurrent redemption/resend and the combined real-provider browser journey remain
 unverified. The original result cells above retain their historical scope.
 
+## Recovery component extraction evidence
+
+[A003 / #86](https://github.com/killroyZULU/FlyEye/issues/86) separates the
+[recovery hook](../../../src/features/auth/components/usePasswordRecovery.ts),
+[state renderer](../../../src/features/auth/components/PasswordRecoveryFlow.tsx)
+and [controlled form](../../../src/features/auth/components/RecoveryPasswordForm.tsx).
+Compared with `95d09f1`, state initialization, refs, effects, transition handlers,
+safe error helpers and rendered JSX are unchanged. Normal complexity, function
+length and file limits apply without the former recovery-flow exceptions.
+
+The [recovery UI suites](../../../src/features/auth/components/RecoveryFlow.test.tsx)
+include `FEAT-002 recovery presentation compatibility`: validation/visibility and
+ARIA associations, explicit offline-confirmation retry, and typed revocation
+failure. These and the existing transition, recovery-schema and gateway suites
+passed all 50 focused tests before and after extraction. Component mocks preserve
+the evidence boundaries above; they do not establish hosted or formal accessibility
+validation. Final review and CI evidence belong to the linked issue/PR.
+
 ## Residual evidence limitations
 
 The Founder/Product Owner exercised the local synthetic desktop request, link, password, validation, completion, and return-to-sign-in flow and reported no material defect in that path. These were not separately recorded as human observations:
