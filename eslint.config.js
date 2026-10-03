@@ -76,7 +76,6 @@ export default tseslint.config(
   {
     files: [
       'src/features/auth/AuthApp.tsx',
-      'src/features/auth/components/AdminOnboardingFlow.tsx',
       'src/features/auth/components/MemberInvitationsPanel.tsx',
       'src/features/auth/components/MemberMfaEnrollmentFlow.tsx',
       'src/features/members/components/MemberAdministrationPanel.tsx',
