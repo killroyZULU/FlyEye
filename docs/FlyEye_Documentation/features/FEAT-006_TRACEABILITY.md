@@ -87,6 +87,14 @@ linked PR. These checks do not establish global session expiry or revocation.
 
 All 148 focused cases passed on baseline `6a844b4` and after extraction, including the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts) and `Shared onboarding authenticator compatibility` in [administrator tests](../../../src/features/auth/services/admin-onboarding-gateway.test.ts). Synthetic provider mocks establish compatibility, not hosted behavior. Final application checks, separate review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
 
+## Member MFA UI extraction evidence
+
+[A003 / #92](https://github.com/killroyZULU/FlyEye/issues/92) separates the enrollment workflow and credential lifecycle from status and verification rendering under the unchanged [Slice A contract](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules).
+
+The `FEAT-006A member TOTP enrollment UI` suite in [component tests](../../../src/features/auth/components/MemberMfaEnrollmentFlow.test.tsx) covers code validation/refocus, password reauthentication, bound resume/cancellation, version and completion-key reuse, secret removal before pending completion, safe error messages and late responses after unmount. All 87 focused UI, gateway and application-integration cases passed against baseline `57a48e1` before extraction; the same cases plus ten maintainability/configuration checks passed afterward. The [workflow hook](../../../src/features/auth/components/useMemberMfaEnrollment.ts) and extracted panels pass normal maintainability limits without the former component exemptions.
+
+These synthetic mocks establish compatibility, not hosted provider behavior. Final application checks, separate review and disposable runtime/cleanup results belong to #92's linked PR; the occupied local database remains excluded.
+
 ## Slice B runtime diagnostic and cleanup evidence
 
 [FIX-012 / #88](https://github.com/killroyZULU/FlyEye/issues/88) addresses the missing diagnostic and cleanup evidence in [PR #87 post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37089121604), targeting `FEAT-006B-REG-01` and `FEAT-006B-AC-08` in the [Slice B contract](FEAT-006_ROLE_ASSIGNMENT.md#slice-b-workflow-and-rules). That run does not identify the original failure cause.
