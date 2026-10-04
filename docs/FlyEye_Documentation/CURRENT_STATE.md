@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-10-03
+- Last updated: 2026-10-04
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -43,7 +43,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [PR #89](https://github.com/killroyZULU/FlyEye/pull/89) restored integration at `b7be2f9`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37093436843) passed all gates and cleanup. [A003 / #90](https://github.com/killroyZULU/FlyEye/issues/90) tracks administrator onboarding extraction. Preserve occupied database/session-policy gates; historical FEAT-006B cause remains unknown.
+- Maintenance: [PR #91](https://github.com/killroyZULU/FlyEye/pull/91) integrated onboarding extraction at `57a48e1`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37096950692) passed all gates and cleanup. [A003 / #92](https://github.com/killroyZULU/FlyEye/issues/92) tracks MFA UI extraction. Preserve occupied database/session-policy gates; FEAT-006B cause remains unknown.
 
 ## Aircraft and dashboard integration
 
