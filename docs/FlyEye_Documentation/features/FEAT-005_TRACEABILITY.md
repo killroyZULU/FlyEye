@@ -57,6 +57,12 @@ PR #16 target. Hosted, real-data, and production evidence remain separate gates.
 
 The focused gateway/member-contract group passed 92 tests on baseline `3250a6b` and after extraction. Synthetic SDK responses establish frontend compatibility; existing SQL/RLS and [member-administration](../../../scripts/test-feat-005-runtime.mjs) and [role-assignment](../../../scripts/test-feat-006b-runtime.mjs) fixtures supply separate authorization, isolation, audit and cleanup evidence through disposable CI. The occupied local database remains preserved.
 
+## Profile UI extraction evidence
+
+[A003 / #96](https://github.com/killroyZULU/FlyEye/issues/96) records the extraction target, separate review and final CI evidence. The [component tests](../../../src/features/members/components/MemberProfilePanel.test.tsx), suite `MemberProfilePanel`, cover preservation of [profile workflow rules](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#workflow-and-business-rules) and [UI behavior](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#ui-behavior): exact membership reads, incomplete/completed profiles, read-only identity and role, validation focus, normalized save fields and returned versions, pending controls, safe failures/conflicts, offline edits without queuing, and late successful responses after unmount.
+
+The four-file component/gateway/schema/application group passed 80 tests on baseline `c4b494a` before extraction and afterward; the focused group including maintainability regressions passed 88. Synthetic gateway responses establish frontend compatibility, not server authorization or complete race/accessibility coverage. The [SQL/RLS tests](../../../supabase/tests/feat_005_user_management_profiles_test.sql) and [runtime fixture](../../../scripts/test-feat-005-runtime.mjs) supply separate authorization, isolation, audit and cleanup evidence through disposable CI. The occupied local database remains preserved.
+
 ## Inactive-role runtime diagnostics
 
 [FIX-011 / #68](https://github.com/killroyZULU/FlyEye/issues/68) tracks delivery of
