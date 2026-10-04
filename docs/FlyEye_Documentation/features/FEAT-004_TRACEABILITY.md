@@ -54,6 +54,14 @@ findings.
 
 The focused gateway/invitation group passed 93 tests on baseline `d9ec310` and after extraction. Synthetic SDK responses establish compatibility, not server authorization or delivery; the [runtime fixture](../../../scripts/test-feat-004-runtime.mjs) and existing SQL/RLS checks supply those separate local integration boundaries through required CI. The occupied local database remains preserved.
 
+## Invitation administration UI extraction evidence
+
+[A003 / #94](https://github.com/killroyZULU/FlyEye/issues/94) separates the administration workflow from the form/confirmation and invitation list under the unchanged [FEAT-004 contract](FEAT-004_MEMBER_INVITATIONS.md#workflow-and-business-rules).
+
+The `FEAT-004 member invitation administration` suite in [component tests](../../../src/features/auth/components/MemberInvitationsPanel.test.tsx) covers loading/empty states, heading focus, role/email validation, confirmation editing, pending controls, command version/key payloads, refresh failures, action eligibility including the 60-second boundary, and obsolete initial responses after a gateway change. All 94 focused component, gateway, schema and application-integration cases passed against baseline `3fd684c` before extraction; the same cases plus ten maintainability/configuration checks passed afterward. The [workflow hook](../../../src/features/auth/components/useMemberInvitations.ts) and extracted views meet normal maintainability limits without the former component exemptions.
+
+These synthetic mocks establish bounded compatibility, not hosted delivery, complete race coverage or formal accessibility. Final application checks, separate review and disposable runtime/cleanup results belong to #94's linked PR. The occupied local database remains excluded.
+
 ## Invitation runtime diagnostic evidence
 
 [FIX-008 / #62](https://github.com/killroyZULU/FlyEye/issues/62) records the reviewed
