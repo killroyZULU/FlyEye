@@ -87,6 +87,12 @@ linked PR. These checks do not establish global session expiry or revocation.
 
 All 148 focused cases passed on baseline `6a844b4` and after extraction, including the existing [gateway suites](../../../src/features/auth/services/auth-gateway.test.ts) and `Shared onboarding authenticator compatibility` in [administrator tests](../../../src/features/auth/services/admin-onboarding-gateway.test.ts). Synthetic provider mocks establish compatibility, not hosted behavior. Final application checks, separate review and disposable runtime/cleanup evidence belong to the linked delivery issue/PR.
 
+## Member MFA backend extraction evidence
+
+[A003 / #108](https://github.com/killroyZULU/FlyEye/issues/108) records the extraction target, separate review and final application/CI results under the unchanged [Slice A workflow](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules). The `member MFA handler compatibility` suite in [handler tests](../../../supabase/functions/member-mfa/handler.test.ts) covers exact action inputs and order, hash-only factor references, readiness/resume states, limiter metadata, provider/audit failures, complete-time freshness and assurance, cancellation preflight binding, retained-factor behavior, replay propagation and strict status responses.
+
+The handler/authentication-evidence/gateway group passed 122 cases on baseline `72c126c` before extraction and afterward. The [handler](../../../supabase/functions/member-mfa/handler.ts) delegates contracts, guards, factor conflict handling, enrollment and cancellation; its legacy size/complexity exemptions were removed. Production wiring, SQL/RLS, responses and frontend contracts are unchanged. Synthetic mocks establish compatibility; [SQL/RLS tests](../../../supabase/tests/feat_006a_member_totp_enrollment_test.sql) and the [runtime fixture](../../../scripts/test-feat-006-runtime.mjs) supply separate authority, isolation, atomic audit and cleanup evidence through disposable CI. The occupied local database remains excluded.
+
 ## Member MFA UI extraction evidence
 
 [A003 / #92](https://github.com/killroyZULU/FlyEye/issues/92) separates the enrollment workflow and credential lifecycle from status and verification rendering under the unchanged [Slice A contract](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules).
