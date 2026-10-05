@@ -62,6 +62,38 @@ The `FEAT-004 member invitation administration` suite in [component tests](../..
 
 These synthetic mocks establish bounded compatibility, not hosted delivery, complete race coverage or formal accessibility. Final application checks, separate review and disposable runtime/cleanup results belong to #94's linked PR. The occupied local database remains excluded.
 
+## Invitation handler extraction evidence
+
+[A003 / #104](https://github.com/killroyZULU/FlyEye/issues/104) separates the
+[HTTP handler](../../../supabase/functions/member-invitations/handler.ts) from
+[contracts](../../../supabase/functions/member-invitations/contracts.ts),
+[limiter/authentication guards](../../../supabase/functions/member-invitations/guards.ts),
+[actions](../../../supabase/functions/member-invitations/actions.ts),
+[delivery](../../../supabase/functions/member-invitations/delivery.ts),
+[idempotency helpers](../../../supabase/functions/member-invitations/idempotency.ts), and
+[responses](../../../supabase/functions/member-invitations/responses.ts).
+The handler is 105 lines; its legacy size and complexity exceptions were removed.
+Its factory/type exports and production entrypoint wiring remain compatible.
+
+The [handler tests](../../../supabase/functions/member-invitations/handler.test.ts),
+suite `member invitation extraction compatibility`, add 36 cases covering HTTP
+validation and headers, server-resolved limiter scope, exact command payloads,
+limiter failure/retry metadata, awaited denial audits and error precedence,
+create/resend finalization retries with one provider send, safe delivery
+uncertainty, confirmed-email denials, and malformed/failed backend results.
+Together with the [authentication-evidence](../../../supabase/functions/_shared/authentication-evidence.test.ts)
+and [invitation gateway](../../../src/features/auth/services/member-invitation-gateway.test.ts)
+suites, all 113 focused tests passed on unchanged baseline `7d8f9ee` and after
+extraction. Adding [maintainability tests](../../../scripts/lib/code-maintainability.test.mjs)
+produced 121 passing checks.
+
+This synthetic evidence establishes bounded compatibility under the
+[FEAT-004 contract](FEAT-004_MEMBER_INVITATIONS.md#acceptance-criteria).
+The existing SQL/RLS and [runtime fixture](../../../scripts/test-feat-004-runtime.mjs)
+supply separate authority, forged-school, real Auth/Edge and cleanup evidence
+through required disposable PR CI. The occupied local database was preserved;
+hosted delivery remains outside this evidence.
+
 ## Invitation runtime diagnostic evidence
 
 [FIX-008 / #62](https://github.com/killroyZULU/FlyEye/issues/62) records the reviewed
