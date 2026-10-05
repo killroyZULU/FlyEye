@@ -73,11 +73,4 @@ export default tseslint.config(
       'no-unused-vars': 'off',
     },
   },
-  {
-    files: ['supabase/functions/organization-admin-onboarding/handler.ts'],
-    rules: {
-      complexity: 'off',
-      'max-lines-per-function': 'off',
-    },
-  },
 );
