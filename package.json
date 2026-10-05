@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && pnpm check:bundle",
     "format": "prettier --write . --ignore-unknown && pnpm format:docs",
     "format:check": "prettier --check . --ignore-unknown && pnpm format:docs:check",
     "format:docs": "node scripts/format-documentation.mjs --write",
@@ -19,7 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:sql": "supabase test db",
-    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e": "node scripts/run-e2e.mjs --production",
     "test:edge-runtime": "node scripts/test-edge-runtime.mjs",
     "test:recovery-runtime": "node scripts/test-recovery-runtime.mjs",
     "test:runtime": "node scripts/run-runtime-matrix.mjs",
@@ -32,7 +32,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "node scripts/generate-database-types.mjs",
-    "db:types:check": "node scripts/generate-database-types.mjs --check"
+    "db:types:check": "node scripts/generate-database-types.mjs --check",
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.7",

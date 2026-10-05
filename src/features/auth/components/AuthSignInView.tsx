@@ -1,11 +1,20 @@
+import { lazy } from 'react';
+import { DeferredScreen } from './DeferredScreen';
 import type { AuthGateway } from '../services/auth-gateway';
 import type { AuthSession } from '../useAuthSession';
 import { RECOVERY_REQUEST_PATH } from '../recovery';
-import { AdminOnboardingFlow } from './AdminOnboardingFlow';
-import { MemberMfaEnrollmentFlow } from './MemberMfaEnrollmentFlow';
 import { LoginForm } from './LoginForm';
 import { MfaForm } from './MfaForm';
 import { StatePanel } from './StatePanel';
+
+const AdminOnboardingFlow = lazy(() =>
+  import('./AdminOnboardingFlow').then((module) => ({ default: module.AdminOnboardingFlow })),
+);
+const MemberMfaEnrollmentFlow = lazy(() =>
+  import('./MemberMfaEnrollmentFlow').then((module) => ({
+    default: module.MemberMfaEnrollmentFlow,
+  })),
+);
 type AuthSignInViewProps = { gateway: AuthGateway; session: AuthSession };
 export function AuthSignInView({ gateway, session }: AuthSignInViewProps) {
   const {
@@ -52,22 +61,30 @@ export function AuthSignInView({ gateway, session }: AuthSignInViewProps) {
       ) : null}
 
       {state === 'admin-onboarding' && adminOnboardingStart ? (
-        <AdminOnboardingFlow
-          gateway={gateway}
-          start={adminOnboardingStart}
-          onCompleted={handleAdminOnboardingCompleted}
-          onCancelled={handleAdminOnboardingCancelled}
-        />
+        <DeferredScreen
+          key="admin-onboarding"
+          onLeave={() => void handleSignOut()}
+          leaveLabel="Sign out"
+        >
+          <AdminOnboardingFlow
+            gateway={gateway}
+            start={adminOnboardingStart}
+            onCompleted={handleAdminOnboardingCompleted}
+            onCancelled={handleAdminOnboardingCancelled}
+          />
+        </DeferredScreen>
       ) : null}
 
       {state === 'member-mfa-enrollment' ? (
-        <MemberMfaEnrollmentFlow
-          gateway={gateway}
-          requiredForAccess
-          onCompleted={() => void loadAccess()}
-          onClose={() => void handleSignOut()}
-          onRequirePassword={(reason) => void returnToPassword(reason)}
-        />
+        <DeferredScreen key="member-mfa" onLeave={() => void handleSignOut()} leaveLabel="Sign out">
+          <MemberMfaEnrollmentFlow
+            gateway={gateway}
+            requiredForAccess
+            onCompleted={() => void loadAccess()}
+            onClose={() => void handleSignOut()}
+            onRequirePassword={(reason) => void returnToPassword(reason)}
+          />
+        </DeferredScreen>
       ) : null}
 
       {state === 'mfa-required' || state === 'verifying-mfa' ? (

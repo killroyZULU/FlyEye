@@ -1,5 +1,14 @@
-export { AircraftRegistryPanel } from './components/AircraftRegistryPanel';
-export { AircraftDocumentsPanel } from './components/AircraftDocumentsPanel';
+import { lazy } from 'react';
+export const AircraftRegistryPanel = lazy(() =>
+  import('./components/AircraftRegistryPanel').then((module) => ({
+    default: module.AircraftRegistryPanel,
+  })),
+);
+export const AircraftDocumentsPanel = lazy(() =>
+  import('./components/AircraftDocumentsPanel').then((module) => ({
+    default: module.AircraftDocumentsPanel,
+  })),
+);
 export { aircraftDocumentCapabilities } from './aircraft-documents';
 export {
   AircraftDocumentError,

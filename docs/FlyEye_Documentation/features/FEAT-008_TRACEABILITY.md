@@ -54,6 +54,14 @@ Nineteen compatibility cases were added before extraction. The three-file group 
 
 Synthetic component responses establish frontend compatibility, not server authority, complete session-race coverage or formal accessibility acceptance. Existing disposable CI supplies separate SQL/RLS, runtime and cleanup evidence; the occupied local database remains preserved.
 
+## Deferred screen delivery evidence
+
+[A011 / #112](https://github.com/killroyZULU/FlyEye/issues/112) owns the [deferred delivery contract](FEAT-008_AUTHENTICATED_DASHBOARD_SHELL.md#deferred-screen-delivery), separate review and final CI evidence. On baseline `c3af0c8`, initial JavaScript was 625.64 kB / 164.46 kB gzip in one file. The split measures 541.67 kB / 148.26 kB gzip across the entry and its static shared dependency; the largest chunk is 466.84 kB. Both measurements use the same local Vite configuration and Node gzip defaults, excluding CSS. All 12 JavaScript chunks fit the unchanged Vite warning limit. Byte budgets are enforced by [check-bundle](../../../scripts/check-bundle.mjs); the `production bundle budget` suite in [budget tests](../../../scripts/lib/bundle-budget.test.mjs) covers transitive/deduplicated totals, oversized deferred chunks and missing dependencies.
+
+The existing 44-case AuthApp/shell/dashboard group passes after splitting. The `deferred screen boundary` suite in [boundary tests](../../../src/features/auth/components/DeferredScreen.test.tsx) covers loading/exit, safe failure, keyed recovery and disposal. [Production browser checks](../../../scripts/lib/deferred-screen-browser.mjs), invoked by [run-e2e](../../../scripts/run-e2e.mjs), exercise actual network deferral, sign-out during workspace loading, navigation/session-ended notification during module loading, explicit reload recovery, and eager recovery-credential scrubbing. The existing desktop/mobile scenarios now run against an isolated synthetic production build; its preview process and temporary output are cleaned up.
+
+These checks support [FEAT-008-AC-03/04/05/06/07/08](FEAT-008_AUTHENTICATED_DASHBOARD_SHELL.md#acceptance-criteria) under synthetic responses. They do not establish hosted session-revocation latency, connectivity performance, formal accessibility, deployment or production approval. Gateway initialization, protected commands and database contracts are unchanged; disposable CI supplies separate integration evidence and the occupied local database is preserved.
+
 ## Evidence rules
 
 - Results apply only to the reviewed commit and recorded local/CI target.
