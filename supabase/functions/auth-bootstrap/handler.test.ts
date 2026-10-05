@@ -505,3 +505,325 @@ describe('streaming request-body contract', () => {
     expect(fixture.stream.locked).toBe(false);
   });
 });
+
+function adminContext() {
+  return {
+    ...validContext,
+    memberships: [
+      {
+        ...validContext.memberships[0],
+        role: 'admin',
+        roleLabel: 'Organization Admin',
+        workspacePermission: 'portal.admin.access',
+        permissions: ['portal.admin.access'],
+        requiredAssuranceLevel: 'aal2',
+        accessStatus: 'granted',
+      },
+    ],
+    currentAssuranceLevel: 'aal2',
+  };
+}
+
+function deferredAudit() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+describe('auth-bootstrap extraction compatibility', () => {
+  it.each([
+    [
+      'origin precedes method',
+      'OPTIONS',
+      'https://attacker.example',
+      undefined,
+      403,
+      'auth.origin_denied',
+    ],
+    ['preflight', 'OPTIONS', allowedOrigin, undefined, 204, undefined],
+    [
+      'method precedes authentication',
+      'GET',
+      allowedOrigin,
+      undefined,
+      405,
+      'auth.method_not_allowed',
+    ],
+    [
+      'authentication header precedes body',
+      'POST',
+      allowedOrigin,
+      '{',
+      401,
+      'auth.authentication_required',
+    ],
+    ['malformed JSON', 'POST', allowedOrigin, '{', 400, 'auth.invalid_request'],
+    ['non-object JSON', 'POST', allowedOrigin, '[]', 422, 'auth.invalid_request'],
+    [
+      'client authority',
+      'POST',
+      allowedOrigin,
+      JSON.stringify({ organizationId }),
+      422,
+      'auth.invalid_request',
+    ],
+    ['body budget', 'POST', allowedOrigin, 'x'.repeat(2049), 413, 'auth.request_too_large'],
+  ])(
+    'preserves %s and response headers without protected work',
+    async (label, method, origin, body, status, code) => {
+      const configured = dependencies({
+        createCorrelationId: vi.fn(() => fallbackCorrelationId),
+        validateAdminFactorState: vi.fn(),
+      });
+      const headers = new Headers({ origin: origin });
+      if (label !== 'authentication header precedes body')
+        headers.set('authorization', 'Bearer synthetic-token');
+      const input = new Request('https://functions.example/auth-bootstrap', {
+        method: method,
+        headers,
+        body: body,
+      });
+      const response = await createAuthBootstrapHandler(configured)(input);
+      expect(response.status).toBe(status);
+      expect(Object.fromEntries(response.headers.entries())).toEqual({
+        'access-control-allow-origin': allowedOrigin,
+        'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info',
+        'access-control-allow-methods': 'POST, OPTIONS',
+        'cache-control': 'no-store',
+        'content-type': 'application/json',
+        vary: 'Origin',
+      });
+      if (status === 204) expect(await response.text()).toBe('');
+      else expect(await response.json()).toMatchObject({ error: { code } });
+      for (const dependency of Object.values(configured)) {
+        if (vi.isMockFunction(dependency)) expect(dependency).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each(['no_active_membership', 'permission_denied', 'mfa_required'] as const)(
+    'preserves exact %s audit and context response without factor lookup',
+    async (reasonCode) => {
+      const empty = reasonCode === 'no_active_membership';
+      const decision = reasonCode === 'mfa_required' ? 'mfa_required' : 'denied';
+      const context = {
+        ...validContext,
+        memberships: empty ? [] : [{ ...validContext.memberships[0], accessStatus: decision }],
+        organizationIds: empty ? [] : [organizationId],
+        decision,
+      };
+      const configured = dependencies({
+        resolveAccessContext: vi.fn().mockResolvedValue(context),
+        validateAdminFactorState: vi.fn(),
+        createCorrelationId: vi.fn(() => fallbackCorrelationId),
+      });
+      const response = await createAuthBootstrapHandler(configured)(request());
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(context);
+      expect(configured.validateAdminFactorState).not.toHaveBeenCalled();
+      expect(configured.createCorrelationId).not.toHaveBeenCalled();
+      expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
+        actorUserId,
+        actorSubjectId: actorUserId,
+        eventName: 'authentication.access_denied',
+        outcome: 'denied',
+        correlationId,
+        organizationId: empty ? null : organizationId,
+        organizationIds: context.organizationIds,
+        reasonCode,
+        metadata: { membershipCount: empty ? 0 : 1, currentAssuranceLevel: 'aal1' },
+      });
+    },
+  );
+
+  it.each([
+    ['valid', false, 200, undefined],
+    ['valid', true, 500, 'auth.audit_unavailable'],
+    ['conflict', false, 409, 'auth.access_context_conflict'],
+    ['conflict', true, 500, 'auth.audit_unavailable'],
+    ['unavailable', false, 503, 'auth.factor_inventory_unavailable'],
+    ['unavailable', true, 500, 'auth.audit_unavailable'],
+  ] as const)(
+    'preserves admin factor %s with audit failure %s',
+    async (factor, auditFails, status, code) => {
+      const calls: string[] = [];
+      const context = adminContext();
+      const configured = dependencies({
+        authenticate: vi.fn<AuthBootstrapDependencies['authenticate']>(async (token) => {
+          calls.push('authenticate');
+          expect(token).toBe('test-token');
+          await Promise.resolve();
+          return {
+            userId: actorUserId,
+            assuranceLevel: 'aal2',
+            authenticationMethods: ['password', 'totp'],
+          };
+        }),
+        resolveAccessContext: vi.fn<AuthBootstrapDependencies['resolveAccessContext']>(
+          async (input) => {
+            calls.push('resolve');
+            expect(input).toEqual({ actorUserId, assuranceLevel: 'aal2' });
+            await Promise.resolve();
+            return context;
+          },
+        ),
+        validateAdminFactorState: vi.fn(async (actor: string) => {
+          calls.push('factor');
+          expect(actor).toBe(actorUserId);
+          await Promise.resolve();
+          if (factor === 'unavailable') throw new Error('Private factor inventory');
+          return factor === 'valid';
+        }),
+        recordDecision: vi.fn(async () => {
+          calls.push('audit');
+          await Promise.resolve();
+          if (auditFails) throw new Error('Private audit detail');
+        }),
+        createCorrelationId: vi.fn(() => fallbackCorrelationId),
+      });
+      const response = await createAuthBootstrapHandler(configured)(request());
+      expect(response.status).toBe(status);
+      expect(calls).toEqual(['authenticate', 'resolve', 'factor', 'audit']);
+      expect(configured.createCorrelationId).not.toHaveBeenCalled();
+      expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
+        actorUserId,
+        actorSubjectId: actorUserId,
+        eventName:
+          factor === 'valid'
+            ? 'authentication.access_context_loaded'
+            : 'authentication.access_denied',
+        outcome: factor === 'valid' ? 'success' : 'denied',
+        correlationId,
+        organizationId,
+        organizationIds: [organizationId],
+        reasonCode:
+          factor === 'valid'
+            ? 'access_context_granted'
+            : factor === 'conflict'
+              ? 'factor_state_conflict'
+              : 'factor_inventory_unavailable',
+        metadata: { membershipCount: 1, currentAssuranceLevel: 'aal2' },
+      });
+      if (status === 200) expect(await response.json()).toEqual(context);
+      else {
+        const text = await response.text();
+        expect(JSON.parse(text)).toMatchObject({ error: { code } });
+        expect(text).not.toContain('Private');
+        expect(text).not.toContain('memberships');
+      }
+    },
+  );
+
+  it.each(['resolver', 'contract'] as const)(
+    'retains %s error precedence when its denial audit also fails',
+    async (failure) => {
+      const configured = dependencies({
+        resolveAccessContext:
+          failure === 'resolver'
+            ? vi.fn().mockRejectedValue(new Error('Private resolver detail'))
+            : vi.fn().mockResolvedValue({ memberships: 'invalid' }),
+        recordDecision: vi.fn().mockRejectedValue(new Error('Private audit detail')),
+        createCorrelationId: vi.fn(() => fallbackCorrelationId),
+        validateAdminFactorState: vi.fn(),
+      });
+      const response = await createAuthBootstrapHandler(configured)(request());
+      expect(response.status).toBe(failure === 'resolver' ? 500 : 409);
+      expect(await response.json()).toEqual({
+        error: {
+          code:
+            failure === 'resolver'
+              ? 'auth.access_context_unavailable'
+              : 'auth.access_context_conflict',
+          message:
+            failure === 'resolver'
+              ? 'Access could not be verified. Try again.'
+              : 'Your access information needs administrator review.',
+        },
+      });
+      expect(configured.createCorrelationId).toHaveBeenCalledOnce();
+      expect(configured.validateAdminFactorState).not.toHaveBeenCalled();
+      expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
+        actorUserId,
+        actorSubjectId: actorUserId,
+        eventName: 'authentication.access_denied',
+        outcome: 'denied',
+        correlationId: fallbackCorrelationId,
+        organizationId: null,
+        organizationIds: [],
+        reasonCode:
+          failure === 'resolver' ? 'access_context_unavailable' : 'runtime_contract_rejected',
+        metadata: { currentAssuranceLevel: 'aal1' },
+      });
+    },
+  );
+
+  it.each(['mismatched organization', 'multiple memberships'])(
+    'rejects %s before factor inspection and success audit',
+    async (failure) => {
+      const otherOrganization = '20000000-0000-4000-8000-000000000002';
+      const raw =
+        failure === 'mismatched organization'
+          ? { ...validContext, organizationIds: [otherOrganization] }
+          : {
+              ...validContext,
+              memberships: [
+                ...validContext.memberships,
+                { ...validContext.memberships[0], organizationId: otherOrganization },
+              ],
+              organizationIds: [organizationId, otherOrganization],
+            };
+      const configured = dependencies({
+        resolveAccessContext: vi.fn().mockResolvedValue(raw),
+        validateAdminFactorState: vi.fn(),
+      });
+      const response = await createAuthBootstrapHandler(configured)(request());
+      expect(response.status).toBe(409);
+      expect(configured.validateAdminFactorState).not.toHaveBeenCalled();
+      expect(configured.recordDecision).toHaveBeenCalledOnce();
+      expect(configured.recordDecision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: 'denied',
+          reasonCode: 'runtime_contract_rejected',
+          organizationIds: [],
+        }),
+      );
+      expect(await response.text()).not.toContain(otherOrganization);
+    },
+  );
+
+  it('preserves the optional factor-validator factory contract', async () => {
+    const context = adminContext();
+    const configured = dependencies({ resolveAccessContext: vi.fn().mockResolvedValue(context) });
+    const response = await createAuthBootstrapHandler(configured)(request());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(context);
+    expect(configured.recordDecision).toHaveBeenCalledOnce();
+  });
+
+  it.each([false, true])(
+    'waits for required audit before responding (password denial: %s)',
+    async (passwordDenied) => {
+      const audit = deferredAudit();
+      const configured = dependencies({
+        authenticate: vi.fn().mockResolvedValue({
+          userId: actorUserId,
+          assuranceLevel: 'aal1',
+          authenticationMethods: passwordDenied ? ['otp'] : ['password'],
+        }),
+        recordDecision: vi.fn(() => audit.promise),
+      });
+      let responded = false;
+      const pending = createAuthBootstrapHandler(configured)(request()).then((response) => {
+        responded = true;
+        return response;
+      });
+      await vi.waitFor(() => expect(configured.recordDecision).toHaveBeenCalledOnce());
+      expect(responded).toBe(false);
+      audit.resolve();
+      expect((await pending).status).toBe(passwordDenied ? 403 : 200);
+      expect(configured.resolveAccessContext).toHaveBeenCalledTimes(passwordDenied ? 0 : 1);
+    },
+  );
+});

@@ -75,7 +75,6 @@ export default tseslint.config(
   },
   {
     files: [
-      'supabase/functions/auth-bootstrap/handler.ts',
       'supabase/functions/member-administration/handler.ts',
       'supabase/functions/member-invitations/handler.ts',
       'supabase/functions/member-mfa/handler.ts',
