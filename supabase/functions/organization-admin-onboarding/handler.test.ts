@@ -108,6 +108,363 @@ async function payload(response: Response): Promise<Record<string, unknown>> {
   return (await response.json()) as Record<string, unknown>;
 }
 
+describe('administrator onboarding handler compatibility', () => {
+  const IDEMPOTENCY_DIGEST = '3eb1bd439947eb762998e566ccc2e099c791118b2f40579cc4f7da2b5061b7f9';
+  const grantRequest = {
+    bootstrapGrantId: GRANT_ID,
+    expectedVersion: 1,
+    idempotencyKey: IDEMPOTENCY_KEY,
+  };
+  const cases = [
+    { action: 'status' },
+    { action: 'start', ...grantRequest },
+    { action: 'complete', ...grantRequest },
+    { action: 'cancel', bootstrapGrantId: GRANT_ID, idempotencyKey: IDEMPOTENCY_KEY },
+  ] as const;
+
+  it.each(cases)('preserves $action payload and dependency order', async (body) => {
+    const deps = dependencies();
+    const response = await createAdminOnboardingHandler(deps)(request(body));
+    expect(response.status).toBe(200);
+    expect(deps.authenticate).toHaveBeenCalledExactlyOnceWith('verified-token');
+    expect(deps.consumeLimit).toHaveBeenCalledExactlyOnceWith({
+      actorSubjectId: USER_ID,
+      action: body.action,
+      correlationId: CORRELATION_ID,
+    });
+    const input: Record<string, unknown> = { actorUserId: USER_ID, correlationId: CORRELATION_ID };
+    if (body.action !== 'status')
+      Object.assign(input, { bootstrapGrantId: GRANT_ID, idempotencyKeyHash: IDEMPOTENCY_DIGEST });
+    if (body.action === 'start' || body.action === 'complete') input.expectedVersion = 1;
+    if (body.action === 'complete') {
+      delete input.actorUserId;
+      Object.assign(input, { actor, verifiedTotpFactorId: FACTOR_ID, totalFactorCount: 1 });
+    }
+    expect(deps[body.action]).toHaveBeenCalledExactlyOnceWith(input);
+    expect(vi.mocked(deps.authenticate).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps.consumeLimit).mock.invocationCallOrder[0]!,
+    );
+    expect(vi.mocked(deps.consumeLimit).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps[body.action]).mock.invocationCallOrder[0]!,
+    );
+    if (body.action === 'start' || body.action === 'complete') {
+      expect(deps.listFactors).toHaveBeenCalledExactlyOnceWith(USER_ID);
+      expect(vi.mocked(deps.consumeLimit).mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(deps.listFactors).mock.invocationCallOrder[0]!,
+      );
+      expect(vi.mocked(deps.listFactors).mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(deps[body.action]).mock.invocationCallOrder[0]!,
+      );
+    } else expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+    expect(JSON.stringify(await payload(response))).not.toContain(FACTOR_ID);
+  });
+
+  it('returns enrollment guidance for an empty factor inventory without creating a factor', async () => {
+    const deps = dependencies({ listFactors: vi.fn().mockResolvedValue([]) });
+    const response = await createAdminOnboardingHandler(deps)(request(cases[1]));
+    expect(response.status).toBe(200);
+    expect(await payload(response)).toMatchObject({
+      factorState: 'enrollment_required',
+      replayed: false,
+    });
+    expect(deps.start).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { correlationId: GRANT_ID },
+    { networkSourceUsed: true },
+    { policyVersion: 'untrusted' },
+    ...[null, 0, 61].map((retryAfterSeconds) => ({ allowed: false, retryAfterSeconds })),
+  ])('rejects invalid limiter metadata before protected work %j', async (patch) => {
+    const deps = dependencies({
+      consumeLimit: vi.fn().mockResolvedValue({
+        allowed: true,
+        retryAfterSeconds: null,
+        correlationId: CORRELATION_ID,
+        networkSourceUsed: false,
+        policyVersion: 'subject-action-v1',
+        ...patch,
+      }),
+    });
+    const response = await createAdminOnboardingHandler(deps)(request(cases[2]));
+    expect(response.status).toBe(503);
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(deps.complete).not.toHaveBeenCalled();
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'preserves cancellation limiter failure guidance for rejected=%s',
+    async (rejected) => {
+      const deps = dependencies({
+        consumeLimit: rejected
+          ? vi.fn().mockRejectedValue(new Error('synthetic failure'))
+          : vi.fn().mockResolvedValue({
+              allowed: true,
+              correlationId: GRANT_ID,
+              networkSourceUsed: false,
+              policyVersion: 'subject-action-v1',
+              retryAfterSeconds: null,
+            }),
+      });
+      const response = await createAdminOnboardingHandler(deps)(request(cases[3]));
+      expect(response.status).toBe(503);
+      expect(await payload(response)).toEqual({
+        error: {
+          code: 'admin_onboarding.limiter_unavailable',
+          message: rejected
+            ? 'Server cancellation could not be confirmed. You will be signed out.'
+            : 'Onboarding is temporarily unavailable. Try again later.',
+        },
+        correlationId: CORRELATION_ID,
+      });
+      expect(deps.cancel).not.toHaveBeenCalled();
+      expect(deps.listFactors).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(cases.slice(0, 3))(
+    'audits expired password before $action dependencies',
+    async (body) => {
+      const deps = dependencies({
+        authenticate: vi.fn().mockResolvedValue({ ...actor, passwordAuthenticatedAt: 399 }),
+      });
+      const response = await createAdminOnboardingHandler(deps)(request(body));
+      expect(response.status).toBe(403);
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actor: { ...actor, passwordAuthenticatedAt: 399 },
+        eventName: 'admin_onboarding.denied',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'recent_authentication_required',
+        targetId: body.action === 'status' ? undefined : GRANT_ID,
+        metadata: { currentAssuranceLevel: 'aal2' },
+      });
+      expect(deps.listFactors).not.toHaveBeenCalled();
+      expect(deps[body.action]).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows cancellation without password evidence and never inspects factors', async () => {
+    const nowSeconds = vi.fn(() => 1000);
+    const deps = dependencies({
+      nowSeconds,
+      authenticate: vi.fn().mockResolvedValue({
+        ...actor,
+        passwordAuthenticatedAt: null,
+        authenticationMethods: ['recovery'],
+      }),
+    });
+    expect((await createAdminOnboardingHandler(deps)(request(cases[3]))).status).toBe(200);
+    expect(deps.cancel).toHaveBeenCalledTimes(1);
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(nowSeconds).not.toHaveBeenCalled();
+  });
+
+  it.each(['aal1', 'missing_totp'] as const)(
+    'denies completion before factor access when %s',
+    async (invalid) => {
+      const evidence = {
+        ...actor,
+        ...(invalid === 'aal1'
+          ? { assuranceLevel: 'aal1' as const }
+          : { totpAuthenticatedAt: null }),
+      };
+      const deps = dependencies({ authenticate: vi.fn().mockResolvedValue(evidence) });
+      const response = await createAdminOnboardingHandler(deps)(request(cases[2]));
+      expect(response.status).toBe(403);
+      expect(await payload(response)).toMatchObject({
+        error: { code: 'admin_onboarding.mfa_required' },
+      });
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actor: evidence,
+        eventName: 'admin_onboarding.denied',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'mfa_required',
+        targetId: GRANT_ID,
+        metadata: { currentAssuranceLevel: evidence.assuranceLevel },
+      });
+      expect(deps.listFactors).not.toHaveBeenCalled();
+      expect(deps.complete).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['start', 'complete'] as const)(
+    'records exact provider failure and audit precedence for %s',
+    async (action) => {
+      const deps = dependencies({
+        listFactors: vi.fn().mockRejectedValue(new Error('synthetic provider failure')),
+      });
+      const handler = createAdminOnboardingHandler(deps);
+      const body = { action, ...grantRequest };
+      const response = await handler(request(body));
+      expect(response.status).toBe(503);
+      expect(await payload(response)).toEqual({
+        error: {
+          code: 'admin_onboarding.provider_unavailable',
+          message: 'Authenticator state could not be confirmed. Try again.',
+        },
+        correlationId: CORRELATION_ID,
+      });
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actor,
+        eventName: 'admin_onboarding.conflict',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'factor_inventory_unavailable',
+        targetId: GRANT_ID,
+        metadata: { currentAssuranceLevel: 'aal2' },
+      });
+      vi.mocked(deps.recordDenied).mockRejectedValue(new Error('synthetic audit failure'));
+      const failedAudit = await handler(request(body));
+      expect(failedAudit.status).toBe(500);
+      expect(await payload(failedAudit)).toMatchObject({
+        error: { code: 'admin_onboarding.audit_unavailable' },
+      });
+      expect(deps[action]).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      action: 'start',
+      factors: [{ ...verifiedFactor, status: 'unverified' }],
+      status: 409,
+      reason: 'factor_state_conflict',
+    },
+    {
+      action: 'start',
+      factors: [verifiedFactor, verifiedFactor],
+      status: 503,
+      reason: 'factor_inventory_unavailable',
+    },
+    { action: 'complete', factors: [], status: 409, reason: 'factor_state_conflict' },
+    {
+      action: 'complete',
+      factors: [{ ...verifiedFactor, status: 'unverified' }],
+      status: 409,
+      reason: 'factor_state_conflict',
+    },
+  ] as const)(
+    'blocks $action on unsupported factor inventory',
+    async ({ action, factors, status, reason }) => {
+      const deps = dependencies({ listFactors: vi.fn().mockResolvedValue(factors) });
+      const response = await createAdminOnboardingHandler(deps)(
+        request({ action, ...grantRequest }),
+      );
+      expect(response.status).toBe(status);
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actor,
+        eventName: 'admin_onboarding.conflict',
+        correlationId: CORRELATION_ID,
+        reasonCode: reason,
+        targetId: GRANT_ID,
+        metadata: { currentAssuranceLevel: 'aal2' },
+      });
+      expect(deps[action]).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(cases)('contains asynchronous $action command failure without retry', async (body) => {
+    const deps = dependencies();
+    vi.mocked(deps[body.action]).mockRejectedValue(new Error('synthetic audit failure'));
+    const response = await createAdminOnboardingHandler(deps)(request(body));
+    expect(response.status).toBe(500);
+    expect(await payload(response)).toEqual({
+      error: {
+        code: 'admin_onboarding.audit_unavailable',
+        message: 'Onboarding could not be verified. Try again.',
+      },
+      correlationId: CORRELATION_ID,
+    });
+    expect(deps[body.action]).toHaveBeenCalledTimes(1);
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it.each(cases)('rejects malformed $action RPC results without exposing them', async (body) => {
+    const deps = dependencies();
+    vi.mocked(deps[body.action]).mockResolvedValue({
+      decision: 'unexpected',
+      correlationId: CORRELATION_ID,
+      providerDetail: 'synthetic internal detail',
+    });
+    const response = await createAdminOnboardingHandler(deps)(request(body));
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await payload(response))).not.toContain('synthetic internal detail');
+    expect(deps[body.action]).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['not_available', 'expired', 'conflict', 'recent_authentication_required'])(
+    'preserves completion decision %s',
+    async (decision) => {
+      const deps = dependencies({
+        complete: vi.fn().mockResolvedValue({ decision, correlationId: CORRELATION_ID }),
+      });
+      const response = await createAdminOnboardingHandler(deps)(request(cases[2]));
+      expect(response.status).toBe(
+        { not_available: 404, expired: 403, conflict: 409, recent_authentication_required: 403 }[
+          decision as 'not_available'
+        ],
+      );
+      expect(deps.recordDenied).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves already-completed replay without additional commands or audit', async () => {
+    const result = {
+      decision: 'already_completed',
+      bootstrapGrantId: GRANT_ID,
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      grantVersion: 2,
+      correlationId: CORRELATION_ID,
+    };
+    const deps = dependencies({ complete: vi.fn().mockResolvedValue(result) });
+    const response = await createAdminOnboardingHandler(deps)(request(cases[2]));
+    expect(response.status).toBe(200);
+    expect(await payload(response)).toEqual(result);
+    expect(deps.complete).toHaveBeenCalledTimes(1);
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it('returns normalized safe grant contexts and rejects duplicate grant IDs', async () => {
+    const grant = {
+      bootstrapGrantId: GRANT_ID,
+      organizationId: ORGANIZATION_ID,
+      organizationName: '  Synthetic Flight School  ',
+      grantVersion: 1,
+      expiresAt: '2026-10-05T00:30:00Z',
+    };
+    const deps = dependencies({
+      status: vi.fn().mockResolvedValue({ grants: [grant], correlationId: CORRELATION_ID }),
+    });
+    const handler = createAdminOnboardingHandler(deps);
+    const response = await handler(request(cases[0]));
+    expect(response.status).toBe(200);
+    expect(await payload(response)).toEqual({
+      grants: [{ ...grant, organizationName: 'Synthetic Flight School' }],
+      correlationId: CORRELATION_ID,
+    });
+    vi.mocked(deps.status).mockResolvedValue({
+      grants: [grant, grant],
+      correlationId: CORRELATION_ID,
+    });
+    expect((await handler(request(cases[0]))).status).toBe(500);
+  });
+
+  it('captures factory callbacks while reading allowed origin per request', async () => {
+    const deps = dependencies();
+    const handler = createAdminOnboardingHandler(deps);
+    deps.createCorrelationId = () => GRANT_ID;
+    deps.nowSeconds = () => 2000;
+    deps.allowedOrigin = 'https://synthetic.example.test';
+    const response = await handler(request(cases[2], { origin: deps.allowedOrigin }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(deps.allowedOrigin);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await payload(response)).toMatchObject({ correlationId: CORRELATION_ID });
+  });
+});
+
 describe('FEAT-003 organization admin onboarding handler', () => {
   it('rejects foreign origins before authentication or limiter work', async () => {
     const deps = dependencies();

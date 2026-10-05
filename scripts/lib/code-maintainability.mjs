@@ -6,9 +6,7 @@ import ts from 'typescript';
 export const DEFAULT_MAX_FILE_LINES = 400;
 export const DEFAULT_MAX_EDGE_ENTRYPOINT_LINES = 250;
 
-export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
-  'supabase/functions/organization-admin-onboarding/handler.ts': 642,
-});
+export const LEGACY_FILE_LINE_LIMITS = Object.freeze({});
 
 export const LEGACY_CROSS_FEATURE_IMPORTS = Object.freeze([
   'src/features/auth/components/AuthenticatedWorkspace.tsx -> src/features/members/components/MemberAdministrationPanel.tsx',
