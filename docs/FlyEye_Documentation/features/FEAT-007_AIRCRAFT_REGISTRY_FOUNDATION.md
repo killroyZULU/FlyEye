@@ -397,6 +397,18 @@ and session cleanup. No frontend, schema shape, RLS grant, operational authority
 provider or session-policy change is planned. The primary risk is a test that
 mistakes a scheduling delay for a lock interleaving or leaves synthetic residue.
 
+For the registry correction, repeat the existing permission check in a fresh
+statement after the advisory lock, before replay lookup, and after the record
+lock, before version/state processing. A revocation committed during either wait
+must produce `unauthorized`, leaving record, idempotency and success-audit rows
+unchanged. Retained authority must preserve create, update, archive, reactivate
+and exact replay behavior. Keep lock order, signature, grants and existing Edge
+denial auditing unchanged. This contract does not establish immediate revocation
+at every implicit write/audit wait or resolve the general session-policy gate.
+The tested execution model is PostgreSQL Read Committed, matching the current
+RPC default. No table or data rewrite is required; any correction to the
+migration must use a subsequent forward migration.
+
 ## Specification and design definition of done
 
 - [x] Founder/Product Owner decisions define scope, roles, fields, duplicate
