@@ -16,6 +16,30 @@
 
 The local evidence uses synthetic users and organizations only. On 2026-07-19, formatting, lint, type checking, 32 unit/component/Edge-handler tests, 45 SQL/RLS tests, actual local Auth/TOTP/Edge/browser integration, 8 Playwright E2E scenarios, database lint, dependency audit, production build, generated-type hash comparison, and source/build secret scans passed. This is not production validation, an independent penetration test, privacy approval, aviation-SME approval, or deployment authorization.
 
+## Authentication bootstrap extraction
+
+[A003 / #102](https://github.com/killroyZULU/FlyEye/issues/102) separates the
+[HTTP handler](../../../supabase/functions/auth-bootstrap/handler.ts),
+[access decisions](../../../supabase/functions/auth-bootstrap/access-decision.ts),
+[administrator-factor checks](../../../supabase/functions/auth-bootstrap/admin-factor.ts),
+[responses](../../../supabase/functions/auth-bootstrap/responses.ts), and
+[dependency contracts](../../../supabase/functions/auth-bootstrap/contracts.ts).
+The handler retains its factory and type exports; its file-size and complexity
+exceptions were removed.
+
+The [handler suite](../../../supabase/functions/auth-bootstrap/handler.test.ts)
+`auth-bootstrap extraction compatibility` adds 24 cases for HTTP validation order
+and headers, denied-context reasons, exact audit payloads and correlation IDs,
+administrator-factor outcomes, combined backend/audit failures, rejected tenant
+contexts, the existing optional factor dependency, and awaiting audit completion.
+Together with the [access-context](../../../src/lib/access-context.test.ts) and
+[authentication-evidence](../../../supabase/functions/_shared/authentication-evidence.test.ts)
+suites, all 71 tests passed before and after extraction; adding the
+[maintainability suite](../../../scripts/lib/code-maintainability.test.mjs) produced
+79 passing focused tests. These are synthetic handler/contract checks; database
+and real Auth/Edge evidence comes from the disposable PR CI matrix. The occupied
+local database was preserved. A010 rate limiting remains a separate follow-up.
+
 ## Gateway contract separation
 
 [A002 / #84](https://github.com/killroyZULU/FlyEye/issues/84) separates the
