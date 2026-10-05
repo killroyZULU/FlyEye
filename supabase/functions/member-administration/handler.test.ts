@@ -188,6 +188,401 @@ async function payload(response: Response) {
   return (await response.json()) as Record<string, unknown>;
 }
 
+describe('member administration handler compatibility', () => {
+  const roleRequest = {
+    action: 'assign_role',
+    organizationId: ORGANIZATION_ID,
+    membershipId: MEMBERSHIP_ID,
+    roleCode: 'instructor_pilot',
+    reasonCode: 'responsibility_changed',
+    expectedVersion: 1,
+    idempotencyKey: IDEMPOTENCY_KEY,
+  };
+  const IDEMPOTENCY_DIGEST = '3eb1bd439947eb762998e566ccc2e099c791118b2f40579cc4f7da2b5061b7f9';
+  const actions = [
+    { action: 'list', organizationId: ORGANIZATION_ID },
+    { action: 'detail', organizationId: ORGANIZATION_ID, membershipId: MEMBERSHIP_ID },
+    { action: 'get_profile', membershipId: MEMBERSHIP_ID },
+    {
+      action: 'update_profile',
+      membershipId: MEMBERSHIP_ID,
+      displayName: '  Synthetic Member  ',
+      contactNumber: ' +63 123 ',
+      expectedVersion: 1,
+    },
+    ...(['suspend', 'reactivate', 'revoke'] as const).map((action) => ({
+      ...roleRequest,
+      roleCode: undefined,
+      action,
+      reasonCode: 'administrative_review',
+    })),
+    roleRequest,
+  ];
+  const commands = [
+    'list',
+    'detail',
+    'getProfile',
+    'updateProfile',
+    'changeStatus',
+    'changeStatus',
+    'changeStatus',
+    'changeRole',
+  ] as const;
+
+  it.each(actions.map((body, index) => ({ body, command: commands[index]! })))(
+    'preserves $body.action inputs and guard order',
+    async ({ body, command }) => {
+      const deps = dependencies();
+      if (body.action === 'reactivate' || body.action === 'revoke') {
+        const status = body.action === 'reactivate' ? 'active' : 'revoked';
+        vi.mocked(deps.changeStatus).mockResolvedValue({
+          decision: status,
+          organizationId: ORGANIZATION_ID,
+          membershipId: MEMBERSHIP_ID,
+          status,
+          version: 2,
+          replayed: false,
+          correlationId: CORRELATION_ID,
+        });
+      }
+      const response = await createMemberAdministrationHandler(deps)(request(body));
+      expect(response.status).toBe(200);
+      const isProfile = body.action === 'get_profile' || body.action === 'update_profile';
+      expect(deps.resolveLimitScope).toHaveBeenCalledExactlyOnceWith({
+        actorUserId: USER_ID,
+        action: body.action,
+        organizationId: isProfile ? null : ORGANIZATION_ID,
+        membershipId: body.action === 'list' ? null : MEMBERSHIP_ID,
+      });
+      expect(deps.consumeLimit).toHaveBeenCalledExactlyOnceWith({
+        actorSubjectId: USER_ID,
+        action: body.action,
+        scopeId: ORGANIZATION_ID,
+        correlationId: CORRELATION_ID,
+      });
+      const input: Record<string, unknown> = {
+        actorUserId: USER_ID,
+        correlationId: CORRELATION_ID,
+      };
+      if (!isProfile) input.organizationId = ORGANIZATION_ID;
+      if (body.action !== 'list') input.membershipId = MEMBERSHIP_ID;
+      if (body.action === 'list')
+        Object.assign(input, { status: null, search: null, boundary: null });
+      if (body.action === 'update_profile')
+        Object.assign(input, {
+          displayName: 'Synthetic Member',
+          contactNumber: '+63 123',
+          expectedVersion: 1,
+        });
+      if (['suspend', 'reactivate', 'revoke'].includes(body.action))
+        Object.assign(input, {
+          action: body.action,
+          reasonCode: 'administrative_review',
+          expectedVersion: 1,
+          idempotencyKeyHash: IDEMPOTENCY_DIGEST,
+        });
+      if (body.action === 'assign_role')
+        Object.assign(input, {
+          roleCode: roleRequest.roleCode,
+          reasonCode: roleRequest.reasonCode,
+          expectedVersion: 1,
+          idempotencyKeyHash: IDEMPOTENCY_DIGEST,
+          factorReferenceHash: '6964221939c942adcd4ab5cbc4d35e1822f2603fd379717a1a8ee7f2434a96ee',
+        });
+      expect(deps[command]).toHaveBeenCalledExactlyOnceWith(input);
+      expect(vi.mocked(deps.authenticate).mock.invocationCallOrder[0]!).toBeLessThan(
+        vi.mocked(deps.resolveLimitScope).mock.invocationCallOrder[0]!,
+      );
+      expect(vi.mocked(deps.resolveLimitScope).mock.invocationCallOrder[0]!).toBeLessThan(
+        vi.mocked(deps.consumeLimit).mock.invocationCallOrder[0]!,
+      );
+      expect(vi.mocked(deps.consumeLimit).mock.invocationCallOrder[0]!).toBeLessThan(
+        vi.mocked(deps[command]).mock.invocationCallOrder[0]!,
+      );
+      if (isProfile) {
+        expect(deps.resolveProfileAssurance).toHaveBeenCalledExactlyOnceWith({
+          actorUserId: USER_ID,
+          membershipId: MEMBERSHIP_ID,
+        });
+        expect(vi.mocked(deps.resolveProfileAssurance).mock.invocationCallOrder[0]!).toBeLessThan(
+          vi.mocked(deps[command]).mock.invocationCallOrder[0]!,
+        );
+      } else expect(deps.resolveProfileAssurance).not.toHaveBeenCalled();
+      expect(deps.recordDenied).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { correlationId: TARGET_USER_ID },
+    { networkSourceUsed: true },
+    { policyVersion: 'untrusted' },
+    ...[null, 0, 3601].map((retryAfterSeconds) => ({ allowed: false, retryAfterSeconds })),
+  ])('fails closed on invalid limiter metadata %j', async (override) => {
+    const deps = dependencies();
+    const valid = await deps.consumeLimit({
+      actorSubjectId: USER_ID,
+      action: 'assign_role',
+      scopeId: ORGANIZATION_ID,
+      correlationId: CORRELATION_ID,
+    });
+    vi.mocked(deps.consumeLimit)
+      .mockClear()
+      .mockResolvedValue({ ...valid, ...override } as typeof valid);
+    const response = await createMemberAdministrationHandler(deps)(request(roleRequest));
+    expect(response.status).toBe(503);
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+    expect(deps.resolveRoleContext).not.toHaveBeenCalled();
+    expect(deps.changeRole).not.toHaveBeenCalled();
+  });
+
+  it('audits rate limits before returning the exact retry response', async () => {
+    const deps = dependencies({
+      consumeLimit: vi.fn().mockResolvedValue({
+        allowed: false,
+        retryAfterSeconds: 17,
+        correlationId: CORRELATION_ID,
+        networkSourceUsed: false,
+        policyVersion: 'member-administration-subject-scope-v1',
+      }),
+    });
+    const response = await createMemberAdministrationHandler(deps)(request(roleRequest));
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('17');
+    expect(await payload(response)).toEqual({
+      error: {
+        code: 'member_administration.rate_limited',
+        message: 'Wait 17 seconds before trying again.',
+      },
+      correlationId: CORRELATION_ID,
+    });
+    expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: USER_ID,
+      eventName: 'member_administration.denied',
+      reasonCode: 'rate_limited',
+      correlationId: CORRELATION_ID,
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+    });
+    expect(deps.resolveRoleContext).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'validation_failed',
+    'not_found',
+    'state_conflict',
+    'last_administrator',
+    'self_action',
+    'target_mfa_not_ready',
+  ])('preserves the audited %s decision', async (decision) => {
+    const deps = dependencies({
+      detail: vi.fn().mockResolvedValue({ decision, correlationId: CORRELATION_ID }),
+    });
+    const response = await createMemberAdministrationHandler(deps)(request(actions[1]));
+    expect(response.status).toBe(
+      ({ validation_failed: 422, not_found: 404, self_action: 403 } as Record<string, number>)[
+        decision
+      ] ?? 409,
+    );
+    expect(await payload(response)).toMatchObject({
+      error: { code: `member_administration.${decision}` },
+      correlationId: CORRELATION_ID,
+    });
+    expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: USER_ID,
+      eventName: ['state_conflict', 'last_administrator'].includes(decision)
+        ? 'member_administration.conflicted'
+        : 'member_administration.denied',
+      reasonCode: decision,
+      correlationId: CORRELATION_ID,
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+    });
+  });
+
+  it.each([false, true])(
+    'keeps denial audit failure closed when typed=%s and telemetry throws',
+    async (typed) => {
+      const deps = dependencies({
+        detail: vi.fn().mockResolvedValue({ decision: 'not_found', correlationId: CORRELATION_ID }),
+        recordDenied: vi
+          .fn()
+          .mockRejectedValue(
+            typed ? new MemberAdministrationAuditWriteError() : new Error('synthetic failure'),
+          ),
+        reportAuditFailure: vi.fn(() => {
+          throw new Error('synthetic telemetry failure');
+        }),
+      });
+      const response = await createMemberAdministrationHandler(deps)(request(actions[1]));
+      expect(response.status).toBe(503);
+      expect(deps.recordDenied).toHaveBeenCalledTimes(1);
+      expect(deps.reportAuditFailure).toHaveBeenCalledTimes(typed ? 1 : 0);
+      if (typed)
+        expect(deps.reportAuditFailure).toHaveBeenCalledWith({
+          action: 'detail',
+          correlationId: CORRELATION_ID,
+        });
+    },
+  );
+
+  it.each([
+    'detail',
+    'getProfile',
+    'updateProfile',
+    'changeStatus',
+    'resolveRoleContext',
+    'changeRole',
+  ] as const)(
+    'catches asynchronous mandatory audit failures from %s without retry',
+    async (command) => {
+      const deps = dependencies({
+        [command]: vi.fn().mockRejectedValue(new MemberAdministrationAuditWriteError()),
+      });
+      const index = commands.indexOf(command === 'resolveRoleContext' ? 'changeRole' : command);
+      const response = await createMemberAdministrationHandler(deps)(request(actions[index]));
+      expect(response.status).toBe(503);
+      expect(deps[command]).toHaveBeenCalledTimes(1);
+      expect(deps.reportAuditFailure).toHaveBeenCalledExactlyOnceWith({
+        action: actions[index]!.action,
+        correlationId: CORRELATION_ID,
+      });
+    },
+  );
+
+  it.each(['correlationId', 'organizationId', 'membershipId', 'newRoleCode'])(
+    'rejects role context with mismatched %s before factors or mutation',
+    async (field) => {
+      const deps = dependencies();
+      const context = await deps.resolveRoleContext({
+        actorUserId: USER_ID,
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: roleRequest.roleCode,
+        expectedVersion: 1,
+        correlationId: CORRELATION_ID,
+      });
+      vi.mocked(deps.resolveRoleContext)
+        .mockClear()
+        .mockResolvedValue({
+          ...(context as object),
+          [field]: field === 'newRoleCode' ? 'admin' : TARGET_USER_ID,
+        });
+      expect((await createMemberAdministrationHandler(deps)(request(roleRequest))).status).toBe(
+        503,
+      );
+      expect(deps.listFactors).not.toHaveBeenCalled();
+      expect(deps.changeRole).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['replayed', 'correlationId', 'organizationId', 'membershipId', 'roleCode'])(
+    'rejects an unbound role replay with mismatched %s',
+    async (field) => {
+      const deps = dependencies({
+        resolveRoleContext: vi
+          .fn()
+          .mockResolvedValue({ decision: 'state_conflict', correlationId: CORRELATION_ID }),
+      });
+      vi.mocked(deps.changeRole).mockResolvedValue({
+        decision: 'changed',
+        organizationId: ORGANIZATION_ID,
+        membershipId: MEMBERSHIP_ID,
+        roleCode: roleRequest.roleCode,
+        roleLabel: 'Instructor Pilot',
+        version: 2,
+        replayed: true,
+        correlationId: CORRELATION_ID,
+        [field]: field === 'replayed' ? false : field === 'roleCode' ? 'admin' : TARGET_USER_ID,
+      });
+      expect((await createMemberAdministrationHandler(deps)(request(roleRequest))).status).toBe(
+        503,
+      );
+      expect(deps.changeRole).toHaveBeenCalledTimes(1);
+      expect(deps.changeRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          factorReferenceHash: null,
+          idempotencyKeyHash: IDEMPOTENCY_DIGEST,
+        }),
+      );
+      expect(deps.listFactors).not.toHaveBeenCalled();
+    },
+  );
+
+  it('binds both cursor directions to normalized filters and hides raw pagination fields', async () => {
+    const boundary = { createdAt: '2026-08-10T00:00:00Z', membershipId: MEMBERSHIP_ID };
+    const deps = dependencies({
+      list: vi.fn().mockResolvedValue({
+        decision: 'listed',
+        organizationId: ORGANIZATION_ID,
+        members: [summary],
+        hasMore: true,
+        nextCreatedAt: boundary.createdAt,
+        nextMembershipId: boundary.membershipId,
+        correlationId: CORRELATION_ID,
+      }),
+    });
+    const cursor = 'synthetic-cursor'.padEnd(32, '0');
+    const response = await createMemberAdministrationHandler(deps)(
+      request({ ...actions[0], search: '  MEMBER  ', status: 'active', cursor }),
+    );
+    expect(deps.decodeCursor).toHaveBeenCalledExactlyOnceWith(cursor, 'active', 'member');
+    expect(deps.encodeCursor).toHaveBeenCalledExactlyOnceWith(boundary, 'active', 'member');
+    expect(deps.list).toHaveBeenCalledExactlyOnceWith({
+      actorUserId: USER_ID,
+      organizationId: ORGANIZATION_ID,
+      status: 'active',
+      search: 'member',
+      boundary,
+      correlationId: CORRELATION_ID,
+    });
+    expect(await payload(response)).toEqual({
+      decision: 'listed',
+      organizationId: ORGANIZATION_ID,
+      members: [summary],
+      nextCursor: 'signed-cursor'.padEnd(32, '0'),
+      correlationId: CORRELATION_ID,
+    });
+  });
+
+  it.each(['scope', 'profile', 'factor'] as const)(
+    'fails closed on unavailable %s authority dependency',
+    async (stage) => {
+      const deps = dependencies({
+        [stage === 'scope'
+          ? 'resolveLimitScope'
+          : stage === 'profile'
+            ? 'resolveProfileAssurance'
+            : 'listFactors']: vi.fn().mockRejectedValue(new Error('synthetic unavailable')),
+      });
+      const response = await createMemberAdministrationHandler(deps)(
+        request(stage === 'profile' ? actions[2] : roleRequest),
+      );
+      expect(response.status).toBe(503);
+      expect(deps.getProfile).not.toHaveBeenCalled();
+      expect(deps.changeRole).not.toHaveBeenCalled();
+      expect(deps.recordDenied).toHaveBeenCalledTimes(stage === 'factor' ? 1 : 0);
+      if (stage === 'factor')
+        expect(deps.recordDenied).toHaveBeenCalledWith(
+          expect.objectContaining({ reasonCode: 'factor_inventory_unavailable' }),
+        );
+    },
+  );
+
+  it('captures factory callbacks once while reading allowed origin per request', async () => {
+    const deps = dependencies();
+    const handler = createMemberAdministrationHandler(deps);
+    deps.createCorrelationId = () => TARGET_USER_ID;
+    deps.nowSeconds = () => 100000;
+    deps.allowedOrigin = 'https://synthetic.example.test';
+    const response = await handler(request(roleRequest, { origin: deps.allowedOrigin }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(deps.allowedOrigin);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(response.headers.get('Vary')).toBe('Origin');
+    expect(await payload(response)).toMatchObject({ correlationId: CORRELATION_ID });
+  });
+});
+
 describe('FEAT-005 member administration handler', () => {
   it('rejects a foreign origin before authentication', async () => {
     const deps = dependencies();
