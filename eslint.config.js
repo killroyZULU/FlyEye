@@ -74,10 +74,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [
-      'supabase/functions/member-mfa/handler.ts',
-      'supabase/functions/organization-admin-onboarding/handler.ts',
-    ],
+    files: ['supabase/functions/organization-admin-onboarding/handler.ts'],
     rules: {
       complexity: 'off',
       'max-lines-per-function': 'off',

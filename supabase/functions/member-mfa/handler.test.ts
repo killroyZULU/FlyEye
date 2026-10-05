@@ -109,6 +109,375 @@ async function payload(response: Response) {
   return (await response.json()) as Record<string, unknown>;
 }
 
+describe('member MFA handler compatibility', () => {
+  const IDEMPOTENCY_DIGEST = '3eb1bd439947eb762998e566ccc2e099c791118b2f40579cc4f7da2b5061b7f9';
+  const FACTOR_DIGEST = '6964221939c942adcd4ab5cbc4d35e1822f2603fd379717a1a8ee7f2434a96ee';
+  const operation = { operationId: OPERATION_ID, expectedVersion: 2, idempotencyKey: KEY };
+  const cases = [
+    { body: { action: 'status' }, command: 'status' },
+    { body: { action: 'start', idempotencyKey: KEY }, command: 'start' },
+    { body: { action: 'bind_factor', ...operation, factorId: FACTOR_ID }, command: 'bindFactor' },
+    { body: { action: 'complete', ...operation }, command: 'complete' },
+    { body: { action: 'cancel', ...operation }, command: 'cancel' },
+  ] as const;
+
+  function configured(action: string) {
+    const deps = dependencies();
+    if (action === 'bind_factor')
+      vi.mocked(deps.listFactors).mockResolvedValue([factor('unverified')]);
+    if (action === 'cancel') {
+      vi.mocked(deps.listFactors).mockResolvedValue([]);
+      vi.mocked(deps.status).mockResolvedValue({
+        decision: 'available',
+        operationState: 'started',
+        operationId: OPERATION_ID,
+        operationVersion: 2,
+        correlationId: CORRELATION_ID,
+      });
+      vi.mocked(deps.cancel).mockResolvedValue({
+        decision: 'cancelled',
+        cleanupOutcome: 'not_required',
+        replayed: false,
+        correlationId: CORRELATION_ID,
+      });
+    }
+    return deps;
+  }
+
+  it.each(cases)(
+    'preserves $body.action payloads and dependency ordering',
+    async ({ body, command }) => {
+      const deps = configured(body.action);
+      const response = await createMemberMfaHandler(deps)(request(body));
+      expect(response.status).toBe(200);
+      expect(deps.authenticate).toHaveBeenCalledExactlyOnceWith('verified-token');
+      expect(deps.consumeLimit).toHaveBeenCalledExactlyOnceWith({
+        actorSubjectId: USER_ID,
+        action: body.action,
+        correlationId: CORRELATION_ID,
+      });
+      expect(deps.listFactors).toHaveBeenCalledExactlyOnceWith(USER_ID);
+      const input: Record<string, unknown> = {
+        actorUserId: USER_ID,
+        correlationId: CORRELATION_ID,
+        factorReferenceHash: FACTOR_DIGEST,
+      };
+      if (body.action !== 'status') input.idempotencyKeyHash = IDEMPOTENCY_DIGEST;
+      if ('operationId' in body)
+        Object.assign(input, { operationId: OPERATION_ID, expectedVersion: 2 });
+      if (body.action === 'complete') {
+        delete input.actorUserId;
+        input.actor = actor;
+      }
+      if (body.action === 'cancel')
+        Object.assign(input, { factorReferenceHash: null, cleanupOutcome: 'not_required' });
+      expect(deps[command]).toHaveBeenCalledExactlyOnceWith(input);
+      for (const [before, after] of [
+        [deps.authenticate, deps.consumeLimit],
+        [deps.consumeLimit, deps.listFactors],
+        [deps.listFactors, deps[command]],
+      ] as const) {
+        expect(vi.mocked(before).mock.invocationCallOrder[0]).toBeLessThan(
+          vi.mocked(after).mock.invocationCallOrder[0]!,
+        );
+      }
+      if (body.action === 'cancel') {
+        expect(deps.status).toHaveBeenCalledExactlyOnceWith({
+          actorUserId: USER_ID,
+          correlationId: CORRELATION_ID,
+          factorReferenceHash: null,
+        });
+        expect(vi.mocked(deps.status).mock.invocationCallOrder[0]).toBeLessThan(
+          vi.mocked(deps.cancel).mock.invocationCallOrder[0]!,
+        );
+      }
+      expect(deps.recordDenied).not.toHaveBeenCalled();
+      expect(JSON.stringify(await payload(response))).not.toContain(FACTOR_ID);
+    },
+  );
+
+  it.each([
+    { factors: [], state: undefined, expected: 'enrollment_required' },
+    { factors: [], state: 'started', expected: 'cancellation_required' },
+    { factors: [factor()], state: undefined, expected: 'challenge_required' },
+    { factors: [factor()], state: 'bound', expected: 'resume_required' },
+    { factors: [factor('unverified')], state: 'bound', expected: 'resume_required' },
+  ])(
+    'derives status $expected from the bound operation and inventory',
+    async ({ factors, state, expected }) => {
+      const deps = dependencies({
+        listFactors: vi.fn().mockResolvedValue(factors),
+        status: vi.fn().mockResolvedValue({
+          decision: 'available',
+          operationState: state,
+          correlationId: CORRELATION_ID,
+        }),
+      });
+      const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+      expect(response.status).toBe(200);
+      expect(await payload(response)).toEqual({
+        decision: 'available',
+        ...(state ? { operationState: state } : {}),
+        correlationId: CORRELATION_ID,
+        factorState: expected,
+      });
+      expect(deps.status).toHaveBeenCalledWith({
+        actorUserId: USER_ID,
+        factorReferenceHash: factors.length ? FACTOR_DIGEST : null,
+        correlationId: CORRELATION_ID,
+      });
+    },
+  );
+
+  it.each([
+    { correlationId: OPERATION_ID },
+    { networkSourceUsed: true },
+    { policyVersion: 'untrusted' },
+    { allowed: false, retryAfterSeconds: null },
+    { allowed: false, retryAfterSeconds: 0 },
+  ])('rejects invalid limiter metadata before factors %j', async (patch) => {
+    const deps = dependencies({
+      consumeLimit: vi.fn().mockResolvedValue({
+        allowed: true,
+        retryAfterSeconds: null,
+        correlationId: CORRELATION_ID,
+        networkSourceUsed: false,
+        policyVersion: 'member-mfa-subject-action-v1',
+        ...patch,
+      }),
+    });
+    const response = await createMemberMfaHandler(deps)(
+      request({ action: 'start', idempotencyKey: KEY }),
+    );
+    expect(response.status).toBe(503);
+    expect(await payload(response)).toMatchObject({
+      error: { code: 'member_mfa.limiter_unavailable' },
+      correlationId: CORRELATION_ID,
+    });
+    expect(deps.listFactors).not.toHaveBeenCalled();
+    expect(deps.start).not.toHaveBeenCalled();
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it('preserves rate-limit headers without an additional denial audit', async () => {
+    const deps = dependencies({
+      consumeLimit: vi.fn().mockResolvedValue({
+        allowed: false,
+        retryAfterSeconds: 17,
+        correlationId: CORRELATION_ID,
+        networkSourceUsed: false,
+        policyVersion: 'member-mfa-subject-action-v1',
+      }),
+    });
+    const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('17');
+    expect(await payload(response)).toEqual({
+      error: { code: 'member_mfa.rate_limited', message: 'Wait 17 seconds before trying again.' },
+      correlationId: CORRELATION_ID,
+    });
+    expect(deps.recordDenied).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'preserves provider failure and mandatory audit precedence (audit fails=%s)',
+    async (auditFails) => {
+      const deps = dependencies({
+        listFactors: vi.fn().mockRejectedValue(new Error('synthetic provider failure')),
+      });
+      if (auditFails)
+        vi.mocked(deps.recordDenied).mockRejectedValue(new Error('synthetic audit failure'));
+      const response = await createMemberMfaHandler(deps)(request({ action: 'status' }));
+      expect(response.status).toBe(auditFails ? 500 : 503);
+      expect(await payload(response)).toMatchObject({
+        error: {
+          code: auditFails ? 'member_mfa.audit_unavailable' : 'member_mfa.provider_unavailable',
+        },
+        correlationId: CORRELATION_ID,
+      });
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actorUserId: USER_ID,
+        eventName: 'member_mfa.conflict',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'factor_inventory_unavailable',
+      });
+      expect(deps.status).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(cases)(
+    'contains asynchronous $command failures without retry',
+    async ({ body, command }) => {
+      const deps = configured(body.action);
+      vi.mocked(deps[command]).mockRejectedValue(new Error('synthetic database failure'));
+      const response = await createMemberMfaHandler(deps)(request(body));
+      expect(response.status).toBe(500);
+      expect(await payload(response)).toEqual({
+        error: {
+          code: 'member_mfa.audit_unavailable',
+          message: 'Authenticator setup could not be verified.',
+        },
+        correlationId: CORRELATION_ID,
+      });
+      expect(deps[command]).toHaveBeenCalledTimes(1);
+      expect(deps.recordDenied).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['decision', 'operationState', 'operationId', 'operationVersion'])(
+    'denies cancellation before mutation when preflight %s differs',
+    async (field) => {
+      const deps = configured('cancel');
+      const differences = {
+        decision: 'not_available',
+        operationState: undefined,
+        operationId: MEMBERSHIP_ID,
+        operationVersion: 3,
+      };
+      vi.mocked(deps.status).mockResolvedValue({
+        decision: 'available',
+        operationState: 'started',
+        operationId: OPERATION_ID,
+        operationVersion: 2,
+        correlationId: CORRELATION_ID,
+        [field]: differences[field as keyof typeof differences],
+      });
+      const response = await createMemberMfaHandler(deps)(request(cases[4].body));
+      expect(response.status).toBe(409);
+      expect(deps.cancel).not.toHaveBeenCalled();
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actorUserId: USER_ID,
+        eventName: 'member_mfa.conflict',
+        correlationId: CORRELATION_ID,
+        reasonCode: 'cleanup_operation_conflict',
+        operationId: OPERATION_ID,
+      });
+    },
+  );
+
+  it('permits empty-operation cancellation without fresh password evidence', async () => {
+    const deps = configured('cancel');
+    vi.mocked(deps.authenticate).mockResolvedValue({
+      ...actor,
+      passwordAuthenticatedAt: null,
+      authenticationMethods: ['recovery'],
+    });
+    expect((await createMemberMfaHandler(deps)(request(cases[4].body))).status).toBe(200);
+    expect(deps.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechecks password freshness after factor lookup before completion', async () => {
+    const nowSeconds = vi.fn().mockReturnValueOnce(1000).mockReturnValueOnce(2000);
+    const deps = dependencies({ nowSeconds });
+    const response = await createMemberMfaHandler(deps)(request(cases[3].body));
+    expect(response.status).toBe(409);
+    expect(deps.listFactors).toHaveBeenCalledTimes(1);
+    expect(deps.complete).not.toHaveBeenCalled();
+    expect(deps.recordDenied).toHaveBeenCalledWith(
+      expect.objectContaining({ reasonCode: 'mfa_assurance_required', operationId: OPERATION_ID }),
+    );
+    expect(nowSeconds).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['aal1', 'missing_totp', 'unverified_factor'] as const)(
+    'denies completion for %s after initial password verification',
+    async (invalid) => {
+      const deps = dependencies();
+      if (invalid === 'aal1')
+        vi.mocked(deps.authenticate).mockResolvedValue({ ...actor, assuranceLevel: 'aal1' });
+      if (invalid === 'missing_totp')
+        vi.mocked(deps.authenticate).mockResolvedValue({ ...actor, totpAuthenticatedAt: null });
+      if (invalid === 'unverified_factor')
+        vi.mocked(deps.listFactors).mockResolvedValue([factor('unverified')]);
+      const response = await createMemberMfaHandler(deps)(request(cases[3].body));
+      expect(response.status).toBe(409);
+      expect(deps.complete).not.toHaveBeenCalled();
+      expect(deps.recordDenied).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reasonCode:
+            invalid === 'unverified_factor'
+              ? 'completion_factor_conflict'
+              : 'mfa_assurance_required',
+          operationId: OPERATION_ID,
+        }),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'rejects unbound factor identifiers with audit failure=%s',
+    async (auditFails) => {
+      const deps = configured('bind_factor');
+      if (auditFails)
+        vi.mocked(deps.recordDenied).mockRejectedValue(new Error('synthetic audit failure'));
+      const response = await createMemberMfaHandler(deps)(
+        request({ ...cases[2].body, factorId: MEMBERSHIP_ID }),
+      );
+      expect(response.status).toBe(auditFails ? 500 : 409);
+      expect(deps.bindFactor).not.toHaveBeenCalled();
+      expect(deps.recordDenied).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reasonCode: 'factor_binding_conflict',
+          operationId: OPERATION_ID,
+        }),
+      );
+    },
+  );
+
+  it.each(['not_available', 'conflict', 'recent_authentication_required', 'unknown'])(
+    'maps database %s decisions without a second audit',
+    async (decision) => {
+      const deps = dependencies({
+        start: vi.fn().mockResolvedValue({ decision, correlationId: CORRELATION_ID }),
+      });
+      const response = await createMemberMfaHandler(deps)(request(cases[1].body));
+      expect(response.status).toBe(
+        (
+          { not_available: 404, conflict: 409, recent_authentication_required: 403 } as Record<
+            string,
+            number
+          >
+        )[decision] ?? 500,
+      );
+      expect(deps.recordDenied).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves replay fields on mutation results and strict status shape', async () => {
+    const result = {
+      decision: 'completed',
+      correlationId: CORRELATION_ID,
+      replayed: true,
+      readinessVersion: 4,
+    };
+    const deps = dependencies({
+      complete: vi.fn().mockResolvedValue(result),
+      status: vi.fn().mockResolvedValue({
+        decision: 'available',
+        correlationId: CORRELATION_ID,
+        unexpected: true,
+      }),
+    });
+    expect(await payload(await createMemberMfaHandler(deps)(request(cases[3].body)))).toEqual(
+      result,
+    );
+    expect((await createMemberMfaHandler(deps)(request(cases[0].body))).status).toBe(500);
+  });
+
+  it('captures factory callbacks but reads origin on each request', async () => {
+    const deps = dependencies();
+    const handler = createMemberMfaHandler(deps);
+    deps.createCorrelationId = () => MEMBERSHIP_ID;
+    deps.nowSeconds = () => 2000;
+    deps.allowedOrigin = 'https://synthetic.example.test';
+    const response = await handler(request(cases[3].body, deps.allowedOrigin));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(deps.allowedOrigin);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await payload(response)).toMatchObject({ correlationId: CORRELATION_ID });
+  });
+});
+
 describe('FEAT-006A member MFA handler', () => {
   it.each(['otp', 'recovery', 'magiclink', 'invite', 'totp'])(
     'denies %s-only readiness reads before factor or status access',

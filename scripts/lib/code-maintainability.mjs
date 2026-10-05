@@ -7,7 +7,6 @@ export const DEFAULT_MAX_FILE_LINES = 400;
 export const DEFAULT_MAX_EDGE_ENTRYPOINT_LINES = 250;
 
 export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
-  'supabase/functions/member-mfa/handler.ts': 566,
   'supabase/functions/organization-admin-onboarding/handler.ts': 642,
 });
 
