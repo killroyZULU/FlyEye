@@ -1,10 +1,15 @@
+import { InvitationAcceptanceFlow } from './InvitationAcceptanceFlow';
+import { PasswordRecoveryFlow } from './PasswordRecoveryFlow';
+import { lazy } from 'react';
+import { DeferredScreen } from './DeferredScreen';
 import type { AuthGateway } from '../services/auth-gateway';
 import type { AuthSession } from '../useAuthSession';
 import type { AuthRoute } from '../auth-app-state';
-import { RecoveryRequestForm } from './RecoveryRequestForm';
-import { PasswordRecoveryFlow } from './PasswordRecoveryFlow';
-import { InvitationAcceptanceFlow } from './InvitationAcceptanceFlow';
 import { AuthSignInView } from './AuthSignInView';
+
+const RecoveryRequestForm = lazy(() =>
+  import('./RecoveryRequestForm').then((module) => ({ default: module.RecoveryRequestForm })),
+);
 type AuthEntryViewProps = { gateway: AuthGateway; route: AuthRoute; session: AuthSession };
 export function AuthEntryView({ gateway, route, session }: AuthEntryViewProps) {
   return (
@@ -30,13 +35,15 @@ export function AuthEntryView({ gateway, route, session }: AuthEntryViewProps) {
 
       <section className="auth-panel" aria-label="Account access">
         <div className="auth-card">
-          {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
+          <DeferredScreen key={route}>
+            {route === 'recovery-request' ? <RecoveryRequestForm gateway={gateway} /> : null}
 
-          {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
+            {route === 'recovery-complete' ? <PasswordRecoveryFlow gateway={gateway} /> : null}
 
-          {route === 'invitation' ? <InvitationAcceptanceFlow gateway={gateway} /> : null}
+            {route === 'invitation' ? <InvitationAcceptanceFlow gateway={gateway} /> : null}
 
-          {route === 'sign-in' ? <AuthSignInView gateway={gateway} session={session} /> : null}
+            {route === 'sign-in' ? <AuthSignInView gateway={gateway} session={session} /> : null}
+          </DeferredScreen>
         </div>
         <footer>
           <span>Private flight-school system</span>

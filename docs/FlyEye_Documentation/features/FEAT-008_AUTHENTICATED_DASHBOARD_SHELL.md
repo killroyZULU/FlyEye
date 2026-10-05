@@ -30,23 +30,23 @@ Non-goals:
 
 ## Sources, assumptions, and unresolved questions
 
-| Item | Source | State |
-|---|---|---|
-| Authenticated screens require a dedicated dashboard and navigation; the sign-in introduction must disappear after access is granted | Founder/Product Owner, 2026-08-31 | Approved |
-| Navigation is role-sensitive but cannot act as authorization | UI/UX Guidelines Section 3; `IAM-003` | Verified |
-| Basic dashboards are planned, but operational content needs implemented source workflows | `REC-006`; Current State | Verified |
-| Role labels and permissions come from the protected access context | `IAM-002/003/010/011` | Verified |
+| Item                                                                                                                                | Source                                | State    |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | -------- |
+| Authenticated screens require a dedicated dashboard and navigation; the sign-in introduction must disappear after access is granted | Founder/Product Owner, 2026-08-31     | Approved |
+| Navigation is role-sensitive but cannot act as authorization                                                                        | UI/UX Guidelines Section 3; `IAM-003` | Verified |
+| Basic dashboards are planned, but operational content needs implemented source workflows                                            | `REC-006`; Current State              | Verified |
+| Role labels and permissions come from the protected access context                                                                  | `IAM-002/003/010/011`                 | Verified |
 
 No unresolved aviation, legal, privacy, or operational rule is required for this shell.
 
 ## Roles and authority
 
-| UI action | Availability | Authority rule |
-|---|---|---|
-| Open Home | Every granted workspace | Membership has its required portal permission |
-| Open an application module | Existing module is supplied and required permission is present | Server and module authorization remain authoritative |
-| Open My profile or Account security | Every granted workspace | Existing protected flows remain authoritative |
-| Sign out | Every granted workspace | Existing Auth sign-out flow |
+| UI action                           | Availability                                                   | Authority rule                                       |
+| ----------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| Open Home                           | Every granted workspace                                        | Membership has its required portal permission        |
+| Open an application module          | Existing module is supplied and required permission is present | Server and module authorization remain authoritative |
+| Open My profile or Account security | Every granted workspace                                        | Existing protected flows remain authoritative        |
+| Sign out                            | Every granted workspace                                        | Existing Auth sign-out flow                          |
 
 The shell consumes the server-approved `AccessMembership`. It does not accept client-selected organization or role values and grants no new authority.
 
@@ -77,6 +77,12 @@ Each dashboard shows the school, role, access-verified status, and a structured 
 
 Invitations, member administration, profile, security, and any later supplied Aircraft Registry panel render within the same shell. Existing module loading, empty, error, conflict, unauthorized, and success behavior remains owned by each module. Existing “Back to workspace” actions return Home.
 
+### Deferred screen delivery
+
+Workspace and nonessential account screens load on demand after the existing route/access decision. The session controller remains mounted outside the deferred workspace. Pending loads show an accessible status and retain Sign out or Back to workspace where applicable; an import failure shows safe reload guidance without raw diagnostics or automatic command retries. Navigation and session termination remove pending screens so their eventual resolution cannot mount stale content. Recovery completion and invitation acceptance remain eager to preserve URL credential/hint capture and scrubbing.
+
+Production verification must exercise compiled chunks, including delayed/rejected imports, explicit reload recovery, permission-filtered navigation and session-ended events. The build budget counts the entry plus all transitive static JavaScript once: at most 550,000 bytes initially and 500,000 bytes per emitted JavaScript chunk. These are regression budgets, not school-connectivity or p95 acceptance evidence; the Vite warning limit remains unchanged.
+
 ## Security, privacy, and accessibility
 
 - Permission filtering uses only the server-approved membership contract.
@@ -98,15 +104,15 @@ Invitations, member administration, profile, security, and any later supplied Ai
 
 ## Planned verification
 
-| Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| `FEAT-008-UNIT-01` | Unit | Role and future-role labels | Correct dashboard heading |
-| `FEAT-008-COMP-01` | Component | Student/Admin granted access | Auth introduction absent; shell and role dashboard present |
-| `FEAT-008-COMP-02` | Component | Permission and module combinations | Exact navigation entries only |
-| `FEAT-008-COMP-03` | Component | Navigate among Home/Profile/Security/administration modules | Persistent nav and correct current item |
-| `FEAT-008-COMP-04` | Component | Sign-out and revoked session races | Shell removed; stale success rejected |
-| `FEAT-008-E2E-01` | Browser | Desktop and mobile authenticated shell | Responsive navigation and no page overflow |
-| `FEAT-008-REG-01` | Regression | Full application quality gate | Existing authentication and feature behavior pass |
+| Test ID            | Level      | Scenario                                                    | Expected result                                            |
+| ------------------ | ---------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `FEAT-008-UNIT-01` | Unit       | Role and future-role labels                                 | Correct dashboard heading                                  |
+| `FEAT-008-COMP-01` | Component  | Student/Admin granted access                                | Auth introduction absent; shell and role dashboard present |
+| `FEAT-008-COMP-02` | Component  | Permission and module combinations                          | Exact navigation entries only                              |
+| `FEAT-008-COMP-03` | Component  | Navigate among Home/Profile/Security/administration modules | Persistent nav and correct current item                    |
+| `FEAT-008-COMP-04` | Component  | Sign-out and revoked session races                          | Shell removed; stale success rejected                      |
+| `FEAT-008-E2E-01`  | Browser    | Desktop and mobile authenticated shell                      | Responsive navigation and no page overflow                 |
+| `FEAT-008-REG-01`  | Regression | Full application quality gate                               | Existing authentication and feature behavior pass          |
 
 ## Change boundary
 

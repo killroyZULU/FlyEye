@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process';
 import process from 'node:process';
 
 import { chromium } from '@playwright/test';
+import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
+import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -15,14 +17,19 @@ const projectEnvironment = {
   VITE_SUPABASE_PUBLISHABLE_KEY: 'test-publishable-key',
 };
 
-const viteProcess = spawn(
-  process.execPath,
-  ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173'],
-  {
-    env: projectEnvironment,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  },
-);
+const production = process.argv.includes('--production')
+  ? await startProductionBrowserServer(projectEnvironment)
+  : undefined;
+const viteProcess =
+  production?.child ??
+  spawn(
+    process.execPath,
+    ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173'],
+    {
+      env: projectEnvironment,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
 
 const studentContext = {
   memberships: [
@@ -102,8 +109,10 @@ const accessToken = `${base64Url({ alg: 'none', typ: 'JWT' })}.${base64Url({
 async function waitForServer() {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
+      if (viteProcess.exitCode !== null || viteProcess.signalCode !== null) break;
       const response = await fetch('http://127.0.0.1:4173');
-      if (response.ok) return;
+      if (response.ok && (!production || (await response.text()) === production.expectedIndex))
+        return;
     } catch {
       // The bounded retry loop handles startup races.
     }
@@ -733,6 +742,7 @@ const scenarios = [
   { name: 'documents-admin', options: { admin: true } },
   { name: 'documents-student', options: {} },
 ];
+const selectedScenarios = process.argv.includes('--deferred-only') ? [] : scenarios;
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
   { name: 'mobile', size: { width: 393, height: 851 } },
@@ -746,15 +756,20 @@ try {
   });
   try {
     for (const viewport of viewports) {
-      for (const scenario of scenarios) {
+      for (const scenario of selectedScenarios) {
         await runScenario(browser, viewport.size, scenario);
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
+    if (production)
+      await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
   } finally {
     await browser.close();
   }
-  process.stdout.write(`${scenarios.length * viewports.length} Playwright E2E scenarios passed.\n`);
+  process.stdout.write(
+    `${selectedScenarios.length * viewports.length} Playwright E2E scenarios passed.\n`,
+  );
 } finally {
-  viteProcess.kill();
+  if (production) await production.close();
+  else viteProcess.kill();
 }

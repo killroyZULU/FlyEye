@@ -43,7 +43,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [PR #109](https://github.com/killroyZULU/FlyEye/pull/109) integrated member-MFA extraction at `ce04397`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37284073478) passed all gates and cleanup. [A003 / #110](https://github.com/killroyZULU/FlyEye/issues/110) tracks admin-onboarding extraction. Preserve occupied database/session-policy gates; FEAT-006B cause remains unknown.
+- Maintenance: [PR #111](https://github.com/killroyZULU/FlyEye/pull/111) integrated admin-onboarding extraction at `c3af0c8`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37292609006) passed all gates and cleanup. [A011 / #112](https://github.com/killroyZULU/FlyEye/issues/112) tracks deferred screen delivery. Preserve occupied database/session-policy gates; FEAT-006B cause remains unknown.
 
 ## Aircraft and dashboard integration
 
@@ -56,8 +56,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 
 PRs #30, #32, #36, #38, #34 merged with green [integration CI](https://github.com/killroyZULU/FlyEye/actions/runs/35861588094); exact targets are in [FEAT-007](features/FEAT-007_TRACEABILITY.md#final-integration-evidence) and [FEAT-008](features/FEAT-008_TRACEABILITY.md#reconciliation-verification) traceability. Issue #22
 requires qualified school workflow evidence; Issue #39 remains the unfinished
-audit. The combined build still exceeds the 500 kB entry-bundle warning; measure
-route/module splitting without weakening the warning or security boundaries.
+audit. [Deferred screen evidence](features/FEAT-008_TRACEABILITY.md#deferred-screen-delivery-evidence) records initial bundle measurements and loading regressions; #112 owns delivery verification.
 
 FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
