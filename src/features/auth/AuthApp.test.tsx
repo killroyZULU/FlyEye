@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AccessContextResponse, RoleCode } from '../../lib/access-context';
 import { AircraftDocumentError, type AircraftDocumentGateway } from '../aircraft';
@@ -541,5 +541,266 @@ describe('FEAT-001 authentication UI', () => {
     expect(
       screen.queryByRole('heading', { name: 'Administration dashboard' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+function emptyContext(): AccessContextResponse {
+  return { ...context('student_pilot'), memberships: [], organizationIds: [], decision: 'denied' };
+}
+
+const bootstrapGrant = {
+  bootstrapGrantId: '30000000-0000-4000-8000-000000000011',
+  organizationId: '20000000-0000-4000-8000-000000000011',
+  organizationName: 'Synthetic First Admin School',
+  grantVersion: 1,
+  expiresAt: '2026-07-28T00:30:00Z',
+};
+
+afterEach(() => {
+  window.history.replaceState(null, '', '/');
+});
+
+describe('AuthApp orchestration compatibility', () => {
+  it.each(['/auth/forgot-password', '/auth/recovery', '/auth/invitation'])(
+    'does not bootstrap workspace access on %s',
+    async (path) => {
+      window.history.replaceState(null, '', path);
+      const subject = gateway();
+      render(<AuthApp gateway={subject} />);
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(screen.getByLabelText('Account access')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Sign in to FlyEye' })).not.toBeInTheDocument();
+      expect(subject.loadAccessContext).not.toHaveBeenCalled();
+      expect(subject.loadAdminOnboardingStatus).not.toHaveBeenCalled();
+      expect(subject.onSignedOut).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps session restoration pending and uses sign-in for an unknown route', async () => {
+    window.history.replaceState(null, '', '/unknown');
+    const session = deferred<boolean>();
+    const subject = gateway({ hasSession: vi.fn(() => session.promise) });
+    render(<AuthApp gateway={subject} />);
+    expect(screen.getByRole('heading', { name: 'Verifying your session' })).toBeInTheDocument();
+    expect(subject.loadAccessContext).not.toHaveBeenCalled();
+    await act(async () => {
+      session.resolve(false);
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
+  });
+
+  it.each(['restore', 'access'] as const)(
+    'sanitizes %s failure and retries access',
+    async (stage) => {
+      const subject = gateway({
+        hasSession:
+          stage === 'restore'
+            ? vi.fn().mockRejectedValue(new Error('Private provider detail'))
+            : vi.fn().mockResolvedValue(true),
+        loadAccessContext:
+          stage === 'access'
+            ? vi
+                .fn()
+                .mockRejectedValueOnce(new Error('Private provider detail'))
+                .mockResolvedValue(context('student_pilot'))
+            : vi.fn().mockResolvedValue(context('student_pilot')),
+      });
+      render(<AuthApp gateway={subject} />);
+      await screen.findByRole('heading', { name: 'Access could not be verified' });
+      expect(
+        screen.getByText('FlyEye could not verify your access. Try again.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Private provider detail')).not.toBeInTheDocument();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));
+      await screen.findByRole('heading', { name: 'Student dashboard' });
+    },
+  );
+
+  it('allows an existing membership when onboarding discovery fails', async () => {
+    const subject = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAdminOnboardingStatus: vi.fn().mockRejectedValue(new Error('Private discovery detail')),
+    });
+    render(<AuthApp gateway={subject} />);
+    await screen.findByRole('heading', { name: 'Student dashboard' });
+    expect(subject.startAdminOnboarding).not.toHaveBeenCalled();
+    expect(screen.queryByText('Private discovery detail')).not.toBeInTheDocument();
+  });
+
+  it('rejects a membership plus a bootstrap grant as ambiguous', async () => {
+    const subject = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAdminOnboardingStatus: vi.fn().mockResolvedValue({ grants: [bootstrapGrant] }),
+    });
+    render(<AuthApp gateway={subject} />);
+    await screen.findByRole('heading', { name: 'Administrator review is required' });
+    expect(subject.startAdminOnboarding).not.toHaveBeenCalled();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it.each(['admin_onboarding_conflict', 'admin_onboarding_not_available', 'unknown'] as const)(
+    'preserves grant-only discovery failure %s',
+    async (code) => {
+      const subject = gateway({
+        hasSession: vi.fn().mockResolvedValue(true),
+        loadAccessContext: vi.fn().mockResolvedValue(emptyContext()),
+        loadAdminOnboardingStatus: vi
+          .fn()
+          .mockRejectedValue(new AuthGatewayError(code, 'Safe onboarding failure.')),
+      });
+      render(<AuthApp gateway={subject} />);
+      await screen.findByRole('heading', {
+        name:
+          code === 'unknown' ? 'Access could not be verified' : 'Administrator review is required',
+      });
+      expect(screen.getByText('Safe onboarding failure.')).toBeInTheDocument();
+      expect(subject.startAdminOnboarding).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['discovery', 'start'] as const)(
+    'requires password again when onboarding %s rejects recent authentication',
+    async (stage) => {
+      const recent = new AuthGatewayError(
+        'admin_onboarding_recent_authentication_required',
+        'Sign in again for onboarding.',
+      );
+      const subject = gateway({
+        hasSession: vi.fn().mockResolvedValue(true),
+        loadAccessContext: vi.fn().mockResolvedValue(emptyContext()),
+        loadAdminOnboardingStatus:
+          stage === 'discovery'
+            ? vi.fn().mockRejectedValue(recent)
+            : vi.fn().mockResolvedValue({ grants: [bootstrapGrant] }),
+        startAdminOnboarding: vi.fn().mockRejectedValue(recent),
+      });
+      render(<AuthApp gateway={subject} />);
+      await screen.findByRole('heading', { name: 'Sign in to FlyEye' });
+      expect(screen.getByText('Sign in again for onboarding.')).toBeInTheDocument();
+      expect(subject.signOut).toHaveBeenCalledOnce();
+      if (stage === 'start')
+        expect(subject.startAdminOnboarding).toHaveBeenCalledWith(bootstrapGrant);
+    },
+  );
+
+  it.each(['denied', 'mfa_required'] as const)(
+    'does not grant student access for %s',
+    async (status) => {
+      const subject = gateway({
+        hasSession: vi.fn().mockResolvedValue(true),
+        loadAccessContext: vi
+          .fn()
+          .mockResolvedValue(context('student_pilot', ['portal.student.access'], status)),
+      });
+      render(<AuthApp gateway={subject} />);
+      await screen.findByRole('heading', {
+        name:
+          status === 'denied'
+            ? 'You cannot enter this workspace'
+            : 'Administrator review is required',
+      });
+      expect(subject.getMfaAssurance).not.toHaveBeenCalled();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores obsolete restoration %s after gateway replacement and unsubscribes',
+    async (outcome) => {
+      const session = deferred<boolean>();
+      const unsubscribe = vi.fn();
+      const oldGateway = gateway({
+        hasSession: vi.fn(() => session.promise),
+        onSignedOut: vi.fn(() => unsubscribe),
+      });
+      const freshGateway = gateway({ hasSession: vi.fn().mockResolvedValue(true) });
+      const rendered = render(<AuthApp gateway={oldGateway} />);
+      rendered.rerender(<AuthApp gateway={freshGateway} />);
+      await screen.findByRole('heading', { name: 'Student dashboard' });
+      expect(unsubscribe).toHaveBeenCalledOnce();
+      await act(async () => {
+        if (outcome === 'resolve') session.resolve(true);
+        else session.reject(new Error('Obsolete restoration'));
+        await Promise.resolve();
+      });
+      expect(oldGateway.loadAccessContext).not.toHaveBeenCalled();
+      expect(screen.getByRole('heading', { name: 'Student dashboard' })).toBeInTheDocument();
+      expect(screen.queryByText('Obsolete restoration')).not.toBeInTheDocument();
+    },
+  );
+
+  it('ignores onboarding start completion after session revocation', async () => {
+    const start = deferred<Awaited<ReturnType<AuthGateway['startAdminOnboarding']>>>();
+    let signedOut: (() => void) | undefined;
+    const subject = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      loadAccessContext: vi.fn().mockResolvedValue(emptyContext()),
+      loadAdminOnboardingStatus: vi.fn().mockResolvedValue({ grants: [bootstrapGrant] }),
+      startAdminOnboarding: vi.fn(() => start.promise),
+      onSignedOut: vi.fn((callback: () => void) => {
+        signedOut = callback;
+        return () => undefined;
+      }),
+    });
+    render(<AuthApp gateway={subject} />);
+    await waitFor(() => expect(subject.startAdminOnboarding).toHaveBeenCalledOnce());
+    await act(async () => {
+      signedOut?.();
+      start.resolve({
+        ...bootstrapGrant,
+        decision: 'ready',
+        replayed: false,
+        correlationId: '30000000-0000-4000-8000-000000000012',
+        factorState: 'challenge_required',
+      });
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('heading', { name: 'Sign in to FlyEye' })).toBeInTheDocument();
+    expect(subject.prepareAdminTotp).not.toHaveBeenCalled();
+  });
+
+  it('preserves profile navigation, explicit sign-out and subscription cleanup', async () => {
+    const unsubscribe = vi.fn();
+    const subject = gateway({
+      hasSession: vi.fn().mockResolvedValue(true),
+      onSignedOut: vi.fn(() => unsubscribe),
+      loadMyMemberProfile: vi.fn().mockResolvedValue({
+        membershipId: '10000000-0000-4000-8000-000000000001',
+        displayName: 'Synthetic Student',
+        contactNumber: null,
+        profileComplete: true,
+        membershipVersion: 1,
+      }),
+    });
+    const rendered = render(<AuthApp gateway={subject} />);
+    const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+    const user = userEvent.setup();
+    await user.click(within(navigation).getByRole('button', { name: 'My profile' }));
+    await screen.findByDisplayValue('Synthetic Student');
+    expect(within(navigation).getByRole('button', { name: 'My profile' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await user.click(screen.getByRole('button', { name: 'Back to workspace' }));
+    await screen.findByRole('heading', { name: 'Student dashboard' });
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await screen.findByRole('heading', { name: 'Sign in to FlyEye' });
+    expect(subject.signOut).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    rendered.unmount();
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

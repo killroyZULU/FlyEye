@@ -13,14 +13,14 @@ Combined aircraft integration evidence is recorded separately below.
 
 ## Requirements and results
 
-| Requirement/AC ID | Design or control | Test/evidence ID | Result | Limitation or later gate |
-|---|---|---|---|---|
-| `FEAT-008-AC-01/02` | Separate authenticated shell and role dashboard labels | `FEAT-008-UNIT-01`, `FEAT-008-COMP-01`; real Student browser walkthrough | Pass | Product Owner visual acceptance remains |
-| `FEAT-008-AC-03/05` | Persistent semantic primary navigation | `FEAT-008-COMP-03`; Profile browser navigation | Pass | Browser history/deep links are not introduced |
-| `FEAT-008-AC-04` | Existing module and permission filtering | `FEAT-008-COMP-02`, including unavailable Aircraft | Pass | Navigation is not authorization |
-| `FEAT-008-AC-06` | Responsive header/navigation/content shell | `FEAT-008-E2E-01`; 20 desktop/mobile scenarios and overflow assertion | Pass | Formal accessibility review remains |
-| `FEAT-008-AC-07` | Existing operation invalidation and shell teardown | `FEAT-008-COMP-04`; sign-out, revocation, disposal, and MFA-race checks | Pass | Hosted session behavior remains later validation |
-| `FEAT-008-AC-08` | Focused and full regression matrix | `FEAT-008-REG-01`; 27 files, 270 tests, coverage and build/secret/audit gates; 326 SQL assertions, 7 runtime fixtures, database lint/type-drift checks | Pass | Local synthetic evidence only |
+| Requirement/AC ID   | Design or control                                      | Test/evidence ID                                                                                                                                       | Result | Limitation or later gate                         |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------------------------------------ |
+| `FEAT-008-AC-01/02` | Separate authenticated shell and role dashboard labels | `FEAT-008-UNIT-01`, `FEAT-008-COMP-01`; real Student browser walkthrough                                                                               | Pass   | Product Owner visual acceptance remains          |
+| `FEAT-008-AC-03/05` | Persistent semantic primary navigation                 | `FEAT-008-COMP-03`; Profile browser navigation                                                                                                         | Pass   | Browser history/deep links are not introduced    |
+| `FEAT-008-AC-04`    | Existing module and permission filtering               | `FEAT-008-COMP-02`, including unavailable Aircraft                                                                                                     | Pass   | Navigation is not authorization                  |
+| `FEAT-008-AC-06`    | Responsive header/navigation/content shell             | `FEAT-008-E2E-01`; 20 desktop/mobile scenarios and overflow assertion                                                                                  | Pass   | Formal accessibility review remains              |
+| `FEAT-008-AC-07`    | Existing operation invalidation and shell teardown     | `FEAT-008-COMP-04`; sign-out, revocation, disposal, and MFA-race checks                                                                                | Pass   | Hosted session behavior remains later validation |
+| `FEAT-008-AC-08`    | Focused and full regression matrix                     | `FEAT-008-REG-01`; 27 files, 270 tests, coverage and build/secret/audit gates; 326 SQL assertions, 7 runtime fixtures, database lint/type-drift checks | Pass   | Local synthetic evidence only                    |
 
 ## Reconciliation verification
 
@@ -45,6 +45,14 @@ also passed Application quality, Local Supabase security, and Required quality
 gate. These runs cover the combined application and disposable database/runtime
 verification; the original counts above remain historical. Live delivery status
 belongs in [Current State](../CURRENT_STATE.md).
+
+## Authentication application extraction evidence
+
+[A003 / #100](https://github.com/killroyZULU/FlyEye/issues/100) records the extraction target, separate review and final CI evidence. The `AuthApp orchestration compatibility` and `FEAT-001 authentication UI` suites in [AuthApp tests](../../../src/features/auth/AuthApp.test.tsx), with [shell tests](../../../src/features/auth/components/AuthenticatedShell.test.tsx) and [dashboard tests](../../../src/features/auth/components/WorkspaceDashboard.test.tsx), cover the [authentication boundary](FEAT-008_AUTHENTICATED_DASHBOARD_SHELL.md#authentication-boundary) and [access workflow](FEAT-001_LOGIN_AND_RBAC.md#workflow-and-state-transitions).
+
+Nineteen compatibility cases were added before extraction. The three-file group passed 44 tests on baseline `bc9b190`, covering route isolation, pending restoration, safe failure/retry, grant-discovery outcomes, membership permission/assurance decisions, obsolete restoration/onboarding results, navigation and sign-out. Existing MFA-race, revocation and disposal cases remain. The extracted target is verified through the linked delivery record, including normal maintainability limits and the unchanged two private member-panel import exceptions; exporting those panels through the existing members entry would introduce an auth-contract cycle.
+
+Synthetic component responses establish frontend compatibility, not server authority, complete session-race coverage or formal accessibility acceptance. Existing disposable CI supplies separate SQL/RLS, runtime and cleanup evidence; the occupied local database remains preserved.
 
 ## Evidence rules
 
