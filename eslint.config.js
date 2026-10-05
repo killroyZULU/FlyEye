@@ -76,7 +76,6 @@ export default tseslint.config(
   {
     files: [
       'src/features/auth/AuthApp.tsx',
-      'src/features/members/components/MemberAdministrationPanel.tsx',
       'supabase/functions/auth-bootstrap/handler.ts',
       'supabase/functions/member-administration/handler.ts',
       'supabase/functions/member-invitations/handler.ts',

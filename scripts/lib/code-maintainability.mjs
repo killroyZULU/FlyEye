@@ -8,7 +8,6 @@ export const DEFAULT_MAX_EDGE_ENTRYPOINT_LINES = 250;
 
 export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
   'src/features/auth/AuthApp.tsx': 628,
-  'src/features/members/components/MemberAdministrationPanel.tsx': 627,
   'supabase/functions/auth-bootstrap/handler.ts': 365,
   'supabase/functions/member-administration/handler.ts': 952,
   'supabase/functions/member-invitations/handler.ts': 703,
@@ -19,7 +18,6 @@ export const LEGACY_FILE_LINE_LIMITS = Object.freeze({
 export const LEGACY_CROSS_FEATURE_IMPORTS = Object.freeze([
   'src/features/auth/AuthApp.tsx -> src/features/members/components/MemberAdministrationPanel.tsx',
   'src/features/auth/AuthApp.tsx -> src/features/members/components/MemberProfilePanel.tsx',
-  'src/features/members/components/MemberAdministrationPanel.tsx -> src/features/auth/services/auth-gateway.ts',
 ]);
 
 export const LEGACY_LAYER_IMPORTS = Object.freeze([

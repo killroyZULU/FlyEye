@@ -63,6 +63,12 @@ The focused gateway/member-contract group passed 92 tests on baseline `3250a6b` 
 
 The four-file component/gateway/schema/application group passed 80 tests on baseline `c4b494a` before extraction and afterward; the focused group including maintainability regressions passed 88. Synthetic gateway responses establish frontend compatibility, not server authorization or complete race/accessibility coverage. The [SQL/RLS tests](../../../supabase/tests/feat_005_user_management_profiles_test.sql) and [runtime fixture](../../../scripts/test-feat-005-runtime.mjs) supply separate authorization, isolation, audit and cleanup evidence through disposable CI. The occupied local database remains preserved.
 
+## Administration UI extraction evidence
+
+[A003 / #98](https://github.com/killroyZULU/FlyEye/issues/98) records the extraction target, separate review and final CI evidence. The `MemberAdministrationPanel compatibility` and `MemberAdministrationPanel` suites in [component tests](../../../src/features/members/components/MemberAdministrationPanel.test.tsx) cover preservation of [member review/status rules](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#workflow-and-business-rules) and [role assignment](FEAT-006_ROLE_ASSIGNMENT.md#slice-b-workflow-and-rules): exact directory filters/cursors, append and obsolete reads, loading/empty/safe failures, self-action restrictions, server-supplied options, confirmation focus, reason/version/key payloads, manual retry key reuse, offline denial, reauthentication, pending controls and committed-success reporting after refresh failure.
+
+The four-file component/gateway/schema/application group passed 90 tests on baseline `34e4aa2` before extraction. The unchanged compatibility cases and maintainability regressions are verified on the extracted target through the linked delivery record. Synthetic gateway responses establish frontend compatibility, not server authority or complete race/accessibility coverage. Existing [FEAT-005](../../../scripts/test-feat-005-runtime.mjs) and [FEAT-006B](../../../scripts/test-feat-006b-runtime.mjs) runtime fixtures supply separate authorization, isolation, atomic audit and cleanup evidence in disposable CI. The occupied local database remains preserved.
+
 ## Inactive-role runtime diagnostics
 
 [FIX-011 / #68](https://github.com/killroyZULU/FlyEye/issues/68) tracks delivery of
