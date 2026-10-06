@@ -100,3 +100,22 @@ The handler/authentication-evidence/gateway group passed 132 cases on baseline `
 ## Remaining gates
 
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
+
+## Runtime cleanup recovery
+
+[PR #119](https://github.com/killroyZULU/FlyEye/pull/119) includes bounded fixture
+recovery for audit A024. [CI 37452816504](https://github.com/killroyZULU/FlyEye/actions/runs/37452816504)
+at `101da6c` failed at completion-race after H002 characterization and cleanup
+passed. FEAT-003 browser/Edge shutdown and Supabase teardown passed, but fallback
+fixture cleanup emitted no sanitizer-visible outcome. Its failure cause and
+historical row/Auth cleanup remain unknown.
+
+The [runtime fixture](../../../scripts/test-feat-003-runtime.mjs), `cleanup` and
+finalizer, attempts every cleanup step, preserves limiter baselines, verifies
+owned rows/Auth users are absent, and reports fixed failure/cleanup categories.
+Race-actor tasks settle before cleanup. The
+[cleanup suite](../../../scripts/lib/onboarding-runtime-cleanup.test.mjs),
+`onboarding cleanup evidence`, injects failure into each cleanup phase and
+requires later phases to run, partial cleanup to fail, and arbitrary error data
+to remain suppressed. The final CI linked from PR #119 owns runtime execution
+and current cleanup results; a later pass cannot identify the historical cause.

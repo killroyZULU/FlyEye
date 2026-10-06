@@ -283,4 +283,8 @@ for (const action of ['start', 'bind', 'complete']) {
       },
     );
 }
+for (const name of ['document-create-advisory', 'create_category-advisory']) {
+  const original = cases.find((test) => test.name === name);
+  cases.push({ ...original, name: `${name}-replay`, replay: true });
+}
 export { cases };

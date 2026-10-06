@@ -15,6 +15,7 @@ import {
   snapshotSql,
 } from './lib/h002-review-fixture.mjs';
 import { cases } from './lib/h002-review-cases.mjs';
+import { assertReviewSuccess } from './lib/h002-review-assertions.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.CI !== 'true') {
   throw new Error('H002 review requires the disposable GitHub Actions database job.');
@@ -70,6 +71,9 @@ async function race(test, authority) {
   stage = `${test.name}-${authority}`;
   phase = 'prepare';
   await prepare(test);
+  if (test.replay) {
+    assert.equal((await valueOf(pending(worker, test.sql))).decision, test.success);
+  }
   const before = await observer.query(snapshotSql(test));
   const events = await successCount(test);
   phase = 'lock';
@@ -141,9 +145,14 @@ async function race(test, authority) {
   if (denied) {
     assert.equal(await observer.query(snapshotSql(test)), before);
     assert.equal(await successCount(test), events);
+  } else if (test.replay) {
+    assert.equal(result.replayed, true);
+    assert.equal(await observer.query(snapshotSql(test)), before);
+    assert.equal(await successCount(test), events);
   } else if (!test.readOnly) {
     assert.notEqual(await observer.query(snapshotSql(test)), before);
     assert.ok((await successCount(test)) > events);
+    await assertReviewSuccess(observer, test);
   }
   const outcome =
     authority === 'retained'
