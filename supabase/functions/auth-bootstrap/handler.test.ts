@@ -37,6 +37,12 @@ function dependencies(
 ): AuthBootstrapDependencies {
   return {
     allowedOrigin,
+    consumeLimit: vi.fn().mockResolvedValue({
+      allowed: true,
+      retryAfterSeconds: null,
+      correlationId: fallbackCorrelationId,
+      policyVersion: 'auth-bootstrap-subject-v1',
+    }),
     authenticate: vi.fn().mockResolvedValue({
       userId: actorUserId,
       assuranceLevel: 'aal1',
@@ -591,6 +597,7 @@ describe('auth-bootstrap extraction compatibility', () => {
         'access-control-allow-origin': allowedOrigin,
         'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info',
         'access-control-allow-methods': 'POST, OPTIONS',
+        'access-control-expose-headers': 'Retry-After',
         'cache-control': 'no-store',
         'content-type': 'application/json',
         vary: 'Origin',
@@ -623,7 +630,7 @@ describe('auth-bootstrap extraction compatibility', () => {
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual(context);
       expect(configured.validateAdminFactorState).not.toHaveBeenCalled();
-      expect(configured.createCorrelationId).not.toHaveBeenCalled();
+      expect(configured.createCorrelationId).toHaveBeenCalledOnce();
       expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
         actorUserId,
         actorSubjectId: actorUserId,
@@ -686,7 +693,7 @@ describe('auth-bootstrap extraction compatibility', () => {
       const response = await createAuthBootstrapHandler(configured)(request());
       expect(response.status).toBe(status);
       expect(calls).toEqual(['authenticate', 'resolve', 'factor', 'audit']);
-      expect(configured.createCorrelationId).not.toHaveBeenCalled();
+      expect(configured.createCorrelationId).toHaveBeenCalledOnce();
       expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
         actorUserId,
         actorSubjectId: actorUserId,
@@ -742,7 +749,7 @@ describe('auth-bootstrap extraction compatibility', () => {
               : 'Your access information needs administrator review.',
         },
       });
-      expect(configured.createCorrelationId).toHaveBeenCalledOnce();
+      expect(configured.createCorrelationId).toHaveBeenCalledTimes(2);
       expect(configured.validateAdminFactorState).not.toHaveBeenCalled();
       expect(configured.recordDecision).toHaveBeenCalledExactlyOnceWith({
         actorUserId,

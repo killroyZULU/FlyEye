@@ -3,6 +3,7 @@ export function responseHeaders(origin: string): HeadersInit {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Expose-Headers': 'Retry-After',
     'Cache-Control': 'no-store',
     'Content-Type': 'application/json',
     Vary: 'Origin',

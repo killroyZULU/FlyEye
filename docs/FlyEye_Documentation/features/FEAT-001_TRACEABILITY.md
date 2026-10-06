@@ -16,6 +16,25 @@
 
 The local evidence uses synthetic users and organizations only. On 2026-07-19, formatting, lint, type checking, 32 unit/component/Edge-handler tests, 45 SQL/RLS tests, actual local Auth/TOTP/Edge/browser integration, 8 Playwright E2E scenarios, database lint, dependency audit, production build, generated-type hash comparison, and source/build secret scans passed. This is not production validation, an independent penetration test, privacy approval, aviation-SME approval, or deployment authorization.
 
+## A010 bootstrap limiter
+
+[SEC-004 / #120](https://github.com/killroyZULU/FlyEye/issues/120) implements the
+[A010 contract](FEAT-001_LOGIN_AND_RBAC.md#a010-bootstrap-application-limiter).
+
+| Requirement                                                                 | Evidence locator                                                                                                                                                                                                                                                                   | Boundary                                                                                                               |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [A010-01/02](FEAT-001_LOGIN_AND_RBAC.md#a010-bootstrap-application-limiter) | [SQL suite](../../../supabase/tests/sec_004_auth_bootstrap_rate_limit_test.sql): exact thirty-request burst, fractional refill, idle cap; [concurrency fixture](../../../scripts/test-a010-limiter.mjs): `concurrent-insertion`, `final-token`, `bounded-lock-failure`, `recovery` | Shared PostgreSQL decisions; synthetic disposable CI only                                                              |
+| [A010-03/04](FEAT-001_LOGIN_AND_RBAC.md#a010-bootstrap-application-limiter) | [Handler suite](../../../supabase/functions/auth-bootstrap/rate-limit.test.ts): `A010 auth-bootstrap limiting`; SQL audit-failure rollback assertions; [real Edge fixture](../../../scripts/test-edge-runtime.mjs): exact-run exhaustion, audit and recovery assertions            | Existing Auth/TOTP/authorization/audit scenarios still run; no hosted validation                                       |
+| [A010-05](FEAT-001_LOGIN_AND_RBAC.md#a010-bootstrap-application-limiter)    | SQL role grants/RLS, unknown-user and independent-user assertions; handler key-spoofing cases; concurrency fixture residue assertion and `--cleanup-probe`                                                                                                                         | Pre-membership subject state, not a tenant-authority source; school separation retains existing FEAT-001/FIX-006 tests |
+| Retry UX                                                                    | [Gateway suite](../../../src/features/auth/services/auth-gateway.test.ts): `A010 bootstrap gateway errors`                                                                                                                                                                         | Safe manual retry; no automatic retry or new session policy                                                            |
+
+The [CI workflow](../../../.github/workflows/ci.yml) runs the concurrency and
+interrupted-fixture cleanup probes before the unchanged H002 scenarios and full
+runtime matrix. Generated-type equality is checked against the migrated disposable
+database. Existing local databases are preserved. The linked delivery issue/PR
+owns exact-head execution and independent-review results. This slice does not
+extend or close [H002's untested schedules](FEAT-007_TRACEABILITY.md#sql-inspection-boundary).
+
 ## Authentication bootstrap extraction
 
 [A003 / #102](https://github.com/killroyZULU/FlyEye/issues/102) separates the
@@ -38,7 +57,7 @@ suites, all 71 tests passed before and after extraction; adding the
 [maintainability suite](../../../scripts/lib/code-maintainability.test.mjs) produced
 79 passing focused tests. These are synthetic handler/contract checks; database
 and real Auth/Edge evidence comes from the disposable PR CI matrix. The occupied
-local database was preserved. A010 rate limiting remains a separate follow-up.
+local database was preserved. A010 evidence is recorded [above](#a010-bootstrap-limiter).
 
 ## Gateway contract separation
 

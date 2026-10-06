@@ -33,6 +33,16 @@ Deno.serve(
         authenticationMethods: authenticationContext.authenticationMethods,
       };
     },
+    consumeLimit: async (actorUserId, correlationId) => {
+      const { data, error } = await serverClient
+        .rpc('consume_auth_bootstrap_rate_limit', {
+          p_actor_user_id: actorUserId,
+          p_correlation_id: correlationId,
+        })
+        .abortSignal(AbortSignal.timeout(3000));
+      if (error) throw error;
+      return data;
+    },
     validateAdminFactorState: async (actorUserId) => {
       const { data, error } = await serverClient.auth.admin.mfa.listFactors({
         userId: actorUserId,

@@ -149,6 +149,11 @@ jobs:
       - name: Run SQL and RLS tests
         run: pnpm test:sql
 
+      - name: Verify A010 limiter concurrency and cleanup
+        run: |
+          node scripts/test-a010-limiter.mjs --cleanup-probe
+          node scripts/test-a010-limiter.mjs
+
       - name: Verify H002 SQL lock interleaving
         run: |
           node scripts/test-h002-locks.mjs --cleanup-probe
