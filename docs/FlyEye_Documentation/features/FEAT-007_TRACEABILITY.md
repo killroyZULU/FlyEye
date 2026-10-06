@@ -5,16 +5,14 @@
 [SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) and
 [PR #115](https://github.com/killroyZULU/FlyEye/pull/115) own the bounded
 [lock-wait contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
-The baseline probe at
+The probe at
 [`e88c63a`](https://github.com/killroyZULU/FlyEye/blob/e88c63a35ab83dad33a50ba48a12ac3702fced8b/scripts/test-h002-locks.mjs)
 passed the `Verify H002 SQL lock interleaving` step in
 [disposable CI 37389648588](https://github.com/killroyZULU/FlyEye/actions/runs/37389648588).
-Both `race('advisory')` and `race('row')` observed the exact blocking backend,
-committed protected membership revocation, then released the blocker. Create
+Both probes observed blocking backends and committed protected revocation before release. Create
 and update still returned success, persisted versions 1 and 2 respectively,
 and wrote one success audit each. Fixture organization, users and worker
-sessions were absent after cleanup. This confirms H002 for these two registry
-paths on `main` SQL at `2a574d4`; it does not prove other functions vulnerable.
+sessions were absent after cleanup. This confirms only these registry paths at `2a574d4`.
 
 The [correction](../../../supabase/migrations/20261005234138_sec_001_registry_lock_revalidation.sql)
 rechecks the same permission after each explicit wait. The
@@ -46,29 +44,61 @@ Existing [registry SQL tests](../../../supabase/tests/feat_007a_aircraft_registr
 retain the exact assertions `A cross-school forged-organization mutation is denied`,
 `An exact replay creates no duplicate audit event`, and the
 `feat007_reject_audit` trigger block proving mutation rollback on audit failure.
-Existing [handler tests](../../../supabase/functions/aircraft-registry/handler.test.ts)
+[Handler tests](../../../supabase/functions/aircraft-registry/handler.test.ts)
 cover late `unauthorized` decisions and failure of required denial auditing.
 
 ### SQL inspection boundary
 
-This inventory is static inspection of the latest definitions at `2a574d4`,
-not a concurrency pass for the remaining audit. [Audit #39](https://github.com/killroyZULU/FlyEye/issues/39)
-retains their unresolved coverage.
+[SEC-003 / #118](https://github.com/killroyZULU/FlyEye/issues/118) and
+[draft PR #119](https://github.com/killroyZULU/FlyEye/pull/119) extend the
+[contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
+Inspection at `f02005b` identified 84 public functions, 29 with explicit locks.
 
-| Functions                                                                                                                                                                                                                                                  | Authorization and locking order                                                                                              | Evidence boundary                                                      |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `mutate_aircraft_record`                                                                                                                                                                                                                                   | Permission before advisory and record locks; no original post-wait check                                                     | Two reproduced paths above; correction limited to these explicit waits |
-| `mutate_aircraft_document`, `mutate_aircraft_document_category`, `complete_aircraft_document_file`, `open_aircraft_document_notification` in the [document migration](../../../supabase/migrations/20260901000100_feat_007b_aircraft_document_records.sql) | Permission before advisory/target locks; subsequent notification helpers may lock further rows                               | Candidates requiring separate interleaving evidence                    |
-| `update_my_member_profile` in the [member migration](../../../supabase/migrations/20260811000100_feat_005_user_management_profiles.sql)                                                                                                                    | Active membership/organization join; only profile row is locked                                                              | Candidate requiring a joined-snapshot reproduction                     |
-| `change_organization_member_status`, [`change_organization_member_role`](../../../supabase/migrations/20260814000100_feat_006b_role_assignment.sql)                                                                                                        | Recheck after ordered administrator membership locks; then target lock                                                       | Existing stronger ordering observed, not newly concurrency-proven      |
-| Invitation commands in the [invitation migration](../../../supabase/migrations/20260809000100_feat_004_member_invitations.sql)                                                                                                                             | Check after organization lock; resend/revoke have later invitation/delivery waits; finalize checks after its invitation lock | Initial lock order differs; later waits remain unverified              |
-| Start/bind/complete MFA in the [MFA migration](../../../supabase/migrations/20260813000100_feat_006a_member_totp_enrollment.sql)                                                                                                                           | Lock active membership and organization; bind/complete then reload context                                                   | Different ordering; no universal revocation proof claimed              |
+[Characterization CI 37452816504](https://github.com/killroyZULU/FlyEye/actions/runs/37452816504)
+at `101da6c` completed 183 interleavings under Read Committed: 91 stale
+successes, 19 post-revocation denials, 10 commands serialized before revocation,
+and 63 retained-authority controls. The
+[case inventory](../../../scripts/lib/h002-review-cases.mjs), `cases`, and
+[runner](../../../scripts/test-h002-review.mjs), `race`, observe exact blocking
+backends and commit protected membership revocation or role demotion before
+releasing the blocker; serialized cases verify the revoker itself is blocked.
+Service_role lacks direct membership SELECT.
 
-Onboarding, invitation acceptance, cancellation cleanup and internal notification
-helpers have distinct actor/operation contracts. They are not classified as
-vulnerable from the presence of a lock alone. Implicit DML, foreign-key, uniqueness,
-trigger and audit waits remain outside this explicit-lock reproduction. Local
-Docker was unavailable; no occupied local service or hosted target was used.
+| Functions                                                                | Observed waits and result at baseline                                                                                                       | Correction boundary                                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `mutate_aircraft_record`                                                 | Existing 24 regression interleavings passed                                                                                                 | PR #115 correction retained                                                         |
+| `mutate_aircraft_document`                                               | Create/renew/correct/suspend/restore advisory and applicable aircraft/category/document/version/file/notification waits: 56 stale successes | Recheck explicit waits and final authority; roll back earlier writes on late denial |
+| `mutate_aircraft_document_category`                                      | Create/rename/archive/assign/remove category advisory and applicable category/aircraft/requirement/notification waits: 30 stale successes   | Same bounded revalidation and rollback                                              |
+| `complete_aircraft_document_file`, `open_aircraft_document_notification` | File and recipient-notification rows: four stale successes                                                                                  | Recheck after target lock                                                           |
+| `update_my_member_profile`                                               | Profile-row wait: one stale membership success                                                                                              | Fresh active-context check; preserve concealed not_found                            |
+| `change_organization_member_status`, `change_organization_member_role`   | Four administrator-lock denials; four late-target cases serialized before revocation                                                        | No SQL change                                                                       |
+| List/begin/resend/revoke/finalize invitation                             | Ten organization-lock denials; six later invitation-row cases serialized before revocation                                                  | No SQL change                                                                       |
+| Start/bind/complete MFA                                                  | Five context/operation-lock denials after membership revocation                                                                             | No SQL change                                                                       |
+
+The [migration](../../../supabase/migrations/20261006110323_sec_003_remaining_h002_revalidation.sql)
+changes only the five reproduced functions. Document/category late denials raise
+and catch a private SQLSTATE within the existing exception block, rolling back
+aggregate, history, notification, audit and idempotency writes. Signatures,
+grants, RLS, permission predicates and audit failure behavior remain unchanged.
+The regression matrix adds two exact-replay cases, totaling 189 interleavings.
+Denials compare domain/audit snapshots; controls use [exact assertions](../../../scripts/lib/h002-review-assertions.mjs),
+`assertReviewSuccess`. Final execution results belong to PR #119's current-head CI;
+characterization success is not a correction pass.
+
+[CI 37451488561](https://github.com/killroyZULU/FlyEye/actions/runs/37451488561)
+at `2916fdc` stopped with SQLSTATE 42501 before any new authorization outcome:
+the revoker's argument subquery read a table unavailable to service_role. Using
+observer-prepared fixture versions corrected setup without granting table access.
+Both runs passed registry regressions and H002 cleanup, including observer failure. Run 37452816504
+later failed FEAT-003; its historical cleanup remains unverified under the
+[separate recovery evidence](FEAT-003_TRACEABILITY.md#runtime-cleanup-recovery).
+
+Negative evidence covers only observed schedules. Onboarding, invitation acceptance, cancellation cleanup and
+six quota-locking limiter functions have distinct contracts; inspection does not
+prove concurrent safety. Unprobed category-assignment archived-document locks,
+invitation role/competing-invitation locks, implicit DML, foreign-key, uniqueness,
+trigger/audit waits, global permission changes and session expiry remain open in
+[audit #39](https://github.com/killroyZULU/FlyEye/issues/39). Local Docker was unavailable; databases were preserved.
 
 ## Bounded request-body transport
 
@@ -172,9 +202,6 @@ Live delivery status belongs in [Current State](../CURRENT_STATE.md).
 
 [PR #38](https://github.com/killroyZULU/FlyEye/pull/38) delivered
 [Issue #37](https://github.com/killroyZULU/FlyEye/issues/37).
-The earlier synthetic [CI run 34069500313](https://github.com/killroyZULU/FlyEye/actions/runs/34069500313)
-applies to `1e16af4`; the final integration evidence above covers the reconciled
-registry/specification stack and maintenance from `main` at `813dbd9`.
 
 | Requirement/AC ID                                      | Evidence                                                                                         | Reconciliation result                                                                                                                                                                                                                                                                   |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

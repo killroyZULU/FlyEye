@@ -43,7 +43,6 @@ const failureDetails = new Set([
   'http-504',
   'http-other',
 ]);
-const feat003Pattern = /^FEAT-003 runtime diagnostic: stage=[a-z0-9-]+ event=(?:enter|passed)\.$/;
 const feat006Pattern =
   /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=([a-z]+)(?: detail=([a-z0-9-]+))?\.$/;
 function validOutcome(event, detail) {
@@ -63,6 +62,7 @@ export function feat006Diagnostic(stage, event, detail) {
 
 export function runtimeDiagnosticLines(fixture, output) {
   const feature = {
+    'test-feat-003-runtime.mjs': 'FEAT-003',
     'test-feat-004-runtime.mjs': 'FEAT-004',
     'test-feat-005-runtime.mjs': 'FEAT-005',
     'test-feat-006b-runtime.mjs': 'FEAT-006B',
@@ -72,7 +72,6 @@ export function runtimeDiagnosticLines(fixture, output) {
   if (feature) return fixtureDiagnosticLines(feature, output);
   if (typeof output !== 'string') return [];
   return output.split(/\r?\n/).filter((line) => {
-    if (fixture === 'test-feat-003-runtime.mjs') return feat003Pattern.test(line);
     if (fixture !== 'test-feat-006-runtime.mjs') return false;
     const match = feat006Pattern.exec(line);
     return match !== null && feat006Stages.has(match[1]) && validOutcome(match[2], match[3]);

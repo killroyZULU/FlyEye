@@ -16,6 +16,8 @@ import { spawn, spawnSync } from 'node:child_process';
 
 import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
+import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagnostics.mjs';
+import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const origin = 'http://127.0.0.1:5173';
@@ -27,6 +29,7 @@ const requestTimeoutMs = 30_000;
 const readinessProbeTimeoutMs = 2_000;
 const shutdownTimeoutMs = 5_000;
 const diagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
+const diagnostics = createFixtureDiagnostics('FEAT-003');
 const linkedMarkers = [
   path.resolve('supabase', '.temp', 'project-ref'),
   path.resolve('supabase', '.temp', 'pooler-url'),
@@ -67,16 +70,13 @@ function resolveSupabaseBinary() {
 }
 
 function reportDiagnostic(diagnosticStage, event) {
-  assert.match(diagnosticStage, /^[a-z0-9-]+$/);
-  assert.match(event, /^(?:enter|passed)$/);
-  if (diagnosticsEnabled) {
-    process.stdout.write(`FEAT-003 runtime diagnostic: stage=${diagnosticStage} event=${event}.\n`);
-  }
+  const line = fixtureDiagnostic('FEAT-003', diagnosticStage, event);
+  if (diagnosticsEnabled) process.stdout.write(line + '\n');
 }
 
 function enterStage(diagnosticStage, description) {
   stage = description;
-  reportDiagnostic(diagnosticStage, 'enter');
+  diagnostics.enter(diagnosticStage);
 }
 
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
@@ -115,56 +115,55 @@ async function waitForProcessGroupExit(processId, timeoutMs) {
   return false;
 }
 
-async function stopChild(child, diagnosticStage, description) {
+async function stopChild(child, diagnosticStage) {
   if (!child) return;
-  enterStage(diagnosticStage, description);
-
-  if (child.exitCode === null && child.signalCode === null) {
-    if (process.platform === 'win32') {
-      const termination = spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
-        stdio: 'ignore',
-        timeout: commandTimeoutMs,
-        windowsHide: true,
-      });
-      if (![0, 128].includes(termination.status ?? -1)) {
-        throw new Error('Synthetic child process tree shutdown failed.');
-      }
-    } else {
-      try {
-        process.kill(-child.pid, 'SIGTERM');
-      } catch (error) {
-        if (error?.code !== 'ESRCH') throw error;
-      }
-    }
-
-    const childExited = await waitForChildExit(child, shutdownTimeoutMs);
-    const processTreeExited =
-      process.platform === 'win32'
-        ? childExited
-        : childExited && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
-
-    if (!processTreeExited) {
-      if (process.platform !== 'win32') {
+  return diagnostics.run(diagnosticStage, async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      if (process.platform === 'win32') {
+        const termination = spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+          stdio: 'ignore',
+          timeout: commandTimeoutMs,
+          windowsHide: true,
+        });
+        if (![0, 128].includes(termination.status ?? -1)) {
+          throw new Error('Synthetic child process tree shutdown failed.');
+        }
+      } else {
         try {
-          process.kill(-child.pid, 'SIGKILL');
+          process.kill(-child.pid, 'SIGTERM');
         } catch (error) {
           if (error?.code !== 'ESRCH') throw error;
         }
       }
-      const forcedChildExit = await waitForChildExit(child, shutdownTimeoutMs);
-      const forcedTreeExit =
+
+      const childExited = await waitForChildExit(child, shutdownTimeoutMs);
+      const processTreeExited =
         process.platform === 'win32'
-          ? forcedChildExit
-          : forcedChildExit && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
-      if (!forcedTreeExit) {
-        throw new Error('Synthetic child process tree shutdown remained uncertain.');
+          ? childExited
+          : childExited && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+
+      if (!processTreeExited) {
+        if (process.platform !== 'win32') {
+          try {
+            process.kill(-child.pid, 'SIGKILL');
+          } catch (error) {
+            if (error?.code !== 'ESRCH') throw error;
+          }
+        }
+        const forcedChildExit = await waitForChildExit(child, shutdownTimeoutMs);
+        const forcedTreeExit =
+          process.platform === 'win32'
+            ? forcedChildExit
+            : forcedChildExit && (await waitForProcessGroupExit(child.pid, shutdownTimeoutMs));
+        if (!forcedTreeExit) {
+          throw new Error('Synthetic child process tree shutdown remained uncertain.');
+        }
       }
     }
-  }
 
-  child.stdout?.destroy();
-  child.stderr?.destroy();
-  reportDiagnostic(diagnosticStage, 'passed');
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+  });
 }
 
 function assertLoopbackUrl(value, label) {
@@ -825,7 +824,7 @@ async function runBrowserOnboarding() {
       await browser.close();
     }
   } finally {
-    await stopChild(viteProcess, 'browser-frontend-shutdown', 'browser frontend shutdown');
+    await stopChild(viteProcess, 'browser-frontend-shutdown');
   }
 }
 
@@ -880,8 +879,12 @@ async function cleanup() {
         .join(', ')})`
     : 'true';
 
-  psql(
-    `
+  const steps = [
+    [
+      'cleanup-domain-rows',
+      async () => {
+        psql(
+          `
       begin;
       delete from public.admin_onboarding_rate_limit_events
       where ${eventCleanupPredicate};
@@ -929,49 +932,92 @@ async function cleanup() {
       );
       commit;
     `,
-    {
-      ...baselineStateVariables,
-      ...baselineEventVariables,
-      ...userVariables,
-      source_instance: sourceInstanceId,
-      organization_a: organizations.a,
-      organization_b: organizations.b,
-      organization_race: organizations.race,
-      organization_ui: organizations.ui,
-    },
-  );
-
-  assert.equal(
-    psql(
-      `
+          {
+            ...baselineStateVariables,
+            ...baselineEventVariables,
+            ...userVariables,
+            source_instance: sourceInstanceId,
+            organization_a: organizations.a,
+            organization_b: organizations.b,
+            organization_race: organizations.race,
+            organization_ui: organizations.ui,
+          },
+        );
+      },
+    ],
+  ];
+  for (const user of Object.values(users)) {
+    steps.push([
+      'cleanup-auth-users',
+      async () => {
+        const { error } = await adminClient.auth.admin.deleteUser(user.id);
+        if (error && error.status !== 404) throw new Error('Synthetic local Auth cleanup failed.');
+      },
+    ]);
+  }
+  steps.push([
+    'cleanup-assertions',
+    async () => {
+      assert.equal(
+        psql(
+          `
         select limiter_key_hash || ':' || action
         from public.admin_onboarding_rate_limit_state
         order by limiter_key_hash, action;
       `,
-      {},
-      true,
-    ),
-    baselineLimiterState.join('\n'),
-  );
-  assert.equal(
-    psql(
-      `
+          {},
+          true,
+        ),
+        baselineLimiterState.join('\n'),
+      );
+      assert.equal(
+        psql(
+          `
         select id::text
         from public.admin_onboarding_rate_limit_events
         order by id;
       `,
-      {},
-      true,
-    ),
-    baselineLimiterEvents.join('\n'),
-  );
+          {},
+          true,
+        ),
+        baselineLimiterEvents.join('\n'),
+      );
 
-  for (const user of Object.values(users)) {
-    const { error } = await adminClient.auth.admin.deleteUser(user.id);
-    if (error && error.status !== 404) {
-      throw new Error('Synthetic local Auth cleanup failed.');
-    }
-  }
+      const orgValues = Object.values(organizations)
+        .map((id) => "'" + id + "'::uuid")
+        .join(',');
+      const orgScope = 'organization_id in (' + orgValues + ')';
+      const residueQueries = [
+        'membership_roles',
+        'organization_member_profiles',
+        'organization_memberships',
+        'aircraft_document_categories',
+      ].map((table) => '(select count(*) from public.' + table + ' where ' + orgScope + ')');
+      residueQueries.push(
+        '(select count(*) from public.organizations where id in (' + orgValues + '))',
+      );
+      residueQueries.push(
+        "(select count(*) from public.organization_admin_bootstrap_grants where authorization_source_instance_id = :'source_instance'::uuid)",
+      );
+      residueQueries.push(
+        "(select count(*) from public.authentication_events where source_instance_id = :'source_instance'::uuid or actor_subject_id in (" +
+          userValues.join(',') +
+          '))',
+      );
+      residueQueries.push(
+        '(select count(*) from auth.users where id in (' + userValues.join(',') + '))',
+      );
+      assert.equal(
+        psql(
+          'select ' + residueQueries.join(' + ') + ';',
+          { ...userVariables, source_instance: sourceInstanceId },
+          true,
+        ),
+        '0',
+      );
+    },
+  ]);
+  await runOnboardingCleanup(diagnostics, steps);
 }
 
 for (const marker of linkedMarkers) {
@@ -1253,10 +1299,13 @@ try {
   clearCompletedScenario(grants.ui, users.uiAdmin.id);
 
   enterStage('completion-race', 'single-school serialized completion race');
-  const [raceOne, raceTwo] = await Promise.all([
-    createVerifiedRaceActor(users.raceAdminOne),
-    createVerifiedRaceActor(users.raceAdminTwo),
+  const actors = await Promise.allSettled([
+    diagnostics.run('race-actor-one', () => createVerifiedRaceActor(users.raceAdminOne)),
+    diagnostics.run('race-actor-two', () => createVerifiedRaceActor(users.raceAdminTwo)),
   ]);
+  for (const actor of actors) if (actor.status === 'rejected') throw actor.reason;
+  const [raceOne, raceTwo] = actors.map((actor) => actor.value);
+  enterStage('race-start', 'race onboarding start');
   for (const [actor, grant] of [
     [raceOne, grants.raceOne],
     [raceTwo, grants.raceTwo],
@@ -1269,6 +1318,7 @@ try {
     });
     assert.equal(startResult.status, 200);
   }
+  enterStage('race-complete', 'race onboarding completion');
   const raceKeys = [randomBytes(16).toString('hex'), randomBytes(16).toString('hex')];
   const raceResults = await Promise.all([
     onboarding(raceOne.session.access_token, {
@@ -1284,6 +1334,7 @@ try {
       idempotencyKey: raceKeys[1],
     }),
   ]);
+  enterStage('race-assertions', 'race completion assertions');
   assert.deepEqual(raceResults.map((result) => result.status).sort(), [200, 409]);
   const raceMembershipCount = psql(
     `
@@ -1422,37 +1473,44 @@ try {
   );
   assert.equal(networkSourceCount, '0');
 
-  enterStage('fixture-cleanup', 'bounded cleanup');
-  await cleanup();
-  cleanupComplete = true;
-  cleanupRequired = false;
-  reportDiagnostic('fixture-cleanup', 'passed');
-  reportDiagnostic('fixture-assertions', 'passed');
-
-  process.stdout.write(
-    'FEAT-003 sanitized local fixture, Auth/TOTP/Edge/browser, school-boundary, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
-  );
-} catch {
+  diagnostics.pass();
+} catch (error) {
+  diagnostics.fail(error);
   process.stderr.write(`FEAT-003 runtime evidence failed at sanitized stage: ${stage}.\n`);
   process.exitCode = 1;
 } finally {
   try {
-    await stopChild(edgeProcess, 'edge-runtime-shutdown', 'ephemeral Edge runtime shutdown');
+    await diagnostics.run('fixture-cleanup', () =>
+      runOnboardingCleanup(diagnostics, [
+        ['cleanup-edge-shutdown', () => stopChild(edgeProcess, 'edge-runtime-shutdown')],
+        [
+          'cleanup-domain-rows',
+          async () => {
+            if (cleanupRequired && !cleanupComplete) {
+              await cleanup();
+              cleanupComplete = true;
+              cleanupRequired = false;
+            }
+          },
+        ],
+        [
+          'cleanup-temporary-files',
+          async () => {
+            if (temporaryDirectory) {
+              rmSync(temporaryDirectory, { recursive: true, force: true });
+              assert.equal(existsSync(temporaryDirectory), false);
+            }
+          },
+        ],
+      ]),
+    );
   } catch {
-    process.stderr.write('FEAT-003 Edge runtime shutdown uncertainty: evidence run is invalid.\n');
     process.exitCode = 1;
   }
-  if (temporaryDirectory) {
-    rmSync(temporaryDirectory, { recursive: true, force: true });
-  }
-  if (cleanupRequired && !cleanupComplete) {
-    try {
-      await cleanup();
-      cleanupComplete = true;
-      cleanupRequired = false;
-    } catch {
-      process.stderr.write('FEAT-003 cleanup uncertainty: local evidence run is invalid.\n');
-      process.exitCode = 1;
-    }
-  }
+}
+if (!process.exitCode) {
+  reportDiagnostic('fixture-assertions', 'passed');
+  process.stdout.write(
+    'FEAT-003 sanitized local fixture, Auth/TOTP/Edge/browser, school-boundary, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
+  );
 }
