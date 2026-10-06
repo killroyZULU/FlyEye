@@ -415,6 +415,19 @@ assert zero residue. A controlled observer-failure probe must exercise this
 path with a blocked worker. Diagnostics expose fixed phases and allowlisted
 SQLSTATEs, never raw SQL errors or payloads.
 
+[SEC-003 / #118](https://github.com/killroyZULU/FlyEye/issues/118) extends the
+investigation to the [remaining SQL inventory](FEAT-007_TRACEABILITY.md#sql-inspection-boundary).
+For each selected wait, distinguish a revocation committed before command
+completion from revocation blocked by the command's authority locks. Exercise
+protected membership revocation, role demotion where it removes the required
+permission, and retained-authority controls. Compare persisted domain state and
+success audit evidence; a denial after an earlier write must roll that write
+back. Preserve existing concealment responses, signatures, grants and audit
+atomicity. Corrections require reproduced interleavings and regression evidence;
+static candidates alone do not justify changing SQL. Distinct onboarding,
+invitation-acceptance, cancellation and internal-job contracts and untested
+implicit waits retain explicit limitations in the evidence inventory.
+
 ## Specification and design definition of done
 
 - [x] Founder/Product Owner decisions define scope, roles, fields, duplicate
