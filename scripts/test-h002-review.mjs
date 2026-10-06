@@ -171,6 +171,27 @@ try {
   await observer.query(`begin; ${seed} commit;`);
   await worker.query('set role service_role;');
   await revoker.query('set role service_role;');
+  for (const session of [worker, revoker]) {
+    assert.equal(await session.query('select current_user;'), 'service_role');
+    assert.equal(
+      await session.query(`select has_table_privilege(current_user,
+      'public.organization_memberships','SELECT');`),
+      'f',
+    );
+    assert.equal(
+      await session.query(`select has_function_privilege(current_user,
+      'public.change_organization_member_status(uuid,uuid,uuid,text,text,bigint,text,uuid)', 'EXECUTE');`),
+      't',
+    );
+    assert.equal(
+      await session.query(`select has_function_privilege(current_user,
+      'public.change_organization_member_role(uuid,uuid,uuid,text,text,bigint,text,text,uuid)', 'EXECUTE');`),
+      't',
+    );
+  }
+  process.stdout.write(
+    'H002 review: service-role RPC privileges verified; direct membership SELECT unavailable.\n',
+  );
   for (const test of cases) {
     for (const authority of test.authorities ?? ['membership', 'role', 'retained'])
       await race(test, authority);

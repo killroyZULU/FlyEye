@@ -168,9 +168,9 @@ add(
 add(
   'profile-update',
   `select public.update_my_member_profile(${q('actor')},${q('member')},'Synthetic updated',null,
-  (select version from public.organization_member_profiles where membership_id=${q('member')}),${q('correlation')});`,
+  1,${q('correlation')});`,
   `select 1 from public.organization_member_profiles where membership_id=${q('member')} for update;`,
-  '',
+  `update public.organization_member_profiles set display_name=null,contact_number=null,version=1 where membership_id=${q('member')};`,
   'updated',
   {
     tables: ['organization_member_profiles'],

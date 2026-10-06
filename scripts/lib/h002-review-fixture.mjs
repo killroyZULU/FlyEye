@@ -96,7 +96,9 @@ export const operationSeed = `insert into public.member_mfa_enrollment_operation
 
 export function revokeSql(authority) {
   const args = `${q('admin')},${q('org')},${q('member')}`;
-  const version = `(select version from public.organization_memberships where id=${q('member')})`;
+  // prepare() owns and resets this synthetic membership to version 1.
+  // service_role can execute the protected command, not select its backing table.
+  const version = 1;
   return authority === 'membership'
     ? `select public.change_organization_member_status(${args},'revoke','membership_ended',${version},${hash('e')},${q('correlation')});`
     : `select public.change_organization_member_role(${args},'student_pilot','responsibility_changed',${version},${hash('e')},null,${q('correlation')});`;
