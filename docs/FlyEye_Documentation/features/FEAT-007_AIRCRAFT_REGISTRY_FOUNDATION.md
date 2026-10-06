@@ -409,6 +409,12 @@ The tested execution model is PostgreSQL Read Committed, matching the current
 RPC default. No table or data rewrite is required; any correction to the
 migration must use a subsequent forward migration.
 
+Fixture cleanup must remain usable after an observer SQL error: close the
+original sessions, connect independently, delete only owned fixture rows and
+assert zero residue. A controlled observer-failure probe must exercise this
+path with a blocked worker. Diagnostics expose fixed phases and allowlisted
+SQLSTATEs, never raw SQL errors or payloads.
+
 ## Specification and design definition of done
 
 - [x] Founder/Product Owner decisions define scope, roles, fields, duplicate

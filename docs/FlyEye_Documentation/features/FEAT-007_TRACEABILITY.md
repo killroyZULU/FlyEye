@@ -29,6 +29,19 @@ function signature is introduced.
 Execution results for the correction belong to the final-head CI linked in
 the PR; baseline characterization is not a regression pass.
 
+[CI 37390937577](https://github.com/killroyZULU/FlyEye/actions/runs/37390937577)
+at `057e24c` failed before the first concurrency result: the fixture snapshot
+ordered idempotency rows by a nonexistent `id`, then cleanup reused the failed
+observer. Fixture cleanup was unverified despite successful Supabase teardown.
+The recovery orders by the actual composite key, reports only fixed phases and
+allowlisted SQLSTATEs, and uses a fresh cleanup session after draining originals.
+The `--cleanup-probe` execution deliberately raises SQLSTATE `22012` while a
+worker is blocked, then requires all scoped rows/users and original sessions to
+be absent. CI runs it before the normal matrix. The
+[session-helper suite](../../../scripts/lib/h002-postgres-session.test.mjs),
+`H002 SQL session diagnostics and recovery`, covers split error output,
+redaction, closed/input-failed sessions and replacement connections.
+
 Existing [registry SQL tests](../../../supabase/tests/feat_007a_aircraft_registry_test.sql)
 retain the exact assertions `A cross-school forged-organization mutation is denied`,
 `An exact replay creates no duplicate audit event`, and the
