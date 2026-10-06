@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-10-05
+- Last updated: 2026-10-06
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
@@ -43,7 +43,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [PR #113](https://github.com/killroyZULU/FlyEye/pull/113) integrated A011 deferred screen delivery at `2a574d4`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37299544728) passed all gates and cleanup. Listed refactoring targets are resolved. [H002 / #114](https://github.com/killroyZULU/FlyEye/issues/114) tracks lock-wait authorization. Preserve database/session-policy gates; FEAT-006B cause remains unknown.
+- Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113) integrated with green [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37299544728). [H002](https://github.com/killroyZULU/FlyEye/pull/115) merged at `9879375`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37401854393) failed on source-map-js 1.2.1. [SEC-002 / #116](https://github.com/killroyZULU/FlyEye/issues/116) owns remediation evidence. Integration requires remediation and post-merge verification. Preserve database/session-policy gates; FEAT-006B cause remains unknown.
 
 ## Aircraft and dashboard integration
 
