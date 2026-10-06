@@ -50,25 +50,25 @@ qualified workflow specification.
 
 ## Sources, decisions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| Organization-scoped aircraft records | SRS `CMP-001`; Founder/Product Owner, 2026-08-28 | Approved for this administrative subset |
-| Three required fields; manufacturer serial number unavailable | Founder/Product Owner, 2026-08-28 | Approved |
-| Organization Admin read and manage authority for non-operational records | Founder/Product Owner, 2026-08-28; SRS `IAM-011` boundary retained | Approved |
-| Tracked/Archived lifecycle, duplicate handling, reasons, UI, and server validation | Founder/Product Owner, 2026-08-28 | Approved |
-| Caseless comparison algorithm | [Unicode 15.1 components and `CaseFolding.txt`](https://www.unicode.org/versions/components-15.1.0.html) | Pinned technical source |
-| Aircraft operational status, related roles, and separation of duties | Pilot school and qualified aviation reviewer | Unresolved; excluded |
-| Registration format and authoritative validation rules | Approved regulatory or school source owner | Unresolved; no format pattern enforced |
-| Retention and deletion period | School controller and qualified privacy/legal reviewer | Unresolved; permanent deletion excluded |
+| Item                                                                               | Source/owner/version                                                                                     | State                                   |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Organization-scoped aircraft records                                               | SRS `CMP-001`; Founder/Product Owner, 2026-08-28                                                         | Approved for this administrative subset |
+| Three required fields; manufacturer serial number unavailable                      | Founder/Product Owner, 2026-08-28                                                                        | Approved                                |
+| Organization Admin read and manage authority for non-operational records           | Founder/Product Owner, 2026-08-28; SRS `IAM-011` boundary retained                                       | Approved                                |
+| Tracked/Archived lifecycle, duplicate handling, reasons, UI, and server validation | Founder/Product Owner, 2026-08-28                                                                        | Approved                                |
+| Caseless comparison algorithm                                                      | [Unicode 15.1 components and `CaseFolding.txt`](https://www.unicode.org/versions/components-15.1.0.html) | Pinned technical source                 |
+| Aircraft operational status, related roles, and separation of duties               | Pilot school and qualified aviation reviewer                                                             | Unresolved; excluded                    |
+| Registration format and authoritative validation rules                             | Approved regulatory or school source owner                                                               | Unresolved; no format pattern enforced  |
+| Retention and deletion period                                                      | School controller and qualified privacy/legal reviewer                                                   | Unresolved; permanent deletion excluded |
 
 ## Roles and authority
 
-| Action | Permission | Record rule | Execution boundary | Reauthentication |
-|---|---|---|---|---|
-| List, search, and read aircraft records | `aircraft.record.read` | Active membership in the deployment's sole organization | Protected Edge Function and atomic audited server-only PostgreSQL read | Current AAL2/TOTP |
-| Create or edit a Tracked record | `aircraft.record.manage` | Same organization; valid expected version for edit | Protected Edge Function and atomic server-only PostgreSQL function | Current AAL2/TOTP; no additional recent-password prompt |
-| Archive a Tracked record | `aircraft.record.manage` | Same organization; expected version; approved archive reason | Protected Edge Function and atomic server-only PostgreSQL function | Current AAL2/TOTP; no additional recent-password prompt |
-| Reactivate an Archived record | `aircraft.record.manage` | Same organization; expected version; approved reactivation reason; no active duplicate | Protected Edge Function and atomic server-only PostgreSQL function | Current AAL2/TOTP; no additional recent-password prompt |
+| Action                                  | Permission               | Record rule                                                                            | Execution boundary                                                     | Reauthentication                                        |
+| --------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| List, search, and read aircraft records | `aircraft.record.read`   | Active membership in the deployment's sole organization                                | Protected Edge Function and atomic audited server-only PostgreSQL read | Current AAL2/TOTP                                       |
+| Create or edit a Tracked record         | `aircraft.record.manage` | Same organization; valid expected version for edit                                     | Protected Edge Function and atomic server-only PostgreSQL function     | Current AAL2/TOTP; no additional recent-password prompt |
+| Archive a Tracked record                | `aircraft.record.manage` | Same organization; expected version; approved archive reason                           | Protected Edge Function and atomic server-only PostgreSQL function     | Current AAL2/TOTP; no additional recent-password prompt |
+| Reactivate an Archived record           | `aircraft.record.manage` | Same organization; expected version; approved reactivation reason; no active duplicate | Protected Edge Function and atomic server-only PostgreSQL function     | Current AAL2/TOTP; no additional recent-password prompt |
 
 Organization Admin receives both permissions. Student Pilot and Instructor Pilot
 receive neither. Browser roles receive no direct insert, update, archive,
@@ -354,20 +354,20 @@ command produces no second mutation or audit event.
 
 ## Planned verification
 
-| Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| `FEAT-007A-UNIT-01` | Unit | Unicode/ASCII normalization vectors, schemas, reasons, state, errors | Only the approved contract is accepted |
-| `FEAT-007A-COMP-01` | Component | List, search, form, confirmations, conflict, offline, focus | Required responsive and accessible states behave predictably |
-| `FEAT-007A-SQL-01` | SQL/RLS | Schema, constraints, grants, partial uniqueness, RLS | Tenant and authority boundaries fail closed |
-| `FEAT-007A-RPC-01` | SQL/RPC | Versionless create, update, archive, reactivate, fingerprinted idempotency, before/after audit | Mutations are deterministic and atomic |
-| `FEAT-007A-RACE-01` | SQL/RPC | Concurrent registration and lifecycle changes | One valid result; no duplicate Tracked key or lost update |
-| `FEAT-007A-READ-01` | SQL/handler | Audited list/search/detail, audit failure, direct-table denial | Each successful read is bounded and audited; failure returns no data |
-| `FEAT-007A-EDGE-01` | Handler/runtime | Auth, AAL2, permission, validation, exact token buckets, limiter failure, safe errors | Protected actions reject invalid, unavailable, or unauthorized requests |
-| `FEAT-007A-TENANT-01` | Runtime/SQL | School A/B list, search, direct ID, Data API, RPC, Edge | No cross-school data or existence disclosure |
-| `FEAT-007A-SEARCH-01` | SQL/handler/component | Literal wildcard input, query limits, page bounds, repeated criteria, ordering | Protected search remains bounded, stable, and permission-scoped |
-| `FEAT-007A-E2E-01` | Browser | Admin registry workflow on desktop and mobile | Approved workflow and all required UI states pass |
-| `FEAT-007A-SEC-01` | Security | Forgery, mass assignment, injection, replay, changed-input key reuse, audit failure | No unauthorized state or audit gap is created |
-| `FEAT-007A-REG-01` | Regression | Existing identity and administration matrices | Earlier feature behavior remains green with zero residue |
+| Test ID               | Level                 | Scenario                                                                                       | Expected result                                                         |
+| --------------------- | --------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `FEAT-007A-UNIT-01`   | Unit                  | Unicode/ASCII normalization vectors, schemas, reasons, state, errors                           | Only the approved contract is accepted                                  |
+| `FEAT-007A-COMP-01`   | Component             | List, search, form, confirmations, conflict, offline, focus                                    | Required responsive and accessible states behave predictably            |
+| `FEAT-007A-SQL-01`    | SQL/RLS               | Schema, constraints, grants, partial uniqueness, RLS                                           | Tenant and authority boundaries fail closed                             |
+| `FEAT-007A-RPC-01`    | SQL/RPC               | Versionless create, update, archive, reactivate, fingerprinted idempotency, before/after audit | Mutations are deterministic and atomic                                  |
+| `FEAT-007A-RACE-01`   | SQL/RPC               | Concurrent registration and lifecycle changes                                                  | One valid result; no duplicate Tracked key or lost update               |
+| `FEAT-007A-READ-01`   | SQL/handler           | Audited list/search/detail, audit failure, direct-table denial                                 | Each successful read is bounded and audited; failure returns no data    |
+| `FEAT-007A-EDGE-01`   | Handler/runtime       | Auth, AAL2, permission, validation, exact token buckets, limiter failure, safe errors          | Protected actions reject invalid, unavailable, or unauthorized requests |
+| `FEAT-007A-TENANT-01` | Runtime/SQL           | School A/B list, search, direct ID, Data API, RPC, Edge                                        | No cross-school data or existence disclosure                            |
+| `FEAT-007A-SEARCH-01` | SQL/handler/component | Literal wildcard input, query limits, page bounds, repeated criteria, ordering                 | Protected search remains bounded, stable, and permission-scoped         |
+| `FEAT-007A-E2E-01`    | Browser               | Admin registry workflow on desktop and mobile                                                  | Approved workflow and all required UI states pass                       |
+| `FEAT-007A-SEC-01`    | Security              | Forgery, mass assignment, injection, replay, changed-input key reuse, audit failure            | No unauthorized state or audit gap is created                           |
+| `FEAT-007A-REG-01`    | Regression            | Existing identity and administration matrices                                                  | Earlier feature behavior remains green with zero residue                |
 
 ## Dependencies and change boundary
 
@@ -382,6 +382,38 @@ focused synthetic tests/fixtures, and required canonical evidence. Unrelated
 identity, member administration, operational status, documents, dispatch,
 weight and balance, provider, hosted, real-data, deployment, and production
 behavior remains excluded.
+
+## H002 lock-wait investigation
+
+[SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) tests the
+[audit hypothesis](https://github.com/killroyZULU/FlyEye/issues/39) against the
+existing active-membership and permission contract. Observe an actual advisory
+or record lock wait, commit actor revocation in a separate session, then release
+the wait and inspect the result, persisted record and audit. Preserve a successful
+authorized control, concealment and atomic audit behavior. Only reproduced
+paths may receive a versioned SQL correction; other inspected paths retain an
+explicit evidence boundary. Use the disposable CI database and verify fixture
+and session cleanup. No frontend, schema shape, RLS grant, operational authority,
+provider or session-policy change is planned. The primary risk is a test that
+mistakes a scheduling delay for a lock interleaving or leaves synthetic residue.
+
+For the registry correction, repeat the existing permission check in a fresh
+statement after the advisory lock, before replay lookup, and after the record
+lock, before version/state processing. A revocation committed during either wait
+must produce `unauthorized`, leaving record, idempotency and success-audit rows
+unchanged. Retained authority must preserve create, update, archive, reactivate
+and exact replay behavior. Keep lock order, signature, grants and existing Edge
+denial auditing unchanged. This contract does not establish immediate revocation
+at every implicit write/audit wait or resolve the general session-policy gate.
+The tested execution model is PostgreSQL Read Committed, matching the current
+RPC default. No table or data rewrite is required; any correction to the
+migration must use a subsequent forward migration.
+
+Fixture cleanup must remain usable after an observer SQL error: close the
+original sessions, connect independently, delete only owned fixture rows and
+assert zero residue. A controlled observer-failure probe must exercise this
+path with a blocked worker. Diagnostics expose fixed phases and allowlisted
+SQLSTATEs, never raw SQL errors or payloads.
 
 ## Specification and design definition of done
 

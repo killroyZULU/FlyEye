@@ -149,6 +149,11 @@ jobs:
       - name: Run SQL and RLS tests
         run: pnpm test:sql
 
+      - name: Verify H002 SQL lock interleaving
+        run: |
+          node scripts/test-h002-locks.mjs --cleanup-probe
+          node scripts/test-h002-locks.mjs
+
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime
 

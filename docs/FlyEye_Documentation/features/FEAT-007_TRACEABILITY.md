@@ -1,5 +1,75 @@
 # FEAT-007 Traceability
 
+## H002 registry lock-wait evidence
+
+[SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) and
+[PR #115](https://github.com/killroyZULU/FlyEye/pull/115) own the bounded
+[lock-wait contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
+The baseline probe at
+[`e88c63a`](https://github.com/killroyZULU/FlyEye/blob/e88c63a35ab83dad33a50ba48a12ac3702fced8b/scripts/test-h002-locks.mjs)
+passed the `Verify H002 SQL lock interleaving` step in
+[disposable CI 37389648588](https://github.com/killroyZULU/FlyEye/actions/runs/37389648588).
+Both `race('advisory')` and `race('row')` observed the exact blocking backend,
+committed protected membership revocation, then released the blocker. Create
+and update still returned success, persisted versions 1 and 2 respectively,
+and wrote one success audit each. Fixture organization, users and worker
+sessions were absent after cleanup. This confirms H002 for these two registry
+paths on `main` SQL at `2a574d4`; it does not prove other functions vulnerable.
+
+The [correction](../../../supabase/migrations/20261005234138_sec_001_registry_lock_revalidation.sql)
+rechecks the same permission after each explicit wait. The
+[regression matrix](../../../scripts/test-h002-locks.mjs), function `race`, covers
+24 observed interleavings: membership revocation, protected role demotion and
+retained-authority controls; create and exact replay at the advisory lock;
+update/archive/reactivate at advisory and row locks. Denials compare complete
+record, success-audit and idempotency snapshots; successful controls require
+the expected version, one audit and one idempotency row. Worker calls use
+`service_role` and assert Read Committed isolation; no new browser grant or
+function signature is introduced.
+Execution results for the correction belong to the final-head CI linked in
+the PR; baseline characterization is not a regression pass.
+
+[CI 37390937577](https://github.com/killroyZULU/FlyEye/actions/runs/37390937577)
+at `057e24c` failed before the first concurrency result: the fixture snapshot
+ordered idempotency rows by a nonexistent `id`, then cleanup reused the failed
+observer. Fixture cleanup was unverified despite successful Supabase teardown.
+The recovery orders by the actual composite key, reports only fixed phases and
+allowlisted SQLSTATEs, and uses a fresh cleanup session after draining originals.
+The `--cleanup-probe` execution deliberately raises SQLSTATE `22012` while a
+worker is blocked, then requires all scoped rows/users and original sessions to
+be absent. CI runs it before the normal matrix. The
+[session-helper suite](../../../scripts/lib/h002-postgres-session.test.mjs),
+`H002 SQL session diagnostics and recovery`, covers split error output,
+redaction, closed/input-failed sessions and replacement connections.
+
+Existing [registry SQL tests](../../../supabase/tests/feat_007a_aircraft_registry_test.sql)
+retain the exact assertions `A cross-school forged-organization mutation is denied`,
+`An exact replay creates no duplicate audit event`, and the
+`feat007_reject_audit` trigger block proving mutation rollback on audit failure.
+Existing [handler tests](../../../supabase/functions/aircraft-registry/handler.test.ts)
+cover late `unauthorized` decisions and failure of required denial auditing.
+
+### SQL inspection boundary
+
+This inventory is static inspection of the latest definitions at `2a574d4`,
+not a concurrency pass for the remaining audit. [Audit #39](https://github.com/killroyZULU/FlyEye/issues/39)
+retains their unresolved coverage.
+
+| Functions                                                                                                                                                                                                                                                  | Authorization and locking order                                                                                              | Evidence boundary                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `mutate_aircraft_record`                                                                                                                                                                                                                                   | Permission before advisory and record locks; no original post-wait check                                                     | Two reproduced paths above; correction limited to these explicit waits |
+| `mutate_aircraft_document`, `mutate_aircraft_document_category`, `complete_aircraft_document_file`, `open_aircraft_document_notification` in the [document migration](../../../supabase/migrations/20260901000100_feat_007b_aircraft_document_records.sql) | Permission before advisory/target locks; subsequent notification helpers may lock further rows                               | Candidates requiring separate interleaving evidence                    |
+| `update_my_member_profile` in the [member migration](../../../supabase/migrations/20260811000100_feat_005_user_management_profiles.sql)                                                                                                                    | Active membership/organization join; only profile row is locked                                                              | Candidate requiring a joined-snapshot reproduction                     |
+| `change_organization_member_status`, [`change_organization_member_role`](../../../supabase/migrations/20260814000100_feat_006b_role_assignment.sql)                                                                                                        | Recheck after ordered administrator membership locks; then target lock                                                       | Existing stronger ordering observed, not newly concurrency-proven      |
+| Invitation commands in the [invitation migration](../../../supabase/migrations/20260809000100_feat_004_member_invitations.sql)                                                                                                                             | Check after organization lock; resend/revoke have later invitation/delivery waits; finalize checks after its invitation lock | Initial lock order differs; later waits remain unverified              |
+| Start/bind/complete MFA in the [MFA migration](../../../supabase/migrations/20260813000100_feat_006a_member_totp_enrollment.sql)                                                                                                                           | Lock active membership and organization; bind/complete then reload context                                                   | Different ordering; no universal revocation proof claimed              |
+
+Onboarding, invitation acceptance, cancellation cleanup and internal notification
+helpers have distinct actor/operation contracts. They are not classified as
+vulnerable from the presence of a lock alone. Implicit DML, foreign-key, uniqueness,
+trigger and audit waits remain outside this explicit-lock reproduction. Local
+Docker was unavailable; no occupied local service or hosted target was used.
+
 ## Bounded request-body transport
 
 [FIX-010 / #66](https://github.com/killroyZULU/FlyEye/issues/66) records delivery
