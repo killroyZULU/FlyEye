@@ -4,6 +4,7 @@ import { readBoundedRequestBody, RequestTooLargeError } from '../_shared/request
 import type { AuthBootstrapDependencies, AuthenticatedActor } from './contracts.ts';
 import { resolveAuthenticatedAccess } from './access-decision.ts';
 import { jsonResponse, responseHeaders } from './responses.ts';
+import { checkBootstrapLimit } from './rate-limit.ts';
 
 export type { AuthBootstrapDependencies, AuthenticatedActor, AuditDecision } from './contracts.ts';
 
@@ -74,6 +75,8 @@ export function createAuthBootstrapHandler(
       });
     }
 
+    const limited = await checkBootstrapLimit(dependencies, actor.userId, createCorrelationId());
+    if (limited) return limited;
     return resolveAuthenticatedAccess(dependencies, actor, allowedOrigin, createCorrelationId);
   };
 }

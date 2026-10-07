@@ -40,26 +40,26 @@ As an invited Student Pilot, Instructor Pilot, or Admin, I want to sign in secur
 
 ## Source and assumptions
 
-| Item | Verified source/owner/version | Status |
-|---|---|---|
-| Invitation-only accounts | SRS IAM-001 | Verified product requirement |
-| Server-derived membership and authorization | SRS IAM-002/003; ADR-0005 | Verified architecture requirement |
-| Role-based MFA | Security Requirements section 3; ADR-0006 | Student non-privileged AAL1 is allowed; Instructor/Admin require TOTP/AAL2 |
-| Student/Instructor/Admin initial roles | Product-owner FEAT-001 task, 2026-07-19 | Approved for initial access routing |
-| Management pilots may use Admin grouping | Product-owner FEAT-001 task, 2026-07-19 | Approved only as an initial grouping |
-| CFI/Head of Training operational permissions | Qualified ATO SME and permission-matrix owner | Pending SME confirmation |
-| Multiple roles within one membership | Product/security owner | Deferred; database enforces one initial role per membership |
+| Item                                         | Verified source/owner/version                 | Status                                                                     |
+| -------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
+| Invitation-only accounts                     | SRS IAM-001                                   | Verified product requirement                                               |
+| Server-derived membership and authorization  | SRS IAM-002/003; ADR-0005                     | Verified architecture requirement                                          |
+| Role-based MFA                               | Security Requirements section 3; ADR-0006     | Student non-privileged AAL1 is allowed; Instructor/Admin require TOTP/AAL2 |
+| Student/Instructor/Admin initial roles       | Product-owner FEAT-001 task, 2026-07-19       | Approved for initial access routing                                        |
+| Management pilots may use Admin grouping     | Product-owner FEAT-001 task, 2026-07-19       | Approved only as an initial grouping                                       |
+| CFI/Head of Training operational permissions | Qualified ATO SME and permission-matrix owner | Pending SME confirmation                                                   |
+| Multiple roles within one membership         | Product/security owner                        | Deferred; database enforces one initial role per membership                |
 
 No aviation authority is inferred from a role label. The initial permissions grant access only to role-specific placeholder workspaces.
 
 ## Roles, permissions, and record scope
 
-| Action | Permission | Organization and assignment rule | Reauthentication |
-|---|---|---|---|
-| Enter Student workspace | `portal.student.access` | Active membership assigned `student_pilot` | Current authenticated session |
-| Enter Instructor workspace | `portal.instructor.access` | Active membership assigned `instructor_pilot` | AAL2 MFA required |
-| Enter Admin workspace | `portal.admin.access` | Active membership assigned `admin` | AAL2 MFA required |
-| Read access context | `auth-bootstrap` plus server-only resolver/audit RPCs | Actor, school, role, and AAL come from verified server records; selection input is rejected | Valid user JWT; AAL is enforced for the sole membership |
+| Action                     | Permission                                            | Organization and assignment rule                                                            | Reauthentication                                        |
+| -------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Enter Student workspace    | `portal.student.access`                               | Active membership assigned `student_pilot`                                                  | Current authenticated session                           |
+| Enter Instructor workspace | `portal.instructor.access`                            | Active membership assigned `instructor_pilot`                                               | AAL2 MFA required                                       |
+| Enter Admin workspace      | `portal.admin.access`                                 | Active membership assigned `admin`                                                          | AAL2 MFA required                                       |
+| Read access context        | `auth-bootstrap` plus server-only resolver/audit RPCs | Actor, school, role, and AAL come from verified server records; selection input is rejected | Valid user JWT; AAL is enforced for the sole membership |
 
 ## Preconditions and business rules
 
@@ -106,9 +106,64 @@ Membership activation, suspension, reactivation, role assignment, and role remov
 - PostgreSQL audit writer: server-only `public.record_authentication_access_decision(...)`
 - Response: runtime-validated organizations, role, permissions, membership version, per-membership assurance/access status, final decision, organization context, and correlation ID
 - Anonymous/authenticated browser roles cannot execute either server-only RPC. Client-supplied role, permission, metadata, actor, AAL, and unowned organization values are not authority.
-- The Edge Function writes exactly one final success or denied event only after runtime contract validation. Audit failure blocks access.
-- Safe error statuses: 400, 401, 403, 405, 409, 413, 422, and 500
-- Browser code uses only the publishable key. The Edge Function keeps the service-role key in its server environment for the two narrowly granted server-only RPCs; the key is rejected by browser configuration and scanned out of source/build output.
+- Completed access-context decisions write exactly one final success or denied event after runtime contract validation; exhausted limiter decisions use the atomic denial below. Audit failure blocks access.
+- Safe error statuses: 400, 401, 403, 405, 409, 413, 422, 429, 500, and 503
+- Browser code uses only the publishable key. The Edge Function keeps the service-role key in its server environment for narrowly granted server-only RPCs; the key is rejected by browser configuration and scanned out of source/build output.
+
+## A010 bootstrap application limiter
+
+`SEC-004` applies the [API abuse requirements](../06_API_SPECIFICATION.md#11-rate-limiting-and-abuse-controls)
+to valid bootstrap requests after Auth verifies the user, before password-method,
+membership, permission or factor resolution. All sessions, tabs, token refreshes,
+and AAL transitions for one verified user share one deployment-local bucket.
+The key is the Auth-returned user UUID; request bodies, metadata, correlation IDs,
+raw tokens and forwarded/IP headers cannot select or reset it. No network-source
+trust or pre-authentication flood protection is claimed by this slice.
+
+- `A010-01`: Allow a burst of 30 requests, replenishing one request every two
+  seconds up to capacity. This local synthetic baseline accommodates restoration,
+  repeated tabs and MFA transitions while bounding sustained downstream work to
+  30 requests/minute per subject. Different subjects have independent buckets;
+  separate school deployments have separate databases. There is no school-wide
+  bucket that lets one user lock out others, nor any authorization result cache.
+- `A010-02`: A service-only PostgreSQL function serializes bucket creation and
+  consumption under a row lock. Compute refill from the database clock after
+  obtaining the lock; preserve fractional credit and never move time backwards.
+  Concurrent isolates share the same budget. Limit lock waits to one second and
+  the Edge RPC to three seconds; timeout is denial, never an in-memory fallback.
+- `A010-03`: Exhaustion returns non-enumerating `429 auth.rate_limited`, a
+  `Retry-After` integer of 1–2 seconds exposed through CORS, and safe wait text.
+  It stops resolver/factor work and writes exactly one existing authentication
+  denial event (`bootstrap_rate_limited`) atomically with the bucket decision.
+  Allowed requests retain the existing final access audit and all MFA, password,
+  tenancy and authorization checks. Audit failure rolls back the limiter call.
+- `A010-04`: RPC error, timeout or malformed result returns
+  `503 auth.limiter_unavailable` without access context or internal details.
+  No automatic retries or alternate keys. A later user retry rechecks the shared
+  state; an uncertain committed consumption is not refunded. Existing UI error
+  handling remains, with explicit rate-limit guidance and manual retry.
+- `A010-05`: Store only user UUID, numeric credit and refill time in a deny-by-default
+  RLS table with no browser or service-role table grants. This pre-membership Auth
+  infrastructure state is not a school-owned record; it deliberately has no
+  caller-selected organization. One row per existing Auth user bounds cardinality;
+  Auth deletion cascades only its bucket. Existing authentication-event retention
+  and privacy gates still apply; no new audit retention policy is introduced.
+
+The additive migration and generated types, local Edge limiter/contract/index,
+gateway error mapping, handler/gateway tests, rollback-only SQL tests, disposable
+CI concurrency fixture and FEAT-001 evidence are the affected surfaces. No new
+package, provider, credential, hosted setting or session-policy change is needed.
+Deploy the migration before the handler; an unavailable RPC safely denies access.
+Rollback uses a reviewed forward fix; reverting enforcement reopens A010 and is
+not an emergency bypass. The extra database round trip and shared-budget exhaustion
+can temporarily delay legitimate bootstrap. Hosted thresholds, distributed-account
+abuse, ingress protections, representative capacity/accessibility/cost evidence,
+monitoring/alert ownership and emergency procedures remain unresolved hosted gates.
+
+Focused verification must cover allowed/exhausted requests, key spoofing and
+isolation, concurrent first insertion and final-token races, clock/refill recovery,
+RPC/audit failure with rollback, browser/RPC denial, and unchanged Auth/MFA/audit
+behavior. Follow [QA applicability](../11_QA_TEST_PLAN.md#verification-applicability).
 
 ## UI/UX
 
@@ -189,7 +244,7 @@ Packages are pinned in `package.json`; all selected packages reported an MIT or 
 - Existing ADR decisions
 - Unrelated product modules
 - Production credentials or deployment configuration
-- GitHub Actions workflows
+- GitHub Actions workflows, except registering the A010 disposable concurrency/cleanup checks
 
 ## Known limitations and approvals still required
 

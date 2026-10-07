@@ -120,6 +120,12 @@ export class SupabaseAuthGateway implements AuthGateway {
 
     if (error) {
       const status = responseStatus(error);
+      if (status === 429) {
+        throw new AuthGatewayError(
+          'rate_limited',
+          'Too many requests. Wait two seconds and try again.',
+        );
+      }
       if (status === 409) {
         throw new AuthGatewayError(
           'access_context_conflict',

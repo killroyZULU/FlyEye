@@ -825,6 +825,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      auth_bootstrap_rate_limit_state: {
+        Row: {
+          actor_user_id: string;
+          last_refill_at: string;
+          tokens: number;
+        };
+        Insert: {
+          actor_user_id: string;
+          last_refill_at: string;
+          tokens: number;
+        };
+        Update: {
+          actor_user_id?: string;
+          last_refill_at?: string;
+          tokens?: number;
+        };
+        Relationships: [];
+      };
       authentication_events: {
         Row: {
           actor_kind: string;
@@ -2044,6 +2062,10 @@ export type Database = {
           p_correlation_id: string;
           p_limiter_key_hash: string;
         };
+        Returns: Json;
+      };
+      consume_auth_bootstrap_rate_limit: {
+        Args: { p_actor_user_id: string; p_correlation_id: string };
         Returns: Json;
       };
       consume_member_administration_rate_limit: {

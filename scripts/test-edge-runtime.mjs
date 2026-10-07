@@ -317,6 +317,16 @@ async function cleanup() {
   for (const user of Object.values(users)) {
     await adminClient.auth.admin.deleteUser(user.id);
   }
+  assert.equal(
+    psql(
+      `select count(*) from public.auth_bootstrap_rate_limit_state
+    where actor_user_id in (${Object.values(users)
+      .map((user) => `'${user.id}'::uuid`)
+      .join(',')});`,
+      true,
+    ),
+    '0',
+  );
 }
 
 try {
@@ -431,6 +441,24 @@ try {
   );
 
   await runFrontendIntegration(instructorAal2Session.secret);
+
+  // Exact-run state only; exercise the real Edge/RPC adapter after existing Auth/MFA flows.
+  psql(`update public.auth_bootstrap_rate_limit_state set tokens=0,
+    last_refill_at=clock_timestamp()+interval '1 minute' where actor_user_id='${users.student.id}';`);
+  const limited = await invoke(student.token);
+  assert.equal(limited.status, 429);
+  assert.equal(limited.headers.get('retry-after'), '2');
+  const limitedBody = await limited.json();
+  assert.equal(limitedBody.error.code, 'auth.rate_limited');
+  assertSingleAudit(limitedBody, {
+    eventName: 'authentication.access_denied',
+    outcome: 'denied',
+    reason: 'bootstrap_rate_limited',
+  });
+  assert.equal((await context(instructorAal2Session.token)).decision, 'granted');
+  psql(`update public.auth_bootstrap_rate_limit_state set last_refill_at=clock_timestamp()-interval '2 seconds'
+    where actor_user_id='${users.student.id}';`);
+  assert.equal((await context(student.token)).decision, 'granted');
 
   process.stdout.write(
     'Actual local frontend, Auth, TOTP, Edge Runtime, AAL, school-boundary, RPC, body-limit, and audit integration checks passed.\n',

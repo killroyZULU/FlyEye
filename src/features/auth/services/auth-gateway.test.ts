@@ -12,6 +12,22 @@ function clientWithAuth(
 }
 
 const syntheticProviderSecret = 'A'.repeat(16);
+
+describe('A010 bootstrap gateway errors', () => {
+  it.each([
+    [429, 'rate_limited'],
+    [503, 'access_context_unavailable'],
+  ])('maps HTTP %s safely without automatic retries', async (status, code) => {
+    const invoke = vi.fn().mockResolvedValue({
+      data: null,
+      error: { context: new Response('private provider payload', { status: Number(status) }) },
+    });
+    const gateway = new SupabaseAuthGateway(clientWithAuth({}, { invoke }));
+    await expect(gateway.loadAccessContext()).rejects.toMatchObject({ code });
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith('auth-bootstrap', { body: {} });
+  });
+});
 const syntheticProviderUri = (() => {
   const uri = new URL('otpauth://totp/FlyEye:synthetic@example.test');
   uri.searchParams.set('secret', syntheticProviderSecret);
