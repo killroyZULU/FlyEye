@@ -117,8 +117,8 @@ changing authentication behavior.
 
 The [grant-only migration](../../../supabase/migrations/20261007133133_sec_007_onboarding_grant_expiry.sql)
 evaluates expiry with current time after the explicit locks; password checks,
-signatures, grants and other predicates are unchanged. Regression execution remains
-pending. Provider identity/factor/session changes, start/cancellation, later implicit
+signatures, grants and other predicates are unchanged. The linked delivery record
+owns regression execution and review results. Provider identity/factor/session changes, start/cancellation, later implicit
 waits and other H002 schedules remain outside this matrix. Historical A024 cleanup
 is not established by current successful cleanup.
 
