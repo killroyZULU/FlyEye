@@ -26,8 +26,11 @@ export const seed = `
     values(${q('adminMember')},${q('org')},${q('admin')},'active',${q('admin')},${q('admin')});
   insert into public.membership_roles(organization_id,membership_id,role_id,assigned_by)
     select ${q('org')},${q('adminMember')},id,${q('admin')} from public.roles where code='admin';
-  insert into public.roles(id,code,display_name,is_active,is_invitation_assignable)
-    values(${q('role')},'h002_acceptance_synthetic','Synthetic acceptance role',true,true);
+  insert into public.roles(id,code,display_name,is_active,is_invitation_assignable,
+    is_membership_assignable,required_assurance_level,workspace_permission_code)
+    select ${q('role')},'h002_acceptance_synthetic','Synthetic acceptance role',true,true,
+      is_membership_assignable,required_assurance_level,workspace_permission_code
+    from public.roles where code='student_pilot';
   insert into public.role_permissions(role_id,permission_id)
     select ${q('role')},rp.permission_id from public.role_permissions rp
     join public.roles r on r.id=rp.role_id where r.code='student_pilot';`;
