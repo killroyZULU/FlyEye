@@ -41,27 +41,27 @@ Non-goals:
 
 ## Sources, assumptions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| Invitation-only accounts and protected membership authority | SRS `IAM-001`–`IAM-012`; Security Requirements sections 3–4 | Verified |
-| One role per membership and later invitation workflow | Product and Governance Decisions, Organizations, memberships, and roles | Verified |
-| Initial roles and future role extensibility | Founder/Product Owner decision, 2026-08-09 | Verified |
-| Explicit acceptance for new and existing users | Founder/Product Owner decision, 2026-08-09 | Verified |
-| One-hour validity | Founder/Product Owner decision and local `auth.email.otp_expiry = 3600` | Verified for local scope |
-| Supabase invitation, existing-user, redirect, and email-link behavior | [Supabase Users](https://supabase.com/docs/guides/auth/users), [Email Templates](https://supabase.com/docs/guides/auth/auth-email-templates), and [Passwordless Email](https://supabase.com/docs/guides/auth/auth-email-passwordless), accessed 2026-08-09 | Provider-documented; verify against pinned local versions |
-| Hosted SMTP, domain, capacity, monitoring, and support | Founder/Product Owner and qualified lifecycle owners | Unresolved; later gate |
-| Real-data invitation retention and minor-student procedure | School, privacy/legal owner, and approved retention sources | Unresolved; blocks real-data use, not local synthetic delivery |
+| Item                                                                  | Source/owner/version                                                                                                                                                                                                                                       | State                                                          |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Invitation-only accounts and protected membership authority           | SRS `IAM-001`–`IAM-012`; Security Requirements sections 3–4                                                                                                                                                                                                | Verified                                                       |
+| One role per membership and later invitation workflow                 | Product and Governance Decisions, Organizations, memberships, and roles                                                                                                                                                                                    | Verified                                                       |
+| Initial roles and future role extensibility                           | Founder/Product Owner decision, 2026-08-09                                                                                                                                                                                                                 | Verified                                                       |
+| Explicit acceptance for new and existing users                        | Founder/Product Owner decision, 2026-08-09                                                                                                                                                                                                                 | Verified                                                       |
+| One-hour validity                                                     | Founder/Product Owner decision and local `auth.email.otp_expiry = 3600`                                                                                                                                                                                    | Verified for local scope                                       |
+| Supabase invitation, existing-user, redirect, and email-link behavior | [Supabase Users](https://supabase.com/docs/guides/auth/users), [Email Templates](https://supabase.com/docs/guides/auth/auth-email-templates), and [Passwordless Email](https://supabase.com/docs/guides/auth/auth-email-passwordless), accessed 2026-08-09 | Provider-documented; verify against pinned local versions      |
+| Hosted SMTP, domain, capacity, monitoring, and support                | Founder/Product Owner and qualified lifecycle owners                                                                                                                                                                                                       | Unresolved; later gate                                         |
+| Real-data invitation retention and minor-student procedure            | School, privacy/legal owner, and approved retention sources                                                                                                                                                                                                | Unresolved; blocks real-data use, not local synthetic delivery |
 
 ## Roles and authority
 
-| Action | Permission | Tenant/record rule | Execution boundary | Reauthentication |
-|---|---|---|---|---|
-| List invitations | `membership.invitation.manage` | Active membership in the deployment school; return that school only | Protected Edge Function and server-only RPC | Current password-authenticated AAL2/TOTP session |
-| Create invitation | `membership.invitation.manage` | Organization ID is a resource hint; server derives actor membership and validates the initial role | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
-| Resend invitation | `membership.invitation.manage` | Actor's organization; `pending`, `expired`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
-| Revoke invitation | `membership.invitation.manage` | Actor's organization; `pending`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP |
-| Prepare acceptance | Verified invited Auth subject | Confirmed Auth email, invitation version, and locked provider-operation class determine new-password setup or existing-password reauthentication | Protected Edge Function and server-only RPC | Valid provider-established Auth session; no FlyEye authority is created |
-| Accept invitation | Verified invited Auth subject | Invitation ID is only a hint; confirmed Auth email must match the locked invitation | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds; role-specific portal MFA remains enforced by `auth-bootstrap` |
+| Action             | Permission                     | Tenant/record rule                                                                                                                               | Execution boundary                                 | Reauthentication                                                                                      |
+| ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| List invitations   | `membership.invitation.manage` | Active membership in the deployment school; return that school only                                                                              | Protected Edge Function and server-only RPC        | Current password-authenticated AAL2/TOTP session                                                      |
+| Create invitation  | `membership.invitation.manage` | Organization ID is a resource hint; server derives actor membership and validates the initial role                                               | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP                                                 |
+| Resend invitation  | `membership.invitation.manage` | Actor's organization; `pending`, `expired`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown       | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP                                                 |
+| Revoke invitation  | `membership.invitation.manage` | Actor's organization; `pending`, `delivery_failed`, `delivery_uncertain`, or `issuing` after the 60-second uncertainty cooldown                  | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds plus AAL2/TOTP                                                 |
+| Prepare acceptance | Verified invited Auth subject  | Confirmed Auth email, invitation version, and locked provider-operation class determine new-password setup or existing-password reauthentication | Protected Edge Function and server-only RPC        | Valid provider-established Auth session; no FlyEye authority is created                               |
+| Accept invitation  | Verified invited Auth subject  | Invitation ID is only a hint; confirmed Auth email must match the locked invitation                                                              | Protected Edge Function and atomic server-only RPC | Password AMR no older than 600 seconds; role-specific portal MFA remains enforced by `auth-bootstrap` |
 
 The built-in `admin` role initially receives
 `membership.invitation.manage`. Browser roles receive no direct invitation,
@@ -157,6 +157,22 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
     Same-scope retry returns a safe stable result; a conflicting key or stale
     version returns a non-enumerating conflict.
 
+### Acceptance concurrency investigation
+
+Observe both acceptance/revocation orderings, role deactivation or removal of
+invitation eligibility before and after acceptance's role lock, concurrent
+same-key replay and different-key conflict, and retained-authority controls.
+Require actual backend blocking, contract-specific decisions, one membership,
+one role assignment and one atomic acceptance audit on success; denials must
+create no new authority. Negative email, version, freshness, expiry and existing
+membership controls preserve the same contract. Run only in disposable CI with
+a fixture-owned role, unchanged existing permissions, and verified normal and
+interrupted cleanup. Correct production behavior only for a reproduced violation.
+
+This SQL boundary receives identity and password evidence from the trusted Edge
+handler. It does not establish provider-email/session changes during a lock wait,
+global session-expiry policy, every implicit wait, or hosted validation.
+
 ## Data and server contract
 
 `organization_invitations` contains:
@@ -227,14 +243,14 @@ bodies, and hidden tenant or identity state are prohibited.
 
 Local atomic token buckets use a dedicated invitation-limiter secret:
 
-| Action | Local limit | Burst | Required failure behavior |
-|---|---:|---:|---|
-| `list` | 12 per 60 seconds per actor and organization | 4 | Fail closed |
-| `create` | 6 per hour per actor and organization | 2 | No row or provider call after denial |
-| `resend` | 3 per hour per invitation and actor | 1 | Preserve current state |
-| `revoke` | 6 per 60 seconds per actor and organization | 2 | Preserve current state |
-| `prepare` | 6 per 60 seconds per subject and invitation | 2 | Do not expose a credential path or change a password |
-| `accept` | 6 per 60 seconds per subject and invitation | 2 | Create no membership |
+| Action    |                                  Local limit | Burst | Required failure behavior                            |
+| --------- | -------------------------------------------: | ----: | ---------------------------------------------------- |
+| `list`    | 12 per 60 seconds per actor and organization |     4 | Fail closed                                          |
+| `create`  |        6 per hour per actor and organization |     2 | No row or provider call after denial                 |
+| `resend`  |          3 per hour per invitation and actor |     1 | Preserve current state                               |
+| `revoke`  |  6 per 60 seconds per actor and organization |     2 | Preserve current state                               |
+| `prepare` |  6 per 60 seconds per subject and invitation |     2 | Do not expose a credential path or change a password |
+| `accept`  |  6 per 60 seconds per subject and invitation |     2 | Create no membership                                 |
 
 The server resolves authorized organization or invitation scopes before hashing
 limiter keys. Unauthorized client hints collapse to one actor-and-action denial
@@ -263,86 +279,86 @@ support remain later environment-specific gates.
 ## Acceptance criteria
 
 - `FEAT-004-AC-01` Only an active permitted Organization Admin with current
-      AAL2/TOTP and fresh password AMR can create, resend, or revoke.
+  AAL2/TOTP and fresh password AMR can create, resend, or revoke.
 - `FEAT-004-AC-02` Listing returns only the selected authorized
-      organization's bounded invitation data.
+  organization's bounded invitation data.
 - `FEAT-004-AC-03` Exactly one approved active initial role is accepted;
-      arbitrary, inactive, future-disabled, or multi-role input is denied.
+  arbitrary, inactive, future-disabled, or multi-role input is denied.
 - `FEAT-004-AC-04` Future roles remain disabled until a reviewed
-      server-controlled change enables invitation assignment.
+  server-controlled change enables invitation assignment.
 - `FEAT-004-AC-05` New identities receive the provider invitation path;
-      existing confirmed identities receive the existing-account path without
-      exposing identity existence to the inviter.
+  existing confirmed identities receive the existing-account path without
+  exposing identity existence to the inviter.
 - `FEAT-004-AC-06` Issuance intent/audit precedes the provider call; the
-      locked post-provider state/audit transaction is atomic and idempotent;
-      confirmed failure leaves non-accepting `issuing`; and transport uncertainty
-      is resolved from database state without assuming commit or rollback.
+  locked post-provider state/audit transaction is atomic and idempotent;
+  confirmed failure leaves non-accepting `issuing`; and transport uncertainty
+  is resolved from database state without assuming commit or rollback.
 - `FEAT-004-AC-07` Validity is exactly one hour by database time; equality
-      and later are expired, relevant commands materialize expiry atomically,
-      and a new invitation can be created after the previous one expires.
+  and later are expired, relevant commands materialize expiry atomically,
+  and a new invitation can be created after the previous one expires.
 - `FEAT-004-AC-08` Resend accepts only the specified state/cooldown set,
-      supersedes the old invitation, makes one new provider call, and prevents
-      old links from creating membership.
+  supersedes the old invitation, makes one new provider call, and prevents
+  old links from creating membership.
 - `FEAT-004-AC-09` Revocation accepts only the specified state/cooldown set
-      and prevents acceptance without changing an already accepted member.
+  and prevents acceptance without changing an already accepted member.
 - `FEAT-004-AC-10` A provider link alone cannot create membership or role
-      authority.
+  authority.
 - `FEAT-004-AC-11` Acceptance requires matching confirmed Auth email,
-      verified subject, fresh password AMR, and the exact locked invitation.
+  verified subject, fresh password AMR, and the exact locked invitation.
 - `FEAT-004-AC-12` Acceptance atomically creates one active membership, one
-      initial role, accepted state, and audit evidence.
+  initial role, accepted state, and audit evidence.
 - `FEAT-004-AC-13` Audit, constraint, organization, role, membership, or
-      concurrency failure rolls back all FlyEye authority.
+  concurrency failure rolls back all FlyEye authority.
 - `FEAT-004-AC-14` Same- and cross-invitation races create at most one
-      organization membership for the subject.
+  organization membership for the subject.
 - `FEAT-004-AC-15` Same email in separate school deployments remains isolated;
-      each deployment requires independent acceptance and permits only one
-      school membership per subject.
+  each deployment requires independent acceptance and permits only one
+  school membership per subject.
 - `FEAT-004-AC-16` Existing membership, wrong account, changed email, stale
-      version, expired, revoked, superseded, and unknown IDs fail without
-      enumeration.
+  version, expired, revoked, superseded, and unknown IDs fail without
+  enumeration.
 - `FEAT-004-AC-17` Email canonicalization is identical in server and
-      database paths; whitespace/case variants cannot bypass uniqueness, and
-      provider-specific alias rewriting is not used.
+  database paths; whitespace/case variants cannot bypass uniqueness, and
+  provider-specific alias rewriting is not used.
 - `FEAT-004-AC-18` Role-specific MFA and portal permission are revalidated by
-      `auth-bootstrap` after acceptance; invitation never grants aviation or
-      operational authority.
+  `auth-bootstrap` after acceptance; invitation never grants aviation or
+  operational authority.
 - `FEAT-004-AC-19` Rate-limit, provider, offline, and delivery uncertainty
-      create no bypass, duplicate mutation, or unsafe retry.
+  create no bypass, duplicate mutation, or unsafe retry.
 - `FEAT-004-AC-20` Required responsive and accessibility states are covered
-      with human-only limitations explicit.
+  with human-only limitations explicit.
 - `FEAT-004-AC-21` Source, build, logs, evidence, and history contain no
-      invitation token, Auth credential, real identity, service key, or provider
-      message body.
+  invitation token, Auth credential, real identity, service key, or provider
+  message body.
 - `FEAT-004-AC-22` FEAT-001 through FEAT-003 Auth, recovery, MFA, RLS,
-      tenancy, audit, and browser behavior remain green.
+  tenancy, audit, and browser behavior remain green.
 - `FEAT-004-AC-23` Local synthetic evidence does not claim hosted email,
-      real-data, deployment, production, minor-student, or privileged-MFA
-      readiness.
+  real-data, deployment, production, minor-student, or privileged-MFA
+  readiness.
 
 ## Planned verification
 
-| Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| `FEAT-004-UNIT-01` | Unit | Email canonicalization, role, state, expiry, error, and callback validation | Exact bounded schemas and safe failures |
-| `FEAT-004-COMP-01` | Component | Admin create/list/resend/revoke states | Accessible deterministic behavior |
-| `FEAT-004-COMP-02` | Component | New/existing/wrong-account acceptance states | Explicit acceptance and corrective guidance |
-| `FEAT-004-SQL-01` | SQL | Tables, constraints, canonical email, indexes, statuses, one-hour boundary | Schema invariants pass |
-| `FEAT-004-RLS-01` | SQL/RLS | `PUBLIC`, `anon`, and `authenticated` direct access | All prohibited access denied |
-| `FEAT-004-RPC-01` | SQL/RPC | Create/resend/revoke/accept atomicity and idempotency | State and audit remain atomic |
-| `FEAT-004-RPC-02` | SQL/RPC | Same/different invitation races | At most one membership and role |
-| `FEAT-004-RPC-03` | SQL/RPC | Elapsed pending row is materialized, audited, and reinvited | Expired row no longer blocks a new invitation |
-| `FEAT-004-EDGE-01` | Edge | JWT, origin, body, AMR, AAL2, permission, role, provider errors | Protected commands fail closed |
-| `FEAT-004-TENANT-01` | Runtime/SQL | Forged-school IDs; adversarial schools only in rollback-only SQL fixtures or separate deployments | No cross-tenant read, inference, or mutation |
-| `FEAT-004-AUTH-01` | Runtime | New identity invitation, password setup, acceptance | One verified membership |
-| `FEAT-004-AUTH-02` | Runtime | Existing confirmed identity without a membership joins the deployment school | Explicit acceptance creates its first school membership |
-| `FEAT-004-AUTH-03` | Runtime | Expired, resent, revoked, wrong account, provider uncertainty, and lost post-provider response | Database state is read back idempotently; no outcome is assumed |
-| `FEAT-004-MAIL-01` | Runtime | Local invite/magic-link templates and exact callback allowlist | Mail captured locally with safe callback |
-| `FEAT-004-E2E-01` | Browser | Admin invites and recipient accepts on desktop/mobile | End-to-end success and final bootstrap |
-| `FEAT-004-A11Y-01` | Browser/manual support | Keyboard, focus, announcements, reflow, contrast, target size | Automated scope pass; formal review later |
-| `FEAT-004-SEC-01` | Security | Enumeration, replay, races, arbitrary roles, metadata, secret scans | No bypass or prohibited disclosure |
-| `FEAT-004-REG-01` | Regression | Complete application and database/runtime matrices | FEAT-001–003 remain green |
-| `FEAT-004-FIXTURE-01` | Runtime | Random synthetic identities, cleanup, residue scan | Zero unintended residue or uncertain cleanup |
+| Test ID               | Level                  | Scenario                                                                                          | Expected result                                                 |
+| --------------------- | ---------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `FEAT-004-UNIT-01`    | Unit                   | Email canonicalization, role, state, expiry, error, and callback validation                       | Exact bounded schemas and safe failures                         |
+| `FEAT-004-COMP-01`    | Component              | Admin create/list/resend/revoke states                                                            | Accessible deterministic behavior                               |
+| `FEAT-004-COMP-02`    | Component              | New/existing/wrong-account acceptance states                                                      | Explicit acceptance and corrective guidance                     |
+| `FEAT-004-SQL-01`     | SQL                    | Tables, constraints, canonical email, indexes, statuses, one-hour boundary                        | Schema invariants pass                                          |
+| `FEAT-004-RLS-01`     | SQL/RLS                | `PUBLIC`, `anon`, and `authenticated` direct access                                               | All prohibited access denied                                    |
+| `FEAT-004-RPC-01`     | SQL/RPC                | Create/resend/revoke/accept atomicity and idempotency                                             | State and audit remain atomic                                   |
+| `FEAT-004-RPC-02`     | SQL/RPC                | Same/different invitation races                                                                   | At most one membership and role                                 |
+| `FEAT-004-RPC-03`     | SQL/RPC                | Elapsed pending row is materialized, audited, and reinvited                                       | Expired row no longer blocks a new invitation                   |
+| `FEAT-004-EDGE-01`    | Edge                   | JWT, origin, body, AMR, AAL2, permission, role, provider errors                                   | Protected commands fail closed                                  |
+| `FEAT-004-TENANT-01`  | Runtime/SQL            | Forged-school IDs; adversarial schools only in rollback-only SQL fixtures or separate deployments | No cross-tenant read, inference, or mutation                    |
+| `FEAT-004-AUTH-01`    | Runtime                | New identity invitation, password setup, acceptance                                               | One verified membership                                         |
+| `FEAT-004-AUTH-02`    | Runtime                | Existing confirmed identity without a membership joins the deployment school                      | Explicit acceptance creates its first school membership         |
+| `FEAT-004-AUTH-03`    | Runtime                | Expired, resent, revoked, wrong account, provider uncertainty, and lost post-provider response    | Database state is read back idempotently; no outcome is assumed |
+| `FEAT-004-MAIL-01`    | Runtime                | Local invite/magic-link templates and exact callback allowlist                                    | Mail captured locally with safe callback                        |
+| `FEAT-004-E2E-01`     | Browser                | Admin invites and recipient accepts on desktop/mobile                                             | End-to-end success and final bootstrap                          |
+| `FEAT-004-A11Y-01`    | Browser/manual support | Keyboard, focus, announcements, reflow, contrast, target size                                     | Automated scope pass; formal review later                       |
+| `FEAT-004-SEC-01`     | Security               | Enumeration, replay, races, arbitrary roles, metadata, secret scans                               | No bypass or prohibited disclosure                              |
+| `FEAT-004-REG-01`     | Regression             | Complete application and database/runtime matrices                                                | FEAT-001–003 remain green                                       |
+| `FEAT-004-FIXTURE-01` | Runtime                | Random synthetic identities, cleanup, residue scan                                                | Zero unintended residue or uncertain cleanup                    |
 
 ## Dependencies
 

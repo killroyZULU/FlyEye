@@ -32,6 +32,24 @@
 | `AC-17`                                    | Exact server/database email canonicalization and uniqueness                  | `UNIT-01`, `SQL-01`, `TENANT-01`                          | Pass: ASCII trim/lower contract and variant uniqueness covered                                                                                    | Internationalized email remains outside this slice         |
 | `AC-19/20/21/22/23`                        | Failure, accessibility, secret, regression, and lifecycle boundaries         | `COMP-01/02`, `A11Y-01`, `SEC-01`, `REG-01`, `FIXTURE-01` | Pass for automated local scope: full matrices and zero-residue scan passed                                                                        | Qualified accessibility and hosted evidence remain pending |
 
+## Acceptance concurrency evidence
+
+[SEC-006 / issue #124](https://github.com/killroyZULU/FlyEye/issues/124) owns
+execution results for the [acceptance concurrency contract](FEAT-004_MEMBER_INVITATIONS.md#acceptance-concurrency-investigation).
+The [runner](../../../scripts/test-h002-acceptance.mjs) observes database blockers;
+the [case matrix](../../../scripts/lib/h002-acceptance-cases.mjs) defines twelve
+interleavings and five negative controls. [Assertions](../../../scripts/lib/h002-acceptance-assertions.mjs)
+check membership, role, invitation and exact event outcomes. [Fixture ownership](../../../scripts/lib/h002-acceptance-fixture.mjs)
+limits mutations to synthetic rows and a dedicated role; normal and injected
+observer-failure runs must prove cleanup and unchanged existing roles/permissions.
+Execution evidence is not established by source inspection.
+
+Existing `RPC-02`/`TENANT-01` and `EDGE-01`/`AUTH-01/02` above cover their recorded
+cross-school and trusted identity/freshness boundaries. This SQL schedule matrix
+does not extend that evidence to provider identity changes during waits, global
+session policy, every implicit write wait or hosted operation. Broader H002
+coverage remains in [issue #39](https://github.com/killroyZULU/FlyEye/issues/39).
+
 ## Reproducible evidence
 
 | Evidence                                 | Result                                                                                                                                                                                                           |

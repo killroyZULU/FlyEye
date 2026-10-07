@@ -160,6 +160,8 @@ jobs:
           node scripts/test-h002-locks.mjs
           node scripts/test-h002-review.mjs --cleanup-probe
           node scripts/test-h002-review.mjs
+          node scripts/test-h002-acceptance.mjs --cleanup-probe
+          node scripts/test-h002-acceptance.mjs
 
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime
