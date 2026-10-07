@@ -147,6 +147,10 @@ grant and audit outcomes. Include retained-eligibility controls, same-key replay
 already-expired/stale inputs and injected-observer-failure cleanup. Use isolated
 synthetic CI; preserve existing roles, grants and permission boundaries.
 
+Grant eligibility must not survive its expiry while waiting. Password cases
+preserve the explicit transaction-time rule in [Recent authentication](#recent-authentication);
+crossing 600 seconds of wall time during a wait does not redefine that rule.
+
 This investigation does not define global session lifetimes or cover start,
 cancellation, provider/factor mutation, every implicit write wait or hosted behavior.
 

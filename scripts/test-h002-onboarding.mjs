@@ -131,10 +131,12 @@ async function run(lock, boundary) {
   const result = outcome.value;
   phase = 'assert-state';
   const after = await assertOutcome(observer, result, before, adminRole);
+  // FEAT-003 explicitly measures password age at transaction time. A later
+  // wall-clock crossing is a policy control, not a grant-expiry violation.
   const expected =
     boundary === 'expiry' || boundary === 'expired'
       ? 'expired'
-      : boundary === 'password' || boundary === 'stale'
+      : boundary === 'stale'
         ? 'recent_authentication_required'
         : 'completed';
   if (result.decision !== expected) {
@@ -199,6 +201,8 @@ try {
   for (const lock of ['org', 'grant'])
     for (const boundary of ['control', 'expiry', 'password']) await run(lock, boundary);
   for (const boundary of ['expired', 'stale']) await run(null, boundary);
+  stage = 'matrix';
+  phase = 'contract-summary';
   assert.equal(violations, 0, 'Onboarding completion violated an existing time boundary');
 } catch (error) {
   if (

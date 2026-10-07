@@ -107,10 +107,20 @@ The [runner](../../../scripts/test-h002-onboarding.mjs), `run`, observes organiz
 and grant blockers before and after the existing time boundary. Its six observed
 interleavings and two direct negative controls use [owned fixtures](../../../scripts/lib/h002-onboarding-fixture.mjs)
 and [exact assertions](../../../scripts/lib/h002-onboarding-assertions.mjs), `assertOutcome`.
-Normal and injected-observer-failure cleanup must prove owned state/sessions absent
-and existing roles unchanged. Execution remains pending; source inspection is not
-a pass. Provider identity/factor/session changes and other H002 schedules remain
-outside this matrix.
+At `ae04170`, [characterization CI 37627730536](https://github.com/killroyZULU/FlyEye/actions/runs/37627730536)
+observed completion after grant expiry at both locks. Exact domain/audit assertions,
+retained controls, direct negatives and both cleanup runs passed; the gate failed
+on the mismatched decisions. The two password-crossing denial expectations were
+incorrect: the contract explicitly uses transaction time, so these outcomes are
+policy controls, not production defects. Their expectations are corrected without
+changing authentication behavior.
+
+The [grant-only migration](../../../supabase/migrations/20261007133133_sec_007_onboarding_grant_expiry.sql)
+evaluates expiry with current time after the explicit locks; password checks,
+signatures, grants and other predicates are unchanged. Regression execution remains
+pending. Provider identity/factor/session changes, start/cancellation, later implicit
+waits and other H002 schedules remain outside this matrix. Historical A024 cleanup
+is not established by current successful cleanup.
 
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
