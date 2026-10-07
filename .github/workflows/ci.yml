@@ -162,6 +162,8 @@ jobs:
           node scripts/test-h002-review.mjs
           node scripts/test-h002-acceptance.mjs --cleanup-probe
           node scripts/test-h002-acceptance.mjs
+          node scripts/test-h002-onboarding.mjs --cleanup-probe
+          node scripts/test-h002-onboarding.mjs
 
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime

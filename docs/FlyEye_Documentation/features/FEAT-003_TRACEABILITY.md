@@ -99,6 +99,19 @@ The handler/authentication-evidence/gateway group passed 132 cases on baseline `
 
 ## Remaining gates
 
+### Completion lock-wait evidence
+
+[SEC-007 / #126](https://github.com/killroyZULU/FlyEye/issues/126) owns execution and
+review results for the [time-boundary investigation](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#completion-time-boundary-investigation).
+The [runner](../../../scripts/test-h002-onboarding.mjs), `run`, observes organization
+and grant blockers before and after the existing time boundary. Its six observed
+interleavings and two direct negative controls use [owned fixtures](../../../scripts/lib/h002-onboarding-fixture.mjs)
+and [exact assertions](../../../scripts/lib/h002-onboarding-assertions.mjs), `assertOutcome`.
+Normal and injected-observer-failure cleanup must prove owned state/sessions absent
+and existing roles unchanged. Execution remains pending; source inspection is not
+a pass. Provider identity/factor/session changes and other H002 schedules remain
+outside this matrix.
+
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
 ## Runtime cleanup recovery

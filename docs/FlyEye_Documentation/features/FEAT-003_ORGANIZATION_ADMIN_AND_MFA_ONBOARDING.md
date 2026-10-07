@@ -55,14 +55,14 @@ No email, client metadata, client role, client organization ID, factor claim, AA
 - `FEAT-003-DESIGN-AMD-04` defines the local limiter values, secret separation, retention, failure, recovery, and no-bypass behavior.
 - `FEAT-003-DESIGN-AMD-05` defines disabled-by-default hosted safeguards and remains merged but inactive pending an exact hosted target decision.
 
-| Action | Required authority |
-|---|---|
-| Read status | Verified subject, recent password AMR, protected grant lookup; no browser table grant |
-| Start onboarding | Eligible grant revalidated by the server; recent password AMR; AAL1 permitted only for initial TOTP enrollment |
-| Verify TOTP | Current password-authenticated subject and the exact factor lifecycle allowed below |
+| Action             | Required authority                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Read status        | Verified subject, recent password AMR, protected grant lookup; no browser table grant                                                                  |
+| Start onboarding   | Eligible grant revalidated by the server; recent password AMR; AAL1 permitted only for initial TOTP enrollment                                         |
+| Verify TOTP        | Current password-authenticated subject and the exact factor lifecycle allowed below                                                                    |
 | Complete bootstrap | Verified actor/session, locked pending grant, recent password AMR, strict TOTP AMR, AAL2, exact factor state, active organization, and no active admin |
-| Enter placeholder | Server-derived active admin membership, `portal.admin.access`, password AMR, and current AAL2/TOTP through `auth-bootstrap` |
-| Cancel | Current session, protected audit, in-memory cleanup, and sign-out; no unproven factor deletion |
+| Enter placeholder  | Server-derived active admin membership, `portal.admin.access`, password AMR, and current AAL2/TOTP through `auth-bootstrap`                            |
+| Cancel             | Current session, protected audit, in-memory cleanup, and sign-out; no unproven factor deletion                                                         |
 
 ## Eligibility grant
 
@@ -103,13 +103,13 @@ The administration placeholder requires password AMR and current AAL2/TOTP, but 
 
 Classify the complete bounded `listFactors().all` inventory; convenience arrays are not authoritative.
 
-| Factor state | Behavior |
-|---|---|
-| No TOTP | Enroll exactly one; keep its ID, QR/URI, and secret only in active memory |
-| One current-operation unverified TOTP | Permit QR/manual secret, verification, bounded retry, or cancellation |
-| Stale unverified TOTP | Do not guess ownership or delete; use a proven protected cleanup path or fail closed to support |
-| Exactly one verified TOTP | Challenge it; do not enroll another |
-| Multiple verified, mixed, duplicate, inconsistent, or unknown factors | Conflict; no selection, deletion, replacement, downgrade, or bypass |
+| Factor state                                                          | Behavior                                                                                        |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| No TOTP                                                               | Enroll exactly one; keep its ID, QR/URI, and secret only in active memory                       |
+| One current-operation unverified TOTP                                 | Permit QR/manual secret, verification, bounded retry, or cancellation                           |
+| Stale unverified TOTP                                                 | Do not guess ownership or delete; use a proven protected cleanup path or fail closed to support |
+| Exactly one verified TOTP                                             | Challenge it; do not enroll another                                                             |
+| Multiple verified, mixed, duplicate, inconsistent, or unknown factors | Conflict; no selection, deletion, replacement, downgrade, or bypass                             |
 
 Factor IDs must be unique and schemas bounded. TOTP input is exactly six numeric digits, permits paste, uses `inputmode="numeric"` and `autocomplete="one-time-code"`, and prevents duplicate active challenges.
 
@@ -138,6 +138,18 @@ Completion idempotency uses a browser-generated opaque value with at least 128 b
 
 FEAT-003 exposes no administrator removal, suspension, demotion, transfer, or general role change.
 
+## Completion time-boundary investigation
+
+Characterize completion at the organization and grant row locks while the existing
+grant-expiry or password-freshness boundary passes. Observe the actual blocked
+backend before and after the boundary, then assert exact membership, admin-role,
+grant and audit outcomes. Include retained-eligibility controls, same-key replay,
+already-expired/stale inputs and injected-observer-failure cleanup. Use isolated
+synthetic CI; preserve existing roles, grants and permission boundaries.
+
+This investigation does not define global session lifetimes or cover start,
+cancellation, provider/factor mutation, every implicit write wait or hosted behavior.
+
 ## Auth/database consistency
 
 Supabase Auth and PostgreSQL cannot share one transaction. Mitigate by:
@@ -161,12 +173,12 @@ The UI must support keyboard operation, deterministic focus/heading changes, lab
 
 PostgreSQL-authoritative atomic token buckets use authenticated-subject-plus-action HMAC keys with a dedicated ephemeral local secret. Local code trusts no IP or forwarded header.
 
-| Action | Local limit | Burst | Limiter unavailable |
-|---|---:|---:|---|
-| `status` | 12 per 60 seconds | 4 | Fail closed |
-| `start` | 4 per 60 seconds | 2 | Fail closed |
-| `complete` | 3 per 60 seconds | 1 | Fail closed |
-| `cancel` | 6 per 60 seconds | 2 | Clear local state, invalidate operation, sign out, and report uncertain server confirmation |
+| Action     |       Local limit | Burst | Limiter unavailable                                                                         |
+| ---------- | ----------------: | ----: | ------------------------------------------------------------------------------------------- |
+| `status`   | 12 per 60 seconds |     4 | Fail closed                                                                                 |
+| `start`    |  4 per 60 seconds |     2 | Fail closed                                                                                 |
+| `complete` |  3 per 60 seconds |     1 | Fail closed                                                                                 |
+| `cancel`   |  6 per 60 seconds |     2 | Clear local state, invalidate operation, sign out, and report uncertain server confirmation |
 
 Inactive local limiter state is retained for 15 minutes and removed by the fixture. Client counters, disabled buttons, provider quotas, and platform limits are defense-in-depth only. There is no bypass or emergency override.
 
