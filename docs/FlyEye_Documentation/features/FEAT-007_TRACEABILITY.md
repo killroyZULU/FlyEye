@@ -50,7 +50,7 @@ cover late `unauthorized` decisions and failure of required denial auditing.
 ### SQL inspection boundary
 
 [SEC-003 / #118](https://github.com/killroyZULU/FlyEye/issues/118) and
-[draft PR #119](https://github.com/killroyZULU/FlyEye/pull/119) extend the
+[PR #119](https://github.com/killroyZULU/FlyEye/pull/119) extend the
 [contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
 Inspection at `f02005b` identified 84 public functions, 29 with explicit locks.
 
@@ -82,23 +82,27 @@ aggregate, history, notification, audit and idempotency writes. Signatures,
 grants, RLS, permission predicates and audit failure behavior remain unchanged.
 The regression matrix adds two exact-replay cases, totaling 189 interleavings.
 Denials compare domain/audit snapshots; controls use [exact assertions](../../../scripts/lib/h002-review-assertions.mjs),
-`assertReviewSuccess`. Final execution results belong to PR #119's current-head CI;
-characterization success is not a correction pass.
+`assertReviewSuccess`. PR #119 merged at `e48f039`; [post-merge CI 37457708402](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402)
+passed all gates, 189 interleavings with zero stale successes and both cleanup probes.
 
 [CI 37451488561](https://github.com/killroyZULU/FlyEye/actions/runs/37451488561)
 at `2916fdc` stopped with SQLSTATE 42501 before any new authorization outcome:
 the revoker's argument subquery read a table unavailable to service_role. Using
 observer-prepared fixture versions corrected setup without granting table access.
-Both runs passed registry regressions and H002 cleanup, including observer failure. Run 37452816504
-later failed FEAT-003; its historical cleanup remains unverified under the
+Both passed registry/H002 cleanup. Run 37452816504
+failed FEAT-003; historical cleanup remains unverified under the
 [separate recovery evidence](FEAT-003_TRACEABILITY.md#runtime-cleanup-recovery).
 
-Negative evidence covers only observed schedules. Onboarding, invitation acceptance, cancellation cleanup and
-six quota-locking limiter functions have distinct contracts; inspection does not
-prove concurrent safety. Unprobed category-assignment archived-document locks,
-invitation role/competing-invitation locks, implicit DML, foreign-key, uniqueness,
-trigger/audit waits, global permission changes and session expiry remain open in
-[audit #39](https://github.com/killroyZULU/FlyEye/issues/39). Local Docker was unavailable; databases were preserved.
+[SEC-005 / #122](https://github.com/killroyZULU/FlyEye/issues/122) owns execution/review
+for nine schedules in `cases`: `assign_category-archived-document`,
+`invitation-begin-role` and `invitation-resend-competing`. The runner distinguishes
+rollback from serialization; `assertReviewSuccess` checks restoration, creation
+or unchanged conflict and audit. Cleanup includes the competing invitation.
+
+Onboarding, invitation acceptance, cancellation, six quota limiters, implicit
+DML/FK/uniqueness/trigger/audit waits, global permission changes and session expiry
+remain open in [audit #39](https://github.com/killroyZULU/FlyEye/issues/39).
+Schedules do not establish global safety; local databases remain preserved.
 
 ## Bounded request-body transport
 

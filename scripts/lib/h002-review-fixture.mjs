@@ -17,6 +17,7 @@ export const ids = Object.fromEntries(
     'invitation',
     'operation',
     'correlation',
+    'competingInvitation',
   ].map((name, index) => [name, `e0300000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`]),
 );
 export const q = (name) => `'${ids[name]}'`;

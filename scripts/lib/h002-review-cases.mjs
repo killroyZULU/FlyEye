@@ -287,4 +287,41 @@ for (const name of ['document-create-advisory', 'create_category-advisory']) {
   const original = cases.find((test) => test.name === name);
   cases.push({ ...original, name: `${name}-replay`, replay: true });
 }
+
+add(
+  'assign_category-archived-document',
+  category('assign_category'),
+  row('aircraft_documents', 'document'),
+  aircraftSeed +
+    documentSeed +
+    `update public.aircraft_document_requirements set requirement_state='archived',archived_at=now(),archived_by=${q('admin')} where ${scope};
+     update public.aircraft_documents set document_state='archived',archived_at=now(),archived_by=${q('admin')} where ${scope};`,
+  'category_assigned',
+);
+add(
+  'invitation-begin-role',
+  invitations.find(([action]) => action === 'begin')[1],
+  // Block the command's FOR SHARE without blocking demotion's FK KEY SHARE.
+  `select 1 from public.roles where code='student_pilot' for no key update;`,
+  invitationSeed,
+  'issuing',
+  { tables: invitationTables, eventTable: 'member_invitation_events', deny: 'not_available' },
+);
+add(
+  'invitation-resend-competing',
+  invitations.find(([action]) => action === 'resend')[1],
+  row('organization_invitations', 'competingInvitation'),
+  invitationSeed +
+    `update public.organization_invitations set status='expired',expired_at=now(),issued_at=now()-interval '2 hours',expires_at=now()-interval '1 hour' where id=${q('invitation')};
+     insert into public.organization_invitations(id,organization_id,email_original,email_canonical,role_id,status,invited_by,issuance_idempotency_key_hash,correlation_id)
+     select ${q('competingInvitation')},organization_id,email_original,email_canonical,role_id,'pending',invited_by,${hash('c')},correlation_id
+     from public.organization_invitations where id=${q('invitation')};`,
+  'conflict',
+  {
+    tables: invitationTables,
+    eventTable: 'member_invitation_events',
+    deny: 'not_available',
+    unchanged: true,
+  },
+);
 export { cases };

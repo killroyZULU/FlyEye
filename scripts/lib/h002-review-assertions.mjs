@@ -55,6 +55,30 @@ export async function assertReviewSuccess(observer, test) {
       );
     }
     event = `aircraft_document.${test.success}`;
+    if (test.name === 'assign_category-archived-document') {
+      assert.equal(
+        await observer.query(
+          `select document_state || ':' || version from public.aircraft_documents where id=${q('document')};`,
+        ),
+        'active:2',
+      );
+    }
+  } else if (test.name === 'invitation-begin-role') {
+    assert.equal(
+      await observer.query(`select count(*) from public.organization_invitations where ${scope}
+        and email_canonical='new-synthetic@example.test' and status='issuing' and version=1
+        and issuance_idempotency_key_hash=repeat('1',64);`),
+      '1',
+    );
+    event = 'member_invitation.created';
+  } else if (test.name === 'invitation-resend-competing') {
+    assert.equal(
+      await observer.query(`select count(*) from public.member_invitation_events where ${scope}
+        and actor_user_id=${q('actor')} and invitation_id=${q('invitation')}
+        and event_name='member_invitation.conflicted' and outcome='denied'
+        and reason_code='newer_invitation_active';`),
+      '1',
+    );
   } else if (test.name === 'file-complete') {
     assert.equal(
       await observer.query(

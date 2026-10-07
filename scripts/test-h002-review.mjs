@@ -149,6 +149,10 @@ async function race(test, authority) {
     assert.equal(result.replayed, true);
     assert.equal(await observer.query(snapshotSql(test)), before);
     assert.equal(await successCount(test), events);
+  } else if (test.unchanged) {
+    assert.equal(await observer.query(snapshotSql(test)), before);
+    assert.equal(await successCount(test), events);
+    await assertReviewSuccess(observer, test);
   } else if (!test.readOnly) {
     assert.notEqual(await observer.query(snapshotSql(test)), before);
     assert.ok((await successCount(test)) > events);

@@ -428,6 +428,18 @@ static candidates alone do not justify changing SQL. Distinct onboarding,
 invitation-acceptance, cancellation and internal-job contracts and untested
 implicit waits retain explicit limitations in the evidence inventory.
 
+[SEC-005 / #122](https://github.com/killroyZULU/FlyEye/issues/122) selects three
+remaining waits: category reassignment on an archived document, invitation
+creation on its assignable-role row, and resend on a competing invitation.
+Use membership revocation, role demotion and retained-authority controls for
+each. A late category denial must roll back the preceding requirement update;
+an authorized reassignment must restore the document. Invitation authority
+locks may serialize revocation after the command; require observed ordering,
+exact creation or unchanged competing-conflict state, and atomic audit evidence.
+Reuse the fixture's empty-school preflight, isolated CI target and independent
+cleanup, including the competing invitation. This test/evidence slice changes
+no production behavior unless an interleaving reproduces a defect.
+
 ## Specification and design definition of done
 
 - [x] Founder/Product Owner decisions define scope, roles, fields, duplicate
