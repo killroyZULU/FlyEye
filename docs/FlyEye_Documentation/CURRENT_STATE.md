@@ -1,11 +1,11 @@
 # Current State
 
-- Last updated: 2026-10-06
+- Last updated: 2026-10-07
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production status: not deployed or approved
 - Data boundary: local synthetic data only
 
-This is the canonical status summary. Keep requirements in their designated documents and evidence in traceability, PRs, CI, and Git.
+Requirements belong in specifications; traceability, PRs, CI and Git hold evidence.
 
 ## Delivered foundation
 
@@ -44,7 +44,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
 - Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry correction](https://github.com/killroyZULU/FlyEye/pull/115) and [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) are integrated. [SEC-003 / PR #119](https://github.com/killroyZULU/FlyEye/pull/119) merged at `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed all gates. H002: [untested scenarios remain open](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary). Preserve database/session-policy gates.
-- [A010 / #120](https://github.com/killroyZULU/FlyEye/issues/120): [limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
+- [A010 / PR #121](https://github.com/killroyZULU/FlyEye/pull/121) merged at `e938371`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37567228502) passed all gates/cleanup. [Limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
 
 ## Aircraft and dashboard integration
 
