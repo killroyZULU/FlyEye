@@ -203,6 +203,20 @@ Inactive local limiter state is retained for 15 minutes and removed by the fixtu
 
 Evidence covers allowed, rate-limited, unavailable, recovered, rapid, replayed, distributed-key, concurrent-isolate, and recovery-after-window decisions. Correlation uses bounded actions/outcomes, counts, booleans, status codes, hashes, and safe IDs—never credentials, TOTP values, email, hidden tenants/accounts/grants/factors, configured thresholds, provider internals, unrestricted IPs, or secrets. One fail-open, atomicity, audit, cross-tenant, prohibited-field, or unsafe-recovery result is a hard stop.
 
+### Limiter contention investigation
+
+Observe concurrent first insertion and final-token consumption for each existing
+action. Assert exact quota, response and event totals, plus key/action isolation
+while another bucket remains blocked. Verify event-write failure rolls back new
+and existing buckets and denied decisions; test bounded lock failure and recovery.
+Reuse existing sequential/handler evidence rather than redefining thresholds.
+
+Use CI-only synthetic keys with empty-table preflight because retention prunes
+globally. Freeze only owned fixture timestamps when necessary for exact budget
+assertions; production accepts no caller clock. Verify normal and interrupted
+cleanup, session absence and unchanged roles/permissions. Other limiters, pruning
+races, hosted abuse/capacity and authorization of protected actions are separate.
+
 ## Acceptance criteria
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.
