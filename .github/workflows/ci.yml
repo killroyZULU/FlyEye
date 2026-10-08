@@ -168,6 +168,8 @@ jobs:
           node scripts/test-h002-onboarding-start.mjs
           node scripts/test-onboarding-limiter.mjs --cleanup-probe
           node scripts/test-onboarding-limiter.mjs
+          node scripts/test-invitation-limiter.mjs --cleanup-probe
+          node scripts/test-invitation-limiter.mjs
 
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime

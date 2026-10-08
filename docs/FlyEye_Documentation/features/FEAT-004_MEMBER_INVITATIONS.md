@@ -258,6 +258,21 @@ scope instead of creating fresh buckets. Provider quotas and frontend timers are
 thresholds, network-source trust, capacity, alert ownership, retention, and
 support remain later environment-specific gates.
 
+### Limiter concurrency investigation
+
+Characterize the existing six-action limiter with observed concurrent first
+insertion and final-token waits. Transaction start order must differ from bucket
+lock order without moving a bucket's effective refill time backward or subtracting
+elapsed refill. Preserve the limits above, service-only execution and mandatory
+atomic events; successful consumption never grants invitation authority.
+
+Verify exact responses, bucket balances/timestamps and events, independent key/action
+progress, forward refill, event-write rollback with unchanged-quota retry, bounded
+lock failure/recovery and normal/interrupted cleanup. Use actual transaction times
+in an empty disposable limiter fixture. Correct only reproduced defects through
+versioned migrations. Pruning races, scope/HMAC derivation, other limiters and
+hosted abuse/capacity remain outside this investigation.
+
 ## Security, privacy, and abuse cases
 
 - Email is personal data and is visible only to authorized administrators in

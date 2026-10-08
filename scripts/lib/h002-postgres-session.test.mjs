@@ -42,19 +42,22 @@ describe('H002 SQL session diagnostics and recovery', () => {
     await session.close();
   });
 
-  it('captures a split SQLSTATE without exposing SQL, payloads or server messages', async () => {
-    const session = postgresSession('h002_observer');
-    const result = session.query('select missing_column;').catch((error) => error);
-    child.stderr.write('ERROR: 42');
-    child.stderr.write('703\nSynthetic private payload must not escape\n');
-    child.emit('close', 3);
-    const error = await result;
-    expect(error).toBeInstanceOf(H002SqlError);
-    expect(failureDetail(error)).toBe('sqlstate-42703');
-    expect(error.message).toBe('H002 SQL session closed');
-    await expect(session.query('select 1;')).rejects.toBeInstanceOf(H002SqlError);
-    await session.close();
-  });
+  it.each(['42703', '23514'])(
+    'captures split SQLSTATE %s without exposing private details',
+    async (code) => {
+      const session = postgresSession('h002_observer');
+      const result = session.query('select missing_column;').catch((error) => error);
+      child.stderr.write('ERROR: ' + code.slice(0, 2));
+      child.stderr.write(code.slice(2) + '\nSynthetic private payload must not escape\n');
+      child.emit('close', 3);
+      const error = await result;
+      expect(error).toBeInstanceOf(H002SqlError);
+      expect(failureDetail(error)).toBe('sqlstate-' + code);
+      expect(error.message).toBe('H002 SQL session closed');
+      await expect(session.query('select 1;')).rejects.toBeInstanceOf(H002SqlError);
+      await session.close();
+    },
+  );
 
   it('does not let an unapproved code or raw error message become a diagnostic', async () => {
     const session = postgresSession('h002_observer');
