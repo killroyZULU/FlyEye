@@ -50,6 +50,20 @@ does not extend that evidence to provider identity changes during waits, global
 session policy, every implicit write wait or hosted operation. Broader H002
 coverage remains in [issue #39](https://github.com/killroyZULU/FlyEye/issues/39).
 
+## Limiter concurrency evidence
+
+[SEC-010 / #132](https://github.com/killroyZULU/FlyEye/issues/132) owns execution
+and review results for the [limiter investigation](FEAT-004_MEMBER_INVITATIONS.md#limiter-concurrency-investigation).
+The [runner](../../../scripts/test-invitation-limiter.mjs), `contention`, observes
+older workers blocked by a newer bucket owner; `forwardRefill`, `isolation`,
+`eventFailure` and `timeout` check retained refill, independent progress, unchanged
+quota after rollback and bounded recovery. [Exact assertions](../../../scripts/lib/invitation-limiter-fixture.mjs),
+`assertRecords`, compare complete state, response and event records. The normal
+and injected-observer-failure paths both require owned rows/sessions absent and
+unchanged roles/permissions. Runtime results must be recorded before claiming
+coverage; source inspection alone is not execution evidence. Existing trusted
+scope, authorization and cross-school evidence above retains its original scope.
+
 ## Reproducible evidence
 
 | Evidence                                 | Result                                                                                                                                                                                                           |
