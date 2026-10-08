@@ -1,11 +1,11 @@
 # Current State
 
-- Last updated: 2026-10-07
+- Last updated: 2026-10-08
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
-- Production status: not deployed or approved
+- Production: not deployed or approved
 - Data boundary: local synthetic data only
 
-Requirements belong in specifications; traceability, PRs, CI and Git hold evidence.
+Specifications own requirements; traceability, PRs and CI hold evidence.
 
 ## Delivered foundation
 
@@ -41,10 +41,11 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Maintenance: PRs #41, #43, #45 and #47 delivered tooling, [MFA cleanup](features/FEAT-006_TRACEABILITY.md#runtime-fixture-maintenance), integration checkpoints and secret prevention.
 - Integration: PR #34 combines aircraft and dashboard modules with permission-filtered navigation and access-revocation handling. Issue #20 is closed against merged FEAT-006 evidence.
 - Corrected findings: A008 stale MFA-assurance rejection and A009 invalid-file metadata-only continuation, with regressions. Aircraft SQL clock and seeded-category fixture cleanup corrections preserve production behavior.
-- Guidance: Tasks 1-5 and recovery/invitation follow-ups are integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63) at `d102994`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed all gates and cleanup. FEAT-004 failure cause remains unknown.
+- Guidance: Tasks 1-5 and follow-ups integrated through [PR #63](https://github.com/killroyZULU/FlyEye/pull/63), `d102994`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/36393246246) passed. Historical FEAT-004 cause remains unknown.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
-- Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry correction](https://github.com/killroyZULU/FlyEye/pull/115) and [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) are integrated. [SEC-003 / PR #119](https://github.com/killroyZULU/FlyEye/pull/119) merged at `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed all gates. H002: [untested scenarios remain open](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary). Preserve database/session-policy gates.
+- Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry](https://github.com/killroyZULU/FlyEye/pull/115), [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) and [SEC-003](https://github.com/killroyZULU/FlyEye/pull/119) integrated through `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed. [Untested H002 scenarios](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary) and database/session-policy gates remain.
 - [A010 / PR #121](https://github.com/killroyZULU/FlyEye/pull/121) merged at `e938371`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37567228502) passed all gates/cleanup. [Limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
+- [SEC-007](https://github.com/killroyZULU/FlyEye/pull/127) corrected completion expiry at `c00cf1d`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/37720051022) passed. [SEC-008](https://github.com/killroyZULU/FlyEye/issues/128) investigates Start waits. Password policy and #39's remaining concerns persist.
 
 ## Aircraft and dashboard integration
 

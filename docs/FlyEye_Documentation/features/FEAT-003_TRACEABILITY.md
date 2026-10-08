@@ -122,6 +122,19 @@ owns regression execution and review results. Provider identity/factor/session c
 waits and other H002 schedules remain outside this matrix. Historical A024 cleanup
 is not established by current successful cleanup.
 
+### Start lock-wait evidence
+
+[SEC-008 / #128](https://github.com/killroyZULU/FlyEye/issues/128) owns execution and
+review results for the [start investigation](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#start-grant-expiry-investigation).
+The [runner](../../../scripts/test-h002-onboarding-start.mjs), `run`, covers six
+observed waits and two direct expired controls, using the existing owned fixture
+sequentially after completion tests. [Assertions](../../../scripts/lib/h002-onboarding-start-assertions.mjs),
+`assertOutcome`, compare grant/version, prior and new audit events, replay output
+and absence of membership/profile/role creation. Normal and injected-failure
+cleanup check owned rows/users/session residue and unchanged existing roles.
+These SQL tests create no provider factor; zero factor residue is not factor
+lifecycle evidence. Results apply only to the selected schedules.
+
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
 ## Runtime cleanup recovery
