@@ -60,8 +60,10 @@ older workers blocked by a newer bucket owner; `forwardRefill`, `isolation`,
 quota after rollback and bounded recovery. [Exact assertions](../../../scripts/lib/invitation-limiter-fixture.mjs),
 `assertRecords`, compare complete state, response and event records. The normal
 and injected-observer-failure paths both require owned rows/sessions absent and
-unchanged roles/permissions. Runtime results must be recorded before claiming
-coverage; source inspection alone is not execution evidence. Existing trusted
+unchanged roles/permissions. The [correction](../../../supabase/migrations/20261008111822_sec_010_invitation_limiter_monotonic_time.sql)
+clamps effective time after the locked bucket read while retaining transaction-time
+event timestamps. Execution targets and baseline/corrected results belong to #132;
+source inspection alone is not execution evidence. Existing trusted
 scope, authorization and cross-school evidence above retains its original scope.
 
 ## Reproducible evidence
