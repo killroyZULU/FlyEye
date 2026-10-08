@@ -50,7 +50,14 @@ recovery. The [fixture](../../../scripts/lib/member-mfa-limiter-fixture.mjs),
 `assertRecords`, compares full responses, buckets and events. Normal and
 injected-observer-failure paths require owned rows/sessions absent and unchanged
 roles/permissions. Source inspection is not execution evidence; baseline failures,
-unreached cases and corrected results remain distinct in #136. Existing MFA
+unreached cases and corrected results remain distinct in #136.
+[Baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/37782571059) at
+`fc6c7bf` reproduced eight older `complete` waiters failing with SQLSTATE `23514`
+after a newer owner exhausted the inserted bucket. Owner-only state/event,
+normal/interrupted cleanup and teardown were verified; twenty other cases were
+not reached. The [correction](../../../supabase/migrations/20261008131836_sec_012_member_mfa_limiter_monotonic_time.sql)
+clamps effective time after the locked read without changing transaction-time
+events or thresholds. Corrected execution results belong to #136. Existing MFA
 authorization, provider and cross-school evidence retains its original scope.
 
 ## Runtime fixture maintenance
