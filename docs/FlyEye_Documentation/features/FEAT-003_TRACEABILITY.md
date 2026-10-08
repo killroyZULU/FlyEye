@@ -144,6 +144,21 @@ checks current time after the locks, preserving expiry-before-replay ordering,
 authentication policy, signature, grants and other predicates. The linked
 delivery record owns regression execution and review results.
 
+### Limiter contention evidence
+
+[SEC-009 / #130](https://github.com/killroyZULU/FlyEye/issues/130) owns execution and
+review results for the [limiter investigation](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#limiter-contention-investigation).
+The [runner](../../../scripts/test-onboarding-limiter.mjs), `contention`, observes
+eight workers at genuine insertion and final-token waits for four actions.
+`isolation`, `eventFailure` and `timeout` check unblocked key/action independence,
+unique-correlation event failure with rollback and fresh unchanged-quota retry, and bounded
+statement failure. [Exact assertions](../../../scripts/lib/onboarding-limiter-fixture.mjs),
+`assertRecords`, compare bucket balances/timestamps and attributable event/response
+contracts. Normal and injected-observer-failure cleanup cover owned rows/sessions
+and unchanged roles/permissions. Empty tables are a precondition; these synthetic
+key tests do not prove hosted abuse protection, HMAC derivation, pruning races,
+other limiters or permission to perform the protected action.
+
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
 ## Runtime cleanup recovery
