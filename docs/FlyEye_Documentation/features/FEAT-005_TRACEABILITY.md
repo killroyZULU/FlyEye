@@ -99,6 +99,28 @@ The occupied local database was preserved. Final application checks, separate
 review, and disposable CI evidence belong to the linked delivery issue/PR;
 instrumentation alone does not prove integration success.
 
+## Limiter concurrency evidence
+
+[SEC-011 / #134](https://github.com/killroyZULU/FlyEye/issues/134) owns execution
+targets and review results for the [limiter investigation](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#limiter-concurrency-investigation).
+The [runner](../../../scripts/test-member-administration-limiter.mjs), `ordered`,
+observes an older RPC waiting before a newer owner decision; `insertion`, `isolation`,
+`refill`, `eventFailure` and `timeout` check retained controls and atomic recovery.
+The [fixture assertions](../../../scripts/lib/member-administration-limiter-fixture.mjs),
+`assertTransition` and `assertRecords`, compare PostgreSQL numeric refill and complete
+bucket/response/event records. Normal and injected-observer-failure paths require
+owned rows, sessions and transactional fault objects absent, with unchanged roles
+and permissions. [Baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/37776226982)
+at `39acef8` reproduced a backward bucket timestamp in the first `list` ordering
+case, with exact balances/responses and both events preserved. Normal/interrupted
+cleanup and teardown passed; the other nineteen cases were not reached. The
+[correction](../../../supabase/migrations/20261008122554_sec_011_member_limiter_monotonic_time.sql)
+clamps effective time after the locked read, retaining wall-clock sampling and
+transaction-time events. Corrected execution results belong to #134; source
+inspection alone is not passing evidence.
+Existing authorization, trusted scope and cross-school tests retain their original
+scope. Other H002 schedules and hosted thresholds remain outside this matrix.
+
 ## Evidence rules
 
 - One row represents one independently testable requirement group.

@@ -252,6 +252,23 @@ Unauthorized organization or membership hints collapse to one actor-and-action
 denial scope. Hosted thresholds, network-source trust, capacity, monitoring,
 retention, alert ownership, and support remain environment-specific gates.
 
+### Limiter concurrency investigation
+
+Verify all eight action mappings across directory, profile and status groups,
+including [role assignment](FEAT-006_ROLE_ASSIGNMENT.md#slice-b-workflow-and-rules).
+An older waiting request must not move the locked bucket's effective time backward.
+Preserve wall-clock numeric refill, capacities, shared groups, trusted keys,
+service-only execution and atomic events with transaction-time timestamps.
+
+Use observed older-waiter/newer-owner ordering, genuine first insertion, key/group
+isolation, forward refill and capacity controls, event-failure rollback with
+unchanged-quota retries, and bounded lock failure/recovery. Require exact PostgreSQL
+numeric balances, responses and events, normal/interrupted cleanup and unchanged
+permissions in an empty disposable fixture. Fault objects must roll back with the
+failing transaction and be verified absent. Correct only reproduced defects through
+versioned migrations. Other limiters, implicit waits, scope derivation, hosted abuse
+and session policy remain separate; limiter success never grants action authority.
+
 ## Security, privacy, and abuse cases
 
 - Display name, contact number, email, membership status, and role are personal
