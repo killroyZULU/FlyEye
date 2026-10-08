@@ -135,6 +135,15 @@ cleanup check owned rows/users/session residue and unchanged existing roles.
 These SQL tests create no provider factor; zero factor residue is not factor
 lifecycle evidence. Results apply only to the selected schedules.
 
+At `8126b66`, [characterization CI 37721896829](https://github.com/killroyZULU/FlyEye/actions/runs/37721896829)
+observed expired grants return `ready` in four schedules: new and same-key replay
+at each lock. Exact state/audit assertions, retained controls, direct expired
+negatives and both cleanup runs passed; the gate failed on those decisions.
+The [START migration](../../../supabase/migrations/20261008032103_sec_008_onboarding_start_grant_expiry.sql)
+checks current time after the locks, preserving expiry-before-replay ordering,
+authentication policy, signature, grants and other predicates. The linked
+delivery record owns regression execution and review results.
+
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
 ## Runtime cleanup recovery
