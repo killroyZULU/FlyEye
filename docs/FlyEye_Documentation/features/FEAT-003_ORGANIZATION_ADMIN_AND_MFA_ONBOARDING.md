@@ -154,6 +154,21 @@ crossing 600 seconds of wall time during a wait does not redefine that rule.
 This investigation does not define global session lifetimes or cover start,
 cancellation, provider/factor mutation, every implicit write wait or hosted behavior.
 
+## Start grant-expiry investigation
+
+Characterize `start_organization_admin_onboarding` at its organization and grant
+locks: retained eligibility, new start crossing expiry, and same-key replay
+crossing expiry. Include direct expired new/replay controls and valid replay.
+Establish replay through a committed successful start with distinct correlation;
+observe the blocked worker before and after expiry. Eligibility precedes replay:
+an earlier start cannot restore an expired pending grant.
+
+Assert exact grant/version and attributable start/expiry audit outcomes, preserve
+prior events, and require no membership/profile/role creation. Reuse isolated
+synthetic CI fixtures with normal and injected-failure cleanup. Correct only a
+reproduced violation; preserve authentication policy and execution grants.
+Provider/factor changes, cancellation and later implicit waits remain separate.
+
 ## Auth/database consistency
 
 Supabase Auth and PostgreSQL cannot share one transaction. Mitigate by:
