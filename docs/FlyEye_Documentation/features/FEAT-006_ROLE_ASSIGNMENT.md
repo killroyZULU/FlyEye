@@ -85,15 +85,15 @@ stable pull-request boundary and any required baseline decision is made.
 
 ## Sources, decisions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| TOTP/AAL2 for privileged roles; email is not the privileged second factor | SRS `IAM-005`; Security Requirements section 3; System Architecture section 7 | Verified |
-| First-admin TOTP enrollment and strict factor handling | FEAT-003 contract and implementation at `25f4ddd` | Verified locally; reuse controls, not bootstrap authority |
-| General self-service initial enrollment followed by role assignment | Founder/Product Owner decision, 2026-08-13 | Approved as staggered delivery |
-| One role per membership, protected commands, last-admin protection, and reauthentication | Database Design section 5; SRS `IAM-002`, `IAM-003`, `IAM-006`, `IAM-012`; Security Requirements sections 3–4 and 9 | Verified |
-| Existing roles and effective permissions | FEAT-001, FEAT-004, and FEAT-005 migrations at `25f4ddd` | Verified locally |
-| Aviation permission and separation-of-duties matrix | Founder/Product Owner, pilot school, and qualified aviation reviewer | Unresolved; blocks operational permissions and role combinations, not these portal controls |
-| Factor recovery/replacement and real-data operating procedure | School controller and qualified privacy/legal/security owners | Unresolved; later real-data and production gate |
+| Item                                                                                     | Source/owner/version                                                                                                | State                                                                                       |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| TOTP/AAL2 for privileged roles; email is not the privileged second factor                | SRS `IAM-005`; Security Requirements section 3; System Architecture section 7                                       | Verified                                                                                    |
+| First-admin TOTP enrollment and strict factor handling                                   | FEAT-003 contract and implementation at `25f4ddd`                                                                   | Verified locally; reuse controls, not bootstrap authority                                   |
+| General self-service initial enrollment followed by role assignment                      | Founder/Product Owner decision, 2026-08-13                                                                          | Approved as staggered delivery                                                              |
+| One role per membership, protected commands, last-admin protection, and reauthentication | Database Design section 5; SRS `IAM-002`, `IAM-003`, `IAM-006`, `IAM-012`; Security Requirements sections 3–4 and 9 | Verified                                                                                    |
+| Existing roles and effective permissions                                                 | FEAT-001, FEAT-004, and FEAT-005 migrations at `25f4ddd`                                                            | Verified locally                                                                            |
+| Aviation permission and separation-of-duties matrix                                      | Founder/Product Owner, pilot school, and qualified aviation reviewer                                                | Unresolved; blocks operational permissions and role combinations, not these portal controls |
+| Factor recovery/replacement and real-data operating procedure                            | School controller and qualified privacy/legal/security owners                                                       | Unresolved; later real-data and production gate                                             |
 
 The built-in role labels describe FlyEye portal scope. Assigning
 `instructor_pilot` does not verify that a person is qualified or authorized to
@@ -101,13 +101,13 @@ instruct. Assigning `admin` grants no operational or aviation authority.
 
 ## Roles and authority
 
-| Action | Permission or identity rule | Execution boundary | Reauthentication |
-|---|---|---|---|
-| Read own MFA readiness | Active server-derived membership and matching Auth subject | Protected member-MFA Edge Function and server-only RPC | Current password-authenticated session |
-| Start or confirm own first TOTP enrollment | Active member acting only for self; exact supported factor inventory | Supabase Auth enrollment plus protected member-MFA Edge Function | Password AMR no older than 600 seconds; AAL1 allowed only to establish TOTP |
-| Complete own MFA readiness | Same actor, membership, enrollment operation, and verified factor reference | Server-side Auth factor recheck plus atomic readiness/audit RPC | Current AAL2/TOTP and password AMR no older than 600 seconds |
-| Review role replacements | `membership.member.review` | Existing protected member-administration Edge Function and server-only RPC | Current AAL2/TOTP |
-| Replace another member's role | `membership.role.assign`; active same-school target; no self-action | Protected member-administration Edge Function, server-side Auth factor check, and atomic server-only RPC | Password AMR no older than 600 seconds plus current AAL2/TOTP |
+| Action                                     | Permission or identity rule                                                 | Execution boundary                                                                                       | Reauthentication                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Read own MFA readiness                     | Active server-derived membership and matching Auth subject                  | Protected member-MFA Edge Function and server-only RPC                                                   | Current password-authenticated session                                      |
+| Start or confirm own first TOTP enrollment | Active member acting only for self; exact supported factor inventory        | Supabase Auth enrollment plus protected member-MFA Edge Function                                         | Password AMR no older than 600 seconds; AAL1 allowed only to establish TOTP |
+| Complete own MFA readiness                 | Same actor, membership, enrollment operation, and verified factor reference | Server-side Auth factor recheck plus atomic readiness/audit RPC                                          | Current AAL2/TOTP and password AMR no older than 600 seconds                |
+| Review role replacements                   | `membership.member.review`                                                  | Existing protected member-administration Edge Function and server-only RPC                               | Current AAL2/TOTP                                                           |
+| Replace another member's role              | `membership.role.assign`; active same-school target; no self-action         | Protected member-administration Edge Function, server-side Auth factor check, and atomic server-only RPC | Password AMR no older than 600 seconds plus current AAL2/TOTP               |
 
 Browser roles receive no direct readiness, role, permission, membership, or
 audit mutation grant. The server derives authority from verified Auth and
@@ -207,6 +207,24 @@ time. They exclude email, profile values, password, token, factor ID, QR data,
 manual secret, verification code, provider response, and unrestricted network
 data. Audit or readiness failure creates no FlyEye authority.
 
+### Member-MFA limiter concurrency investigation
+
+Characterize all five independent action buckets using observed first-insertion
+and final-token waits. Older transaction times must not subtract refill or move
+the locked bucket's effective time backward. Preserve integer milli-token
+accounting, transaction-time event timestamps, service-only execution and the
+existing limits: `status` burst six/refill one per five seconds, `complete` burst
+one/refill one per thirty seconds, and `start`/`bind_factor`/`cancel` burst
+two/refill one per fifteen seconds.
+
+Verify exact responses, balances/timestamps and events, independent action/key
+progress, forward refill, event-write rollback with unchanged-quota retry and
+bounded timeout recovery. Normal/interrupted cleanup must remove owned rows and
+sessions with permissions unchanged in an empty disposable limiter fixture.
+Correct only reproduced defects through versioned migrations. Enrollment,
+provider/factor mutation, cancellation reconciliation, session policy, other
+limiters and hosted abuse remain separate; consumption grants no MFA authority.
+
 ## Slice B workflow and rules
 
 ```text
@@ -286,23 +304,23 @@ Active membership + Role A --authorized replacement--> Active membership + Role 
 
 ## Planned verification
 
-| Test ID | Slice | Level | Scenario |
-|---|---|---|---|
-| `FEAT-006A-UNIT-01` | A | Unit | Schemas, factor states, idempotency, errors, secret rejection |
-| `FEAT-006A-COMP-01` | A | Component | Enrollment, existing-factor, cancellation, failure, focus and announcements |
-| `FEAT-006A-SQL-01` | A | SQL/RLS | Tables, constraints, grants, operation/readiness invariants and audit failure |
-| `FEAT-006A-EDGE-01` | A | Handler/runtime | Auth, recent password, factor inventory, limiter and sanitized errors |
-| `FEAT-006A-TENANT-01` | A | Runtime/SQL | Forged school, membership, RPC and metadata attempts |
-| `FEAT-006A-AUTH-01` | A | Runtime | New and existing TOTP, AAL2, retry, cancellation and cleanup |
-| `FEAT-006A-E2E-01` | A | Browser | Student setup and privileged missing-factor routing on desktop/mobile |
-| `FEAT-006A-SEC-01` | A | Security | Secrets, replay, factor conflict, audit and provider consistency |
-| `FEAT-006A-REG-01` | A | Regression | Complete app/database/runtime matrix and zero residue |
-| `FEAT-006B-RPC-01` | B | SQL/RPC | Role swap, reasons, version, idempotency, last-admin and atomic audit |
-| `FEAT-006B-RACE-01` | B | SQL/RPC | Concurrent role/status changes and last-admin protection |
-| `FEAT-006B-EDGE-01` | B | Handler/runtime | Actor auth, target readiness, limiter and safe errors |
-| `FEAT-006B-TENANT-01` | B | Runtime/SQL | Forged school, target, role option, RPC and Edge attempts |
-| `FEAT-006B-E2E-01` | B | Browser | Admin role change and all required UI states |
-| `FEAT-006B-REG-01` | B | Regression | Complete app/database/runtime matrix and zero residue |
+| Test ID               | Slice | Level           | Scenario                                                                      |
+| --------------------- | ----- | --------------- | ----------------------------------------------------------------------------- |
+| `FEAT-006A-UNIT-01`   | A     | Unit            | Schemas, factor states, idempotency, errors, secret rejection                 |
+| `FEAT-006A-COMP-01`   | A     | Component       | Enrollment, existing-factor, cancellation, failure, focus and announcements   |
+| `FEAT-006A-SQL-01`    | A     | SQL/RLS         | Tables, constraints, grants, operation/readiness invariants and audit failure |
+| `FEAT-006A-EDGE-01`   | A     | Handler/runtime | Auth, recent password, factor inventory, limiter and sanitized errors         |
+| `FEAT-006A-TENANT-01` | A     | Runtime/SQL     | Forged school, membership, RPC and metadata attempts                          |
+| `FEAT-006A-AUTH-01`   | A     | Runtime         | New and existing TOTP, AAL2, retry, cancellation and cleanup                  |
+| `FEAT-006A-E2E-01`    | A     | Browser         | Student setup and privileged missing-factor routing on desktop/mobile         |
+| `FEAT-006A-SEC-01`    | A     | Security        | Secrets, replay, factor conflict, audit and provider consistency              |
+| `FEAT-006A-REG-01`    | A     | Regression      | Complete app/database/runtime matrix and zero residue                         |
+| `FEAT-006B-RPC-01`    | B     | SQL/RPC         | Role swap, reasons, version, idempotency, last-admin and atomic audit         |
+| `FEAT-006B-RACE-01`   | B     | SQL/RPC         | Concurrent role/status changes and last-admin protection                      |
+| `FEAT-006B-EDGE-01`   | B     | Handler/runtime | Actor auth, target readiness, limiter and safe errors                         |
+| `FEAT-006B-TENANT-01` | B     | Runtime/SQL     | Forged school, target, role option, RPC and Edge attempts                     |
+| `FEAT-006B-E2E-01`    | B     | Browser         | Admin role change and all required UI states                                  |
+| `FEAT-006B-REG-01`    | B     | Regression      | Complete app/database/runtime matrix and zero residue                         |
 
 ## Dependencies and change boundary
 

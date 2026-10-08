@@ -172,6 +172,8 @@ jobs:
           node scripts/test-invitation-limiter.mjs
           node scripts/test-member-administration-limiter.mjs --cleanup-probe
           node scripts/test-member-administration-limiter.mjs
+          node scripts/test-member-mfa-limiter.mjs --cleanup-probe
+          node scripts/test-member-mfa-limiter.mjs
 
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime
