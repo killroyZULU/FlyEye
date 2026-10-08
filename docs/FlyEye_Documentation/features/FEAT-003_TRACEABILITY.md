@@ -99,6 +99,29 @@ The handler/authentication-evidence/gateway group passed 132 cases on baseline `
 
 ## Remaining gates
 
+### Completion lock-wait evidence
+
+[SEC-007 / #126](https://github.com/killroyZULU/FlyEye/issues/126) owns execution and
+review results for the [time-boundary investigation](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#completion-time-boundary-investigation).
+The [runner](../../../scripts/test-h002-onboarding.mjs), `run`, observes organization
+and grant blockers before and after the existing time boundary. Its six observed
+interleavings and two direct negative controls use [owned fixtures](../../../scripts/lib/h002-onboarding-fixture.mjs)
+and [exact assertions](../../../scripts/lib/h002-onboarding-assertions.mjs), `assertOutcome`.
+At `ae04170`, [characterization CI 37627730536](https://github.com/killroyZULU/FlyEye/actions/runs/37627730536)
+observed completion after grant expiry at both locks. Exact domain/audit assertions,
+retained controls, direct negatives and both cleanup runs passed; the gate failed
+on the mismatched decisions. The two password-crossing denial expectations were
+incorrect: the contract explicitly uses transaction time, so these outcomes are
+policy controls, not production defects. Their expectations are corrected without
+changing authentication behavior.
+
+The [grant-only migration](../../../supabase/migrations/20261007133133_sec_007_onboarding_grant_expiry.sql)
+evaluates expiry with current time after the explicit locks; password checks,
+signatures, grants and other predicates are unchanged. The linked delivery record
+owns regression execution and review results. Provider identity/factor/session changes, start/cancellation, later implicit
+waits and other H002 schedules remain outside this matrix. Historical A024 cleanup
+is not established by current successful cleanup.
+
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 
 ## Runtime cleanup recovery
