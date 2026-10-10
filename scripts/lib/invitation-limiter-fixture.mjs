@@ -68,7 +68,7 @@ export function assertRecords(actual, records, rows) {
     if (record.error) throw record.error;
     const { result, correlation, action, key, time } = record;
     assert.equal(typeof result.allowed, 'boolean');
-    const retry = result.allowed ? null : policies[action].refill;
+    const retry = result.allowed ? null : (record.expectedRetry ?? policies[action].refill);
     assert.deepEqual(result, {
       allowed: result.allowed,
       retryAfterSeconds: retry,

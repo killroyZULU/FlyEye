@@ -270,8 +270,25 @@ Verify exact responses, bucket balances/timestamps and events, independent key/a
 progress, forward refill, event-write rollback with unchanged-quota retry, bounded
 lock failure/recovery and normal/interrupted cleanup. Use actual transaction times
 in an empty disposable limiter fixture. Correct only reproduced defects through
-versioned migrations. Pruning races, scope/HMAC derivation, other limiters and
-hosted abuse/capacity remain outside this investigation.
+versioned migrations. Scope/HMAC derivation, other limiters and hosted
+abuse/capacity remain outside this investigation.
+
+### Limiter pruning investigation
+
+Preserve the existing deletion predicate: bucket decisions strictly older than
+two hours relative to the caller's transaction start are pruned; equality is
+retained. Pruning removes bucket state, not decision events. The later monotonic
+refill clamp does not change this cutoff.
+
+Characterize seven selected schedules: exact/expired boundary; an expired-row
+pruning wait against a consumer refresh committing or rolling back; an older
+caller's insertion-conflict wait against a newer prune/recreate committing or
+rolling back; event failure rollback/retry; and pruning timeout rollback/retry.
+Observe blockers, distinguish pruning from insertion waits, and compare exact
+responses, partial refill/retry values, timestamps, bucket state and events.
+Preserve historical decision events and unaffected key/action state. Reuse the
+empty disposable fixture and normal/interrupted cleanup requirements above.
+These schedules do not establish every pruning interleaving or hosted capacity.
 
 ## Security, privacy, and abuse cases
 
