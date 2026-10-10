@@ -6,6 +6,7 @@ import {
   H002SqlError,
 } from './lib/h002-postgres-session.mjs';
 import { unchangedRoles } from './lib/h002-onboarding-fixture.mjs';
+import { pruningCases } from './lib/invitation-pruning-cases.mjs';
 import {
   policies,
   keys,
@@ -28,6 +29,7 @@ if (process.env.GITHUB_ACTIONS !== 'true' || process.env.CI !== 'true') {
   throw new Error('Invitation limiter requires the disposable GitHub Actions database job.');
 }
 const cleanupProbe = process.argv.includes('--cleanup-probe');
+const pruning = process.argv.includes('--pruning');
 const sessions = [];
 function session(name) {
   const value = postgresSession(`invitation_limiter_${name}`);
@@ -312,8 +314,42 @@ async function cleanup() {
       'Invitation limiter cleanup passed: owned buckets/events and original sessions absent; roles/permissions unchanged.\n',
     );
 }
-try {
-  await preflight();
+async function runPruning() {
+  const harness = {
+    observer,
+    blocker,
+    workers,
+    session,
+    track(value) {
+      pending = value;
+      return value;
+    },
+    async observe(name, inject = false) {
+      phase = 'observe';
+      await waitForSql(
+        observer,
+        `select exists(select 1 from pg_stat_activity w
+        join pg_stat_activity b on b.pid=any(pg_blocking_pids(w.pid))
+        where w.application_name='invitation_limiter_${name}' and w.wait_event_type='Lock'
+        and b.application_name='invitation_limiter_blocker');`,
+      );
+      if (cleanupProbe && inject) {
+        phase = 'inject-observer-failure';
+        await observer.query('select 1/0;');
+        assert.fail('Injected failure must abort');
+      }
+      phase = 'release-and-assert';
+    },
+  };
+  for (const [name, run] of pruningCases) {
+    stage = name;
+    phase = 'prepare';
+    await reset();
+    await run(harness);
+    process.stdout.write(`Invitation limiter: ${name} passed.\n`);
+  }
+}
+async function runContention() {
   for (const action of Object.keys(policies)) {
     await contention(action, true);
     await contention(action, false);
@@ -323,6 +359,11 @@ try {
   await isolation('resend', keys[1]);
   for (const tokens of [null, 1000, 0]) await eventFailure(tokens);
   await timeout();
+}
+try {
+  await preflight();
+  if (pruning) await runPruning();
+  else await runContention();
 } catch (error) {
   if (
     cleanupProbe &&
