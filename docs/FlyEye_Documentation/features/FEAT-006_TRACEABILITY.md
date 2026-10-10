@@ -39,6 +39,27 @@ establish hosted, production, qualified aviation, or customer readiness.
 | `NFR-004`, `FEAT-006B-AC-08`                       | Responsive keyboard/focus role confirmation, offline, reauthentication, MFA, conflict, last-admin, rate-limit, service-failure, and success states | Component tests; 20 desktop/mobile E2E scenarios                                 | Local supporting pass                                          | 200% reflow and formal accessibility review remain later      |
 | `NFR-008/010`, `FEAT-006B-AC-08`                   | Complete quality/security matrices with generated types and cleanup                                                                                | 253 app tests; 326 SQL tests; seven runtime fixtures; schema lint and type drift | Local pass; independent review clear; PR #27 required CI green | Hosted evidence remains later                                 |
 
+## Member-MFA limiter concurrency evidence
+
+[SEC-012 / #136](https://github.com/killroyZULU/FlyEye/issues/136) owns execution
+targets and results for the [limiter investigation](FEAT-006_ROLE_ASSIGNMENT.md#member-mfa-limiter-concurrency-investigation).
+The [runner](../../../scripts/test-member-mfa-limiter.mjs), `contention`, observes
+older workers blocked by a newer bucket owner. `forwardRefill`, `isolation`,
+`eventFailure` and `timeout` cover retained controls, atomic failure and safe
+recovery. The [fixture](../../../scripts/lib/member-mfa-limiter-fixture.mjs),
+`assertRecords`, compares full responses, buckets and events. Normal and
+injected-observer-failure paths require owned rows/sessions absent and unchanged
+roles/permissions. Source inspection is not execution evidence; baseline failures,
+unreached cases and corrected results remain distinct in #136.
+[Baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/37782571059) at
+`fc6c7bf` reproduced eight older `complete` waiters failing with SQLSTATE `23514`
+after a newer owner exhausted the inserted bucket. Owner-only state/event,
+normal/interrupted cleanup and teardown were verified; twenty other cases were
+not reached. The [correction](../../../supabase/migrations/20261008131836_sec_012_member_mfa_limiter_monotonic_time.sql)
+clamps effective time after the locked read without changing transaction-time
+events or thresholds. Corrected execution results belong to #136. Existing MFA
+authorization, provider and cross-school evidence retains its original scope.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the
