@@ -62,6 +62,8 @@ export function feat006Diagnostic(stage, event, detail) {
 
 export function runtimeDiagnosticLines(fixture, output) {
   const feature = {
+    'test-edge-runtime.mjs': 'FEAT-001',
+    'test-recovery-runtime.mjs': 'FEAT-002',
     'test-feat-003-runtime.mjs': 'FEAT-003',
     'test-feat-004-runtime.mjs': 'FEAT-004',
     'test-feat-005-runtime.mjs': 'FEAT-005',

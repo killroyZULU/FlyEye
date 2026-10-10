@@ -95,3 +95,24 @@ and [browser/server cookie considerations](https://supabase.com/docs/guides/auth
 These explain why automatic refresh, cookie expiry, refresh revocation and issued
 JWT acceptance need separate evidence; they do not select FlyEye policy or replace
 validation against its pinned runtime and intended deployment.
+
+## Auth fixture cleanup evidence
+
+[A026 / #142](https://github.com/killroyZULU/FlyEye/issues/142) implements the
+[cleanup contract](FEAT-001_LOCAL_SECURITY_TESTING.md#edge-and-recovery-fixture-cleanup).
+The [Auth cleanup suite](../../../scripts/lib/auth-runtime-cleanup.test.mjs)
+covers exact ownership, schema/collision preflight, checked SQL/Auth errors,
+independent cleanup stages, 404 with residue, captured descendant IDs, foreign
+state preservation, redaction and scenario/interruption failure propagation.
+The [runner suite](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+covers probe-before-normal ordering and a failed probe blocking the next run.
+Existing [mail tests](../../../scripts/lib/invitation-runtime-cleanup.test.mjs)
+cover exact recipients, foreign messages, pagination, empty-delete protection
+and inventory/delete/residue errors.
+
+The [edge](../../../scripts/test-edge-runtime.mjs) and
+[recovery](../../../scripts/test-recovery-runtime.mjs) probes require disposable
+CI for real Auth/schema/Mailpit evidence; the linked PR/CI owns final execution
+results. Local databases remain occupied and untouched. Provider audit inventory
+is attributable-only and deliberately retained until teardown; child-ID checks cover parents captured at cleanup, and normal/interrupted
+passes cannot establish historical cleanup or hosted recovery/session policy.
