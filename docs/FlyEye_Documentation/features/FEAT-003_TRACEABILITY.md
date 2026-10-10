@@ -144,6 +144,23 @@ checks current time after the locks, preserving expiry-before-replay ordering,
 authentication policy, signature, grants and other predicates. The linked
 delivery record owns regression execution and review results.
 
+### Cancellation ordering evidence map
+
+[SEC-017 / #148](https://github.com/killroyZULU/FlyEye/issues/148) owns execution
+and review results for [cancellation ordering](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#cancellation-ordering).
+The [runner](../../../scripts/test-h002-onboarding-cancel.mjs), `run`, observes
+real worker/leader waits and injects an observer failure after a wait. Its
+[cases](../../../scripts/lib/h002-cancellation-cases.mjs) cover both completion/
+cancellation commit and rollback orders, duplicate cancellation, audit rollback,
+wrong-owner/missing-grant controls, terminal grants and fresh restart. The
+[assertions](../../../scripts/lib/h002-cancellation-assertions.mjs) compare grant,
+membership, profile, role and prior/new audit identity and metadata. Cleanup
+checks owned rows/users, original sessions, unchanged roles/permissions and the
+absence of the rollback-only audit fault. No provider factor is created: these
+SQL cases do not prove factor ownership, provider sign-out or global revocation.
+Source coverage is not an execution pass; #148 records baseline and corrected
+results separately. Other H002 paths and historical A024 remain open.
+
 ### Limiter contention evidence
 
 [SEC-009 / #130](https://github.com/killroyZULU/FlyEye/issues/130) owns execution and
