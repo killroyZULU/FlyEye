@@ -70,14 +70,15 @@ scope, authorization and cross-school evidence above retains its original scope.
 
 [SEC-015 / #144](https://github.com/killroyZULU/FlyEye/issues/144) owns execution
 targets and review results for the [pruning contract](FEAT-004_MEMBER_INVITATIONS.md#limiter-pruning-investigation).
-The [case module](../../../scripts/lib/invitation-pruning-cases.mjs), `boundary`,
-`refresh`, `recreate`, `eventFailure` and `timeout`, maps seven schedules to exact
+The [invitation adapter](../../../scripts/lib/invitation-pruning-cases.mjs) selects
+`boundary`, `refresh`, `recreate`, `eventFailure` and `timeout` in the
+[shared case module](../../../scripts/lib/limiter-pruning-cases.mjs), mapping seven schedules to exact
 quota/response/event assertions. `refresh` observes a pruning wait; `recreate`
 observes insertion conflict after an older transaction retains its boundary row.
 The [runner](../../../scripts/test-invitation-limiter.mjs), `runPruning`, uses
 `--pruning` and injects observer failure only after a refresh wait is observed.
 It reuses service-only preflight and owned-row/session cleanup. The
-[assertion regressions](../../../scripts/lib/invitation-limiter-fixture.test.mjs)
+[assertion regressions](../../../scripts/lib/limiter-pruning-fixtures.test.mjs)
 reject response/event disagreement with independently calculated partial retry.
 Execution results belong to #144; source assertions alone are not a pass or a
 production defect. Other actions/interleavings and hosted load remain unverified.

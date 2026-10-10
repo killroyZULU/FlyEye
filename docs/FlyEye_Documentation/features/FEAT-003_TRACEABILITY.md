@@ -156,8 +156,25 @@ statement failure. [Exact assertions](../../../scripts/lib/onboarding-limiter-fi
 `assertRecords`, compare bucket balances/timestamps and attributable event/response
 contracts. Normal and injected-observer-failure cleanup cover owned rows/sessions
 and unchanged roles/permissions. Empty tables are a precondition; these synthetic
-key tests do not prove hosted abuse protection, HMAC derivation, pruning races,
-other limiters or permission to perform the protected action.
+key tests do not prove hosted abuse protection, HMAC derivation, other limiters
+or permission to perform the protected action. Pruning is mapped separately below.
+
+### Limiter pruning evidence map
+
+[SEC-016 / #146](https://github.com/killroyZULU/FlyEye/issues/146) owns execution
+targets and review results for the [pruning contract](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#limiter-pruning-investigation).
+The [onboarding adapter](../../../scripts/lib/onboarding-pruning-cases.mjs) selects
+`complete`, `start`, `status` and the 15-minute cutoff in the
+[shared schedules](../../../scripts/lib/limiter-pruning-cases.mjs): `boundary`,
+`refresh`, `recreate`, `eventFailure` and `timeout`. Exact assertions remain in
+the [onboarding fixture](../../../scripts/lib/onboarding-limiter-fixture.mjs),
+including its event policy version. The [runner](../../../scripts/test-onboarding-limiter.mjs),
+`runPruning`, observes blockers and injects cleanup failure only after a pruning
+wait. [Fixture regressions](../../../scripts/lib/limiter-pruning-fixtures.test.mjs)
+cover partial retry, policy mismatches and preserved seed defaults/explicit times.
+The shared invitation schedules require fresh execution after extraction.
+Source assertions are not execution evidence; results and remaining limitations
+belong to #146. No production correction is implied by this evidence map.
 
 No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
 

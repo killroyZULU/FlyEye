@@ -170,6 +170,8 @@ jobs:
           node scripts/test-h002-onboarding-start.mjs
           node scripts/test-onboarding-limiter.mjs --cleanup-probe
           node scripts/test-onboarding-limiter.mjs
+          node scripts/test-onboarding-limiter.mjs --pruning --cleanup-probe
+          node scripts/test-onboarding-limiter.mjs --pruning
           node scripts/test-invitation-limiter.mjs --cleanup-probe
           node scripts/test-invitation-limiter.mjs
           node scripts/test-invitation-limiter.mjs --pruning --cleanup-probe
