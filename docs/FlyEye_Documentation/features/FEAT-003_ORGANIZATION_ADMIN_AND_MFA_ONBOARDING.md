@@ -134,8 +134,8 @@ fence; a later fresh start may use the current version. This is not permanent
 grant revocation or a new global session-revocation rule.
 
 Verify both commit and rollback orders, concurrent same-key cancellation,
-audit-failure rollback and explicit retry, wrong-owner/missing-grant responses,
-terminal states, completed replay and fresh restart after cancellation replay.
+audit-failure rollback and explicit retry, wrong-owner/missing-grant responses and ownership changes during a wait,
+suspended organizations, terminal states, completed replay and fresh restart after cancellation replay.
 Observe actual SQL blockers and compare exact domain and attributable audit
 snapshots. These SQL schedules do not prove provider factor or session lifecycle.
 
@@ -269,7 +269,7 @@ provider/session behavior and hosted capacity remain outside these schedules.
 - `FEAT-003-AC-06` Invalid code, rate limit, offline, or provider uncertainty creates no membership and shows accessible guidance.
 - `FEAT-003-AC-07` Exactly one verified TOTP is challenged without duplicate enrollment.
 - `FEAT-003-AC-08` Duplicate, mixed, stale, or unknown factor state fails closed without automatic mutation.
-- `FEAT-003-AC-09` Safe cancellation clears secrets, signs out, leaves the grant pending, and creates no membership.
+- `FEAT-003-AC-09` Safe cancellation clears secrets and signs out under [cancellation ordering](#cancellation-ordering), preserving unconsumed eligibility and any already-committed administrator.
 - `FEAT-003-AC-10` Cleanup uncertainty cannot open a workspace.
 - `FEAT-003-AC-11` Valid completion atomically creates membership/admin role, consumes the grant, updates version, and audits.
 - `FEAT-003-AC-12` Concurrent completion creates at most one first admin.

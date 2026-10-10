@@ -163,6 +163,36 @@ async function newKey(h) {
   assertCancellation(second, once, twice, false, 'c', 'issuance');
   assert.equal(twice.grant.version, 3);
 }
+async function changedOwner(h) {
+  const before = await read(h.observer);
+  await h.leader.query(`begin; reset role;
+    select 1 from public.organization_admin_bootstrap_grants where id=${q('grant')} for update;`);
+  const work = h.pending(h.worker, cancel());
+  await h.observe();
+  await h.leader.query(`update public.organization_admin_bootstrap_grants
+    set eligible_user_id=${q('session')} where id=${q('grant')}; commit;`);
+  assert.deepEqual(await h.value(work), {
+    decision: 'not_available',
+    cleanupOutcome: 'not_attempted',
+    correlationId: ids.correlation,
+  });
+  assert.deepEqual(await read(h.observer), {
+    ...before,
+    grant: { ...before.grant, eligible_user_id: ids.session },
+  });
+}
+async function inactiveOrganization(h) {
+  await h.observer.query(
+    `update public.organizations set status='suspended' where id=${q('org')};`,
+  );
+  const before = await read(h.observer);
+  const result = await h.json(h.worker, cancel());
+  assertCancellation(result, before, await read(h.observer));
+  assert.equal(
+    await h.observer.query(`select status from public.organizations where id=${q('org')};`),
+    'suspended',
+  );
+}
 export const cases = [
   ['cancel-commit', (h) => cancellationFirst(h, true)],
   ['cancel-rollback', (h) => cancellationFirst(h, false)],
@@ -173,6 +203,8 @@ export const cases = [
   ['new-key-fence', newKey],
   ['audit-failure-retry', auditFailure],
   ['wrong-owner-missing-grant', negatives],
+  ['owner-changed-during-wait', changedOwner],
+  ['suspended-organization', inactiveOrganization],
   ['revoked-grant', (h) => terminal(h, 'revoked')],
   ['expired-grant', (h) => terminal(h, 'expired')],
   ['fresh-start-after-cancel-replay', restart],
