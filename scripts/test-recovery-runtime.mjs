@@ -6,6 +6,16 @@ import process from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
 
+import {
+  checkedRuntimeSql as psql,
+  authCleanupScope,
+  preflightAuthCleanup,
+} from './lib/auth-runtime-scope.mjs';
+import { cleanupAuthRuntime, runAuthFixture } from './lib/auth-runtime-cleanup.mjs';
+import { cleanInvitationMail } from './lib/invitation-runtime-cleanup.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-002');
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const statusResult = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
@@ -55,13 +65,12 @@ const adminClient = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-function psql(sql, tuplesOnly = false) {
-  const args = ['exec', '-i', 'supabase_db_flyeye', 'psql', '-U', 'postgres', '-d', 'postgres'];
-  if (tuplesOnly) args.push('-At');
-  const result = spawnSync('docker', args, { input: sql, encoding: 'utf8' });
-  if (result.status !== 0) throw new Error(result.stderr || result.stdout || 'psql failed.');
-  return result.stdout.trim();
-}
+const scope = authCleanupScope({
+  identities: [user, ...aliasUsers],
+  organizationId,
+  extraEmails: [`unknown-${runId}@example.test`],
+});
+preflightAuthCleanup(scope, psql);
 
 function browserClient() {
   return createClient(apiUrl, publishableKey, {
@@ -218,30 +227,17 @@ async function directPathStatuses(accessToken) {
 }
 
 async function cleanup() {
-  psql(`
-    delete from public.authentication_events
-    where actor_subject_id in (
-      '${user.id}'::uuid,
-      ${aliasUsers.map((aliasUser) => `'${aliasUser.id}'::uuid`).join(',\n      ')}
-    );
-    delete from public.membership_roles
-    where membership_id = '${membershipId}'::uuid;
-    delete from public.organization_member_profiles
-    where membership_id = '${membershipId}'::uuid;
-    delete from public.organization_memberships
-    where id = '${membershipId}'::uuid;
-    delete from public.aircraft_document_categories
-    where organization_id = '${organizationId}'::uuid;
-    delete from public.organizations
-    where id = '${organizationId}'::uuid;
-  `);
-  await adminClient.auth.admin.deleteUser(user.id);
-  for (const aliasUser of aliasUsers) {
-    await adminClient.auth.admin.deleteUser(aliasUser.id);
-  }
+  await cleanupAuthRuntime({
+    scope,
+    diagnostics,
+    psql,
+    deleteUser: (id) => adminClient.auth.admin.deleteUser(id),
+    cleanMail: (emails) => cleanInvitationMail(mailpitUrl, emails),
+  });
 }
 
-try {
+async function scenario(interrupt) {
+  diagnostics.enter('identity-creation');
   const { error: createError } = await adminClient.auth.admin.createUser({
     id: user.id,
     email: user.email,
@@ -259,6 +255,7 @@ try {
     if (error) throw error;
   }
 
+  diagnostics.enter('database-fixture');
   psql(`
     insert into public.organizations (id, name)
     values ('${organizationId}'::uuid, 'FEAT-002 Synthetic Flight School ${runId}');
@@ -277,10 +274,12 @@ try {
     where roles.code = 'student_pilot';
   `);
 
+  diagnostics.enter('authentication');
   const oldClientA = await signIn(originalPassword);
   const oldClientB = await signIn(originalPassword);
   assert.ok(jwtAuthenticationMethods(oldClientA.session.access_token).includes('password'));
   assert.equal((await invokeBootstrap(oldClientA.session.access_token)).status, 200);
+  interrupt();
 
   for (const aliasUser of aliasUsers) {
     await verifyProviderAlias(aliasUser);
@@ -417,6 +416,11 @@ try {
   process.stdout.write(
     'Pinned local FEAT-002 recovery, Mailpit, per-alias OTP-AMR denial audit, password update, global logout, both old refresh tokens and two-client old access paths, and fresh-password bootstrap checks passed.\n',
   );
-} finally {
-  await cleanup();
 }
+
+await runAuthFixture({
+  diagnostics,
+  scenario,
+  cleanup,
+  probe: process.argv.includes('--cleanup-probe'),
+});

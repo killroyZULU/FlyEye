@@ -2,11 +2,31 @@ import assert from 'node:assert/strict';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import process from 'node:process';
 
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from '@playwright/test';
 
+import {
+  checkedRuntimeSql as psql,
+  authCleanupScope,
+  authScopeSql,
+  onboardingCleanupSecret,
+  preflightAuthCleanup,
+} from './lib/auth-runtime-scope.mjs';
+import {
+  cleanupAuthRuntime,
+  runAuthFixture,
+  authFrontendShutdown,
+} from './lib/auth-runtime-cleanup.mjs';
+import { cleanInvitationMail } from './lib/invitation-runtime-cleanup.mjs';
+import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+import { stopLocalEdge } from './lib/local-edge-lifecycle.mjs';
+
+const diagnostics = createFixtureDiagnostics('FEAT-001');
+const frontendShutdown = authFrontendShutdown();
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const statusResult = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
   encoding: 'utf8',
@@ -29,6 +49,8 @@ const runId = randomBytes(6).toString('hex');
 const password = `Synthetic-${randomBytes(16).toString('base64url')}!`;
 const organizationA = randomUUID();
 const organizationB = randomUUID();
+const canaryKey = randomBytes(32).toString('hex');
+let canarySeeded = false;
 const users = {
   student: { id: randomUUID(), email: `student-${runId}@example.test` },
   instructor: { id: randomUUID(), email: `instructor-${runId}@example.test` },
@@ -41,43 +63,23 @@ const adminClient = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-function psql(sql, tuplesOnly = false) {
-  const args = ['exec', '-i', 'supabase_db_flyeye', 'psql', '-U', 'postgres', '-d', 'postgres'];
-  if (tuplesOnly) args.push('-At');
-  const result = spawnSync('docker', args, { input: sql, encoding: 'utf8' });
-  if (result.status !== 0) throw new Error(result.stderr || result.stdout || 'psql failed.');
-  return result.stdout.trim();
-}
-
-const baselineLimiterState = psql(
-  `
-    select limiter_key_hash || ':' || action
-    from public.admin_onboarding_rate_limit_state
-    order by limiter_key_hash, action;
-  `,
-  true,
-)
-  .split(/\r?\n/)
-  .filter(Boolean);
-const baselineLimiterEvents = psql(
-  `
-    select id::text
-    from public.admin_onboarding_rate_limit_events
-    order by id;
-  `,
-  true,
-)
-  .split(/\r?\n/)
-  .filter(Boolean);
-assert.ok(
-  baselineLimiterState.every((entry) =>
-    /^[0-9a-f]{64}:(status|start|complete|cancel)$/.test(entry),
+const scope = authCleanupScope({
+  identities: Object.values(users),
+  extraEmails: [`blocked-${runId}@example.test`],
+  organizationId: organizationA,
+  limiterSecret: onboardingCleanupSecret(parseEnv(readFileSync('supabase/functions/.env', 'utf8'))),
+});
+const mailpitUrl = local.MAILPIT_URL ?? local.INBUCKET_URL;
+assert.ok(['127.0.0.1', 'localhost'].includes(new URL(mailpitUrl).hostname));
+preflightAuthCleanup(scope, psql);
+assert.equal(
+  psql(
+    `select
+  (select count(*) from public.admin_onboarding_rate_limit_state where limiter_key_hash='${canaryKey}') +
+  (select count(*) from public.admin_onboarding_rate_limit_events where limiter_key_hash='${canaryKey}');`,
+    true,
   ),
-);
-assert.ok(
-  baselineLimiterEvents.every((id) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id),
-  ),
+  '0',
 );
 
 function base32Bytes(value) {
@@ -163,19 +165,23 @@ async function promoteToAal2(client) {
 async function runFrontendIntegration(instructorTotpSecret) {
   const vite = spawn(
     process.execPath,
-    ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5173'],
+    ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5173', '--strictPort'],
     {
       env: {
         ...process.env,
         VITE_SUPABASE_URL: apiUrl,
         VITE_SUPABASE_PUBLISHABLE_KEY: publishableKey,
       },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'ignore', 'ignore'],
+      detached: process.platform !== 'win32',
+      windowsHide: true,
     },
   );
 
   try {
     for (let attempt = 0; attempt < 60; attempt += 1) {
+      if (vite.exitCode !== null || vite.signalCode !== null)
+        throw new Error('Owned frontend exited before readiness.');
       try {
         const response = await fetch('http://127.0.0.1:5173');
         if (response.ok) break;
@@ -212,10 +218,12 @@ async function runFrontendIntegration(instructorTotpSecret) {
       await instructorPage.waitForLoadState('networkidle');
       await instructorPage.close();
     } finally {
-      await browser.close();
+      await frontendShutdown.stop(() => browser.close());
     }
   } finally {
-    vite.kill();
+    await diagnostics.run('cleanup-edge-shutdown', () =>
+      frontendShutdown.stop(() => stopLocalEdge(vite)),
+    );
   }
 }
 
@@ -267,71 +275,79 @@ function assertSingleAudit(contextResponse, expected) {
 }
 
 async function cleanup() {
-  const stateCleanupPredicate = baselineLimiterState.length
-    ? `limiter_key_hash || ':' || action not in (${baselineLimiterState
-        .map((entry) => `'${entry}'`)
-        .join(', ')})`
-    : 'true';
-  const eventCleanupPredicate = baselineLimiterEvents.length
-    ? `id not in (${baselineLimiterEvents.map((id) => `'${id}'::uuid`).join(', ')})`
-    : 'true';
-
-  psql(`
-    begin;
-    delete from public.admin_onboarding_rate_limit_events where ${eventCleanupPredicate};
-    delete from public.admin_onboarding_rate_limit_state where ${stateCleanupPredicate};
-    delete from public.authentication_events
-    where actor_subject_id in (${Object.values(users)
-      .map((user) => `'${user.id}'::uuid`)
-      .join(', ')});
-    delete from public.organization_member_profiles
-    where organization_id = '${organizationA}';
-    delete from public.membership_roles where organization_id = '${organizationA}';
-    delete from public.organization_memberships where organization_id = '${organizationA}';
-    delete from public.aircraft_document_categories where organization_id = '${organizationA}';
-    delete from public.organizations where id = '${organizationA}';
-    commit;
-  `);
-  assert.equal(
-    psql(
-      `
-        select limiter_key_hash || ':' || action
-        from public.admin_onboarding_rate_limit_state
-        order by limiter_key_hash, action;
-      `,
-      true,
-    ),
-    baselineLimiterState.join('\n'),
-  );
-  assert.equal(
-    psql(
-      `
-        select id::text
-        from public.admin_onboarding_rate_limit_events
-        order by id;
-      `,
-      true,
-    ),
-    baselineLimiterEvents.join('\n'),
-  );
-  for (const user of Object.values(users)) {
-    await adminClient.auth.admin.deleteUser(user.id);
+  let failed = false;
+  try {
+    await cleanupAuthRuntime({
+      scope,
+      diagnostics,
+      psql,
+      stopFrontend: () => frontendShutdown.assertStopped(),
+      deleteUser: (id) => adminClient.auth.admin.deleteUser(id),
+      cleanMail: (emails) => cleanInvitationMail(mailpitUrl, emails),
+    });
+  } catch {
+    failed = true;
   }
-  assert.equal(
-    psql(
-      `select count(*) from public.auth_bootstrap_rate_limit_state
-    where actor_user_id in (${Object.values(users)
-      .map((user) => `'${user.id}'::uuid`)
-      .join(',')});`,
-      true,
-    ),
-    '0',
-  );
+  try {
+    await diagnostics.run('cleanup-canary', async () => {
+      const count = () =>
+        psql(
+          `select
+        (select count(*) from public.admin_onboarding_rate_limit_state where limiter_key_hash='${canaryKey}') +
+        (select count(*) from public.admin_onboarding_rate_limit_events where limiter_key_hash='${canaryKey}');`,
+          true,
+        );
+      try {
+        if (canarySeeded) assert.equal(count(), '2');
+      } finally {
+        psql(`begin;
+          delete from public.admin_onboarding_rate_limit_events where limiter_key_hash='${canaryKey}';
+          delete from public.admin_onboarding_rate_limit_state where limiter_key_hash='${canaryKey}'; commit;`);
+        assert.equal(count(), '0');
+      }
+    });
+  } catch {
+    failed = true;
+  }
+  if (failed) throw new Error('Synthetic edge cleanup failed.');
 }
 
-try {
+async function scenario(interrupt) {
+  diagnostics.enter('identity-creation');
   await createSyntheticUsers();
+  diagnostics.enter('database-fixture');
   seedAccess();
+  psql(`begin;
+    insert into public.admin_onboarding_rate_limit_state
+      (limiter_key_hash, action, tokens_milli, last_refill_at, last_decision_at)
+      values ('${canaryKey}', 'status', 1000, clock_timestamp(), clock_timestamp());
+    insert into public.admin_onboarding_rate_limit_events
+      (correlation_id, limiter_key_hash, action, outcome, status_code)
+      values ('${randomUUID()}', '${canaryKey}', 'status', 'allowed', 200); commit;`);
+  canarySeeded = true;
+  diagnostics.enter('authentication');
+  const owner = await signIn(users.student);
+  assert.equal((await context(owner.token)).decision, 'granted');
+  const onboarding = await fetch(`${apiUrl}/functions/v1/organization-admin-onboarding`, {
+    method: 'POST',
+    headers: {
+      apikey: publishableKey,
+      authorization: `Bearer ${owner.token}`,
+      'content-type': 'application/json',
+      origin,
+    },
+    body: JSON.stringify({ action: 'status' }),
+  });
+  assert.equal(onboarding.status, 200);
+  assert.ok(
+    Number(
+      psql(
+        `select count(*) from public.admin_onboarding_rate_limit_events where ${authScopeSql(scope).limiter};`,
+        true,
+      ),
+    ) > 0,
+  );
+  interrupt();
 
   const preflight = await fetch(`${apiUrl}/functions/v1/auth-bootstrap`, {
     method: 'OPTIONS',
@@ -463,6 +479,11 @@ try {
   process.stdout.write(
     'Actual local frontend, Auth, TOTP, Edge Runtime, AAL, school-boundary, RPC, body-limit, and audit integration checks passed.\n',
   );
-} finally {
-  await cleanup();
 }
+
+await runAuthFixture({
+  diagnostics,
+  scenario,
+  cleanup,
+  probe: process.argv.includes('--cleanup-probe'),
+});

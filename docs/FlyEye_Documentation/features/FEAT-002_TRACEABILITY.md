@@ -341,3 +341,6 @@ These limitations were accepted only for the bounded local publication decision.
 ## Gates preserved
 
 Hosted callbacks, domain, email provider/sender, CAPTCHA, breached-password service, Supabase plan/region/residency, WAF/IP controls, monitoring/alerts, recovery/support procedures, real data, deployment, production, and applicable qualified review remain separate. Agent review and green CI cannot grant them.
+
+Runtime cleanup and its evidence limitations are maintained in the shared
+[Auth fixture cleanup evidence](FEAT-001_TRACEABILITY.md#auth-fixture-cleanup-evidence).

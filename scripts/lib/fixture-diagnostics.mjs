@@ -13,7 +13,20 @@ const commonStages = [
   'cleanup-assertions',
   'cleanup-temporary-files',
 ];
+const authCleanupStages = [
+  ...commonStages,
+  'fixture-failure-injection',
+  'cleanup-identity-discovery',
+  'cleanup-limiter-inventory',
+  'cleanup-limiter-rows',
+  'cleanup-limiter-preservation',
+  'cleanup-mail',
+  'cleanup-provider-audit-inventory',
+  'cleanup-canary',
+];
 const stages = new Map([
+  ['FEAT-001', new Set(authCleanupStages)],
+  ['FEAT-002', new Set(authCleanupStages)],
   [
     'FEAT-003',
     new Set([

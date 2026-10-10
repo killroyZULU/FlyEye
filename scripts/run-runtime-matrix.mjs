@@ -126,6 +126,8 @@ for (const fixture of fixtures) {
   }
 
   const hasDiagnostics =
+    fixture === 'test-edge-runtime.mjs' ||
+    fixture === 'test-recovery-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
     fixture === 'test-feat-004-runtime.mjs' ||
     fixture === 'test-feat-005-runtime.mjs' ||
@@ -133,29 +135,45 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-006b-runtime.mjs' ||
     fixture === 'test-feat-007-runtime.mjs' ||
     fixture === 'test-feat-007b-runtime.mjs';
-  const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture)], {
-    encoding: hasDiagnostics ? 'utf8' : undefined,
-    env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
-    stdio: hasDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
-    timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
-    windowsHide: true,
-  });
+  const modes = priority.has(fixture) ? [['--cleanup-probe'], []] : [[]];
+  for (const mode of modes) {
+    const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture), ...mode], {
+      encoding: hasDiagnostics ? 'utf8' : undefined,
+      env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
+      stdio: hasDiagnostics ? ['ignore', 'pipe', 'ignore'] : 'ignore',
+      timeout: fixtureTimeoutMs.get(fixture) ?? defaultFixtureTimeoutMs,
+      windowsHide: true,
+    });
 
-  for (const line of runtimeDiagnosticLines(fixture, result.stdout)) {
-    process.stdout.write(`${line}\n`);
-  }
+    const diagnosticLines = runtimeDiagnosticLines(fixture, result.stdout);
+    for (const line of diagnosticLines) {
+      process.stdout.write(`${line}\n`);
+    }
 
-  if (result.status !== 0) {
-    const outcome =
-      result.error?.code === 'ETIMEDOUT' ? 'timeout' : `exit ${result.status ?? 'unknown'}`;
-    process.stderr.write(`Runtime matrix failed: ${fixture} (${outcome}).\n`);
-    process.stderr.write(
-      'Child output was suppressed. Treat cleanup as uncertain until the fixture-specific sanitized diagnostic confirms it.\n',
+    const feature = fixture === 'test-edge-runtime.mjs' ? 'FEAT-001' : 'FEAT-002';
+    const cleanupProved =
+      !priority.has(fixture) ||
+      diagnosticLines.includes(
+        `${feature} runtime diagnostic: stage=fixture-cleanup event=passed.`,
+      );
+    if (result.status !== 0 || !cleanupProved) {
+      const outcome =
+        result.error?.code === 'ETIMEDOUT'
+          ? 'timeout'
+          : result.status === 0
+            ? 'cleanup evidence missing'
+            : `exit ${result.status ?? 'unknown'}`;
+      process.stderr.write(`Runtime matrix failed: ${fixture} (${outcome}).\n`);
+      process.stderr.write(
+        'Child output was suppressed. Treat cleanup as uncertain until the fixture-specific sanitized diagnostic confirms it.\n',
+      );
+      process.exit(result.status || 1);
+    }
+
+    process.stdout.write(
+      `Runtime matrix passed: ${fixture}${mode.length ? ' (cleanup probe)' : ''}.\n`,
     );
-    process.exit(result.status ?? 1);
   }
-
-  process.stdout.write(`Runtime matrix passed: ${fixture}.\n`);
   if (fixture !== fixtures.at(-1)) {
     // Local Edge workers can keep answering preflight briefly after their process exits.
     await new Promise((resolve) => setTimeout(resolve, 5_000));
