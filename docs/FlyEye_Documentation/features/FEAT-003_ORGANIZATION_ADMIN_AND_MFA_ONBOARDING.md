@@ -199,7 +199,7 @@ PostgreSQL-authoritative atomic token buckets use authenticated-subject-plus-act
 | `complete` |  3 per 60 seconds |     1 | Fail closed                                                                                 |
 | `cancel`   |  6 per 60 seconds |     2 | Clear local state, invalidate operation, sign out, and report uncertain server confirmation |
 
-Inactive local limiter state is retained for 15 minutes and removed by the fixture. Client counters, disabled buttons, provider quotas, and platform limits are defense-in-depth only. There is no bypass or emergency override.
+The limiter prunes buckets whose last decision is strictly older than 15 minutes relative to the caller's transaction start; fixture cleanup removes owned synthetic state. Client counters, disabled buttons, provider quotas, and platform limits are defense-in-depth only. There is no bypass or emergency override.
 
 Evidence covers allowed, rate-limited, unavailable, recovered, rapid, replayed, distributed-key, concurrent-isolate, and recovery-after-window decisions. Correlation uses bounded actions/outcomes, counts, booleans, status codes, hashes, and safe IDs—never credentials, TOTP values, email, hidden tenants/accounts/grants/factors, configured thresholds, provider internals, unrestricted IPs, or secrets. One fail-open, atomicity, audit, cross-tenant, prohibited-field, or unsafe-recovery result is a hard stop.
 
@@ -214,8 +214,28 @@ Reuse existing sequential/handler evidence rather than redefining thresholds.
 Use CI-only synthetic keys with empty-table preflight because retention prunes
 globally. Freeze only owned fixture timestamps when necessary for exact budget
 assertions; production accepts no caller clock. Verify normal and interrupted
-cleanup, session absence and unchanged roles/permissions. Other limiters, pruning
-races, hosted abuse/capacity and authorization of protected actions are separate.
+cleanup, session absence and unchanged roles/permissions. Other limiters, hosted
+abuse/capacity and authorization of protected actions are separate.
+
+### Limiter pruning investigation
+
+Preserve the existing transaction-time cutoff: exactly 15 minutes is retained,
+older buckets are pruned, and decision events survive bucket pruning. The later
+monotonic refill clamp does not move the pruning cutoff.
+
+Verify seven selected schedules: exact/expired boundary; pruning against a
+consumer refresh committing or rolling back; an older caller's insertion wait
+against a newer prune/recreate committing or rolling back; event failure with
+rollback/retry; and pruning timeout with rollback/retry. Observe blockers and
+compare exact responses, quota/timestamps, original event identity and unaffected
+state. Require normal/interrupted cleanup and retained service-only execution.
+
+Share scheduling code with invitation tests while retaining policy-specific
+assertions. Measure transaction times; a schedule outside its partial-refill
+precondition is a fixture failure, not evidence of a production defect. Preserve
+existing frozen timestamps in contention tests and use actual times for pruning.
+Correct production behavior only after reproduction. Other interleavings,
+provider/session behavior and hosted capacity remain outside these schedules.
 
 ## Acceptance criteria
 

@@ -324,6 +324,9 @@ async function runPruning() {
       pending = value;
       return value;
     },
+    mark(value) {
+      phase = value;
+    },
     async observe(name, inject = false) {
       phase = 'observe';
       await waitForSql(

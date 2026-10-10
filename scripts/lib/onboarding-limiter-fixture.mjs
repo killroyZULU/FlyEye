@@ -28,9 +28,9 @@ export const consume = ({ key, action, correlation }) =>
 export const begin = async (session) =>
   JSON.parse(await session.query('begin; select to_jsonb(transaction_timestamp());'));
 export const read = async (session) => JSON.parse(await session.query(snapshot));
-export function seed(action, tokens = 1000, key = keys[0]) {
+export function seed(action, tokens = 1000, key = keys[0], time = frozen) {
   return `insert into ${stateTable}(limiter_key_hash,action,tokens_milli,last_refill_at,last_decision_at)
-    values('${key}','${action}',${tokens},'${frozen}','${frozen}');`;
+    values('${key}','${action}',${tokens},'${time}','${time}');`;
 }
 export function row(action, tokens, time, key = keys[0]) {
   return {
@@ -67,7 +67,7 @@ export function assertRecords(actual, records, rows) {
     if (record.error) throw record.error;
     const { result, correlation, action, key, time } = record;
     assert.equal(typeof result.allowed, 'boolean');
-    const retry = result.allowed ? null : policies[action].refill;
+    const retry = result.allowed ? null : (record.expectedRetry ?? policies[action].refill);
     assert.deepEqual(result, {
       allowed: result.allowed,
       retryAfterSeconds: retry,
