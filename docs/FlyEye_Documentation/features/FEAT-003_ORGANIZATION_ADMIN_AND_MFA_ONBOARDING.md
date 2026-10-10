@@ -115,7 +115,29 @@ Factor IDs must be unique and schemas bounded. TOTP input is exactly six numeric
 
 QR data, authenticator URI, and manual secret are credentials. Keep them only in active memory; never place them in tables, URLs, browser storage, caches, logs, analytics, error reports, snapshots, screenshots, documentation, clipboard automation, accessible names, or prompts. Render QR through a validated non-executable path, provide a user-controlled manual alternative, and clear secrets on cancellation, timeout, route change, refresh, sign-out, stale operation, or disposal.
 
-Cancellation clears memory, records a safe outcome, leaves the grant unconsumed, creates no membership, and signs out. It does not unenroll a factor unless a protected server record proves actor, session, grant, operation, factor ID/type/status, and current-operation ownership. It never removes a verified factor.
+Cancellation clears memory, records a safe outcome, leaves a pending grant unconsumed, creates no membership, and signs out. It does not unenroll a factor unless a protected server record proves actor, session, grant, operation, factor ID/type/status, and current-operation ownership. It never removes a verified factor.
+
+### Cancellation ordering
+
+Cancellation is accepted when its transaction and required audit commit. Lock the
+organization before the grant, then revalidate the eligible actor and grant's
+organization. A new cancellation of a pending grant advances only its version,
+atomically with the cancellation audit. An outstanding completion carrying the
+previous version must conflict after cancellation commits. Audit failure or
+rollback leaves the prior version and authority unchanged.
+
+A completion committed first retains its exact grant, membership, profile and
+admin role. Cancellation never reverses that authority or changes a completed,
+revoked or expired grant. Same-actor/grant/key cancellation replay adds neither a
+version change nor another audit. A new cancellation key is a new pending-version
+fence; a later fresh start may use the current version. This is not permanent
+grant revocation or a new global session-revocation rule.
+
+Verify both commit and rollback orders, concurrent same-key cancellation,
+audit-failure rollback and explicit retry, wrong-owner/missing-grant responses and ownership changes during a wait,
+suspended organizations, terminal states, completed replay and fresh restart after cancellation replay.
+Observe actual SQL blockers and compare exact domain and attributable audit
+snapshots. These SQL schedules do not prove provider factor or session lifecycle.
 
 ## Protected completion
 
@@ -247,7 +269,7 @@ provider/session behavior and hosted capacity remain outside these schedules.
 - `FEAT-003-AC-06` Invalid code, rate limit, offline, or provider uncertainty creates no membership and shows accessible guidance.
 - `FEAT-003-AC-07` Exactly one verified TOTP is challenged without duplicate enrollment.
 - `FEAT-003-AC-08` Duplicate, mixed, stale, or unknown factor state fails closed without automatic mutation.
-- `FEAT-003-AC-09` Safe cancellation clears secrets, signs out, leaves the grant pending, and creates no membership.
+- `FEAT-003-AC-09` Safe cancellation clears secrets and signs out under [cancellation ordering](#cancellation-ordering), preserving unconsumed eligibility and any already-committed administrator.
 - `FEAT-003-AC-10` Cleanup uncertainty cannot open a workspace.
 - `FEAT-003-AC-11` Valid completion atomically creates membership/admin role, consumes the grant, updates version, and audits.
 - `FEAT-003-AC-12` Concurrent completion creates at most one first admin.

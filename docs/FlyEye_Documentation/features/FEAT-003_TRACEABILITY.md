@@ -144,6 +144,31 @@ checks current time after the locks, preserving expiry-before-replay ordering,
 authentication policy, signature, grants and other predicates. The linked
 delivery record owns regression execution and review results.
 
+### Cancellation ordering evidence map
+
+[SEC-017 / #148](https://github.com/killroyZULU/FlyEye/issues/148) owns execution
+and review results for [cancellation ordering](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#cancellation-ordering).
+The [runner](../../../scripts/test-h002-onboarding-cancel.mjs), `run`, observes
+real worker/leader waits and injects an observer failure after a wait. Its
+[cases](../../../scripts/lib/h002-cancellation-cases.mjs) cover both completion/
+cancellation commit and rollback orders, duplicate cancellation, audit rollback,
+wrong-owner/missing-grant controls, post-wait ownership, suspended organizations,
+terminal grants and fresh restart. The
+[assertions](../../../scripts/lib/h002-cancellation-assertions.mjs) compare grant,
+membership, profile, role and prior/new audit identity and metadata. Cleanup
+checks owned rows/users, original sessions, unchanged roles/permissions and the
+absence of the rollback-only audit fault. No provider factor is created: these
+SQL cases do not prove factor ownership, provider sign-out or global revocation.
+At `00a4036`, [baseline CI 38035088927](https://github.com/killroyZULU/FlyEye/actions/runs/38035088927)
+proved an accepted, audited cancellation followed by successful outstanding
+completion with exact administrator state. The gate failed on the ordering rule;
+the other eleven cases were unreached. Both cleanup runs and teardown passed.
+The [cancellation migration](../../../supabase/migrations/20261010074325_sec_017_onboarding_cancellation_fence.sql)
+adds organization/grant serialization, post-lock ownership revalidation and an
+atomic pending-version fence; signature and execution grants are unchanged.
+#148 records corrected execution separately, including two added preservation/
+authority controls. Other H002 paths and historical A024 remain open.
+
 ### Limiter contention evidence
 
 [SEC-009 / #130](https://github.com/killroyZULU/FlyEye/issues/130) owns execution and
