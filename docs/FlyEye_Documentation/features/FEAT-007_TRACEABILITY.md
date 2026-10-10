@@ -1,18 +1,23 @@
 # FEAT-007 Traceability
 
+## Registry limiter evidence
+
+At `64bf764`, [baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/38018796307)
+reproduced `general-older-waiter` timestamp rewind; 21 cases were unreached.
+Both cleanup probes passed. [PR #139](https://github.com/killroyZULU/FlyEye/pull/139)
+records the [runner](../../../scripts/test-aircraft-registry-limiter.mjs), correction,
+review and integration evidence.
+
 ## H002 registry lock-wait evidence
 
-[SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) and
-[PR #115](https://github.com/killroyZULU/FlyEye/pull/115) own the bounded
-[lock-wait contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
-The probe at
-[`e88c63a`](https://github.com/killroyZULU/FlyEye/blob/e88c63a35ab83dad33a50ba48a12ac3702fced8b/scripts/test-h002-locks.mjs)
-passed the `Verify H002 SQL lock interleaving` step in
-[disposable CI 37389648588](https://github.com/killroyZULU/FlyEye/actions/runs/37389648588).
-Both probes observed blocking backends and committed protected revocation before release. Create
-and update still returned success, persisted versions 1 and 2 respectively,
-and wrote one success audit each. Fixture organization, users and worker
-sessions were absent after cleanup. This confirms only these registry paths at `2a574d4`.
+[SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) /
+[PR #115](https://github.com/killroyZULU/FlyEye/pull/115) cover the
+[contract](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#h002-lock-wait-investigation).
+[Baseline `e88c63a`](https://github.com/killroyZULU/FlyEye/blob/e88c63a35ab83dad33a50ba48a12ac3702fced8b/scripts/test-h002-locks.mjs)
+passed its probe in [CI 37389648588](https://github.com/killroyZULU/FlyEye/actions/runs/37389648588):
+observed blocked commands succeeded after protected revocation committed before release.
+Create/update persisted versions 1/2 and one success audit each. Fixture
+organization/user/session cleanup passed. Scope: these registry paths at `2a574d4`.
 
 The [correction](../../../supabase/migrations/20261005234138_sec_001_registry_lock_revalidation.sql)
 rechecks the same permission after each explicit wait. The
