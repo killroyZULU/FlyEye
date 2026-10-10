@@ -383,6 +383,19 @@ identity, member administration, operational status, documents, dispatch,
 weight and balance, provider, hosted, real-data, deployment, and production
 behavior remains excluded.
 
+## Registry limiter contention verification
+
+The four existing buckets must serialize charges without rewinding committed
+refill time or crediting an elapsed interval twice. Verify older callers behind
+newer owners, first insertion, final-token contention, forward refill and capacity
+clamping, bucket/key isolation, event-write rollback and bounded wait recovery.
+Compare exact PostgreSQL numeric balances, timestamps, response and event fields.
+Failed event writes must preserve prior quota for retry. Synthetic fixtures must
+prove normal and interrupted cleanup, including temporary fault objects and
+sessions; preserve existing roles and permissions. This scope does not change
+thresholds, key derivation, general/action bucket ordering or idempotency rules.
+Limiter acceptance does not authorize a protected domain action.
+
 ## H002 lock-wait investigation
 
 [SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) tests the
