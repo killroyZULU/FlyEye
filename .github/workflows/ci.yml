@@ -176,6 +176,8 @@ jobs:
           node scripts/test-member-mfa-limiter.mjs
           node scripts/test-aircraft-registry-limiter.mjs --cleanup-probe
           node scripts/test-aircraft-registry-limiter.mjs
+          node scripts/test-aircraft-document-limiter.mjs --cleanup-probe
+          node scripts/test-aircraft-document-limiter.mjs
 
       - name: Run sanitized local runtime matrix
         run: pnpm test:runtime

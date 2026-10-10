@@ -1,12 +1,9 @@
 # FEAT-007 Traceability
 
-## Registry limiter evidence
+## Limiter evidence
 
-At `64bf764`, [baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/38018796307)
-reproduced `general-older-waiter` timestamp rewind; 21 cases were unreached.
-Both cleanup probes passed. [PR #139](https://github.com/killroyZULU/FlyEye/pull/139)
-records the [runner](../../../scripts/test-aircraft-registry-limiter.mjs), correction,
-review and integration evidence.
+[Registry and document limiter evidence](FEAT-007_LIMITER_TRACEABILITY.md) is separated
+to preserve this record's budget while retaining bounded execution evidence.
 
 ## H002 registry lock-wait evidence
 
