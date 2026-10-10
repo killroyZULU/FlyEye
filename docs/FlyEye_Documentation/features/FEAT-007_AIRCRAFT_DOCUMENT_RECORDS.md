@@ -267,6 +267,22 @@ later revalidate the then-current versions and copy their identifiers and
 relevant values into an immutable submission snapshot. This slice does not
 define which status permits or blocks aircraft selection or submission.
 
+### Limiter concurrency investigation
+
+[SEC-014](https://github.com/killroyZULU/FlyEye/issues/140) tests the six existing
+buckets using observed older-waiter and first-insertion ordering, forward refill,
+capacity bounds, eight-way final-token contention, lifecycle/upload and key
+isolation, event-write rollback/retry and bounded lock failure. Require exact
+numeric quota, retry/policy responses and atomic events; stored refill time must
+not move backward after an older waiter resumes. Preserve the rates above.
+
+Use only owned synthetic quota rows in disposable CI, with normal and interrupted
+cleanup proving no owned rows, fault objects or sessions and unchanged permissions.
+No Auth, document or Storage records are needed. Correct only reproduced defects;
+provider/session, pruning, other implicit waits and hosted abuse remain outside
+this schedule-bounded evidence. Results belong in the
+[limiter evidence record](FEAT-007_LIMITER_TRACEABILITY.md).
+
 ## UI design
 
 The authenticated Aircraft workspace opens a selected aircraft as
