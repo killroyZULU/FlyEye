@@ -19,5 +19,16 @@ assertions, nine runtime fixtures and cleanup, database lint/types and teardown.
 
 The [runner](../../../scripts/test-aircraft-document-limiter.mjs) implements the
 [SEC-014 matrix](FEAT-007_AIRCRAFT_DOCUMENT_RECORDS.md#limiter-concurrency-investigation).
-Its execution results are not yet established. Source inspection identifies a
-pre-lock timestamp candidate; it is not reproduction evidence.
+At `85c2dbe`, [baseline CI](https://github.com/killroyZULU/FlyEye/actions/runs/38022423678)
+reproduced `general-older-waiter` timestamp rewind while retaining exact charges,
+responses and two atomic events. The other 29 cases were unreached. Normal and
+interrupted cleanup proved zero owned rows/fault objects/sessions and unchanged
+permissions; 472 SQL/RLS assertions and teardown passed. Runtime fixtures were
+skipped after the assertion failure.
+
+The [correction](../../../supabase/migrations/20261010040320_sec_014_document_limiter_monotonic_time.sql)
+clamps effective refill time to the locked row's timestamp without changing
+thresholds, invocation-time sampling, event time, numeric accounting or grants.
+[PR #141](https://github.com/killroyZULU/FlyEye/pull/141) records separate review,
+regression execution and integration evidence. Baseline reproduction is not a
+regression pass or global H002 closure.
