@@ -31,7 +31,6 @@ export function onboardingChallengeBrowser() {
         organizationId,
         sourceInstanceId,
         psql,
-        admin,
         signIn,
         evidence,
         origin,
@@ -65,26 +64,17 @@ export function onboardingChallengeBrowser() {
         evidence.captureParents();
       }
       const [ownFactor, foreignFactor] = seeded;
-      const inventory = async () => {
-        const result = [];
-        for (const user of users) {
-          const factors = await admin.auth.admin.mfa.listFactors({ userId: user.id });
-          if (factors.error) throw factors.error;
-          assert.equal(Boolean(factors.error), false);
-          result.push(
-            factors.data.factors.map(({ id, factor_type, status }) => ({
-              id,
-              factor_type,
-              status,
-            })),
-          );
-        }
-        return result;
-      };
+      // State evidence uses the same scoped SQL channel as domain/assurance snapshots;
+      // admin-list HTTP availability is not part of the challenge ownership contract.
+      const inventory = () =>
+        users.map(({ id }) =>
+          evidence.json(`select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from
+          (select id,factor_type,status from auth.mfa_factors where user_id='${id}') t;`),
+        );
       const expectedFactors = seeded.map(({ id }) => [
         { id, factor_type: 'totp', status: 'verified' },
       ]);
-      assert.deepEqual(await inventory(), expectedFactors);
+      assert.deepEqual(inventory(), expectedFactors);
       const ownerChallenge = await foreignFactor.client.auth.mfa.challenge({
         factorId: foreignFactor.id,
       });
@@ -106,7 +96,7 @@ export function onboardingChallengeBrowser() {
         enterStage('foreign-snapshot-owner', 'owned foreign factor owner snapshot');
         const ownerState = foreignSnapshot();
         enterStage('foreign-snapshot-inventory', 'factor inventory snapshot');
-        const factors = await inventory();
+        const factors = inventory();
         enterStage('foreign-snapshot-challenges', 'provider challenge snapshot');
         const challenges = providerChallenges();
         enterStage('foreign-snapshot-assurance', 'server assurance snapshot');
@@ -145,7 +135,7 @@ export function onboardingChallengeBrowser() {
         code: currentTotp(foreignFactor.secret),
       });
       assert.equal(Boolean(ownerVerified.error), false);
-      assert.deepEqual(await inventory(), expectedFactors);
+      assert.deepEqual(inventory(), expectedFactors);
       evidence.captureParents();
       const unchangedForeign = foreignSnapshot();
       browser = await chromium.launch({ headless: true });
@@ -299,7 +289,7 @@ export function onboardingChallengeBrowser() {
         assert.equal(routeFailed, false);
         assert.equal(leaked, false);
         assertChallengeRequests(factorRequests, ownFactor.id);
-        assert.deepEqual(await inventory(), expectedFactors);
+        assert.deepEqual(inventory(), expectedFactors);
         assert.deepEqual(foreignSnapshot(), unchangedForeign);
         evidence.assertAuthority();
         reportDiagnostic(
