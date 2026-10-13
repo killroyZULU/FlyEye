@@ -135,7 +135,12 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-006b-runtime.mjs' ||
     fixture === 'test-feat-007-runtime.mjs' ||
     fixture === 'test-feat-007b-runtime.mjs';
-  const modes = priority.has(fixture) ? [['--cleanup-probe'], []] : [[]];
+  const memberMfa = fixture === 'test-feat-006-runtime.mjs';
+  const modes = memberMfa
+    ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
+    : priority.has(fixture)
+      ? [['--cleanup-probe'], []]
+      : [[]];
   for (const mode of modes) {
     const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture), ...mode], {
       encoding: hasDiagnostics ? 'utf8' : undefined,
@@ -150,9 +155,13 @@ for (const fixture of fixtures) {
       process.stdout.write(`${line}\n`);
     }
 
-    const feature = fixture === 'test-edge-runtime.mjs' ? 'FEAT-001' : 'FEAT-002';
+    const feature = memberMfa
+      ? 'FEAT-006'
+      : fixture === 'test-edge-runtime.mjs'
+        ? 'FEAT-001'
+        : 'FEAT-002';
     const cleanupProved =
-      !priority.has(fixture) ||
+      (!priority.has(fixture) && !memberMfa) ||
       diagnosticLines.includes(
         `${feature} runtime diagnostic: stage=fixture-cleanup event=passed.`,
       );
@@ -171,7 +180,7 @@ for (const fixture of fixtures) {
     }
 
     process.stdout.write(
-      `Runtime matrix passed: ${fixture}${mode.length ? ' (cleanup probe)' : ''}.\n`,
+      `Runtime matrix passed: ${fixture}${mode.length ? (memberMfa ? ` (${mode.map((flag) => flag.slice(2)).join(' ')})` : ' (cleanup probe)') : ''}.\n`,
     );
   }
   if (fixture !== fixtures.at(-1)) {

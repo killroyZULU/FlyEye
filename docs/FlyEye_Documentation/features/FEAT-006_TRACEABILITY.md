@@ -83,6 +83,22 @@ results do not prove provider factor lifecycle or full browser enrollment; the
 Slice A limitations above remain open. No production behavior correction is
 claimed from inspection or planned cases.
 
+## Provider-backed browser investigation
+
+[SEC-019 / #152](https://github.com/killroyZULU/FlyEye/issues/152) owns baseline,
+correction if needed, review and exact-head execution evidence for the
+[browser manifest](FEAT-006_ROLE_ASSIGNMENT.md#provider-backed-enrollment-and-resume-browser-investigation).
+The [runtime fixture](../../../scripts/test-feat-006-runtime.mjs) retains its API
+mode; `--browser`, `--browser --resume` and `--browser --cleanup-probe` exercise
+the [browser journey](../../../scripts/lib/member-mfa-browser.mjs), `run`.
+The [evidence helper](../../../scripts/lib/member-mfa-browser-evidence.mjs),
+`inspect` and `assertClean`, checks persisted state and owned residue.
+[Runner regressions](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs),
+`R2 member MFA browser gate`, require every mode's cleanup marker and suppress
+raw child output. Source inspection is not executed browser evidence; #152
+distinguishes passed, failed and unreached cases. Earlier mock/API results retain
+their original scope. Hosted lifecycle and formal accessibility remain unverified.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the

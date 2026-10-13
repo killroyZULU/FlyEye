@@ -5,6 +5,29 @@ import { feat006Diagnostic, runtimeDiagnosticLines } from './runtime-diagnostics
 describe('runtime diagnostic output boundary', () => {
   const fixture = 'test-feat-006-runtime.mjs';
 
+  it('retains fixed browser and cleanup stages without raw provider material', () => {
+    const stages = [
+      'browser-startup',
+      'browser-enrollment',
+      'browser-cancel-retained',
+      'browser-resume',
+      'browser-resume-conflict',
+      'browser-invalid-code',
+      'browser-completion',
+      'browser-verified',
+      'browser-interruption',
+      'cleanup-browser-shutdown',
+      'cleanup-frontend-shutdown',
+      'cleanup-auth-inventory',
+      'cleanup-bootstrap',
+    ];
+    const lines = stages.map((stage) => feat006Diagnostic(stage, 'passed'));
+    expect(
+      runtimeDiagnosticLines(fixture, [...lines, 'provider secret: private-token'].join('\n')),
+    ).toEqual(lines);
+    expect(() => feat006Diagnostic('browser-private-token', 'failed')).toThrow();
+  });
+
   it('retains password-session denial stages only for the affected fixtures', () => {
     const mfa = feat006Diagnostic('password-session-denial', 'enter');
     const documents = 'FEAT-007B runtime diagnostic: stage=password-session-denial event=enter.';

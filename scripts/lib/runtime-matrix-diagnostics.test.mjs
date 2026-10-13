@@ -109,6 +109,44 @@ describe('A026 runtime probe gate', () => {
   });
 });
 
+describe('R2 member MFA browser gate', () => {
+  it('preserves API mode and runs interrupted, fresh and resume browser modes', async () => {
+    mocks.fixture = 'test-feat-006-runtime.mjs';
+    const line = 'FEAT-006 runtime diagnostic: stage=fixture-cleanup event=passed.';
+    mocks.spawnSync.mockImplementation(() => ({ status: 0, stdout: `${line}\nprivate-token` }));
+    await import('../run-runtime-matrix.mjs');
+    const children = mocks.spawnSync.mock.calls.filter(([, args]) =>
+      args[0].endsWith(mocks.fixture),
+    );
+    expect(children.map(([, args]) => args.slice(1))).toEqual([
+      [],
+      ['--browser', '--cleanup-probe'],
+      ['--browser'],
+      ['--browser', '--resume'],
+    ]);
+    for (const child of children) expect(child[2].stdio).toEqual(['ignore', 'pipe', 'ignore']);
+    expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-token');
+  });
+
+  it('stops after a zero-exit browser probe without cleanup evidence', async () => {
+    mocks.fixture = 'test-feat-006-runtime.mjs';
+    mocks.spawnSync.mockImplementation((_command, args) => ({
+      status: 0,
+      stdout: args.includes('--browser')
+        ? ''
+        : 'FEAT-006 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    mocks.exit.mockImplementation(() => {
+      throw new Error('test-exit');
+    });
+    await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+    expect(
+      mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
+    ).toHaveLength(2);
+    expect(mocks.stderr.mock.calls.flat().join('')).toContain('cleanup evidence missing');
+  });
+});
+
 it('fails closed when an Auth fixture exits zero without explicit cleanup evidence', async () => {
   mocks.fixture = 'test-recovery-runtime.mjs';
   mocks.spawnSync.mockImplementation(() => ({ status: 0, stdout: 'private' }));

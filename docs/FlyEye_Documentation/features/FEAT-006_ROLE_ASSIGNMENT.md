@@ -250,6 +250,24 @@ permission records. Correct only reproduced in-scope violations. Provider factor
 lifecycle, the full enrollment browser journey, global session policy and other
 implicit waits are outside this selected SQL matrix.
 
+### Provider-backed enrollment and resume browser investigation
+
+Exercise the existing Slice A contract in disposable Chromium/Auth/Edge/database
+fixtures, retaining the API runtime mode. Freeze two browser journeys: fresh
+enrollment and bound cancellation/sign-out followed by password sign-in and resume.
+Both must reject an invalid code without readiness, then complete after explicit
+valid verification. Resume must retain the same operation and factor, create no
+second factor, and redisplay no enrollment secret. Confirm ready state on revisit,
+exact readiness/completion audit, and unchanged membership/role authority.
+
+Interrupt a third browser run after real binding to verify unconditional owned
+browser/frontend/Edge shutdown, domain/Auth descendant and limiter cleanup, and
+preservation of foreign state. Require explicit cleanup evidence from every mode.
+Keep credentials in memory and diagnostic output restricted to fixed stages.
+Correct only reproduced contract violations; retain complete factor-inventory
+validation and existing server controls. Hosted lifecycle, formal accessibility,
+factor recovery/replacement and session-policy decisions remain separate evidence.
+
 ## Slice B workflow and rules
 
 ```text
