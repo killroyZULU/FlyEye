@@ -29,6 +29,7 @@ vi.mock('node:process', async (original) => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   mocks.fixture = 'test-feat-006b-runtime.mjs';
   vi.resetAllMocks();
   vi.resetModules();
@@ -149,6 +150,8 @@ describe('R2 member MFA browser gate', () => {
 
 describe('R3 provider consistency gate', () => {
   it('retains normal onboarding and requires interrupted and provider-state modes', async () => {
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
     mocks.fixture = 'test-feat-003-runtime.mjs';
     const line = 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.';
     mocks.spawnSync.mockImplementation(() => ({
@@ -165,14 +168,66 @@ describe('R3 provider consistency gate', () => {
       ['--provider-state'],
     ]);
     expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-factor-token');
+    const lifecycle = mocks.spawnSync.mock.calls
+      .map(([, args]) => (args[0].endsWith(mocks.fixture) ? 'fixture' : args[1]))
+      .filter((value) => ['stop', 'start', 'fixture'].includes(value));
+    expect(lifecycle).toEqual([
+      'stop',
+      'start',
+      'fixture',
+      'stop',
+      'start',
+      'fixture',
+      'stop',
+      'start',
+      'fixture',
+    ]);
   });
-  it('blocks provider cases when the interruption probe lacks cleanup evidence', async () => {
+  it.each([0, 1])(
+    'blocks restart and further cases on probe exit %s without sufficient success evidence',
+    async (exitCode) => {
+      vi.stubEnv('CI', 'true');
+      vi.stubEnv('GITHUB_ACTIONS', 'true');
+      mocks.fixture = 'test-feat-003-runtime.mjs';
+      mocks.spawnSync.mockImplementation((_command, args) => ({
+        status: args.includes('--provider-cleanup-probe') ? exitCode : 0,
+        stdout:
+          args.includes('--provider-cleanup-probe') && exitCode === 0
+            ? ''
+            : 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
+      }));
+      mocks.exit.mockImplementation(() => {
+        throw new Error('test-exit');
+      });
+      await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      expect(
+        mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
+      ).toHaveLength(2);
+      expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(2);
+    },
+  );
+  it('keeps non-CI onboarding on its existing single mode without additional lifecycle calls', async () => {
+    vi.stubEnv('CI', 'false');
+    vi.stubEnv('GITHUB_ACTIONS', 'false');
     mocks.fixture = 'test-feat-003-runtime.mjs';
-    mocks.spawnSync.mockImplementation((_command, args) => ({
+    mocks.spawnSync.mockImplementation(() => ({
       status: 0,
-      stdout: args.includes('--provider-cleanup-probe')
-        ? ''
-        : 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
+      stdout: 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    await import('../run-runtime-matrix.mjs');
+    expect(
+      mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
+    ).toHaveLength(1);
+    expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(1);
+  });
+  it('stops before the next mode when the between-mode lifecycle fails', async () => {
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
+    mocks.fixture = 'test-feat-003-runtime.mjs';
+    let stops = 0;
+    mocks.spawnSync.mockImplementation((_command, args) => ({
+      status: args[1] === 'stop' && ++stops === 2 ? 1 : 0,
+      stdout: 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
     }));
     mocks.exit.mockImplementation(() => {
       throw new Error('test-exit');
@@ -180,7 +235,7 @@ describe('R3 provider consistency gate', () => {
     await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
     expect(
       mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
   });
 });
 

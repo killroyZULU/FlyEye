@@ -271,6 +271,13 @@ export function fixtureDiagnosticLines(feature, output) {
 }
 
 function failureDetail(error) {
+  if (['AuthApiError', 'AuthRetryableFetchError', 'AuthUnknownError'].includes(error?.name)) {
+    if (Number.isInteger(error.status) && error.status >= 400 && error.status <= 599)
+      return httpStatuses.has(error.status) ? `http-${error.status}` : 'http-other';
+    if (error.name === 'AuthRetryableFetchError' && error.status === 0) return 'transport-failed';
+    if (error.name === 'AuthUnknownError' && error.originalError?.name === 'SyntaxError')
+      return 'response-decoding-failed';
+  }
   if (error?.name === 'AssertionError') {
     if (Number.isInteger(error.actual) && error.actual >= 400 && error.actual <= 599) {
       return httpStatuses.has(error.actual) ? `http-${error.actual}` : 'http-other';

@@ -136,7 +136,9 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-007-runtime.mjs' ||
     fixture === 'test-feat-007b-runtime.mjs';
   const memberMfa = fixture === 'test-feat-006-runtime.mjs';
-  const onboardingProvider = fixture === 'test-feat-003-runtime.mjs';
+  const onboardingFixture = fixture === 'test-feat-003-runtime.mjs';
+  const onboardingProvider =
+    onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const modes = onboardingProvider
     ? [[], ['--provider-cleanup-probe'], ['--provider-state']]
     : memberMfa
@@ -144,7 +146,18 @@ for (const fixture of fixtures) {
       : priority.has(fixture)
         ? [['--cleanup-probe'], []]
         : [[]];
-  for (const mode of modes) {
+  for (const [modeIndex, mode] of modes.entries()) {
+    if (onboardingProvider && modeIndex > 0) {
+      // The preceding mode must pass its cleanup gate before replacing disposable workers.
+      try {
+        await restartLocalRuntime();
+      } catch (error) {
+        process.stderr.write(
+          `${error instanceof Error ? error.message : 'Runtime readiness failed.'}\n`,
+        );
+        process.exit(1);
+      }
+    }
     const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture), ...mode], {
       encoding: hasDiagnostics ? 'utf8' : undefined,
       env: hasDiagnostics ? { ...process.env, FLYEYE_RUNTIME_DIAGNOSTICS: '1' } : process.env,
@@ -158,7 +171,7 @@ for (const fixture of fixtures) {
       process.stdout.write(`${line}\n`);
     }
 
-    const feature = onboardingProvider
+    const feature = onboardingFixture
       ? 'FEAT-003'
       : memberMfa
         ? 'FEAT-006'
@@ -166,7 +179,7 @@ for (const fixture of fixtures) {
           ? 'FEAT-001'
           : 'FEAT-002';
     const cleanupProved =
-      (!priority.has(fixture) && !memberMfa && !onboardingProvider) ||
+      (!priority.has(fixture) && !memberMfa && !onboardingFixture) ||
       diagnosticLines.includes(
         `${feature} runtime diagnostic: stage=fixture-cleanup event=passed.`,
       );

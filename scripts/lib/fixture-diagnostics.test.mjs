@@ -13,6 +13,19 @@ function recorder(feature = 'FEAT-007B', enabled = true) {
 
 describe('sanitized fixture failure evidence', () => {
   it.each([
+    ['AuthRetryableFetchError', 0, 'transport-failed', undefined],
+    ['AuthRetryableFetchError', 503, 'http-503', undefined],
+    ['AuthApiError', 429, 'http-429', undefined],
+    ['AuthUnknownError', undefined, 'response-decoding-failed', { name: 'SyntaxError' }],
+    ['AuthUnknownError', undefined, 'unclassified', { name: 'Error' }],
+  ])('classifies SDK %s safely', (name, status, detail, originalError) => {
+    const { lines, diagnostics } = recorder('FEAT-003');
+    diagnostics.enter('provider-password');
+    diagnostics.fail({ name, status, message: 'private provider payload', originalError });
+    expect(lines.at(-1)).toBe(fixtureDiagnostic('FEAT-003', 'provider-password', 'failed', detail));
+    expect(lines.join('\n')).not.toContain('private');
+  });
+  it.each([
     'provider-grant-issuance',
     'provider-password',
     'provider-enroll',

@@ -304,7 +304,7 @@ async function signIn(user) {
     password,
   });
   if (error || !data.session) {
-    if (providerMode && error) assert.equal(error.status, 200);
+    if (providerMode && error) diagnostics.fail(error);
     throw new Error('Synthetic password sign-in failed.');
   }
   return { client, session: data.session };
@@ -316,14 +316,14 @@ async function promoteToAal2(signedIn) {
     factorType: 'totp',
     friendlyName: `FlyEye synthetic ${runId}`,
   });
-  if (providerMode && enrollmentError) assert.equal(enrollmentError.status, 200);
+  if (providerMode && enrollmentError) diagnostics.fail(enrollmentError);
   if (enrollmentError) throw new Error('Synthetic TOTP enrollment failed.');
   if (providerMode) enterStage('provider-verify', 'provider factor verification');
   const { error: verifyError } = await signedIn.client.auth.mfa.challengeAndVerify({
     factorId: enrollment.id,
     code: currentTotp(enrollment.totp.secret),
   });
-  if (providerMode && verifyError) assert.equal(verifyError.status, 200);
+  if (providerMode && verifyError) diagnostics.fail(verifyError);
   if (verifyError) throw new Error('Synthetic TOTP verification failed.');
   if (providerMode) enterStage('provider-assurance', 'provider assurance check');
   const { data: assurance, error: assuranceError } =
