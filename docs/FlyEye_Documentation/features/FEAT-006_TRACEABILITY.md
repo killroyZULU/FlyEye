@@ -99,6 +99,21 @@ raw child output. Source inspection is not executed browser evidence; #152
 distinguishes passed, failed and unreached cases. Earlier mock/API results retain
 their original scope. Hosted lifecycle and formal accessibility remain unverified.
 
+The [gateway regression](../../../src/features/auth/services/member-mfa-gateway.test.ts),
+`preserves challenge behavior for unverified factor at version 2`, reproduced
+resume rejection with the pinned SDK's verified-only convenience-list shape.
+The correction compares its verified projection while retaining complete-inventory
+validation. Eight malformed/mixed/missing inventory controls and the existing
+initial/verified challenge cases pass; the facade mock now uses the same SDK shape.
+This focused result is separate from the disposable browser results owned by #152.
+
+Baseline `cafaeaf` / [CI 38349943376](https://github.com/killroyZULU/FlyEye/actions/runs/38349943376)
+passed the API mode but stopped during the first browser probe at the coarse
+`browser-enrollment` stage. All cleanup steps, the final marker and disposable
+teardown passed. Fresh and resumed completion were unreached; this run does not
+establish the browser failure cause or reproduce the gateway defect. Fixed
+substage and HTTP-status diagnostics were added without provider payload output.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the

@@ -434,7 +434,10 @@ describe('Member MFA preparation and binding compatibility', () => {
     async (status, operationVersion, allowed) => {
       const { gateway, invoke, mfa } = fixture();
       const factor = { id: factorId, factor_type: 'totp', status };
-      mfa.listFactors.mockResolvedValue({ data: { all: [factor], totp: [factor] }, error: null });
+      mfa.listFactors.mockResolvedValue({
+        data: { all: [factor], totp: status === 'verified' ? [factor] : [] },
+        error: null,
+      });
       const started = { ...start(), factorState: 'challenge_required' as const, operationVersion };
       const result = gateway.prepareMemberTotp(started, idempotencyKey);
       if (allowed) await expect(result).resolves.toEqual({ kind: 'challenge', factorId });
@@ -469,4 +472,50 @@ describe('Member MFA preparation and binding compatibility', () => {
       expect(invoke).not.toHaveBeenCalled();
     },
   );
+
+  it.each([
+    'unverified convenience entry',
+    'wrong convenience type',
+    'different convenience identity',
+    'duplicate full inventory',
+    'duplicate convenience inventory',
+    'hidden unverified phone',
+    'unknown full-inventory status',
+    'missing bound factor',
+  ])('rejects %s during resume without provider mutation', async (variant) => {
+    const { gateway, invoke, mfa } = fixture();
+    const factor = { id: factorId, factor_type: 'totp', status: 'verified' };
+    let all = [factor];
+    let totp = [factor];
+    if (variant === 'unverified convenience entry') {
+      all = [{ ...factor, status: 'unverified' }];
+      totp = all;
+    }
+    if (variant === 'wrong convenience type') totp = [{ ...factor, factor_type: 'phone' }];
+    if (variant === 'different convenience identity')
+      totp = [{ ...factor, id: context.correlationId }];
+    if (variant === 'duplicate full inventory') all = [factor, factor];
+    if (variant === 'duplicate convenience inventory') totp = [factor, factor];
+    if (variant === 'hidden unverified phone')
+      all = [
+        factor,
+        {
+          id: context.correlationId,
+          factor_type: 'phone',
+          status: 'unverified',
+        },
+      ];
+    if (variant === 'unknown full-inventory status') all = [{ ...factor, status: 'unknown' }];
+    if (variant === 'missing bound factor') {
+      all = [];
+      totp = [];
+    }
+    mfa.listFactors.mockResolvedValue({ data: { all, totp }, error: null });
+    const started = { ...start(), factorState: 'challenge_required' as const, operationVersion: 2 };
+    await expect(gateway.prepareMemberTotp(started, idempotencyKey)).rejects.toThrow();
+    expect(mfa.enroll).not.toHaveBeenCalled();
+    expect(mfa.unenroll).not.toHaveBeenCalled();
+    expect(mfa.challengeAndVerify).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+  });
 });

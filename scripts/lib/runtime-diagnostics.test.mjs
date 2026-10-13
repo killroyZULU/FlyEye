@@ -8,7 +8,13 @@ describe('runtime diagnostic output boundary', () => {
   it('retains fixed browser and cleanup stages without raw provider material', () => {
     const stages = [
       'browser-startup',
+      'browser-page-load',
+      'browser-password-login',
+      'browser-workspace',
+      'browser-security',
       'browser-enrollment',
+      'browser-secret',
+      'browser-bound',
       'browser-cancel-retained',
       'browser-resume',
       'browser-resume-conflict',

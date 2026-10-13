@@ -20,7 +20,17 @@ export function memberMfaBrowser() {
       assert.ok(address && typeof address === 'object');
       return `http://127.0.0.1:${address.port}`;
     },
-    async run({ origin, email, password, currentTotp, enterStage, inspect, resume, checkpoint }) {
+    async run({
+      origin,
+      email,
+      password,
+      currentTotp,
+      enterStage,
+      inspect,
+      resume,
+      checkpoint,
+      onProviderFailure,
+    }) {
       browser = await chromium.launch({ headless: true });
       const page = await browser.newPage({
         viewport: resume ? { width: 393, height: 851 } : { width: 1280, height: 800 },
@@ -40,25 +50,39 @@ export function memberMfaBrowser() {
         if (url.pathname.startsWith('/auth/v1/factors/') && request.method() === 'DELETE')
           removals++;
       });
+      page.on('response', (response) => {
+        const pathname = new URL(response.url()).pathname;
+        if (
+          response.status() >= 400 &&
+          (pathname.startsWith('/auth/v1/') || pathname.startsWith('/functions/v1/'))
+        )
+          onProviderFailure(response.status());
+      });
       async function login() {
+        enterStage('browser-password-login');
         await page.getByLabel('Email address').fill(email);
         await page.getByLabel('Password', { exact: true }).fill(password);
         await page.getByRole('button', { name: 'Sign in securely' }).click();
+        enterStage('browser-workspace');
         await page.getByRole('button', { name: 'Account security', exact: true }).click();
+        enterStage('browser-security');
       }
       async function noCredential() {
         assert.equal(await page.locator('.manual-secret').count(), 0);
         assert.equal(await page.getByAltText('Authenticator setup QR code').count(), 0);
         assert.equal(await page.getByRole('button', { name: 'Show manual setup key' }).count(), 0);
       }
-      enterStage('browser-enrollment');
+      enterStage('browser-page-load');
       await page.goto(origin);
       await login();
       await page.getByRole('button', { name: 'Begin secure setup' }).click();
+      enterStage('browser-enrollment');
       await page.getByRole('heading', { name: 'Set up your authenticator', exact: true }).waitFor();
       await page.getByRole('button', { name: 'Show manual setup key' }).click();
+      enterStage('browser-secret');
       secret = (await page.getByLabel('Manual authenticator setup key').textContent()).trim();
       assert.ok(/^[A-Z2-7]+=*$/i.test(secret));
+      enterStage('browser-bound');
       const bound = await inspect('bound');
       assert.equal(enrollments, 1);
       checkpoint();

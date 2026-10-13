@@ -139,6 +139,8 @@ Active member + no factor
    no factor, exactly one current-operation unverified TOTP, or exactly one
    verified TOTP. Multiple, mixed, duplicate, stale, hidden, phone, WebAuthn, or
    provider-uncertain inventories conflict without selection or mutation.
+   The SDK's verified-only TOTP convenience list must match the verified TOTP
+   projection of the complete inventory; it does not replace that inventory.
 4. When no factor exists, the user's Supabase session enrolls exactly one TOTP.
    QR data, URI, manual secret, factor ID, and verification code remain in active
    memory only and never enter tables, URLs, browser storage, logs, analytics,

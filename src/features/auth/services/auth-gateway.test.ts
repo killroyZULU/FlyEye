@@ -468,7 +468,12 @@ describe('FEAT-006A Supabase auth gateway', () => {
           {
             mfa: {
               listFactors: vi.fn().mockResolvedValue({
-                data: { all: [boundFactor], totp: [boundFactor], phone: [], webauthn: [] },
+                data: {
+                  all: [boundFactor],
+                  totp: status === 'verified' ? [boundFactor] : [],
+                  phone: [],
+                  webauthn: [],
+                },
                 error: null,
               }),
               enroll,
