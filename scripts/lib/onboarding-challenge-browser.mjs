@@ -118,7 +118,10 @@ export function onboardingChallengeBrowser() {
                 challengeId: ownerChallenge.data.id,
                 code: currentTotp(foreignFactor.secret),
               });
-        assertForeignFactorDenied(before, await negativeSnapshot(), result);
+        assertForeignFactorDenied(before, await negativeSnapshot(), result, (stage) =>
+          enterStage(stage, 'foreign factor denial assertion'),
+        );
+        enterStage('foreign-denial-cached-assurance', 'unchanged cached assurance');
         const session = await attacker.client.auth.getSession();
         assert.equal(Boolean(session.error), false);
         assertPasswordOnly(session.data.session.access_token, actor.id);

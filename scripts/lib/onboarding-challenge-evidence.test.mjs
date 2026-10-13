@@ -6,6 +6,7 @@ import {
 } from './onboarding-challenge-evidence.mjs';
 import { assertStaleTransition } from './onboarding-stale-evidence.mjs';
 import { createHash } from 'node:crypto';
+import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
 
 const uuid = (i) => `e4000000-0000-4000-8000-${String(i).padStart(12, '0')}`;
 const token = (claims) =>
@@ -32,6 +33,24 @@ describe('R3 foreign factor denial evidence', () => {
   const result = { data: null, error: { status: 404, code: 'mfa_factor_not_found' } };
   it('accepts only ownership denial with both actors unchanged', () => {
     expect(() => assertForeignFactorDenied(before, structuredClone(before), result)).not.toThrow();
+  });
+  it('localizes a failed assertion using only fixed sanitized checkpoints', () => {
+    const stages = [];
+    expect(() =>
+      assertForeignFactorDenied(
+        before,
+        before,
+        {
+          ...result,
+          error: { status: 404, code: 'unexpected-private-provider-value' },
+        },
+        (stage) => stages.push(fixtureDiagnostic('FEAT-003', stage, 'enter')),
+      ),
+    ).toThrow();
+    expect(stages).toEqual([
+      'FEAT-003 runtime diagnostic: stage=foreign-denial-status event=enter.',
+      'FEAT-003 runtime diagnostic: stage=foreign-denial-code event=enter.',
+    ]);
   });
   it.each([429, 500, 503, 200])('rejects HTTP %s as denial evidence', (status) => {
     expect(() =>
