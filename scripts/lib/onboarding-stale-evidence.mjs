@@ -38,7 +38,7 @@ export function assertStaleTransition(kind, before, after, result, context) {
       grantVersion: grant.version,
       replayed: false,
       correlationId,
-      factorState: 'enrollment_required',
+      factorState: context.factorState ?? 'enrollment_required',
     });
   else
     assert.deepEqual(result.payload, {

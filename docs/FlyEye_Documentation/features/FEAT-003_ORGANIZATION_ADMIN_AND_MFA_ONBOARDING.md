@@ -313,6 +313,29 @@ after enrollment to verify browser/frontend shutdown, captured Auth descendants,
 domain/limiter cleanup and unchanged foreign state. This does not prove memory
 erasure, global session revocation, factor recovery or other provider schedules.
 
+### Existing verified factor and foreign-factor challenge
+
+Use two owned synthetic subjects with one verified TOTP each. From a fresh AAL1
+session, attempts to challenge or verify the other subject's factor must return
+the specific provider ownership denial. Quota, outage and timeout responses are
+not denial evidence. Compare exact domain/audit state, factor identity/status and
+provider challenge records; require unchanged AAL1 and a still-usable owner
+challenge. This is account isolation within one disposable school, not a second
+hosted school.
+
+The positive browser journey must return `challenge_required`, display no setup
+credentials and reuse the actor's factor without enrollment or deletion. Require
+one challenge/verification pair, current password/TOTP AAL2, one exact protected
+completion and final protected bootstrap access. Capture command snapshots before
+forwarding actual backend responses so subsequent audit events cannot race the
+assertions. Do not manufacture provider results or automatically retry failures.
+
+Interrupt a separate browser run after its real challenge and before provider
+verification; require no completion and owned browser/frontend/Auth/domain/limiter
+cleanup. Reuse existing cross-school SQL and cleanup controls. Replacement, mixed
+factors, outages, recovery, global session policy and hosted validation remain
+outside these selected cases.
+
 ## Acceptance criteria
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.

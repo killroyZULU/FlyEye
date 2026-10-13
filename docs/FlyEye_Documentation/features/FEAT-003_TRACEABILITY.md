@@ -171,21 +171,26 @@ authority controls. Other H002 paths and historical A024 remain open.
 
 ### Provider consistency evidence map
 
-[SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154) owns exact-target
-execution and review for the [four provider schedules](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
-The existing [runtime issuer](../../../scripts/test-feat-003-runtime.mjs) retains
-normal mode and adds `--provider-state` and `--provider-cleanup-probe`.
-[Provider cases](../../../scripts/lib/onboarding-provider-cases.mjs),
-`runOnboardingProviderCases`, observe SQL waits and test final protected bootstrap.
-[Evidence assertions](../../../scripts/lib/onboarding-provider-evidence.mjs),
-`assertProviderCompletion` and `assertClean`, check exact authority/audit state,
-captured Auth descendants and foreign-state preservation. [Mutation regressions](../../../scripts/lib/onboarding-provider-evidence.test.mjs)
-reject incorrect actor, tenant, role, grant, key and audit evidence;
-[runner regressions](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs),
-`R3 provider consistency gate`, reject missing cleanup evidence.
-Source assertions alone are not execution evidence; #154 distinguishes observed
-outcomes from unreached cases. Browser routing/secret clearing, other R3 paths
-and hosted/session-policy evidence remain separate.
+[SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154): exact-target results,
+unreached cases and review for [four schedules and limitations](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
+[Runtime](../../../scripts/test-feat-003-runtime.mjs) modes `--provider-state` and
+`--provider-cleanup-probe` retain normal mode.
+[runOnboardingProviderCases](../../../scripts/lib/onboarding-provider-cases.mjs) observes
+SQL waits/final bootstrap. [assertProviderCompletion/assertClean](../../../scripts/lib/onboarding-provider-evidence.mjs)
+check authority/audit, Auth descendants and foreign state;
+[mutation regressions](../../../scripts/lib/onboarding-provider-evidence.test.mjs) challenge those assertions.
+[R3 provider consistency gate](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+enforces cleanup. Source assertions alone do not prove execution.
+
+### Verified-factor browser evidence map
+
+[SEC-023 / #160](https://github.com/killroyZULU/FlyEye/issues/160): results/review;
+[contract/limits](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#existing-verified-factor-and-foreign-factor-challenge).
+[onboardingChallengeBrowser](../../../scripts/lib/onboarding-challenge-browser.mjs) runs
+`--verified-challenge` and `--challenge-cleanup-probe` through the existing runtime.
+[Denial/assurance/request assertions](../../../scripts/lib/onboarding-challenge-evidence.mjs)
+and [mutation tests](../../../scripts/lib/onboarding-challenge-evidence.test.mjs) supplement
+the shared completion/bootstrap and cleanup evidence above.
 
 ### Stale-factor browser evidence map
 

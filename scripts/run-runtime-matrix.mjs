@@ -146,6 +146,8 @@ for (const fixture of fixtures) {
         ['--provider-state'],
         ['--stale-cleanup-probe'],
         ['--stale-factors'],
+        ['--challenge-cleanup-probe'],
+        ['--verified-challenge'],
       ]
     : memberMfa
       ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]

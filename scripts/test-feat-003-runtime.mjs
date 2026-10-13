@@ -21,12 +21,17 @@ import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
+import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
 const staleMode = staleProbe || process.argv.includes('--stale-factors');
-const providerMode = staleMode || providerProbe || process.argv.includes('--provider-state');
+const challengeProbe = process.argv.includes('--challenge-cleanup-probe');
+const challengeMode = challengeProbe || process.argv.includes('--verified-challenge');
+const providerMode =
+  challengeMode || staleMode || providerProbe || process.argv.includes('--provider-state');
 const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
+const challengeBrowser = challengeMode ? onboardingChallengeBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
 if (providerMode && (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')) {
   throw new Error('Onboarding provider cases require disposable GitHub Actions services.');
@@ -1121,11 +1126,13 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(staleMode
-      ? ['providerStale', 'providerFresh']
-      : providerMode
-        ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-        : []),
+    ...(challengeMode
+      ? ['providerChallenge', 'providerForeign']
+      : staleMode
+        ? ['providerStale', 'providerFresh']
+        : providerMode
+          ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+          : []),
   ].map((name) => [
     name,
     {
@@ -1165,9 +1172,9 @@ try {
   enterStage('fixture-issuance', 'atomic fixture issuance');
   seedFixture();
 
-  if (staleMode) {
-    enterStage('browser-frontend-startup', 'isolated stale-factor frontend');
-    origin = await staleBrowser.start(apiUrl, publishableKey);
+  if (staleMode || challengeMode) {
+    enterStage('browser-frontend-startup', 'isolated onboarding frontend');
+    origin = await (staleBrowser ?? challengeBrowser).start(apiUrl, publishableKey);
   }
 
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
@@ -1197,8 +1204,8 @@ try {
   });
   await waitForEdgeRuntime();
 
-  if (staleMode) {
-    await staleBrowser.run({
+  if (staleMode || challengeMode) {
+    await (staleBrowser ?? challengeBrowser).run({
       users: providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,
@@ -1209,9 +1216,10 @@ try {
       evidence: providerEvidence,
       origin,
       password,
+      currentTotp,
       enterStage,
       reportDiagnostic,
-      cleanupProbe: staleProbe,
+      cleanupProbe: staleProbe || challengeProbe,
     });
     throw providerFinished;
   }
@@ -1565,6 +1573,8 @@ try {
         ['cleanup-provider-parents', async () => providerEvidence?.captureParents()],
         ['cleanup-stale-browser', async () => staleBrowser?.closeBrowser()],
         ['cleanup-stale-frontend', async () => staleBrowser?.closeFrontend()],
+        ['cleanup-challenge-browser', async () => challengeBrowser?.closeBrowser()],
+        ['cleanup-challenge-frontend', async () => challengeBrowser?.closeFrontend()],
         ['cleanup-edge-shutdown', () => stopChild(edgeProcess, 'edge-runtime-shutdown')],
         ['cleanup-provider-limiter', async () => providerEvidence?.cleanupLimiter()],
         [

@@ -168,12 +168,20 @@ describe('R3 provider consistency gate', () => {
       ['--provider-state'],
       ['--stale-cleanup-probe'],
       ['--stale-factors'],
+      ['--challenge-cleanup-probe'],
+      ['--verified-challenge'],
     ]);
     expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-factor-token');
     const lifecycle = mocks.spawnSync.mock.calls
       .map(([, args]) => (args[0].endsWith(mocks.fixture) ? 'fixture' : args[1]))
       .filter((value) => ['stop', 'start', 'fixture'].includes(value));
     expect(lifecycle).toEqual([
+      'stop',
+      'start',
+      'fixture',
+      'stop',
+      'start',
+      'fixture',
       'stop',
       'start',
       'fixture',
@@ -196,6 +204,8 @@ describe('R3 provider consistency gate', () => {
     ['--provider-cleanup-probe', 1, 2],
     ['--stale-cleanup-probe', 0, 4],
     ['--stale-cleanup-probe', 1, 4],
+    ['--challenge-cleanup-probe', 0, 6],
+    ['--challenge-cleanup-probe', 1, 6],
   ])(
     'blocks restart and further cases on %s exit %s without sufficient success evidence',
     async (probe, exitCode, count) => {
