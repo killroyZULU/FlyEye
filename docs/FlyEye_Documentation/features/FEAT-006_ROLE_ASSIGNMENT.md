@@ -225,6 +225,31 @@ Correct only reproduced defects through versioned migrations. Enrollment,
 provider/factor mutation, cancellation reconciliation, session policy, other
 limiters and hosted abuse remain separate; consumption grants no MFA authority.
 
+### Member-MFA cancellation concurrency investigation
+
+Characterize cancellation, factor binding and completion at the enrollment-operation
+lock under [Slice A rules](#slice-a-workflow-and-rules). Observe both transaction
+orders and commit/rollback for cancel/bind, complete/cancel, bound cancel/complete
+and duplicate same-key cancellation. A committed unbound cancellation prevents
+binding; committed binding makes cancellation conflict. Completion rollback still
+leaves a bound, noncancellable operation. Retained operations support explicit
+completion and exact replay without an extra event.
+
+Include different-key conflict, wrong subject/missing operation, valid stale
+version/non-null-factor negatives, ownership changes during a wait, cancellation
+after a synthetic membership revocation, and cancellation-audit failure with
+rollback and explicit retry. The service-only SQL primitive's revocation case
+does not change the Edge endpoint's active-context preflight or promise public
+cancellation after revocation. Preserve existing method/freshness and factor rules.
+
+Compare exact operation/readiness, membership/profile/role state and historical
+audit identity. Browser grants stay denied; no role or permission changes are
+part of this investigation. Normal and interrupted disposable fixtures must close
+owned sessions, prove owned-row/Auth residue absent and preserve original
+permission records. Correct only reproduced in-scope violations. Provider factor
+lifecycle, the full enrollment browser journey, global session policy and other
+implicit waits are outside this selected SQL matrix.
+
 ## Slice B workflow and rules
 
 ```text

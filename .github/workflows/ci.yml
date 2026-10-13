@@ -170,6 +170,8 @@ jobs:
           node scripts/test-h002-onboarding-start.mjs
           node scripts/test-h002-onboarding-cancel.mjs --cleanup-probe
           node scripts/test-h002-onboarding-cancel.mjs
+          node scripts/test-h002-mfa-cancel.mjs --cleanup-probe
+          node scripts/test-h002-mfa-cancel.mjs
           node scripts/test-onboarding-limiter.mjs --cleanup-probe
           node scripts/test-onboarding-limiter.mjs
           node scripts/test-onboarding-limiter.mjs --pruning --cleanup-probe

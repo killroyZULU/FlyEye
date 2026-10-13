@@ -60,6 +60,29 @@ clamps effective time after the locked read without changing transaction-time
 events or thresholds. Corrected execution results belong to #136. Existing MFA
 authorization, provider and cross-school evidence retains its original scope.
 
+## Member-MFA cancellation concurrency evidence
+
+[SEC-018 / #150](https://github.com/killroyZULU/FlyEye/issues/150) owns execution
+and review of the [selected cancellation matrix](FEAT-006_ROLE_ASSIGNMENT.md#member-mfa-cancellation-concurrency-investigation)
+against baseline `e1eb237`. The [case manifest](../../../scripts/lib/h002-mfa-cancel-cases.mjs),
+`cases`, contains sixteen cases; `race` observes the operation-lock owner through
+the [runner](../../../scripts/test-h002-mfa-cancel.mjs), `observe`.
+[Assertions](../../../scripts/lib/h002-mfa-cancel-assertions.mjs), `transition`,
+`unchanged` and `replay`, compare exact state and audit identity. The runner's
+normal and interrupted paths require cleanup after all owned sessions settle.
+Source inspection is not execution evidence; #150 records passed, failed and
+unreached cases and the exact final-head CI target.
+
+Existing [handler tests](../../../supabase/functions/member-mfa/handler.test.ts),
+`denies cancellation before mutation when preflight %s differs` and
+`retains a bound factor and operation for safe resume instead of deleting it`,
+cover the distinct Edge boundary with mocked dependencies. The
+[SQL suite](../../../supabase/tests/feat_006a_member_totp_enrollment_test.sql)
+retains completion-audit rollback, browser grants and tenant negatives. These
+results do not prove provider factor lifecycle or full browser enrollment; the
+Slice A limitations above remain open. No production behavior correction is
+claimed from inspection or planned cases.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the
