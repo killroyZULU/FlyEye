@@ -69,6 +69,7 @@ export function onboardingChallengeBrowser() {
         const result = [];
         for (const user of users) {
           const factors = await admin.auth.admin.mfa.listFactors({ userId: user.id });
+          if (factors.error) throw factors.error;
           assert.equal(Boolean(factors.error), false);
           result.push(
             factors.data.factors.map(({ id, factor_type, status }) => ({
@@ -99,17 +100,25 @@ export function onboardingChallengeBrowser() {
         'amr',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]') from
           (select id,session_id,authentication_method,created_at,updated_at from auth.mfa_amr_claims
             where session_id in(select id from auth.sessions where user_id in ('${actor.id}','${foreign.id}'))) t));`);
-      const negativeSnapshot = async () => ({
-        domain: [snapshot(), foreignSnapshot()],
-        factors: await inventory(),
-        challenges: providerChallenges(),
-        assurance: providerAssurance(),
-      });
+      const negativeSnapshot = async () => {
+        enterStage('foreign-snapshot-actor', 'owned actor snapshot');
+        const actorState = snapshot();
+        enterStage('foreign-snapshot-owner', 'owned foreign factor owner snapshot');
+        const ownerState = foreignSnapshot();
+        enterStage('foreign-snapshot-inventory', 'factor inventory snapshot');
+        const factors = await inventory();
+        enterStage('foreign-snapshot-challenges', 'provider challenge snapshot');
+        const challenges = providerChallenges();
+        enterStage('foreign-snapshot-assurance', 'server assurance snapshot');
+        const assurance = providerAssurance();
+        return { domain: [actorState, ownerState], factors, challenges, assurance };
+      };
       const attacker = await signIn(actor);
       assertPasswordOnly(attacker.session.access_token, actor.id);
       for (const operation of ['challenge', 'verify']) {
         enterStage(`foreign-factor-${operation}`, 'foreign factor ownership denial');
         const before = await negativeSnapshot();
+        enterStage('foreign-provider-request', 'provider ownership request');
         const result =
           operation === 'challenge'
             ? await attacker.client.auth.mfa.challenge({ factorId: foreignFactor.id })
@@ -118,7 +127,9 @@ export function onboardingChallengeBrowser() {
                 challengeId: ownerChallenge.data.id,
                 code: currentTotp(foreignFactor.secret),
               });
-        assertForeignFactorDenied(before, await negativeSnapshot(), result, (stage) =>
+        enterStage('foreign-provider-returned', 'provider ownership response received');
+        const after = await negativeSnapshot();
+        assertForeignFactorDenied(before, after, result, (stage) =>
           enterStage(stage, 'foreign factor denial assertion'),
         );
         enterStage('foreign-denial-cached-assurance', 'unchanged cached assurance');
