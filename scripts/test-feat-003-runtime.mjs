@@ -20,16 +20,20 @@ import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagn
 import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
+import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
-const providerMode = providerProbe || process.argv.includes('--provider-state');
+const staleProbe = process.argv.includes('--stale-cleanup-probe');
+const staleMode = staleProbe || process.argv.includes('--stale-factors');
+const providerMode = staleMode || providerProbe || process.argv.includes('--provider-state');
+const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
 if (providerMode && (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')) {
   throw new Error('Onboarding provider cases require disposable GitHub Actions services.');
 }
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
-const origin = 'http://127.0.0.1:5173';
+let origin = 'http://127.0.0.1:5173';
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const cliBinaryPath = resolveSupabaseBinary();
 const configPath = path.resolve('supabase', 'config.toml');
@@ -1117,9 +1121,11 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(providerMode
-      ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-      : []),
+    ...(staleMode
+      ? ['providerStale', 'providerFresh']
+      : providerMode
+        ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+        : []),
   ].map((name) => [
     name,
     {
@@ -1159,6 +1165,11 @@ try {
   enterStage('fixture-issuance', 'atomic fixture issuance');
   seedFixture();
 
+  if (staleMode) {
+    enterStage('browser-frontend-startup', 'isolated stale-factor frontend');
+    origin = await staleBrowser.start(apiUrl, publishableKey);
+  }
+
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
@@ -1186,6 +1197,24 @@ try {
   });
   await waitForEdgeRuntime();
 
+  if (staleMode) {
+    await staleBrowser.run({
+      users: providerUsers,
+      organizationId: organizations.a,
+      sourceInstanceId,
+      psql,
+      admin: adminClient,
+      signIn,
+      invoke: invokeFunction,
+      evidence: providerEvidence,
+      origin,
+      password,
+      enterStage,
+      reportDiagnostic,
+      cleanupProbe: staleProbe,
+    });
+    throw providerFinished;
+  }
   if (providerMode) {
     await runOnboardingProviderCases({
       users: providerUsers,
@@ -1534,6 +1563,8 @@ try {
     await diagnostics.run('fixture-cleanup', () =>
       runOnboardingCleanup(diagnostics, [
         ['cleanup-provider-parents', async () => providerEvidence?.captureParents()],
+        ['cleanup-stale-browser', async () => staleBrowser?.closeBrowser()],
+        ['cleanup-stale-frontend', async () => staleBrowser?.closeFrontend()],
         ['cleanup-edge-shutdown', () => stopChild(edgeProcess, 'edge-runtime-shutdown')],
         ['cleanup-provider-limiter', async () => providerEvidence?.cleanupLimiter()],
         [

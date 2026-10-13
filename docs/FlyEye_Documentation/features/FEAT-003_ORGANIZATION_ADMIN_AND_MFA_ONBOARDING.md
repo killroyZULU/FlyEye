@@ -294,6 +294,25 @@ service-only execution, normal/interrupted cleanup and unchanged roles/permissio
 Use the disposable CI database only. These nineteen schedules add no grant-transfer
 capability or policy; provider, browser and other implicit waits remain separate.
 
+### Stale unverified factor entry and cancellation
+
+Use two isolated provider-backed browser journeys. A pre-existing unverified
+TOTP must reject START with the safe factor-conflict response, without exposing
+setup credentials, enrolling again or creating authority. Protected cancellation
+and same-key replay must retain that factor and unconsumed grant; only the first
+cancellation advances its version and records the cancellation audit.
+
+The positive control starts with no factor and enrolls once. Browser cancellation
+must clear rendered QR/manual credentials and the local session, preserving the
+unverified factor. Re-entry must fail closed without another enrollment. Compare
+exact command responses, grant snapshots and audit deltas; require no challenge,
+verification, deletion or completion requests in either journey.
+
+Run only in disposable CI with synthetic identities. Interrupt a separate run
+after enrollment to verify browser/frontend shutdown, captured Auth descendants,
+domain/limiter cleanup and unchanged foreign state. This does not prove memory
+erasure, global session revocation, factor recovery or other provider schedules.
+
 ## Acceptance criteria
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.

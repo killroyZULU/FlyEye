@@ -166,6 +166,8 @@ describe('R3 provider consistency gate', () => {
       [],
       ['--provider-cleanup-probe'],
       ['--provider-state'],
+      ['--stale-cleanup-probe'],
+      ['--stale-factors'],
     ]);
     expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-factor-token');
     const lifecycle = mocks.spawnSync.mock.calls
@@ -181,18 +183,29 @@ describe('R3 provider consistency gate', () => {
       'stop',
       'start',
       'fixture',
+      'stop',
+      'start',
+      'fixture',
+      'stop',
+      'start',
+      'fixture',
     ]);
   });
-  it.each([0, 1])(
-    'blocks restart and further cases on probe exit %s without sufficient success evidence',
-    async (exitCode) => {
+  it.each([
+    ['--provider-cleanup-probe', 0, 2],
+    ['--provider-cleanup-probe', 1, 2],
+    ['--stale-cleanup-probe', 0, 4],
+    ['--stale-cleanup-probe', 1, 4],
+  ])(
+    'blocks restart and further cases on %s exit %s without sufficient success evidence',
+    async (probe, exitCode, count) => {
       vi.stubEnv('CI', 'true');
       vi.stubEnv('GITHUB_ACTIONS', 'true');
       mocks.fixture = 'test-feat-003-runtime.mjs';
       mocks.spawnSync.mockImplementation((_command, args) => ({
-        status: args.includes('--provider-cleanup-probe') ? exitCode : 0,
+        status: args.includes(probe) ? exitCode : 0,
         stdout:
-          args.includes('--provider-cleanup-probe') && exitCode === 0
+          args.includes(probe) && exitCode === 0
             ? ''
             : 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
       }));
@@ -202,8 +215,10 @@ describe('R3 provider consistency gate', () => {
       await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
       expect(
         mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
-      ).toHaveLength(2);
-      expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(2);
+      ).toHaveLength(count);
+      expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(
+        count,
+      );
     },
   );
   it('keeps non-CI onboarding on its existing single mode without additional lifecycle calls', async () => {
