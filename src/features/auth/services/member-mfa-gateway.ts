@@ -106,16 +106,20 @@ export class MemberMfaGateway {
     if (error) throw asGatewayError(error);
 
     const all = factorInventory(data.all);
-    const allTotpIds = all
-      .filter((factor) => factor.factor_type === 'totp')
+    // The SDK convenience list contains verified TOTP factors only.
+    // Keep the complete inventory below authoritative for bound-factor resume.
+    const verifiedTotpIds = all
+      .filter((factor) => factor.factor_type === 'totp' && factor.status === 'verified')
       .map((factor) => factor.id)
       .sort();
-    const convenienceTotpIds = factorInventory(data.totp)
-      .map((factor) => factor.id)
-      .sort();
+    const convenienceTotp = factorInventory(data.totp);
+    const convenienceTotpIds = convenienceTotp.map((factor) => factor.id).sort();
     if (
-      allTotpIds.length !== convenienceTotpIds.length ||
-      allTotpIds.some((id, index) => id !== convenienceTotpIds[index])
+      convenienceTotp.some(
+        (factor) => factor.factor_type !== 'totp' || factor.status !== 'verified',
+      ) ||
+      verifiedTotpIds.length !== convenienceTotpIds.length ||
+      verifiedTotpIds.some((id, index) => id !== convenienceTotpIds[index])
     ) {
       throw new AuthGatewayError(
         'member_mfa_factor_conflict',

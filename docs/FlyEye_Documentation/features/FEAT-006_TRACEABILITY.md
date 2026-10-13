@@ -83,6 +83,45 @@ results do not prove provider factor lifecycle or full browser enrollment; the
 Slice A limitations above remain open. No production behavior correction is
 claimed from inspection or planned cases.
 
+## Provider-backed browser investigation
+
+[SEC-019 / #152](https://github.com/killroyZULU/FlyEye/issues/152) owns baseline,
+correction if needed, review and exact-head execution evidence for the
+[browser manifest](FEAT-006_ROLE_ASSIGNMENT.md#provider-backed-enrollment-and-resume-browser-investigation).
+The [runtime fixture](../../../scripts/test-feat-006-runtime.mjs) retains its API
+mode; `--browser`, `--browser --resume` and `--browser --cleanup-probe` exercise
+the [browser journey](../../../scripts/lib/member-mfa-browser.mjs), `run`.
+The [evidence helper](../../../scripts/lib/member-mfa-browser-evidence.mjs),
+`inspect` and `assertClean`, checks persisted state and owned residue.
+[Runner regressions](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs),
+`R2 member MFA browser gate`, require every mode's cleanup marker and suppress
+raw child output. Source inspection is not executed browser evidence; #152
+distinguishes passed, failed and unreached cases. Earlier mock/API results retain
+their original scope. Hosted lifecycle and formal accessibility remain unverified.
+
+The [gateway regression](../../../src/features/auth/services/member-mfa-gateway.test.ts),
+`preserves challenge behavior for unverified factor at version 2`, reproduced
+resume rejection with the pinned SDK's verified-only convenience-list shape.
+The correction compares its verified projection while retaining complete-inventory
+validation. Eight malformed/mixed/missing inventory controls and the existing
+initial/verified challenge cases pass; the facade mock now uses the same SDK shape.
+This focused result is separate from the disposable browser results owned by #152.
+
+Baseline `cafaeaf` / [CI 38349943376](https://github.com/killroyZULU/FlyEye/actions/runs/38349943376)
+passed the API mode but stopped during the first browser probe at the coarse
+`browser-enrollment` stage. All cleanup steps, the final marker and disposable
+teardown passed. Fresh and resumed completion were unreached; this run does not
+establish the browser failure cause or reproduce the gateway defect. Fixed
+substage and HTTP-status diagnostics were added without provider payload output.
+
+The subsequent [2ffd234 run](https://github.com/killroyZULU/FlyEye/actions/runs/38351492389)
+passed interruption cleanup and fresh completion/revisit, then failed in resumed
+completion with an unattributed HTTP 429. The [8e2fe3e run](https://github.com/killroyZULU/FlyEye/actions/runs/38353343207)
+stopped earlier at password login; later browser cases were unreached. Cleanup and
+teardown passed in both. Production-preview isolation and removal of repeated API
+preludes from browser modes require new execution evidence; neither change proves
+the historical startup cause or attributes the 429.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the

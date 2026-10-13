@@ -12,6 +12,22 @@ import { feat006Diagnostic } from './lib/runtime-diagnostics.mjs';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
 import { recoveryOnlyAccessToken } from './lib/password-session-probe.mjs';
 import { stopLocalEdge, waitForMemberMfaWorker } from './lib/local-edge-lifecycle.mjs';
+import { memberMfaBrowser } from './lib/member-mfa-browser.mjs';
+import { memberMfaBrowserEvidence } from './lib/member-mfa-browser-evidence.mjs';
+
+const browserMode = process.argv.includes('--browser');
+const resume = process.argv.includes('--resume');
+const cleanupProbe = process.argv.includes('--cleanup-probe');
+if (
+  (browserMode || cleanupProbe || resume) &&
+  (!browserMode || process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')
+) {
+  throw new Error('MFA browser modes require the disposable GitHub Actions database job.');
+}
+const frontend = memberMfaBrowser();
+const interruption = Symbol('controlled browser interruption');
+let interrupted = false;
+let browserEvidence;
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const localStatus = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -28,7 +44,7 @@ if (!['127.0.0.1', 'localhost'].includes(new URL(apiUrl).hostname)) {
 
 // This is an Origin header only; no network request targets this hostname.
 // A fresh exact origin prevents the default/previous worker passing readiness.
-const origin = `https://${randomUUID()}.localhost`;
+let origin = `https://${randomUUID()}.localhost`;
 const organizationId = randomUUID();
 const membershipId = randomUUID();
 const email = `feat006a-${randomBytes(6).toString('hex')}@example.test`;
@@ -95,8 +111,8 @@ function base32Bytes(value) {
   return Buffer.from(bytes);
 }
 
-function currentTotp(secret) {
-  const counter = Math.floor(Date.now() / 30_000);
+function currentTotp(secret, offsetSteps = 0) {
+  const counter = Math.floor(Date.now() / 30_000) + offsetSteps;
   const buffer = Buffer.alloc(8);
   buffer.writeBigUInt64BE(BigInt(counter));
   const digest = createHmac('sha1', base32Bytes(secret)).update(buffer).digest();
@@ -172,6 +188,18 @@ try {
   `);
 
   temporaryDirectory = mkdtempSync(path.join(os.tmpdir(), 'flyeye-feat006a-'));
+  if (browserMode) {
+    browserEvidence = memberMfaBrowserEvidence({
+      psql,
+      admin,
+      userId,
+      email,
+      organizationId,
+      membershipId,
+    });
+    enterStage('browser-startup');
+    origin = await frontend.start(apiUrl, publishableKey);
+  }
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
     environmentPath,
@@ -214,130 +242,166 @@ try {
     authorization: `Bearer ${signedIn.data.session.access_token}`,
   });
 
-  enterStage('password-session-denial');
-  const recoveryToken = await recoveryOnlyAccessToken(admin, apiUrl, publishableKey, email);
-  const denied = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${recoveryToken}`,
-      'content-type': 'application/json',
-      origin,
-    },
-    body: JSON.stringify({ action: 'status' }),
-  });
-  assert.equal(denied.status, 403);
-  const denial = await denied.json();
-  assert.equal(denial.error?.code, 'member_mfa.recent_authentication_required');
-  assert.match(denial.correlationId, /^[0-9a-f-]{36}$/);
-  limiterCorrelationIds.push(denial.correlationId);
-  assert.equal(
-    psql(
-      `select count(*) from public.authentication_events
+  // The mandatory API mode owns these probes. Repeating them before each browser
+  // journey consumes that journey's six-token status budget before user actions.
+  if (!browserMode) {
+    enterStage('password-session-denial');
+    const recoveryToken = await recoveryOnlyAccessToken(admin, apiUrl, publishableKey, email);
+    const denied = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${recoveryToken}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify({ action: 'status' }),
+    });
+    assert.equal(denied.status, 403);
+    const denial = await denied.json();
+    assert.equal(denial.error?.code, 'member_mfa.recent_authentication_required');
+    assert.match(denial.correlationId, /^[0-9a-f-]{36}$/);
+    limiterCorrelationIds.push(denial.correlationId);
+    assert.equal(
+      psql(
+        `select count(*) from public.authentication_events
     where actor_user_id = '${userId}'::uuid
       and correlation_id = '${denial.correlationId}'::uuid
       and event_name = 'member_mfa.denied' and outcome = 'denied'
       and reason_code = 'password_authentication_required';`,
-      true,
-    ),
-    '1',
-  );
+        true,
+      ),
+      '1',
+    );
 
-  enterStage('readiness-status');
-  const identity = await invoke({ action: 'status' });
-  assert.match(identity.correlationId, /^[0-9a-f-]{36}$/);
-  assert.equal(
-    psql(
-      `select limiter_key_hash from public.member_mfa_rate_limit_events
+    enterStage('readiness-status');
+    const identity = await invoke({ action: 'status' });
+    assert.match(identity.correlationId, /^[0-9a-f-]{36}$/);
+    assert.equal(
+      psql(
+        `select limiter_key_hash from public.member_mfa_rate_limit_events
       where correlation_id = '${identity.correlationId}'::uuid;`,
-      true,
-    ),
-    createHmac('sha256', limiterSecret).update(`${userId}\u0000status`).digest('hex'),
-  );
-  // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
-  // Retain it only for the post-cleanup regression assertion.
-  discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
-  const status = await invoke({ action: 'status' });
-  assert.equal(status.factorState, 'enrollment_required');
-  assert.equal(status.ready, false);
+        true,
+      ),
+      createHmac('sha256', limiterSecret).update(`${userId}\u0000status`).digest('hex'),
+    );
+    // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
+    // Retain it only for the post-cleanup regression assertion.
+    discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
+    const status = await invoke({ action: 'status' });
+    assert.equal(status.factorState, 'enrollment_required');
+    assert.equal(status.ready, false);
+  }
 
-  enterStage('enrollment-start');
-  const started = await invoke({
-    action: 'start',
-    idempotencyKey: randomBytes(16).toString('hex'),
-  });
-  assert.equal(started.factorState, 'enrollment_required');
-  enterStage('totp-enroll');
-  const enrolled = await client.auth.mfa.enroll({
-    factorType: 'totp',
-    friendlyName: 'Synthetic FlyEye authenticator',
-  });
-  if (enrolled.error || !enrolled.data.totp.secret)
-    throw new Error('Synthetic TOTP enrollment failed.');
+  if (browserMode) {
+    await frontend.run({
+      origin,
+      email,
+      password,
+      currentTotp,
+      enterStage,
+      inspect: browserEvidence.inspect,
+      resume,
+      onProviderFailure(status, endpoint) {
+        failureDetail =
+          status === 429
+            ? `${endpoint}-http-429`
+            : [400, 401, 403, 409, 422, 500, 502, 503, 504].includes(status)
+              ? `http-${status}`
+              : 'http-other';
+      },
+      checkpoint() {
+        if (cleanupProbe) {
+          enterStage('browser-interruption');
+          throw interruption;
+        }
+      },
+    });
+    if (cleanupProbe) throw new Error('Browser cleanup checkpoint was not reached.');
+  } else {
+    enterStage('enrollment-start');
+    const started = await invoke({
+      action: 'start',
+      idempotencyKey: randomBytes(16).toString('hex'),
+    });
+    assert.equal(started.factorState, 'enrollment_required');
+    enterStage('totp-enroll');
+    const enrolled = await client.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'Synthetic FlyEye authenticator',
+    });
+    if (enrolled.error || !enrolled.data.totp.secret)
+      throw new Error('Synthetic TOTP enrollment failed.');
 
-  enterStage('factor-inventory');
-  const providerInventory = await admin.auth.admin.mfa.listFactors({ userId });
-  if (providerInventory.error) {
-    throw new Error(
-      `Synthetic factor inventory failed (${providerInventory.error.code ?? 'unknown'}).`,
+    enterStage('factor-inventory');
+    const providerInventory = await admin.auth.admin.mfa.listFactors({ userId });
+    if (providerInventory.error) {
+      throw new Error(
+        `Synthetic factor inventory failed (${providerInventory.error.code ?? 'unknown'}).`,
+      );
+    }
+    if (!providerInventory.data.factors[0]) {
+      throw new Error('Synthetic factor inventory was empty.');
+    }
+
+    enterStage('factor-bind');
+    const bound = await invoke({
+      action: 'bind_factor',
+      operationId: started.operationId,
+      expectedVersion: started.operationVersion,
+      factorId: enrolled.data.id,
+      idempotencyKey: randomBytes(16).toString('hex'),
+    });
+    assert.equal(bound.decision, 'bound');
+
+    enterStage('totp-verify');
+    const verified = await client.auth.mfa.challengeAndVerify({
+      factorId: enrolled.data.id,
+      code: currentTotp(enrolled.data.totp.secret),
+    });
+    if (verified.error) throw new Error('Synthetic TOTP verification failed.');
+
+    enterStage('readiness-complete');
+    const completed = await invoke({
+      action: 'complete',
+      operationId: started.operationId,
+      expectedVersion: bound.operationVersion,
+      idempotencyKey: randomBytes(16).toString('hex'),
+    });
+    assert.equal(completed.decision, 'completed');
+    enterStage('persistence-assertions');
+    assert.equal(completed.membershipId, membershipId);
+    assert.equal(
+      psql(
+        `select count(*) from public.member_mfa_readiness where membership_id = '${membershipId}';`,
+        true,
+      ),
+      '1',
+    );
+    assert.equal(
+      psql(
+        `select count(*) from public.authentication_events where actor_user_id = '${userId}' and event_name = 'member_mfa.enrollment_completed';`,
+        true,
+      ),
+      '1',
+    );
+    assert.equal(
+      psql(
+        `select role.code from public.membership_roles membership_role join public.roles role on role.id = membership_role.role_id where membership_role.membership_id = '${membershipId}';`,
+        true,
+      ),
+      'student_pilot',
     );
   }
-  if (!providerInventory.data.factors[0]) {
-    throw new Error('Synthetic factor inventory was empty.');
-  }
-
-  enterStage('factor-bind');
-  const bound = await invoke({
-    action: 'bind_factor',
-    operationId: started.operationId,
-    expectedVersion: started.operationVersion,
-    factorId: enrolled.data.id,
-    idempotencyKey: randomBytes(16).toString('hex'),
-  });
-  assert.equal(bound.decision, 'bound');
-
-  enterStage('totp-verify');
-  const verified = await client.auth.mfa.challengeAndVerify({
-    factorId: enrolled.data.id,
-    code: currentTotp(enrolled.data.totp.secret),
-  });
-  if (verified.error) throw new Error('Synthetic TOTP verification failed.');
-
-  enterStage('readiness-complete');
-  const completed = await invoke({
-    action: 'complete',
-    operationId: started.operationId,
-    expectedVersion: bound.operationVersion,
-    idempotencyKey: randomBytes(16).toString('hex'),
-  });
-  assert.equal(completed.decision, 'completed');
-  enterStage('persistence-assertions');
-  assert.equal(completed.membershipId, membershipId);
-  assert.equal(
-    psql(
-      `select count(*) from public.member_mfa_readiness where membership_id = '${membershipId}';`,
-      true,
-    ),
-    '1',
-  );
-  assert.equal(
-    psql(
-      `select count(*) from public.authentication_events where actor_user_id = '${userId}' and event_name = 'member_mfa.enrollment_completed';`,
-      true,
-    ),
-    '1',
-  );
-  assert.equal(
-    psql(
-      `select role.code from public.membership_roles membership_role join public.roles role on role.id = membership_role.role_id where membership_role.membership_id = '${membershipId}';`,
-      true,
-    ),
-    'student_pilot',
-  );
   reportDiagnostic('passed');
 } catch (error) {
-  reportDiagnostic('failed', error?.code === 'ERR_ASSERTION' ? 'assertion' : failureDetail);
-  primaryError = error;
+  if (error === interruption) {
+    interrupted = true;
+    reportDiagnostic('passed');
+  } else {
+    reportDiagnostic('failed', error?.code === 'ERR_ASSERTION' ? 'assertion' : failureDetail);
+    primaryError = error;
+  }
 } finally {
   const cleanupErrors = [];
   async function cleanupStep(name, action) {
@@ -350,12 +414,16 @@ try {
       cleanupErrors.push(error);
     }
   }
+  await cleanupStep('cleanup-browser-shutdown', () => frontend.closeBrowser());
+  await cleanupStep('cleanup-frontend-shutdown', () => frontend.closeFrontend());
   await cleanupStep('cleanup-edge-shutdown', () => stopLocalEdge(edgeProcess));
   await cleanupStep('cleanup-auth-refresh', () => client?.auth.stopAutoRefresh());
   if (userId) {
+    await cleanupStep('cleanup-auth-inventory', () => browserEvidence?.inventoryParents());
+    await cleanupStep('cleanup-bootstrap', () => browserEvidence?.cleanupBootstrap());
     await cleanupStep('cleanup-limiter-rows', () => {
       const limiterKeys = new Set(
-        ['status', 'start', 'bind_factor', 'complete'].map((action) =>
+        ['status', 'start', 'bind_factor', 'complete', 'cancel'].map((action) =>
           createHmac('sha256', limiterSecret).update(`${userId}\u0000${action}`).digest('hex'),
         ),
       );
@@ -396,6 +464,7 @@ try {
       if (deleted.error) throw deleted.error;
     });
     await cleanupStep('cleanup-identity-assertions', () => {
+      browserEvidence?.assertClean();
       assert.equal(psql(`select count(*) from auth.users where id = '${userId}';`, true), '0');
       assert.equal(
         psql(`select count(*) from public.organizations where id = '${organizationId}';`, true),
@@ -449,7 +518,12 @@ try {
     });
   }
   await cleanupStep('cleanup-temporary-files', () => {
-    if (temporaryDirectory) rmSync(temporaryDirectory, { recursive: true, force: true });
+    if (temporaryDirectory) {
+      const resolved = path.resolve(temporaryDirectory);
+      assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
+      assert.ok(path.basename(resolved).startsWith('flyeye-feat006a-'));
+      rmSync(resolved, { recursive: true, force: true });
+    }
   });
   enterStage('fixture-cleanup');
   reportDiagnostic(cleanupErrors.length > 0 ? 'failed' : 'passed');
@@ -460,6 +534,9 @@ try {
     );
 }
 
-if (primaryError) throw primaryError;
+if (primaryError || (cleanupProbe && !interrupted))
+  throw new Error(
+    'FEAT-006A runtime verification or cleanup failed; inspect fixed-stage diagnostics.',
+  );
 
 process.stdout.write('FEAT-006A local synthetic TOTP runtime verification passed.\n');

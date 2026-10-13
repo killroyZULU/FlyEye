@@ -139,6 +139,8 @@ Active member + no factor
    no factor, exactly one current-operation unverified TOTP, or exactly one
    verified TOTP. Multiple, mixed, duplicate, stale, hidden, phone, WebAuthn, or
    provider-uncertain inventories conflict without selection or mutation.
+   The SDK's verified-only TOTP convenience list must match the verified TOTP
+   projection of the complete inventory; it does not replace that inventory.
 4. When no factor exists, the user's Supabase session enrolls exactly one TOTP.
    QR data, URI, manual secret, factor ID, and verification code remain in active
    memory only and never enter tables, URLs, browser storage, logs, analytics,
@@ -249,6 +251,26 @@ owned sessions, prove owned-row/Auth residue absent and preserve original
 permission records. Correct only reproduced in-scope violations. Provider factor
 lifecycle, the full enrollment browser journey, global session policy and other
 implicit waits are outside this selected SQL matrix.
+
+### Provider-backed enrollment and resume browser investigation
+
+Exercise the existing Slice A contract using an isolated Vite production build
+served by local preview against disposable Chromium/Auth/Edge/database fixtures.
+Retain the API runtime mode and its probes without consuming browser subjects'
+limiter budgets before their journeys. Freeze two browser journeys: fresh
+enrollment and bound cancellation/sign-out followed by password sign-in and resume.
+Both must reject an invalid code without readiness, then complete after explicit
+valid verification. Resume must retain the same operation and factor, create no
+second factor, and redisplay no enrollment secret. Confirm ready state on revisit,
+exact readiness/completion audit, and unchanged membership/role authority.
+
+Interrupt a third browser run after real binding to verify unconditional owned
+browser/frontend/Edge shutdown, domain/Auth descendant and limiter cleanup, and
+preservation of foreign state. Require explicit cleanup evidence from every mode.
+Keep credentials in memory and diagnostic output restricted to fixed stages.
+Correct only reproduced contract violations; retain complete factor-inventory
+validation and existing server controls. Hosted lifecycle, formal accessibility,
+factor recovery/replacement and session-policy decisions remain separate evidence.
 
 ## Slice B workflow and rules
 

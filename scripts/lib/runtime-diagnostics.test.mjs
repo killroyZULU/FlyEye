@@ -5,6 +5,48 @@ import { feat006Diagnostic, runtimeDiagnosticLines } from './runtime-diagnostics
 describe('runtime diagnostic output boundary', () => {
   const fixture = 'test-feat-006-runtime.mjs';
 
+  it('retains fixed browser and cleanup stages without raw provider material', () => {
+    const stages = [
+      'browser-startup',
+      'browser-page-load',
+      'browser-password-login',
+      'browser-workspace',
+      'browser-security',
+      'browser-enrollment',
+      'browser-secret',
+      'browser-bound',
+      'browser-cancel-retained',
+      'browser-resume',
+      'browser-resume-conflict',
+      'browser-invalid-code',
+      'browser-completion',
+      'browser-readiness',
+      'browser-ready-revisit',
+      'browser-verified',
+      'browser-interruption',
+      'cleanup-browser-shutdown',
+      'cleanup-frontend-shutdown',
+      'cleanup-auth-inventory',
+      'cleanup-bootstrap',
+    ];
+    const lines = stages.map((stage) => feat006Diagnostic(stage, 'passed'));
+    expect(
+      runtimeDiagnosticLines(fixture, [...lines, 'provider secret: private-token'].join('\n')),
+    ).toEqual(lines);
+    expect(() => feat006Diagnostic('browser-private-token', 'failed')).toThrow();
+  });
+
+  it('allows only fixed endpoint labels for throttling diagnostics', () => {
+    const details = ['member-mfa', 'bootstrap', 'mfa', 'auth'];
+    for (const endpoint of details) {
+      const line = feat006Diagnostic('browser-readiness', 'failed', `${endpoint}-http-429`);
+      expect(runtimeDiagnosticLines(fixture, line)).toEqual([line]);
+    }
+    expect(() =>
+      feat006Diagnostic('browser-readiness', 'failed', 'private-factor-id-http-429'),
+    ).toThrow();
+  });
+
   it('retains password-session denial stages only for the affected fixtures', () => {
     const mfa = feat006Diagnostic('password-session-denial', 'enter');
     const documents = 'FEAT-007B runtime diagnostic: stage=password-session-denial event=enter.';
