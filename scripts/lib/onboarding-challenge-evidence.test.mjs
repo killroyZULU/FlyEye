@@ -6,7 +6,7 @@ import {
 } from './onboarding-challenge-evidence.mjs';
 import { assertStaleTransition } from './onboarding-stale-evidence.mjs';
 import { createHash } from 'node:crypto';
-import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
+import { createFixtureDiagnostics, fixtureDiagnostic } from './fixture-diagnostics.mjs';
 
 const uuid = (i) => `e4000000-0000-4000-8000-${String(i).padStart(12, '0')}`;
 const token = (claims) =>
@@ -33,6 +33,28 @@ describe('R3 foreign factor denial evidence', () => {
   const result = { data: null, error: { status: 404, code: 'mfa_factor_not_found' } };
   it('accepts only ownership denial with both actors unchanged', () => {
     expect(() => assertForeignFactorDenied(before, structuredClone(before), result)).not.toThrow();
+  });
+  it('preserves sanitized SDK transport failure without treating it as denial', () => {
+    const lines = [];
+    const diagnostics = createFixtureDiagnostics('FEAT-003', {
+      enabled: true,
+      write: (line) => lines.push(line),
+    });
+    const error = Object.assign(new Error('private provider payload'), {
+      name: 'AuthRetryableFetchError',
+      status: 0,
+    });
+    try {
+      assertForeignFactorDenied(before, before, { data: null, error }, diagnostics.enter);
+      throw new Error('Unexpected successful denial assertion');
+    } catch (caught) {
+      expect(caught).toBe(error);
+      diagnostics.fail(caught);
+    }
+    expect(lines.at(-1)).toBe(
+      'FEAT-003 runtime diagnostic: stage=foreign-denial-status event=failed detail=transport-failed.',
+    );
+    expect(lines.join('\n')).not.toContain('private');
   });
   it('localizes a failed assertion using only fixed sanitized checkpoints', () => {
     const stages = [];

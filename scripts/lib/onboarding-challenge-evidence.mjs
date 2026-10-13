@@ -9,6 +9,8 @@ export function assertPasswordOnly(token, userId) {
 
 export function assertForeignFactorDenied(before, after, result, checkpoint = () => {}) {
   checkpoint('foreign-denial-status');
+  // Preserve SDK transport/status classification without accepting it as ownership denial.
+  if (result.error && result.error.status !== 404) throw result.error;
   assert.equal(result.error?.status, 404);
   checkpoint('foreign-denial-code');
   assert.equal(result.error?.code, 'mfa_factor_not_found');
