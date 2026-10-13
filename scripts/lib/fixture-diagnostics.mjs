@@ -65,6 +65,35 @@ const stages = new Map([
       'race-start',
       'race-complete',
       'race-assertions',
+      'provider-grant-issuance',
+      'provider-password',
+      'provider-enroll',
+      'provider-verify',
+      'provider-assurance',
+      'provider-parents',
+      'provider-inventory',
+      'provider-start',
+      'provider-snapshot',
+      'provider-lock-acquisition',
+      'provider-org-retained',
+      'provider-org-removed',
+      'provider-grant-retained',
+      'provider-grant-removed',
+      'provider-observed-wait',
+      'provider-factor-removal',
+      'provider-completion-response',
+      'provider-completion-membership',
+      'provider-completion-profile',
+      'provider-completion-role',
+      'provider-completion-grant',
+      'provider-completion-prior-audit',
+      'provider-completion-audit',
+      'provider-completion',
+      'provider-final-bootstrap',
+      'provider-interruption',
+      'cleanup-provider-parents',
+      'cleanup-provider-limiter',
+      'cleanup-provider-residue',
     ]),
   ],
   [
@@ -242,6 +271,13 @@ export function fixtureDiagnosticLines(feature, output) {
 }
 
 function failureDetail(error) {
+  if (['AuthApiError', 'AuthRetryableFetchError', 'AuthUnknownError'].includes(error?.name)) {
+    if (Number.isInteger(error.status) && error.status >= 400 && error.status <= 599)
+      return httpStatuses.has(error.status) ? `http-${error.status}` : 'http-other';
+    if (error.name === 'AuthRetryableFetchError' && error.status === 0) return 'transport-failed';
+    if (error.name === 'AuthUnknownError' && error.originalError?.name === 'SyntaxError')
+      return 'response-decoding-failed';
+  }
   if (error?.name === 'AssertionError') {
     if (Number.isInteger(error.actual) && error.actual >= 400 && error.actual <= 599) {
       return httpStatuses.has(error.actual) ? `http-${error.actual}` : 'http-other';

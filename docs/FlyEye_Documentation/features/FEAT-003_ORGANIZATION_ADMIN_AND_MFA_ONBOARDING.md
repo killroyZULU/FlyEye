@@ -204,6 +204,24 @@ Supabase Auth and PostgreSQL cannot share one transaction. Mitigate by:
 
 A removed factor may leave a completed membership, but final provider/bootstrap revalidation must make it inaccessible. Stale password/session/grant/membership/role/factor/organization/version state clears secrets and selection and requires fresh sign-in.
 
+### Provider changes during completion waits
+
+Test organization/grant row locks crossed with retained/removed sole verified
+TOTP: four schedules, each with a fresh synthetic subject and real disposable
+Auth/Edge/PostgreSQL services. Observe the blocked completion RPC before changing
+its owned factor. Capture Auth parent IDs before removal and confirm removal
+before releasing the lock. Assert exact grant, membership, profile, role and
+completion audit; retained controls must grant final protected bootstrap access,
+while removed factors must produce a specific authentication/factor denial.
+Rate limits, outages and timeouts are not successful denial evidence.
+
+Interrupt one additional run after observed wait/removal. Release owned locks,
+settle the request before cleanup, prove domain/Auth descendant/limiter/bootstrap
+residue absent and preserve foreign state and role/permission definitions.
+These schedules do not establish grant-owner mutation, stale-factor entry,
+existing-factor browser challenge, replacement/mixed-factor churn, provider
+outage, global session policy or hosted behavior.
+
 ## UI and accessibility
 
 Required states include loading, no eligibility, unauthorized, recent-auth required, enrollment, manual secret, verification, challenge, rate-limited wait, offline, duplicate/mixed factor conflict, cancellation, cleanup uncertainty, concurrent conflict, provider/database failure, stale operation, success, and final bootstrap denial.

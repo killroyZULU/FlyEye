@@ -18,6 +18,15 @@ import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagnostics.mjs';
 import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
+import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
+import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
+
+const providerProbe = process.argv.includes('--provider-cleanup-probe');
+const providerMode = providerProbe || process.argv.includes('--provider-state');
+const providerFinished = Symbol('selected provider cases finished');
+if (providerMode && (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')) {
+  throw new Error('Onboarding provider cases require disposable GitHub Actions services.');
+}
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const origin = 'http://127.0.0.1:5173';
@@ -295,22 +304,28 @@ async function signIn(user) {
     password,
   });
   if (error || !data.session) {
+    if (providerMode && error) diagnostics.fail(error);
     throw new Error('Synthetic password sign-in failed.');
   }
   return { client, session: data.session };
 }
 
 async function promoteToAal2(signedIn) {
+  if (providerMode) enterStage('provider-enroll', 'provider factor enrollment');
   const { data: enrollment, error: enrollmentError } = await signedIn.client.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: `FlyEye synthetic ${runId}`,
   });
+  if (providerMode && enrollmentError) diagnostics.fail(enrollmentError);
   if (enrollmentError) throw new Error('Synthetic TOTP enrollment failed.');
+  if (providerMode) enterStage('provider-verify', 'provider factor verification');
   const { error: verifyError } = await signedIn.client.auth.mfa.challengeAndVerify({
     factorId: enrollment.id,
     code: currentTotp(enrollment.totp.secret),
   });
+  if (providerMode && verifyError) diagnostics.fail(verifyError);
   if (verifyError) throw new Error('Synthetic TOTP verification failed.');
+  if (providerMode) enterStage('provider-assurance', 'provider assurance check');
   const { data: assurance, error: assuranceError } =
     await signedIn.client.auth.mfa.getAuthenticatorAssuranceLevel();
   if (assuranceError || assurance.currentLevel !== 'aal2') {
@@ -1102,6 +1117,9 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
+    ...(providerMode
+      ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+      : []),
   ].map((name) => [
     name,
     {
@@ -1115,6 +1133,17 @@ const adminClient = createClient(apiUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
   global: { fetch: boundedFetch },
 });
+const providerUsers = Object.entries(users)
+  .filter(([name]) => name.startsWith('provider'))
+  .map(([, user]) => user);
+const providerEvidence = providerMode
+  ? onboardingProviderEvidence({
+      users: providerUsers,
+      organizationId: organizations.a,
+      limiterSecret,
+      psql,
+    })
+  : undefined;
 
 try {
   enterStage('auth-reset-initial', 'local Auth initial scenario reset');
@@ -1156,6 +1185,25 @@ try {
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
   });
   await waitForEdgeRuntime();
+
+  if (providerMode) {
+    await runOnboardingProviderCases({
+      users: providerUsers,
+      organizationId: organizations.a,
+      sourceInstanceId,
+      psql,
+      admin: adminClient,
+      signIn,
+      promoteToAal2,
+      invoke: invokeFunction,
+      evidence: providerEvidence,
+      clearScenario: clearCompletedScenario,
+      enterStage,
+      reportDiagnostic,
+      cleanupProbe: providerProbe,
+    });
+    throw providerFinished;
+  }
 
   enterStage('first-admin-status', 'first-admin status and school-boundary denial');
   const firstAdminAal1 = await signIn(users.firstAdmin);
@@ -1475,14 +1523,19 @@ try {
 
   diagnostics.pass();
 } catch (error) {
-  diagnostics.fail(error);
-  process.stderr.write(`FEAT-003 runtime evidence failed at sanitized stage: ${stage}.\n`);
-  process.exitCode = 1;
+  if (error === providerFinished) diagnostics.pass();
+  else {
+    diagnostics.fail(error);
+    process.stderr.write(`FEAT-003 runtime evidence failed at sanitized stage: ${stage}.\n`);
+    process.exitCode = 1;
+  }
 } finally {
   try {
     await diagnostics.run('fixture-cleanup', () =>
       runOnboardingCleanup(diagnostics, [
+        ['cleanup-provider-parents', async () => providerEvidence?.captureParents()],
         ['cleanup-edge-shutdown', () => stopChild(edgeProcess, 'edge-runtime-shutdown')],
+        ['cleanup-provider-limiter', async () => providerEvidence?.cleanupLimiter()],
         [
           'cleanup-domain-rows',
           async () => {
@@ -1493,6 +1546,7 @@ try {
             }
           },
         ],
+        ['cleanup-provider-residue', async () => providerEvidence?.assertClean()],
         [
           'cleanup-temporary-files',
           async () => {
@@ -1511,6 +1565,8 @@ try {
 if (!process.exitCode) {
   reportDiagnostic('fixture-assertions', 'passed');
   process.stdout.write(
-    'FEAT-003 sanitized local fixture, Auth/TOTP/Edge/browser, school-boundary, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
+    providerMode
+      ? 'FEAT-003 selected provider consistency and cleanup evidence passed.\n'
+      : 'FEAT-003 sanitized local fixture, Auth/TOTP/Edge/browser, school-boundary, atomicity, race, replay, limiter, recovery, privacy, and cleanup evidence passed.\n',
   );
 }

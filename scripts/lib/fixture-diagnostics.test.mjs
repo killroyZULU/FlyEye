@@ -12,6 +12,49 @@ function recorder(feature = 'FEAT-007B', enabled = true) {
 }
 
 describe('sanitized fixture failure evidence', () => {
+  it.each([
+    ['AuthRetryableFetchError', 0, 'transport-failed', undefined],
+    ['AuthRetryableFetchError', 503, 'http-503', undefined],
+    ['AuthApiError', 429, 'http-429', undefined],
+    ['AuthUnknownError', undefined, 'response-decoding-failed', { name: 'SyntaxError' }],
+    ['AuthUnknownError', undefined, 'unclassified', { name: 'Error' }],
+  ])('classifies SDK %s safely', (name, status, detail, originalError) => {
+    const { lines, diagnostics } = recorder('FEAT-003');
+    diagnostics.enter('provider-password');
+    diagnostics.fail({ name, status, message: 'private provider payload', originalError });
+    expect(lines.at(-1)).toBe(fixtureDiagnostic('FEAT-003', 'provider-password', 'failed', detail));
+    expect(lines.join('\n')).not.toContain('private');
+  });
+  it.each([
+    'provider-grant-issuance',
+    'provider-password',
+    'provider-enroll',
+    'provider-verify',
+    'provider-assurance',
+    'provider-parents',
+    'provider-inventory',
+    'provider-start',
+    'provider-snapshot',
+    'provider-lock-acquisition',
+    'provider-completion-response',
+    'provider-completion-membership',
+    'provider-completion-profile',
+    'provider-completion-role',
+    'provider-completion-grant',
+    'provider-completion-prior-audit',
+    'provider-completion-audit',
+  ])('preserves R3 setup failure at %s without provider payload', (stage) => {
+    const { lines, diagnostics } = recorder('FEAT-003');
+    diagnostics.enter(stage);
+    try {
+      assert.equal(429, 200, 'private provider payload');
+    } catch (error) {
+      diagnostics.fail(error);
+    }
+    expect(lines.at(-1)).toBe(fixtureDiagnostic('FEAT-003', stage, 'failed', 'http-429'));
+    expect(runtimeDiagnosticLines('test-feat-003-runtime.mjs', lines.join('\n'))).toEqual(lines);
+    expect(lines.join('\n')).not.toContain('private');
+  });
   it.each(['FEAT-004', 'FEAT-005', 'FEAT-007', 'FEAT-007B'])(
     'keeps %s scenario failure distinct from cleanup success',
     async (feature) => {
