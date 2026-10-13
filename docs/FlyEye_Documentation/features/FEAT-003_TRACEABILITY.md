@@ -187,6 +187,21 @@ Source assertions alone are not execution evidence; #154 distinguishes observed
 outcomes from unreached cases. Browser routing/secret clearing, other R3 paths
 and hosted/session-policy evidence remain separate.
 
+### Grant ownership evidence map
+
+[SEC-021 / #156](https://github.com/killroyZULU/FlyEye/issues/156) owns execution
+targets and review for the [ownership matrix](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#grant-ownership-during-waits).
+The [runner](../../../scripts/test-h002-onboarding-owner.mjs), `preflight`,
+`harness.observe` and `cleanup`, bounds synthetic ownership and observes waits.
+[Cases](../../../scripts/lib/h002-onboarding-owner-cases.mjs), `ownershipWait`
+and `assertOwnerDenied`, compare new/replay denial and rollback controls, prior
+administrator preservation and audit deltas. [Assertion regressions](../../../scripts/lib/h002-onboarding-owner-cases.test.mjs)
+reject disclosure, wrong audit attribution and state mutation. Existing
+`changedOwner` in the [cancellation cases](../../../scripts/lib/h002-cancellation-cases.mjs)
+supplies the grant-lock committed cancellation case. Source assertions do not
+prove execution; #156 records observed outcomes, cleanup and any unreached cases.
+Other R3 provider/browser paths remain outside this SQL evidence.
+
 ### Limiter contention evidence
 
 [SEC-009 / #130](https://github.com/killroyZULU/FlyEye/issues/130) owns execution and
