@@ -277,6 +277,23 @@ existing frozen timestamps in contention tests and use actual times for pruning.
 Correct production behavior only after reproduction. Other interleavings,
 provider/session behavior and hosted capacity remain outside these schedules.
 
+### Grant ownership during waits
+
+Test START and COMPLETE at organization/grant locks with committed and rolled-back
+eligible-user changes, for both new calls and same-key replay: sixteen schedules.
+After a committed change the former owner must receive only `not_available` and
+the correlation ID, with one unscoped denial event and no authority mutation.
+Preserve any already-completed administrator and original audit evidence.
+Rollback controls must retain the valid new/replay result and exact audit delta.
+
+For CANCEL, add organization-lock commit/rollback and grant-lock rollback controls;
+reuse the existing grant-lock commit case. Ownership denial changes neither grant
+version nor audit. Apply the existing cancellation fence for retained ownership.
+Observe the blocker before mutating the synthetic grant; require exact snapshots,
+service-only execution, normal/interrupted cleanup and unchanged roles/permissions.
+Use the disposable CI database only. These nineteen schedules add no grant-transfer
+capability or policy; provider, browser and other implicit waits remain separate.
+
 ## Acceptance criteria
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.
