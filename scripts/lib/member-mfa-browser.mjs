@@ -56,7 +56,16 @@ export function memberMfaBrowser() {
           response.status() >= 400 &&
           (pathname.startsWith('/auth/v1/') || pathname.startsWith('/functions/v1/'))
         )
-          onProviderFailure(response.status());
+          onProviderFailure(
+            response.status(),
+            pathname === '/functions/v1/member-mfa'
+              ? 'member-mfa'
+              : pathname === '/functions/v1/auth-bootstrap'
+                ? 'bootstrap'
+                : pathname.startsWith('/auth/v1/factors/')
+                  ? 'mfa'
+                  : 'auth',
+          );
       });
       async function login() {
         enterStage('browser-password-login');
@@ -129,7 +138,19 @@ export function memberMfaBrowser() {
       await inspect('retained', bound);
       enterStage('browser-completion');
       await page.getByLabel('Verification code', { exact: true }).fill(currentTotp(secret));
-      await page.getByRole('button', { name: 'Verify authenticator', exact: true }).click();
+      const [verified] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' &&
+            /\/auth\/v1\/factors\/[^/]+\/verify$/.test(new URL(response.url()).pathname),
+        ),
+        page.getByRole('button', { name: 'Verify authenticator', exact: true }).click(),
+      ]);
+      if (verified.status() !== 200) {
+        onProviderFailure(verified.status(), 'mfa');
+        throw new Error('Provider verification did not succeed.');
+      }
+      enterStage('browser-readiness');
       await page.getByRole('heading', { name: 'Authenticator is ready', exact: true }).waitFor();
       await noCredential();
       await inspect('completed', bound);

@@ -26,6 +26,7 @@ const feat006Stages = new Set([
   'browser-resume-conflict',
   'browser-invalid-code',
   'browser-completion',
+  'browser-readiness',
   'browser-verified',
   'browser-interruption',
   'cleanup-browser-shutdown',
@@ -61,6 +62,10 @@ const failureDetails = new Set([
   'http-503',
   'http-504',
   'http-other',
+  'member-mfa-http-429',
+  'bootstrap-http-429',
+  'mfa-http-429',
+  'auth-http-429',
 ]);
 const feat006Pattern =
   /^FEAT-006 runtime diagnostic: stage=([a-z0-9-]+) event=([a-z]+)(?: detail=([a-z0-9-]+))?\.$/;

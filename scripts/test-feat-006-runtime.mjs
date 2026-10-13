@@ -298,10 +298,13 @@ try {
       enterStage,
       inspect: browserEvidence.inspect,
       resume,
-      onProviderFailure(status) {
-        failureDetail = [400, 401, 403, 409, 422, 429, 500, 502, 503, 504].includes(status)
-          ? `http-${status}`
-          : 'http-other';
+      onProviderFailure(status, endpoint) {
+        failureDetail =
+          status === 429
+            ? `${endpoint}-http-429`
+            : [400, 401, 403, 409, 422, 500, 502, 503, 504].includes(status)
+              ? `http-${status}`
+              : 'http-other';
       },
       checkpoint() {
         if (cleanupProbe) {

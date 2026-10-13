@@ -20,6 +20,7 @@ describe('runtime diagnostic output boundary', () => {
       'browser-resume-conflict',
       'browser-invalid-code',
       'browser-completion',
+      'browser-readiness',
       'browser-verified',
       'browser-interruption',
       'cleanup-browser-shutdown',
@@ -32,6 +33,17 @@ describe('runtime diagnostic output boundary', () => {
       runtimeDiagnosticLines(fixture, [...lines, 'provider secret: private-token'].join('\n')),
     ).toEqual(lines);
     expect(() => feat006Diagnostic('browser-private-token', 'failed')).toThrow();
+  });
+
+  it('allows only fixed endpoint labels for throttling diagnostics', () => {
+    const details = ['member-mfa', 'bootstrap', 'mfa', 'auth'];
+    for (const endpoint of details) {
+      const line = feat006Diagnostic('browser-readiness', 'failed', `${endpoint}-http-429`);
+      expect(runtimeDiagnosticLines(fixture, line)).toEqual([line]);
+    }
+    expect(() =>
+      feat006Diagnostic('browser-readiness', 'failed', 'private-factor-id-http-429'),
+    ).toThrow();
   });
 
   it('retains password-session denial stages only for the affected fixtures', () => {
