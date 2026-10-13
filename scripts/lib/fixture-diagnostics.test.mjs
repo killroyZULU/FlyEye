@@ -12,6 +12,29 @@ function recorder(feature = 'FEAT-007B', enabled = true) {
 }
 
 describe('sanitized fixture failure evidence', () => {
+  it.each([
+    'provider-grant-issuance',
+    'provider-password',
+    'provider-enroll',
+    'provider-verify',
+    'provider-assurance',
+    'provider-parents',
+    'provider-inventory',
+    'provider-start',
+    'provider-snapshot',
+    'provider-lock-acquisition',
+  ])('preserves R3 setup failure at %s without provider payload', (stage) => {
+    const { lines, diagnostics } = recorder('FEAT-003');
+    diagnostics.enter(stage);
+    try {
+      assert.equal(429, 200, 'private provider payload');
+    } catch (error) {
+      diagnostics.fail(error);
+    }
+    expect(lines.at(-1)).toBe(fixtureDiagnostic('FEAT-003', stage, 'failed', 'http-429'));
+    expect(runtimeDiagnosticLines('test-feat-003-runtime.mjs', lines.join('\n'))).toEqual(lines);
+    expect(lines.join('\n')).not.toContain('private');
+  });
   it.each(['FEAT-004', 'FEAT-005', 'FEAT-007', 'FEAT-007B'])(
     'keeps %s scenario failure distinct from cleanup success',
     async (feature) => {

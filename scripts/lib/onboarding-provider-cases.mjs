@@ -64,9 +64,14 @@ export async function runOnboardingProviderCases(context) {
     enterStage(caseStage, caseStage);
     const user = users[index];
     const grantId = randomUUID();
+    enterStage('provider-grant-issuance', 'provider grant issuance');
     issueGrant(psql, organizationId, user.id, grantId, sourceInstanceId);
-    const actor = await promoteToAal2(await signIn(user));
+    enterStage('provider-password', 'provider password sign-in');
+    const signedIn = await signIn(user);
+    const actor = await promoteToAal2(signedIn);
+    enterStage('provider-parents', 'provider Auth parent capture');
     evidence.captureParents();
+    enterStage('provider-inventory', 'provider factor inventory');
     const inventory = async () => {
       const result = await admin.auth.admin.mfa.listFactors({ userId: user.id });
       assert.equal(Boolean(result.error), false);
@@ -78,6 +83,7 @@ export async function runOnboardingProviderCases(context) {
     };
     const originalFactors = [{ id: actor.factorId, factor_type: 'totp', status: 'verified' }];
     assert.deepEqual(await inventory(), originalFactors);
+    enterStage('provider-start', 'provider onboarding start');
     const start = await invoke('organization-admin-onboarding', actor.session.access_token, {
       action: 'start',
       bootstrapGrantId: grantId,
@@ -86,6 +92,7 @@ export async function runOnboardingProviderCases(context) {
     });
     assert.equal(start.status, 200);
     assert.equal(start.payload.factorState, 'challenge_required');
+    enterStage('provider-snapshot', 'provider initial database snapshot');
     const before = evidence.snapshot(user.id, grantId);
     assert.deepEqual(before.members, []);
     assert.deepEqual(before.profiles, []);
@@ -96,6 +103,7 @@ export async function runOnboardingProviderCases(context) {
     let pending;
     let interrupted = false;
     try {
+      enterStage('provider-lock-acquisition', 'provider blocker acquisition');
       const table = lock === 'org' ? 'organizations' : 'organization_admin_bootstrap_grants';
       await blocker.query(
         `begin; select 1 from public.${table} where id='${lock === 'org' ? organizationId : grantId}' for update;`,
