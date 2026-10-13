@@ -1,21 +1,32 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { chromium } from '@playwright/test';
-import { createServer } from 'vite';
+import { build, preview } from 'vite';
 
 export function memberMfaBrowser() {
   let server;
   let browser;
+  let directory;
   return {
     async start(apiUrl, publishableKey) {
-      server = await createServer({
-        server: { host: '127.0.0.1', port: 0, strictPort: true },
+      directory = await realpath(await mkdtemp(path.join(os.tmpdir(), 'flyeye-mfa-browser-')));
+      assert.equal(path.dirname(directory), await realpath(os.tmpdir()));
+      assert.ok(path.basename(directory).startsWith('flyeye-mfa-browser-'));
+      const configuration = {
+        build: { outDir: directory, emptyOutDir: true },
         define: {
           'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(apiUrl),
           'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify(publishableKey),
         },
         logLevel: 'silent',
+      };
+      await build(configuration);
+      server = await preview({
+        ...configuration,
+        preview: { host: '127.0.0.1', port: 0, strictPort: true },
       });
-      await server.listen();
       const address = server.httpServer.address();
       assert.ok(address && typeof address === 'object');
       return `http://127.0.0.1:${address.port}`;
@@ -154,6 +165,7 @@ export function memberMfaBrowser() {
       await page.getByRole('heading', { name: 'Authenticator is ready', exact: true }).waitFor();
       await noCredential();
       await inspect('completed', bound);
+      enterStage('browser-ready-revisit');
       await page.getByRole('button', { name: 'Return to workspace' }).click();
       await page.getByRole('button', { name: 'Account security', exact: true }).click();
       await page.getByRole('heading', { name: 'Authenticator is ready', exact: true }).waitFor();
@@ -169,8 +181,19 @@ export function memberMfaBrowser() {
       if (browser) assert.equal(browser.isConnected(), false);
     },
     async closeFrontend() {
-      await server?.close();
-      if (server) assert.equal(server.httpServer?.listening ?? false, false);
+      if (server) {
+        await new Promise((resolve, reject) => {
+          server.httpServer.close((error) => (error ? reject(error) : resolve()));
+          server.httpServer.closeAllConnections();
+        });
+        assert.equal(server.httpServer.listening, false);
+      }
+      if (directory) {
+        const resolved = await realpath(directory);
+        assert.equal(path.dirname(resolved), await realpath(os.tmpdir()));
+        assert.ok(path.basename(resolved).startsWith('flyeye-mfa-browser-'));
+        await rm(resolved, { recursive: true, force: true });
+      }
     },
   };
 }

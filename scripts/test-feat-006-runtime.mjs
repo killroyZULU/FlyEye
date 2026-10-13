@@ -242,52 +242,56 @@ try {
     authorization: `Bearer ${signedIn.data.session.access_token}`,
   });
 
-  enterStage('password-session-denial');
-  const recoveryToken = await recoveryOnlyAccessToken(admin, apiUrl, publishableKey, email);
-  const denied = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
-    method: 'POST',
-    headers: {
-      apikey: publishableKey,
-      authorization: `Bearer ${recoveryToken}`,
-      'content-type': 'application/json',
-      origin,
-    },
-    body: JSON.stringify({ action: 'status' }),
-  });
-  assert.equal(denied.status, 403);
-  const denial = await denied.json();
-  assert.equal(denial.error?.code, 'member_mfa.recent_authentication_required');
-  assert.match(denial.correlationId, /^[0-9a-f-]{36}$/);
-  limiterCorrelationIds.push(denial.correlationId);
-  assert.equal(
-    psql(
-      `select count(*) from public.authentication_events
+  // The mandatory API mode owns these probes. Repeating them before each browser
+  // journey consumes that journey's six-token status budget before user actions.
+  if (!browserMode) {
+    enterStage('password-session-denial');
+    const recoveryToken = await recoveryOnlyAccessToken(admin, apiUrl, publishableKey, email);
+    const denied = await fetchLocalEdge(`${apiUrl}/functions/v1/member-mfa`, {
+      method: 'POST',
+      headers: {
+        apikey: publishableKey,
+        authorization: `Bearer ${recoveryToken}`,
+        'content-type': 'application/json',
+        origin,
+      },
+      body: JSON.stringify({ action: 'status' }),
+    });
+    assert.equal(denied.status, 403);
+    const denial = await denied.json();
+    assert.equal(denial.error?.code, 'member_mfa.recent_authentication_required');
+    assert.match(denial.correlationId, /^[0-9a-f-]{36}$/);
+    limiterCorrelationIds.push(denial.correlationId);
+    assert.equal(
+      psql(
+        `select count(*) from public.authentication_events
     where actor_user_id = '${userId}'::uuid
       and correlation_id = '${denial.correlationId}'::uuid
       and event_name = 'member_mfa.denied' and outcome = 'denied'
       and reason_code = 'password_authentication_required';`,
-      true,
-    ),
-    '1',
-  );
+        true,
+      ),
+      '1',
+    );
 
-  enterStage('readiness-status');
-  const identity = await invoke({ action: 'status' });
-  assert.match(identity.correlationId, /^[0-9a-f-]{36}$/);
-  assert.equal(
-    psql(
-      `select limiter_key_hash from public.member_mfa_rate_limit_events
+    enterStage('readiness-status');
+    const identity = await invoke({ action: 'status' });
+    assert.match(identity.correlationId, /^[0-9a-f-]{36}$/);
+    assert.equal(
+      psql(
+        `select limiter_key_hash from public.member_mfa_rate_limit_events
       where correlation_id = '${identity.correlationId}'::uuid;`,
-      true,
-    ),
-    createHmac('sha256', limiterSecret).update(`${userId}\u0000status`).digest('hex'),
-  );
-  // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
-  // Retain it only for the post-cleanup regression assertion.
-  discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
-  const status = await invoke({ action: 'status' });
-  assert.equal(status.factorState, 'enrollment_required');
-  assert.equal(status.ready, false);
+        true,
+      ),
+      createHmac('sha256', limiterSecret).update(`${userId}\u0000status`).digest('hex'),
+    );
+    // Model a lost response: its correlation ID is deliberately unavailable to cleanup.
+    // Retain it only for the post-cleanup regression assertion.
+    discardedCorrelationId = (await invoke({ action: 'status' }, false)).correlationId;
+    const status = await invoke({ action: 'status' });
+    assert.equal(status.factorState, 'enrollment_required');
+    assert.equal(status.ready, false);
+  }
 
   if (browserMode) {
     await frontend.run({

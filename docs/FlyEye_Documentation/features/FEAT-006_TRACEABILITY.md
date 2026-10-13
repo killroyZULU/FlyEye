@@ -114,6 +114,14 @@ teardown passed. Fresh and resumed completion were unreached; this run does not
 establish the browser failure cause or reproduce the gateway defect. Fixed
 substage and HTTP-status diagnostics were added without provider payload output.
 
+The subsequent [2ffd234 run](https://github.com/killroyZULU/FlyEye/actions/runs/38351492389)
+passed interruption cleanup and fresh completion/revisit, then failed in resumed
+completion with an unattributed HTTP 429. The [8e2fe3e run](https://github.com/killroyZULU/FlyEye/actions/runs/38353343207)
+stopped earlier at password login; later browser cases were unreached. Cleanup and
+teardown passed in both. Production-preview isolation and removal of repeated API
+preludes from browser modes require new execution evidence; neither change proves
+the historical startup cause or attributes the 429.
+
 ## Runtime fixture maintenance
 
 [Issue #42](https://github.com/killroyZULU/FlyEye/issues/42) recorded the

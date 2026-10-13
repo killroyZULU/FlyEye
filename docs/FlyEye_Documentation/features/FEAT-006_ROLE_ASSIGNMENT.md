@@ -254,8 +254,10 @@ implicit waits are outside this selected SQL matrix.
 
 ### Provider-backed enrollment and resume browser investigation
 
-Exercise the existing Slice A contract in disposable Chromium/Auth/Edge/database
-fixtures, retaining the API runtime mode. Freeze two browser journeys: fresh
+Exercise the existing Slice A contract using an isolated Vite production build
+served by local preview against disposable Chromium/Auth/Edge/database fixtures.
+Retain the API runtime mode and its probes without consuming browser subjects'
+limiter budgets before their journeys. Freeze two browser journeys: fresh
 enrollment and bound cancellation/sign-out followed by password sign-in and resume.
 Both must reject an invalid code without readiness, then complete after explicit
 valid verification. Resume must retain the same operation and factor, create no

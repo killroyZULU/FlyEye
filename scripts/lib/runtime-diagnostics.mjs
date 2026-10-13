@@ -27,6 +27,7 @@ const feat006Stages = new Set([
   'browser-invalid-code',
   'browser-completion',
   'browser-readiness',
+  'browser-ready-revisit',
   'browser-verified',
   'browser-interruption',
   'cleanup-browser-shutdown',

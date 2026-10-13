@@ -21,6 +21,7 @@ describe('runtime diagnostic output boundary', () => {
       'browser-invalid-code',
       'browser-completion',
       'browser-readiness',
+      'browser-ready-revisit',
       'browser-verified',
       'browser-interruption',
       'cleanup-browser-shutdown',
