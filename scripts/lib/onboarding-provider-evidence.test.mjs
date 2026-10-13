@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   assertProviderCompletion,
   assertProviderBootstrap,
+  providerAuthenticationMethods,
 } from './onboarding-provider-evidence.mjs';
 
 const uuid = (index) => `e2000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
@@ -144,6 +145,7 @@ function fixture() {
     grantId: uuid(3),
     key: 'synthetic-key',
     adminRoleId: uuid(4),
+    authenticationMethods: ['password', 'totp'],
   };
   const timestamp = '2026-10-13T00:00:00+00:00';
   const before = {
@@ -240,6 +242,47 @@ function fixture() {
 }
 
 describe('R3 exact provider completion evidence', () => {
+  const token = (methods, subject = uuid(1)) =>
+    `synthetic.${Buffer.from(
+      JSON.stringify({
+        sub: subject,
+        aal: 'aal2',
+        amr: methods.map((method) => ({ method })),
+      }),
+    ).toString('base64url')}.synthetic`;
+  it('preserves valid provider method order instead of imposing an audit order', () => {
+    const v = fixture();
+    v.context.authenticationMethods = providerAuthenticationMethods(
+      token(['totp', 'password']),
+      uuid(1),
+    );
+    v.after.events[1].metadata.authenticationMethods = ['totp', 'password'];
+    expect(() => assertProviderCompletion(v.before, v.after, v.result, v.context)).not.toThrow();
+  });
+  it.each([['totp'], ['password'], ['totp', 'password', 'recovery']])(
+    'rejects unsupported provider method set %j',
+    (...methods) => {
+      expect(() => providerAuthenticationMethods(token(methods), uuid(1))).toThrow();
+    },
+  );
+  it('rejects a token belonging to a different synthetic subject', () => {
+    expect(() =>
+      providerAuthenticationMethods(token(['password', 'totp'], uuid(99)), uuid(1)),
+    ).toThrow();
+  });
+  it.each([
+    [['password']],
+    [['password', 'totp', 'recovery']],
+    [['password', 'totp', 'totp']],
+    [['totp', 'password']],
+  ])('rejects audit methods differing from the independently captured token: %j', (methods) => {
+    const v = fixture();
+    v.after.events[1].metadata.authenticationMethods = methods;
+    const stages = [];
+    v.context.checkpoint = (stage) => stages.push(stage);
+    expect(() => assertProviderCompletion(v.before, v.after, v.result, v.context)).toThrow();
+    expect(stages.at(-1)).toBe('provider-completion-audit');
+  });
   it('accepts one exact completion while preserving previous audit evidence', () => {
     const { before, after, result, context } = fixture();
     expect(() => assertProviderCompletion(before, after, result, context)).not.toThrow();

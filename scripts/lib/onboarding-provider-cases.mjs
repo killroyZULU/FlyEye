@@ -4,6 +4,7 @@ import { postgresSession, waitForSql } from './h002-postgres-session.mjs';
 import {
   assertProviderCompletion,
   assertProviderBootstrap,
+  providerAuthenticationMethods,
 } from './onboarding-provider-evidence.mjs';
 
 export const providerCases = [
@@ -61,7 +62,7 @@ export async function runOnboardingProviderCases(context) {
   for (const index of selected) {
     const [lock, remove] = providerCases[index];
     const caseStage = `provider-${lock}-${remove ? 'removed' : 'retained'}`;
-    enterStage(caseStage, caseStage);
+    reportDiagnostic(caseStage, 'enter');
     const user = users[index];
     const grantId = randomUUID();
     enterStage('provider-grant-issuance', 'provider grant issuance');
@@ -69,6 +70,10 @@ export async function runOnboardingProviderCases(context) {
     enterStage('provider-password', 'provider password sign-in');
     const signedIn = await signIn(user);
     const actor = await promoteToAal2(signedIn);
+    const authenticationMethods = providerAuthenticationMethods(
+      actor.session.access_token,
+      user.id,
+    );
     enterStage('provider-parents', 'provider Auth parent capture');
     evidence.captureParents();
     enterStage('provider-inventory', 'provider factor inventory');
@@ -149,6 +154,8 @@ export async function runOnboardingProviderCases(context) {
         grantId,
         key,
         adminRoleId,
+        authenticationMethods,
+        checkpoint: (stage) => enterStage(stage, stage),
       });
       assert.deepEqual(await inventory(), remove ? [] : originalFactors);
       evidence.assertAuthority();

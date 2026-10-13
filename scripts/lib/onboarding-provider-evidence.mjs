@@ -2,9 +2,28 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { authCleanupScope, authScopeSql } from './auth-runtime-scope.mjs';
 
+export function providerAuthenticationMethods(token, userId) {
+  const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+  assert.equal(payload.sub, userId);
+  assert.equal(payload.aal, 'aal2');
+  const methods = [...new Set(payload.amr.map((entry) => entry.method))];
+  assert.deepEqual([...methods].sort(), ['password', 'totp']);
+  return methods;
+}
+
 export function assertProviderCompletion(before, after, result, context) {
-  const { userId, organizationId, grantId, key, adminRoleId } = context;
+  const {
+    userId,
+    organizationId,
+    grantId,
+    key,
+    adminRoleId,
+    authenticationMethods,
+    checkpoint = () => {},
+  } = context;
+  checkpoint('provider-completion-response');
   assert.equal(result.status, 200);
+  checkpoint('provider-completion-membership');
   assert.equal(after.members.length, 1);
   const member = after.members[0];
   assert.match(member.id, /^[0-9a-f-]{36}$/);
@@ -20,6 +39,7 @@ export function assertProviderCompletion(before, after, result, context) {
     created_by: userId,
     updated_by: userId,
   });
+  checkpoint('provider-completion-response');
   assert.deepEqual(result.payload, {
     decision: 'completed',
     bootstrapGrantId: grantId,
@@ -29,6 +49,7 @@ export function assertProviderCompletion(before, after, result, context) {
     grantVersion: before.grant.version + 1,
     correlationId: result.payload.correlationId,
   });
+  checkpoint('provider-completion-profile');
   assert.deepEqual(after.profiles, [
     {
       id: after.profiles[0]?.id,
@@ -43,6 +64,7 @@ export function assertProviderCompletion(before, after, result, context) {
       updated_by: userId,
     },
   ]);
+  checkpoint('provider-completion-role');
   assert.deepEqual(after.roles, [
     {
       organization_id: organizationId,
@@ -52,6 +74,7 @@ export function assertProviderCompletion(before, after, result, context) {
       assigned_by: userId,
     },
   ]);
+  checkpoint('provider-completion-grant');
   assert.deepEqual(after.grant, {
     ...before.grant,
     status: 'completed',
@@ -60,6 +83,7 @@ export function assertProviderCompletion(before, after, result, context) {
     completed_membership_id: member.id,
     completion_idempotency_key_hash: createHash('sha256').update(key).digest('hex'),
   });
+  checkpoint('provider-completion-prior-audit');
   for (const event of before.events)
     assert.deepEqual(
       after.events.find((item) => item.id === event.id),
@@ -67,6 +91,7 @@ export function assertProviderCompletion(before, after, result, context) {
     );
   const added = after.events.filter((event) => !before.events.some((item) => item.id === event.id));
   assert.equal(added.length, 1);
+  checkpoint('provider-completion-audit');
   assert.deepEqual(added[0], {
     id: added[0].id,
     occurred_at: member.created_at,
@@ -88,7 +113,7 @@ export function assertProviderCompletion(before, after, result, context) {
       grantVersion: before.grant.version + 1,
       membershipId: member.id,
       assuranceLevel: 'aal2',
-      authenticationMethods: ['password', 'totp'],
+      authenticationMethods,
       factorCount: 1,
     },
   });

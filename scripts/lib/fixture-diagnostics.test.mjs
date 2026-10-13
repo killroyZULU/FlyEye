@@ -23,6 +23,13 @@ describe('sanitized fixture failure evidence', () => {
     'provider-start',
     'provider-snapshot',
     'provider-lock-acquisition',
+    'provider-completion-response',
+    'provider-completion-membership',
+    'provider-completion-profile',
+    'provider-completion-role',
+    'provider-completion-grant',
+    'provider-completion-prior-audit',
+    'provider-completion-audit',
   ])('preserves R3 setup failure at %s without provider payload', (stage) => {
     const { lines, diagnostics } = recorder('FEAT-003');
     diagnostics.enter(stage);
