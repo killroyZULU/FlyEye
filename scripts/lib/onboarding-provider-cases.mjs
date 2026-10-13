@@ -22,7 +22,7 @@ async function settleProviderWork(blocker, observer, pending) {
   if (settled?.error) throw settled.error;
 }
 
-function issueGrant(psql, organizationId, userId, grantId, sourceInstanceId) {
+export function issueGrant(psql, organizationId, userId, grantId, sourceInstanceId) {
   psql(`begin;
     insert into public.organization_admin_bootstrap_grants
       (id,organization_id,eligible_user_id,authorization_source_kind,

@@ -140,7 +140,13 @@ for (const fixture of fixtures) {
   const onboardingProvider =
     onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const modes = onboardingProvider
-    ? [[], ['--provider-cleanup-probe'], ['--provider-state']]
+    ? [
+        [],
+        ['--provider-cleanup-probe'],
+        ['--provider-state'],
+        ['--stale-cleanup-probe'],
+        ['--stale-factors'],
+      ]
     : memberMfa
       ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
       : priority.has(fixture)
