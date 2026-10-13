@@ -147,6 +147,43 @@ describe('R2 member MFA browser gate', () => {
   });
 });
 
+describe('R3 provider consistency gate', () => {
+  it('retains normal onboarding and requires interrupted and provider-state modes', async () => {
+    mocks.fixture = 'test-feat-003-runtime.mjs';
+    const line = 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.';
+    mocks.spawnSync.mockImplementation(() => ({
+      status: 0,
+      stdout: `${line}\nprivate-factor-token`,
+    }));
+    await import('../run-runtime-matrix.mjs');
+    const children = mocks.spawnSync.mock.calls.filter(([, args]) =>
+      args[0].endsWith(mocks.fixture),
+    );
+    expect(children.map(([, args]) => args.slice(1))).toEqual([
+      [],
+      ['--provider-cleanup-probe'],
+      ['--provider-state'],
+    ]);
+    expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-factor-token');
+  });
+  it('blocks provider cases when the interruption probe lacks cleanup evidence', async () => {
+    mocks.fixture = 'test-feat-003-runtime.mjs';
+    mocks.spawnSync.mockImplementation((_command, args) => ({
+      status: 0,
+      stdout: args.includes('--provider-cleanup-probe')
+        ? ''
+        : 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    mocks.exit.mockImplementation(() => {
+      throw new Error('test-exit');
+    });
+    await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+    expect(
+      mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
+    ).toHaveLength(2);
+  });
+});
+
 it('fails closed when an Auth fixture exits zero without explicit cleanup evidence', async () => {
   mocks.fixture = 'test-recovery-runtime.mjs';
   mocks.spawnSync.mockImplementation(() => ({ status: 0, stdout: 'private' }));

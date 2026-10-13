@@ -136,11 +136,14 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-007-runtime.mjs' ||
     fixture === 'test-feat-007b-runtime.mjs';
   const memberMfa = fixture === 'test-feat-006-runtime.mjs';
-  const modes = memberMfa
-    ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
-    : priority.has(fixture)
-      ? [['--cleanup-probe'], []]
-      : [[]];
+  const onboardingProvider = fixture === 'test-feat-003-runtime.mjs';
+  const modes = onboardingProvider
+    ? [[], ['--provider-cleanup-probe'], ['--provider-state']]
+    : memberMfa
+      ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
+      : priority.has(fixture)
+        ? [['--cleanup-probe'], []]
+        : [[]];
   for (const mode of modes) {
     const result = spawnSync(process.execPath, [path.join(scriptsDirectory, fixture), ...mode], {
       encoding: hasDiagnostics ? 'utf8' : undefined,
@@ -155,13 +158,15 @@ for (const fixture of fixtures) {
       process.stdout.write(`${line}\n`);
     }
 
-    const feature = memberMfa
-      ? 'FEAT-006'
-      : fixture === 'test-edge-runtime.mjs'
-        ? 'FEAT-001'
-        : 'FEAT-002';
+    const feature = onboardingProvider
+      ? 'FEAT-003'
+      : memberMfa
+        ? 'FEAT-006'
+        : fixture === 'test-edge-runtime.mjs'
+          ? 'FEAT-001'
+          : 'FEAT-002';
     const cleanupProved =
-      (!priority.has(fixture) && !memberMfa) ||
+      (!priority.has(fixture) && !memberMfa && !onboardingProvider) ||
       diagnosticLines.includes(
         `${feature} runtime diagnostic: stage=fixture-cleanup event=passed.`,
       );
@@ -180,7 +185,7 @@ for (const fixture of fixtures) {
     }
 
     process.stdout.write(
-      `Runtime matrix passed: ${fixture}${mode.length ? (memberMfa ? ` (${mode.map((flag) => flag.slice(2)).join(' ')})` : ' (cleanup probe)') : ''}.\n`,
+      `Runtime matrix passed: ${fixture}${mode.length ? (memberMfa || onboardingProvider ? ` (${mode.map((flag) => flag.slice(2)).join(' ')})` : ' (cleanup probe)') : ''}.\n`,
     );
   }
   if (fixture !== fixtures.at(-1)) {

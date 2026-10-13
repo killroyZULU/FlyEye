@@ -169,6 +169,24 @@ atomic pending-version fence; signature and execution grants are unchanged.
 #148 records corrected execution separately, including two added preservation/
 authority controls. Other H002 paths and historical A024 remain open.
 
+### Provider consistency evidence map
+
+[SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154) owns exact-target
+execution and review for the [four provider schedules](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
+The existing [runtime issuer](../../../scripts/test-feat-003-runtime.mjs) retains
+normal mode and adds `--provider-state` and `--provider-cleanup-probe`.
+[Provider cases](../../../scripts/lib/onboarding-provider-cases.mjs),
+`runOnboardingProviderCases`, observe SQL waits and test final protected bootstrap.
+[Evidence assertions](../../../scripts/lib/onboarding-provider-evidence.mjs),
+`assertProviderCompletion` and `assertClean`, check exact authority/audit state,
+captured Auth descendants and foreign-state preservation. [Mutation regressions](../../../scripts/lib/onboarding-provider-evidence.test.mjs)
+reject incorrect actor, tenant, role, grant, key and audit evidence;
+[runner regressions](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs),
+`R3 provider consistency gate`, reject missing cleanup evidence.
+Source assertions alone are not execution evidence; #154 distinguishes observed
+outcomes from unreached cases. Browser routing/secret clearing, other R3 paths
+and hosted/session-policy evidence remain separate.
+
 ### Limiter contention evidence
 
 [SEC-009 / #130](https://github.com/killroyZULU/FlyEye/issues/130) owns execution and

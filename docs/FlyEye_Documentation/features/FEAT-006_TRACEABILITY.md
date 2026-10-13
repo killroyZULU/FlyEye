@@ -119,8 +119,13 @@ passed interruption cleanup and fresh completion/revisit, then failed in resumed
 completion with an unattributed HTTP 429. The [8e2fe3e run](https://github.com/killroyZULU/FlyEye/actions/runs/38353343207)
 stopped earlier at password login; later browser cases were unreached. Cleanup and
 teardown passed in both. Production-preview isolation and removal of repeated API
-preludes from browser modes require new execution evidence; neither change proves
-the historical startup cause or attributes the 429.
+preludes passed both browser journeys and interruption cleanup at `3b32536` /
+[CI 38355274923](https://github.com/killroyZULU/FlyEye/actions/runs/38355274923).
+[PR #153](https://github.com/killroyZULU/FlyEye/pull/153) integrated at `2c98188`;
+[post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/38360244097) passed
+all gates and fourteen runtime cleanup markers. Neither success proves the
+historical startup cause or attributes the 429. The frozen local R2 scope is
+integrated; hosted lifecycle, formal accessibility and broader H002 remain open.
 
 ## Runtime fixture maintenance
 
