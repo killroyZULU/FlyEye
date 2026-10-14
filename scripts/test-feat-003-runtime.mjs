@@ -111,6 +111,7 @@ function enterStage(diagnosticStage, description) {
 }
 
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
+  const since = new Date().toISOString();
   const operation = () =>
     fetch(input, {
       ...init,
@@ -121,10 +122,23 @@ function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
     input,
     method: init.method ?? input?.method,
     apiUrl,
-    report: (detail) =>
+    report: (detail) => {
       process.stdout.write(
         fixtureDiagnostic('FEAT-003', 'provider-transport', 'failed', detail) + '\n',
-      ),
+      );
+      for (const entry of collectGatewayDiagnostics({
+        projectId,
+        since,
+        ci: process.env.CI,
+        githubActions: process.env.GITHUB_ACTIONS,
+        services: ['kong', 'auth'],
+      })) {
+        for (const category of entry.details)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', entry.stage, 'response', category) + '\n',
+          );
+      }
+    },
   });
 }
 

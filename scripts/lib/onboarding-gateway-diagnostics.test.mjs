@@ -67,6 +67,8 @@ describe('bounded onboarding gateway evidence', () => {
     ['InvalidWorkerCreation', 'worker-boot-error'],
     ['InvalidWorkerResponse', 'worker-error'],
     ['CPU time limit exceeded', 'worker-limit'],
+    ['panic: runtime error: synthetic', 'provider-panic'],
+    ['{"level":"error","msg":"private"}', 'provider-error-log'],
   ])('projects log signature %s to a fixed category', (signature, expected) => {
     expect(gatewayLogDetails(`${secret} ${signature} ${secret}`)).toEqual([expected]);
     expect(gatewayLogDetails(secret)).toEqual(['no-recognized-log-signature']);
@@ -106,10 +108,30 @@ describe('bounded onboarding gateway evidence', () => {
     { githubActions: undefined },
     { projectId: '../foreign' },
     { since: secret },
+    { services: ['foreign'] },
+    { services: ['kong', 'auth', 'edge_runtime'] },
+    { services: null },
   ])('does not inspect outside disposable CI: %j', (override) => {
     const execute = executor();
     expect(collectGatewayDiagnostics({ ...config, ...override, execute })).toEqual([]);
     expect(execute).not.toHaveBeenCalled();
+  });
+  it('attests only the selected gateway and Auth containers for a transport failure', () => {
+    const execute = executor();
+    const evidence = collectGatewayDiagnostics({ ...config, services: ['kong', 'auth'], execute });
+    expect(evidence.map(({ stage }) => stage)).toEqual(['gateway-log', 'provider-log']);
+    expect(execute.mock.calls.map(([, args]) => args.at(-1))).toEqual([
+      'supabase_kong_synthetic_ci',
+      'supabase_kong_synthetic_ci',
+      'supabase_auth_synthetic_ci',
+      'supabase_auth_synthetic_ci',
+    ]);
+    expect(
+      fixtureDiagnosticLines(
+        'FEAT-003',
+        fixtureDiagnostic('FEAT-003', 'provider-log', 'response', 'provider-panic'),
+      ),
+    ).toHaveLength(1);
   });
   it.each([
     { status: 1, stdout: secret, stderr: secret },

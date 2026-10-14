@@ -131,6 +131,7 @@ const stages = new Map([
       'gateway-response',
       'gateway-log',
       'worker-log',
+      'provider-log',
       'transition-authority',
       'transition-grant',
       'transition-prior-audit',
@@ -318,6 +319,8 @@ const failureDetails = new Set([
   ...[...httpStatuses].map((status) => `http-${status}`),
 ]);
 const responseDetails = new Set([
+  'provider-panic',
+  'provider-error-log',
   'kong-response',
   'upstream-invalid-response',
   'upstream-refused',

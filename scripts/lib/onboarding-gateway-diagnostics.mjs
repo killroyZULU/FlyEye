@@ -29,6 +29,8 @@ export function gatewayLogDetails(output) {
     ['worker-boot-error', /(?:InvalidWorkerCreation|worker boot error)/],
     ['worker-error', /InvalidWorkerResponse/],
     ['worker-limit', /(?:WorkerRequestCancelled|CPU time limit exceeded|Memory limit exceeded)/],
+    ['provider-panic', /(?:panic:|runtime error:)/],
+    ['provider-error-log', /"level"\s*:\s*"error"/],
   ];
   const details = patterns.filter(([, pattern]) => pattern.test(output)).map(([detail]) => detail);
   return details.length ? details : ['no-recognized-log-signature'];
@@ -39,13 +41,17 @@ export function collectGatewayDiagnostics({
   since,
   ci,
   githubActions,
+  services = ['kong', 'edge_runtime'],
   execute = spawnSync,
 }) {
   if (
     ci !== 'true' ||
     githubActions !== 'true' ||
     !/^[a-z0-9_-]+$/.test(projectId) ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(since)
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(since) ||
+    !Array.isArray(services) ||
+    services.length > 2 ||
+    services.some((service) => !['kong', 'edge_runtime', 'auth'].includes(service))
   )
     return [];
   const options = {
@@ -55,8 +61,9 @@ export function collectGatewayDiagnostics({
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   };
-  return ['kong', 'edge_runtime'].map((service) => {
-    const stage = service === 'kong' ? 'gateway-log' : 'worker-log';
+  return services.map((service) => {
+    const stage =
+      service === 'kong' ? 'gateway-log' : service === 'auth' ? 'provider-log' : 'worker-log';
     const container = `supabase_${service}_${projectId}`;
     try {
       const inspected = execute(
