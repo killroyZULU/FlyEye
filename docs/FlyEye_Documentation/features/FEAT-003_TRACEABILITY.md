@@ -188,6 +188,9 @@ enforces cleanup. Source assertions alone do not prove execution.
 `--factor-churn`/`--churn-cleanup-probe`, reusing completion/bootstrap assertions
 and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
 Exact-target execution results belong to #162; declaration is not evidence.
+[Worker readiness](../../../scripts/lib/onboarding-worker-readiness.mjs) requires
+the current synthetic origin and exact pre-authentication handler response;
+it does not prove provider health.
 
 ### Verified-factor browser evidence map
 

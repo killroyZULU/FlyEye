@@ -27,6 +27,7 @@ import {
   collectGatewayDiagnostics,
   gatewayResponseDetails,
 } from './lib/onboarding-gateway-diagnostics.mjs';
+import { waitForOnboardingWorker } from './lib/onboarding-worker-readiness.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
@@ -422,6 +423,16 @@ function bootstrap(token, organizationId) {
 }
 
 async function waitForEdgeRuntime() {
+  if (churnMode) {
+    return waitForOnboardingWorker({
+      url: `${apiUrl}/functions/v1/organization-admin-onboarding`,
+      origin,
+      apiKey: publishableKey,
+      token: serviceRoleKey,
+      fetchRequest: boundedFetch,
+      isAlive: () => edgeProcess.exitCode === null && edgeProcess.signalCode === null,
+    });
+  }
   for (let attempt = 0; attempt < 80; attempt += 1) {
     if (edgeProcess.exitCode !== null) {
       throw new Error('Local Edge Runtime stopped before readiness.');
@@ -1208,6 +1219,7 @@ try {
     enterStage('browser-frontend-startup', 'isolated onboarding frontend');
     origin = await (staleBrowser ?? challengeBrowser).start(apiUrl, publishableKey);
   }
+  if (churnMode) origin = `https://onboarding-${randomUUID()}.invalid`;
 
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
