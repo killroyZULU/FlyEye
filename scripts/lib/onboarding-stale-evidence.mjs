@@ -75,7 +75,7 @@ export function assertStaleTransition(kind, before, after, result, context) {
     target_id: grantId,
     idempotency_key_hash: denied ? null : createHash('sha256').update(key).digest('hex'),
     metadata: denied
-      ? { currentAssuranceLevel: 'aal1' }
+      ? { currentAssuranceLevel: context.assuranceLevel ?? 'aal1' }
       : {
           grantVersion: grant.version,
           ...(kind === 'cancel' ? { cleanupOutcome: 'not_attempted' } : {}),

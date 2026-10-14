@@ -148,6 +148,8 @@ for (const fixture of fixtures) {
         ['--stale-factors'],
         ['--challenge-cleanup-probe'],
         ['--verified-challenge'],
+        ['--churn-cleanup-probe'],
+        ['--factor-churn'],
       ]
     : memberMfa
       ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]

@@ -22,14 +22,21 @@ import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.m
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
+import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
 const staleMode = staleProbe || process.argv.includes('--stale-factors');
 const challengeProbe = process.argv.includes('--challenge-cleanup-probe');
 const challengeMode = challengeProbe || process.argv.includes('--verified-challenge');
+const churnProbe = process.argv.includes('--churn-cleanup-probe');
+const churnMode = churnProbe || process.argv.includes('--factor-churn');
 const providerMode =
-  challengeMode || staleMode || providerProbe || process.argv.includes('--provider-state');
+  churnMode ||
+  challengeMode ||
+  staleMode ||
+  providerProbe ||
+  process.argv.includes('--provider-state');
 const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
 const challengeBrowser = challengeMode ? onboardingChallengeBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
@@ -1126,13 +1133,15 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(challengeMode
-      ? ['providerChallenge', 'providerForeign']
-      : staleMode
-        ? ['providerStale', 'providerFresh']
-        : providerMode
-          ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-          : []),
+    ...(churnMode
+      ? churnCases.map((_value, index) => `providerChurn${index}`)
+      : challengeMode
+        ? ['providerChallenge', 'providerForeign']
+        : staleMode
+          ? ['providerStale', 'providerFresh']
+          : providerMode
+            ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+            : []),
   ].map((name) => [
     name,
     {
@@ -1224,7 +1233,7 @@ try {
     throw providerFinished;
   }
   if (providerMode) {
-    await runOnboardingProviderCases({
+    await (churnMode ? runOnboardingChurnCases : runOnboardingProviderCases)({
       users: providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,
@@ -1237,7 +1246,8 @@ try {
       clearScenario: clearCompletedScenario,
       enterStage,
       reportDiagnostic,
-      cleanupProbe: providerProbe,
+      cleanupProbe: churnProbe || providerProbe,
+      currentTotp,
     });
     throw providerFinished;
   }

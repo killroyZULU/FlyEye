@@ -336,6 +336,28 @@ cleanup. Reuse existing cross-school SQL and cleanup controls. Replacement, mixe
 factors, outages, recovery, global session policy and hosted validation remain
 outside these selected cases.
 
+### Mixed inventories and unverified replacement
+
+Use nine disposable provider cases: verified-plus-unverified and two verified
+TOTP inventories at START and COMPLETE (four); replacement of the original
+verified factor by one unverified TOTP before COMPLETE (one); and mixed or
+unverified replacement during an observed organization/grant completion wait
+(four). Confirm exact factor identities/status through owned snapshots. Before
+RPC entry require the specific conflict, unchanged authority/grant/inventory and
+one exact denial audit. After a wait, apply the existing Auth/database consistency
+boundary: exact completion followed by specific final bootstrap denial.
+
+Capture Auth parents before removal, confirm provider mutation before releasing
+the blocker, and preserve roles/permissions and foreign state. Interrupt a
+separate replacement while blocked; settle the request before domain cleanup and
+prove Auth descendant/limiter residue absent. Reuse retained-factor controls and
+cross-school evidence. Outages, timeouts and quotas never count as factor denial.
+
+This manifest excludes provider outages and sole VERIFIED replacement under an
+older factor's session. The latter needs an explicit session/operation invalidation
+and fresh-verification decision; do not infer permission from current code or
+introduce recovery/replacement functionality.
+
 ## Acceptance criteria
 
 - `FEAT-003-AC-01` Status returns only the actor's safe eligible contexts through protected lookup.
