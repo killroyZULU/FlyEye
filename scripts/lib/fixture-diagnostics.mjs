@@ -292,6 +292,14 @@ const stages = new Map([
 ]);
 const httpStatuses = new Set([400, 401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504]);
 const failureDetails = new Set([
+  'readiness-no-response',
+  'readiness-transport-error',
+  'readiness-unreadable-response',
+  'readiness-auth-rejected',
+  'readiness-server-error',
+  'readiness-old-origin',
+  'readiness-contract-mismatch',
+  'readiness-cors-mismatch',
   'transport-connection-refused',
   'transport-connection-reset',
   'transport-socket-closed',

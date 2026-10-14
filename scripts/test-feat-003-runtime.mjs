@@ -443,6 +443,12 @@ async function waitForEdgeRuntime() {
       token: serviceRoleKey,
       fetchRequest: boundedFetch,
       isAlive: () => edgeProcess.exitCode === null && edgeProcess.signalCode === null,
+      reportFailure: (detail) => {
+        if (diagnosticsEnabled)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', 'edge-runtime-startup', 'failed', detail) + '\n',
+          );
+      },
     });
   }
   for (let attempt = 0; attempt < 80; attempt += 1) {

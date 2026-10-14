@@ -27,6 +27,59 @@ function fixture() {
 }
 
 describe('current onboarding worker readiness', () => {
+  it('accepts the pinned gateway CORS rewrite only with the current-origin handler body', async () => {
+    const options = fixture();
+    const current = createAdminOnboardingHandler({
+      allowedOrigin: origin,
+      authenticate: options.authenticate,
+    });
+    const old = createAdminOnboardingHandler({
+      allowedOrigin: oldOrigin,
+      authenticate: options.authenticate,
+    });
+    const rewrite = async (handler) => {
+      const response = await handler(new Request(url, { method: 'GET', headers: { origin } }));
+      response.headers.set('access-control-allow-origin', '*');
+      return response;
+    };
+    options.fetchRequest
+      .mockResolvedValueOnce(await rewrite(old))
+      .mockResolvedValueOnce(await rewrite(current));
+    await waitForOnboardingWorker(options);
+    expect(options.fetchRequest).toHaveBeenCalledTimes(2);
+    expect(options.authenticate).not.toHaveBeenCalled();
+  });
+  it.each([
+    [401, {}, origin, 'readiness-auth-rejected'],
+    [503, {}, origin, 'readiness-server-error'],
+    [403, { error: { code: 'admin_onboarding.origin_denied' } }, '*', 'readiness-old-origin'],
+    [405, expected, oldOrigin, 'readiness-cors-mismatch'],
+    [405, { error: { code: 'private-message' } }, '*', 'readiness-contract-mismatch'],
+  ])(
+    'reports only a fixed final readiness failure for HTTP %s',
+    async (status, payload, cors, detail) => {
+      const options = fixture();
+      options.fetchRequest.mockImplementation(async () =>
+        Response.json(payload, { status, headers: { 'access-control-allow-origin': cors } }),
+      );
+      options.reportFailure = vi.fn();
+      await expect(waitForOnboardingWorker(options)).rejects.toThrow(
+        'Local Edge Runtime did not become ready.',
+      );
+      expect(options.fetchRequest).toHaveBeenCalledTimes(80);
+      expect(options.reportFailure).toHaveBeenCalledExactlyOnceWith(detail);
+    },
+  );
+  it('retains its failure if reporting throws', async () => {
+    const options = fixture();
+    options.isAlive = () => false;
+    options.reportFailure = () => {
+      throw new Error('private diagnostic');
+    };
+    await expect(waitForOnboardingWorker(options)).rejects.toThrow(
+      'Local Edge Runtime stopped before readiness.',
+    );
+  });
   it('rejects the real old-origin handler response that previously satisfied readiness', async () => {
     const context = fixture();
     const oldHandler = createAdminOnboardingHandler({

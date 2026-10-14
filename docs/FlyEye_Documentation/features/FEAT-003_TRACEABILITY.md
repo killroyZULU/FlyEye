@@ -189,7 +189,7 @@ enforces cleanup. Source assertions alone do not prove execution.
 and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
 Exact-target execution results belong to #162; declaration is not evidence.
 [Worker readiness](../../../scripts/lib/onboarding-worker-readiness.mjs) requires
-the current synthetic origin and exact pre-authentication handler response;
+the current synthetic request origin and exact handler response, accounting for Kong's CORS rewrite;
 it does not prove provider health.
 
 ### Verified-factor browser evidence map
