@@ -149,7 +149,7 @@ describe('R2 member MFA browser gate', () => {
 });
 
 describe('R3 provider consistency gate', () => {
-  it('retains normal onboarding and requires interrupted and provider-state modes', async () => {
+  it('runs churn first while retaining every mode and cleanup-gated restart', async () => {
     vi.stubEnv('CI', 'true');
     vi.stubEnv('GITHUB_ACTIONS', 'true');
     mocks.fixture = 'test-feat-003-runtime.mjs';
@@ -163,6 +163,8 @@ describe('R3 provider consistency gate', () => {
       args[0].endsWith(mocks.fixture),
     );
     expect(children.map(([, args]) => args.slice(1))).toEqual([
+      ['--churn-cleanup-probe'],
+      ['--factor-churn'],
       [],
       ['--provider-cleanup-probe'],
       ['--provider-state'],
@@ -170,8 +172,6 @@ describe('R3 provider consistency gate', () => {
       ['--stale-factors'],
       ['--challenge-cleanup-probe'],
       ['--verified-challenge'],
-      ['--churn-cleanup-probe'],
-      ['--factor-churn'],
     ]);
     expect(mocks.stdout.mock.calls.flat().join('')).not.toContain('private-factor-token');
     const lifecycle = mocks.spawnSync.mock.calls
@@ -180,14 +180,16 @@ describe('R3 provider consistency gate', () => {
     expect(lifecycle).toEqual(Array.from({ length: 9 }, () => ['stop', 'start', 'fixture']).flat());
   });
   it.each([
-    ['--provider-cleanup-probe', 0, 2],
-    ['--provider-cleanup-probe', 1, 2],
-    ['--stale-cleanup-probe', 0, 4],
-    ['--stale-cleanup-probe', 1, 4],
-    ['--challenge-cleanup-probe', 0, 6],
-    ['--challenge-cleanup-probe', 1, 6],
-    ['--churn-cleanup-probe', 0, 8],
-    ['--churn-cleanup-probe', 1, 8],
+    ['--churn-cleanup-probe', 0, 1],
+    ['--churn-cleanup-probe', 1, 1],
+    ['--factor-churn', 0, 2],
+    ['--factor-churn', 1, 2],
+    ['--provider-cleanup-probe', 0, 4],
+    ['--provider-cleanup-probe', 1, 4],
+    ['--stale-cleanup-probe', 0, 6],
+    ['--stale-cleanup-probe', 1, 6],
+    ['--challenge-cleanup-probe', 0, 8],
+    ['--challenge-cleanup-probe', 1, 8],
   ])(
     'blocks restart and further cases on %s exit %s without sufficient success evidence',
     async (probe, exitCode, count) => {

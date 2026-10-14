@@ -141,6 +141,8 @@ for (const fixture of fixtures) {
     onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const modes = onboardingProvider
     ? [
+        ['--churn-cleanup-probe'],
+        ['--factor-churn'],
         [],
         ['--provider-cleanup-probe'],
         ['--provider-state'],
@@ -148,8 +150,6 @@ for (const fixture of fixtures) {
         ['--stale-factors'],
         ['--challenge-cleanup-probe'],
         ['--verified-challenge'],
-        ['--churn-cleanup-probe'],
-        ['--factor-churn'],
       ]
     : memberMfa
       ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]

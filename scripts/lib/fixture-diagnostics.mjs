@@ -153,6 +153,7 @@ const stages = new Map([
       'foreign-snapshot-challenges',
       'foreign-snapshot-assurance',
       'foreign-provider-request',
+      'provider-transport',
       'foreign-provider-returned',
       'foreign-factor-verify',
       'foreign-factor-challenge-passed',
@@ -291,6 +292,14 @@ const stages = new Map([
 ]);
 const httpStatuses = new Set([400, 401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504]);
 const failureDetails = new Set([
+  'transport-connection-refused',
+  'transport-connection-reset',
+  'transport-socket-closed',
+  'transport-dns-failed',
+  'transport-timeout',
+  'transport-invalid-request',
+  'transport-aborted',
+  'transport-unknown',
   'assertion',
   'timeout',
   'transport-failed',

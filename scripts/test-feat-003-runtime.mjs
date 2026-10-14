@@ -28,6 +28,7 @@ import {
   gatewayResponseDetails,
 } from './lib/onboarding-gateway-diagnostics.mjs';
 import { waitForOnboardingWorker } from './lib/onboarding-worker-readiness.mjs';
+import { withFactorTransportDiagnostics } from './lib/provider-transport-diagnostics.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
@@ -110,9 +111,20 @@ function enterStage(diagnosticStage, description) {
 }
 
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  const operation = () =>
+    fetch(input, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+    });
+  if (!challengeMode || !diagnosticsEnabled) return operation();
+  return withFactorTransportDiagnostics(operation, {
+    input,
+    method: init.method ?? input?.method,
+    apiUrl,
+    report: (detail) =>
+      process.stdout.write(
+        fixtureDiagnostic('FEAT-003', 'provider-transport', 'failed', detail) + '\n',
+      ),
   });
 }
 
