@@ -23,6 +23,10 @@ import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs'
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
 import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
+import {
+  collectGatewayDiagnostics,
+  gatewayResponseDetails,
+} from './lib/onboarding-gateway-diagnostics.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
@@ -353,6 +357,7 @@ async function promoteToAal2(signedIn) {
 }
 
 async function invokeFunction(pathname, token, body) {
+  const requestStarted = new Date().toISOString();
   const response = await boundedFetch(`${apiUrl}/functions/v1/${pathname}`, {
     method: 'POST',
     headers: {
@@ -368,6 +373,24 @@ async function invokeFunction(pathname, token, body) {
     payload = await response.json();
   } catch {
     throw new Error('Local Edge Function returned a non-JSON contract.');
+  } finally {
+    if (churnMode && diagnosticsEnabled && response.status >= 500) {
+      const evidence = [
+        { stage: 'gateway-response', details: gatewayResponseDetails(response, payload) },
+        ...collectGatewayDiagnostics({
+          projectId,
+          since: requestStarted,
+          ci: process.env.CI,
+          githubActions: process.env.GITHUB_ACTIONS,
+        }),
+      ];
+      for (const { stage: diagnosticStage, details } of evidence) {
+        for (const detail of details)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', diagnosticStage, 'response', detail) + '\n',
+          );
+      }
+    }
   }
   return {
     status: response.status,
