@@ -76,6 +76,32 @@ function fixture(kind) {
 }
 const check = (kind, v) => assertStaleTransition(kind, v.before, v.after, v.result, v.context);
 
+describe('R3 AAL2 factor-conflict evidence', () => {
+  it('localizes failures without disclosing payloads or weakening assertions', () => {
+    const v = fixture('start');
+    const stages = [];
+    v.context.checkpoint = (stage) => stages.push(stage);
+    v.result.status = 503;
+    v.result.payload = { private: 'synthetic-private-provider-payload' };
+    expect(() => check('start', v)).toThrow();
+    expect(stages).toEqual([
+      'transition-authority',
+      'transition-grant',
+      'transition-prior-audit',
+      'transition-status',
+    ]);
+    expect(stages.join('')).not.toContain('private');
+  });
+  it('requires the exact AAL2 denial audit without granting authority', () => {
+    const v = fixture('entry');
+    v.context.assuranceLevel = 'aal2';
+    v.after.events[1].metadata.currentAssuranceLevel = 'aal2';
+    expect(() => check('entry', v)).not.toThrow();
+    v.after.events[1].metadata.currentAssuranceLevel = 'aal1';
+    expect(() => check('entry', v)).toThrow();
+  });
+});
+
 describe.each(['entry', 'start', 'cancel', 'replay'])('R3 stale transition %s', (kind) => {
   it('accepts only the bounded response, grant and audit transition', () => {
     expect(() => check(kind, fixture(kind))).not.toThrow();

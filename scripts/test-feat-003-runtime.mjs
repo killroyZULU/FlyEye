@@ -22,14 +22,30 @@ import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.m
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
+import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
+import {
+  collectGatewayDiagnostics,
+  gatewayResponseDetails,
+} from './lib/onboarding-gateway-diagnostics.mjs';
+import { waitForOnboardingWorker } from './lib/onboarding-worker-readiness.mjs';
+import {
+  fixtureConnectionOptions,
+  withFactorTransportDiagnostics,
+} from './lib/provider-transport-diagnostics.mjs';
 
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
 const staleMode = staleProbe || process.argv.includes('--stale-factors');
 const challengeProbe = process.argv.includes('--challenge-cleanup-probe');
 const challengeMode = challengeProbe || process.argv.includes('--verified-challenge');
+const churnProbe = process.argv.includes('--churn-cleanup-probe');
+const churnMode = churnProbe || process.argv.includes('--factor-churn');
 const providerMode =
-  challengeMode || staleMode || providerProbe || process.argv.includes('--provider-state');
+  churnMode ||
+  challengeMode ||
+  staleMode ||
+  providerProbe ||
+  process.argv.includes('--provider-state');
 const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
 const challengeBrowser = challengeMode ? onboardingChallengeBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
@@ -98,9 +114,35 @@ function enterStage(diagnosticStage, description) {
 }
 
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
-  return fetch(input, {
-    ...init,
-    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  const since = new Date().toISOString();
+  const options = challengeMode ? fixtureConnectionOptions(input, init, apiUrl) : init;
+  const operation = () =>
+    fetch(input, {
+      ...options,
+      signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+    });
+  if (!challengeMode || !diagnosticsEnabled) return operation();
+  return withFactorTransportDiagnostics(operation, {
+    input,
+    method: init.method ?? input?.method,
+    apiUrl,
+    report: (detail) => {
+      process.stdout.write(
+        fixtureDiagnostic('FEAT-003', 'provider-transport', 'failed', detail) + '\n',
+      );
+      for (const entry of collectGatewayDiagnostics({
+        projectId,
+        since,
+        ci: process.env.CI,
+        githubActions: process.env.GITHUB_ACTIONS,
+        services: ['kong', 'auth'],
+      })) {
+        for (const category of entry.details)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', entry.stage, 'response', category) + '\n',
+          );
+      }
+    },
   });
 }
 
@@ -346,6 +388,7 @@ async function promoteToAal2(signedIn) {
 }
 
 async function invokeFunction(pathname, token, body) {
+  const requestStarted = new Date().toISOString();
   const response = await boundedFetch(`${apiUrl}/functions/v1/${pathname}`, {
     method: 'POST',
     headers: {
@@ -361,6 +404,24 @@ async function invokeFunction(pathname, token, body) {
     payload = await response.json();
   } catch {
     throw new Error('Local Edge Function returned a non-JSON contract.');
+  } finally {
+    if (churnMode && diagnosticsEnabled && response.status >= 500) {
+      const evidence = [
+        { stage: 'gateway-response', details: gatewayResponseDetails(response, payload) },
+        ...collectGatewayDiagnostics({
+          projectId,
+          since: requestStarted,
+          ci: process.env.CI,
+          githubActions: process.env.GITHUB_ACTIONS,
+        }),
+      ];
+      for (const { stage: diagnosticStage, details } of evidence) {
+        for (const detail of details)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', diagnosticStage, 'response', detail) + '\n',
+          );
+      }
+    }
   }
   return {
     status: response.status,
@@ -392,6 +453,22 @@ function bootstrap(token, organizationId) {
 }
 
 async function waitForEdgeRuntime() {
+  if (churnMode) {
+    return waitForOnboardingWorker({
+      url: `${apiUrl}/functions/v1/organization-admin-onboarding`,
+      origin,
+      apiKey: publishableKey,
+      token: serviceRoleKey,
+      fetchRequest: boundedFetch,
+      isAlive: () => edgeProcess.exitCode === null && edgeProcess.signalCode === null,
+      reportFailure: (detail) => {
+        if (diagnosticsEnabled)
+          process.stdout.write(
+            fixtureDiagnostic('FEAT-003', 'edge-runtime-startup', 'failed', detail) + '\n',
+          );
+      },
+    });
+  }
   for (let attempt = 0; attempt < 80; attempt += 1) {
     if (edgeProcess.exitCode !== null) {
       throw new Error('Local Edge Runtime stopped before readiness.');
@@ -1126,13 +1203,15 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(challengeMode
-      ? ['providerChallenge', 'providerForeign']
-      : staleMode
-        ? ['providerStale', 'providerFresh']
-        : providerMode
-          ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-          : []),
+    ...(churnMode
+      ? churnCases.map((_value, index) => `providerChurn${index}`)
+      : challengeMode
+        ? ['providerChallenge', 'providerForeign']
+        : staleMode
+          ? ['providerStale', 'providerFresh']
+          : providerMode
+            ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+            : []),
   ].map((name) => [
     name,
     {
@@ -1176,6 +1255,7 @@ try {
     enterStage('browser-frontend-startup', 'isolated onboarding frontend');
     origin = await (staleBrowser ?? challengeBrowser).start(apiUrl, publishableKey);
   }
+  if (churnMode) origin = `https://onboarding-${randomUUID()}.invalid`;
 
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
@@ -1224,7 +1304,7 @@ try {
     throw providerFinished;
   }
   if (providerMode) {
-    await runOnboardingProviderCases({
+    await (churnMode ? runOnboardingChurnCases : runOnboardingProviderCases)({
       users: providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,
@@ -1237,7 +1317,8 @@ try {
       clearScenario: clearCompletedScenario,
       enterStage,
       reportDiagnostic,
-      cleanupProbe: providerProbe,
+      cleanupProbe: churnProbe || providerProbe,
+      currentTotp,
     });
     throw providerFinished;
   }

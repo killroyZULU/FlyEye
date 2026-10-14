@@ -182,6 +182,16 @@ check authority/audit, Auth descendants and foreign state;
 [R3 provider consistency gate](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
 enforces cleanup. Source assertions alone do not prove execution.
 
+[SEC-024 / #162](https://github.com/killroyZULU/FlyEye/issues/162) owns results for
+[mixed/replacement cases](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#mixed-inventories-and-unverified-replacement).
+[runOnboardingChurnCases](../../../scripts/lib/onboarding-churn-cases.mjs) runs
+`--factor-churn`/`--churn-cleanup-probe`, reusing completion/bootstrap assertions
+and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
+Exact-target execution results belong to #162; declaration is not evidence.
+[Worker readiness](../../../scripts/lib/onboarding-worker-readiness.mjs) requires
+the current synthetic request origin and exact handler response, accounting for Kong's CORS rewrite;
+it does not prove provider health.
+
 ### Verified-factor browser evidence map
 
 [SEC-023 / #160](https://github.com/killroyZULU/FlyEye/issues/160): results/review;
@@ -250,7 +260,9 @@ The shared invitation schedules require fresh execution after extraction.
 Source assertions are not execution evidence; results and remaining limitations
 belong to #146. No production correction is implied by this evidence map.
 
-No exact staging provider/project, plan, region, origin, credential path, hosted issuer, monitoring owner, retention, cleanup, recovery, support process, or hosted run is approved. Before hosted synthetic, real-data, deployment, or production claims, record the exact target and obtain the applicable provider, security/privacy, accessibility, operations, legal/aviation, penetration-test, recovery, and production evidence.
+Hosted target/authorization and later readiness gates remain unresolved under
+[hosted safeguards](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md) and
+[CURRENT_STATE](../CURRENT_STATE.md).
 
 ## Runtime cleanup recovery
 
