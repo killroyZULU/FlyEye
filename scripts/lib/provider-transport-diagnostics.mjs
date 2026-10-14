@@ -12,6 +12,25 @@ const codes = new Map([
   ['ERR_INVALID_CHAR', 'transport-invalid-request'],
 ]);
 
+// Disposable Node fixture only. Never change the browser/application transport.
+// Close each owned API connection from its first request so no idle socket can
+// become stale while synchronous SQL snapshots block the fixture event loop.
+export function fixtureConnectionOptions(input, init, apiUrl) {
+  const target = new URL(apiUrl);
+  const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+  if (
+    target.protocol !== 'http:' ||
+    !['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname) ||
+    url.origin !== target.origin
+  )
+    return init;
+  const headers = new Headers(
+    init.headers ?? (input instanceof Request ? input.headers : undefined),
+  );
+  headers.set('connection', 'close');
+  return { ...init, headers };
+}
+
 function transportDetail(error) {
   // Native fetch normally wraps the useful code in cause; never inspect messages or URLs.
   for (let depth = 0; error && depth < 3; depth += 1, error = error.cause) {

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { withFactorTransportDiagnostics } from './provider-transport-diagnostics.mjs';
+import {
+  fixtureConnectionOptions,
+  withFactorTransportDiagnostics,
+} from './provider-transport-diagnostics.mjs';
 import { fixtureDiagnostic, fixtureDiagnosticLines } from './fixture-diagnostics.mjs';
 
 const apiUrl = 'http://127.0.0.1:54321';
@@ -10,6 +13,33 @@ function context() {
 }
 
 describe('provider factor transport diagnostics', () => {
+  it('closes owned loopback connections without changing payload, credentials or abort signal', () => {
+    const signal = new AbortController().signal;
+    const headers = new Headers({ authorization: 'Bearer synthetic', apikey: 'synthetic' });
+    const init = { method: 'POST', headers, body: '{}', signal };
+    const result = fixtureConnectionOptions(apiUrl + factorPath, init, apiUrl);
+    expect(result).toEqual({ ...init, headers: result.headers });
+    expect([...result.headers]).toEqual([
+      ...new Headers({
+        authorization: 'Bearer synthetic',
+        apikey: 'synthetic',
+        connection: 'close',
+      }),
+    ]);
+    expect(headers.has('connection')).toBe(false);
+    const input = new Request(apiUrl + factorPath, { headers });
+    expect(fixtureConnectionOptions(input, {}, apiUrl).headers.get('authorization')).toBe(
+      'Bearer synthetic',
+    );
+  });
+  it.each([
+    ['https://hosted.invalid', 'https://hosted.invalid'],
+    ['http://127.0.0.1:1234', apiUrl],
+    [apiUrl, 'https://127.0.0.1:54321'],
+  ])('does not alter unrelated or hosted transport %s', (input, base) => {
+    const init = { method: 'POST', headers: { synthetic: 'preserved' } };
+    expect(fixtureConnectionOptions(input, init, base)).toBe(init);
+  });
   it.each([
     ['ECONNREFUSED', 'transport-connection-refused'],
     ['ECONNRESET', 'transport-connection-reset'],

@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { setImmediate as immediate } from 'node:timers/promises';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
+import { fixtureConnectionOptions } from './provider-transport-diagnostics.mjs';
 
 // Characterization, not provider/authorization evidence. CI supplies Linux's
 // event-loop/socket behavior; each trial owns a fresh loopback listener.
@@ -29,9 +30,8 @@ describe('isolated provider socket characterization', () => {
             const url = `http://127.0.0.1:${server.address().port}`;
             const factorId = '00000000-0000-4000-8000-000000000000';
             const request = (input, init) => {
-              const headers = new Headers(init?.headers);
-              if (close) headers.set('connection', 'close');
-              return fetch(input, { ...init, headers, signal: AbortSignal.timeout(2000) });
+              const options = close ? fixtureConnectionOptions(input, init, url) : init;
+              return fetch(input, { ...options, signal: AbortSignal.timeout(2000) });
             };
             const client = createClient(url, 'synthetic', {
               auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
