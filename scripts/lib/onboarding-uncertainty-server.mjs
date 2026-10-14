@@ -39,12 +39,12 @@ export async function runUncertaintyServer(context) {
   const adminRoleId = evidence.json("select to_jsonb(id) from public.roles where code='admin';");
   for (const [index, name] of uncertaintyServerCases.entries()) {
     const stage = `uncertainty-${name}`;
-    enterStage(stage, stage);
     const user = users[index];
     const grantId = randomUUID();
     const details = { userId: user.id, organizationId, grantId };
     issueGrant(psql, organizationId, user.id, grantId, sourceInstanceId);
     const actor = await promoteToAal2(await signIn(user));
+    enterStage(stage, stage);
     evidence.captureParents();
     const methods = providerAuthenticationMethods(actor.session.access_token, user.id);
     const snapshot = () => evidence.snapshot(user.id, grantId);
@@ -114,6 +114,9 @@ export async function runUncertaintyServer(context) {
       kind: name === 'bootstrap' ? 'bootstrap' : isAuthentication ? 'authentication' : 'factors',
     });
     if (name !== 'bootstrap') {
+      // A failed factor lookup still consumes the single COMPLETE token. Respect
+      // its existing 20-second refill before the explicit restored-provider control.
+      if (name === 'factors-complete') await new Promise((resolve) => setTimeout(resolve, 20_100));
       await positive(action);
       if (action === 'start') await positive('complete');
     }
