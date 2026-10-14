@@ -187,7 +187,7 @@ enforces cleanup. Source assertions alone do not prove execution.
 [runOnboardingChurnCases](../../../scripts/lib/onboarding-churn-cases.mjs) runs
 `--factor-churn`/`--churn-cleanup-probe`, reusing completion/bootstrap assertions
 and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
-Execution remains pending; declaration is not evidence.
+Exact-target execution results belong to #162; declaration is not evidence.
 
 ### Verified-factor browser evidence map
 
