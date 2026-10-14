@@ -171,6 +171,11 @@ authority controls. Other H002 paths and historical A024 remain open.
 
 ### Provider consistency evidence map
 
+[SEC-025/#164](https://github.com/killroyZULU/FlyEye/issues/164):
+[uncertainty cases](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-uncertainty-investigation).
+[Server](../../../scripts/lib/onboarding-uncertainty-server.mjs)/[browser](../../../scripts/lib/onboarding-uncertainty-browser.mjs)
+`--provider-uncertainty`/`--uncertainty-cleanup-probe`.
+
 [SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154): exact-target results,
 unreached cases and review for [four schedules and limitations](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
 [Runtime](../../../scripts/test-feat-003-runtime.mjs) modes `--provider-state` and
@@ -187,7 +192,7 @@ enforces cleanup. Source assertions alone do not prove execution.
 [runOnboardingChurnCases](../../../scripts/lib/onboarding-churn-cases.mjs) runs
 `--factor-churn`/`--churn-cleanup-probe`, reusing completion/bootstrap assertions
 and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
-Exact-target execution results belong to #162; declaration is not evidence.
+Execution results: #162.
 [Worker readiness](../../../scripts/lib/onboarding-worker-readiness.mjs) requires
 the current synthetic request origin and exact handler response, accounting for Kong's CORS rewrite;
 it does not prove provider health.

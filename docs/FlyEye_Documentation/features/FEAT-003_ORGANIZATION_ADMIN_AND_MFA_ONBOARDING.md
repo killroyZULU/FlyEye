@@ -204,6 +204,24 @@ Supabase Auth and PostgreSQL cannot share one transaction. Mitigate by:
 
 A removed factor may leave a completed membership, but final provider/bootstrap revalidation must make it inaccessible. Stale password/session/grant/membership/role/factor/organization/version state clears secrets and selection and requires fresh sign-in.
 
+### Provider uncertainty investigation
+
+SEC-025 covers authentication/factor lookup failures at start/completion and factor
+lookup failure after completion: five cases using Node, pinned SDK, disposable Auth/SQL and scoped fault injection.
+Assert suppressed commands, exact authority/audit and restored-provider controls. Reuse handler audit-failure tests; Deno/Kong outages remain untested.
+
+Browser cases: lookup; enrollment before dispatch/lost response; challenge;
+verification before dispatch/lost response; stale AAL1 delivery after verification;
+final bootstrap unavailability. Distinguish injected failures from real responses; SDK assurance uses cached sessions.
+
+Status zero/5xx must not appear as invalid codes. Preserve invalid-code/quota
+controls, one-shot requests, credential clearing and explicit recovery. Lost
+enrollment must retain the unverified factor and block duplicate enrollment on
+fresh sign-in. Failed final bootstrap preserves the administrator/single completion
+audit but denies workspace access until explicit recovery. Require interruption
+after lost verification, owned residue checks and unchanged foreign state.
+Recovery/replacement, new policy/schema/grants and hosted changes remain excluded.
+
 ### Provider changes during completion waits
 
 Test organization/grant row locks crossed with retained/removed sole verified

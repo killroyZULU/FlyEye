@@ -61,6 +61,12 @@ export async function verifyEnrollmentTotp(
     if (error.status === 429) {
       throw new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.');
     }
+    if (!error.status || error.status >= 500) {
+      throw new AuthGatewayError(
+        'admin_onboarding_provider_unavailable',
+        'Authenticator verification could not be confirmed. Sign in again before continuing.',
+      );
+    }
     throw new AuthGatewayError('mfa_invalid', 'The verification code is invalid or expired.');
   }
 

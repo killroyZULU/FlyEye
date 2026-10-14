@@ -163,6 +163,8 @@ describe('R3 provider consistency gate', () => {
       args[0].endsWith(mocks.fixture),
     );
     expect(children.map(([, args]) => args.slice(1))).toEqual([
+      ['--uncertainty-cleanup-probe'],
+      ['--provider-uncertainty'],
       ['--churn-cleanup-probe'],
       ['--factor-churn'],
       [],
@@ -177,19 +179,25 @@ describe('R3 provider consistency gate', () => {
     const lifecycle = mocks.spawnSync.mock.calls
       .map(([, args]) => (args[0].endsWith(mocks.fixture) ? 'fixture' : args[1]))
       .filter((value) => ['stop', 'start', 'fixture'].includes(value));
-    expect(lifecycle).toEqual(Array.from({ length: 9 }, () => ['stop', 'start', 'fixture']).flat());
+    expect(lifecycle).toEqual(
+      Array.from({ length: 11 }, () => ['stop', 'start', 'fixture']).flat(),
+    );
   });
   it.each([
-    ['--churn-cleanup-probe', 0, 1],
-    ['--churn-cleanup-probe', 1, 1],
-    ['--factor-churn', 0, 2],
-    ['--factor-churn', 1, 2],
-    ['--provider-cleanup-probe', 0, 4],
-    ['--provider-cleanup-probe', 1, 4],
-    ['--stale-cleanup-probe', 0, 6],
-    ['--stale-cleanup-probe', 1, 6],
-    ['--challenge-cleanup-probe', 0, 8],
-    ['--challenge-cleanup-probe', 1, 8],
+    ['--uncertainty-cleanup-probe', 0, 1],
+    ['--uncertainty-cleanup-probe', 1, 1],
+    ['--provider-uncertainty', 0, 2],
+    ['--provider-uncertainty', 1, 2],
+    ['--churn-cleanup-probe', 0, 3],
+    ['--churn-cleanup-probe', 1, 3],
+    ['--factor-churn', 0, 4],
+    ['--factor-churn', 1, 4],
+    ['--provider-cleanup-probe', 0, 6],
+    ['--provider-cleanup-probe', 1, 6],
+    ['--stale-cleanup-probe', 0, 8],
+    ['--stale-cleanup-probe', 1, 8],
+    ['--challenge-cleanup-probe', 0, 10],
+    ['--challenge-cleanup-probe', 1, 10],
   ])(
     'blocks restart and further cases on %s exit %s without sufficient success evidence',
     async (probe, exitCode, count) => {

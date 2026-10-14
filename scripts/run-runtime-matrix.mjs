@@ -141,6 +141,8 @@ for (const fixture of fixtures) {
     onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const modes = onboardingProvider
     ? [
+        ['--uncertainty-cleanup-probe'],
+        ['--provider-uncertainty'],
         ['--churn-cleanup-probe'],
         ['--factor-churn'],
         [],
