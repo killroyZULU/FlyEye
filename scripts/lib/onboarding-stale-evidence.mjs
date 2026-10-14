@@ -3,13 +3,17 @@ import { createHash } from 'node:crypto';
 
 export function assertStaleTransition(kind, before, after, result, context) {
   const { userId, organizationId, grantId, key } = context;
+  const checkpoint = context.checkpoint ?? (() => {});
+  checkpoint('transition-authority');
   for (const part of ['members', 'profiles', 'roles']) {
     assert.deepEqual(before[part], []);
     assert.deepEqual(after[part], []);
   }
   const grant = { ...before.grant };
+  checkpoint('transition-grant');
   if (kind === 'cancel') grant.version++;
   assert.deepEqual(after.grant, grant);
+  checkpoint('transition-prior-audit');
   for (const prior of before.events)
     assert.deepEqual(
       after.events.find((event) => event.id === prior.id),
@@ -18,9 +22,11 @@ export function assertStaleTransition(kind, before, after, result, context) {
   const added = after.events.filter(
     (event) => !before.events.some((prior) => prior.id === event.id),
   );
+  checkpoint('transition-status');
+  assert.equal(result.status, kind === 'entry' ? 409 : 200);
+  checkpoint('transition-response');
   const correlationId = result.payload.correlationId;
   assert.match(correlationId, /^[0-9a-f-]{36}$/);
-  assert.equal(result.status, kind === 'entry' ? 409 : 200);
   if (kind === 'entry')
     assert.deepEqual(result.payload, {
       error: {
@@ -47,12 +53,14 @@ export function assertStaleTransition(kind, before, after, result, context) {
       replayed: kind === 'replay',
       correlationId,
     });
+  checkpoint('transition-audit-count');
   assert.equal(added.length, kind === 'replay' ? 0 : 1);
   if (kind === 'replay') return;
   const event = added[0];
   assert.match(event.id, /^[0-9a-f-]{36}$/);
   assert.ok(Number.isFinite(Date.parse(event.occurred_at)));
   const denied = kind === 'entry';
+  checkpoint('transition-audit');
   assert.deepEqual(event, {
     id: event.id,
     occurred_at: event.occurred_at,

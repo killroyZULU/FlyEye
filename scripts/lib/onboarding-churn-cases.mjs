@@ -162,6 +162,7 @@ export async function runOnboardingChurnCases(context) {
       authenticationMethods: providerAuthenticationMethods(actor.session.access_token, userId),
       assuranceLevel: 'aal2',
       factorState: 'challenge_required',
+      checkpoint: (stage) => enterStage(stage, stage),
     };
     const inventory = () =>
       evidence.json(`select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]')

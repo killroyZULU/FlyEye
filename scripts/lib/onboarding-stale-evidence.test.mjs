@@ -77,6 +77,21 @@ function fixture(kind) {
 const check = (kind, v) => assertStaleTransition(kind, v.before, v.after, v.result, v.context);
 
 describe('R3 AAL2 factor-conflict evidence', () => {
+  it('localizes failures without disclosing payloads or weakening assertions', () => {
+    const v = fixture('start');
+    const stages = [];
+    v.context.checkpoint = (stage) => stages.push(stage);
+    v.result.status = 503;
+    v.result.payload = { private: 'synthetic-private-provider-payload' };
+    expect(() => check('start', v)).toThrow();
+    expect(stages).toEqual([
+      'transition-authority',
+      'transition-grant',
+      'transition-prior-audit',
+      'transition-status',
+    ]);
+    expect(stages.join('')).not.toContain('private');
+  });
   it('requires the exact AAL2 denial audit without granting authority', () => {
     const v = fixture('entry');
     v.context.assuranceLevel = 'aal2';
