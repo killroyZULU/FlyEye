@@ -92,9 +92,21 @@ export type Database = {
         Relationships: [];
       };
       admin_session_factor_bindings: {
-        Row: { actor_user_id: string; factor_id: string | null; session_id: string };
-        Insert: { actor_user_id: string; factor_id?: string | null; session_id: string };
-        Update: { actor_user_id?: string; factor_id?: string | null; session_id?: string };
+        Row: {
+          actor_user_id: string;
+          factor_id: string | null;
+          session_id: string;
+        };
+        Insert: {
+          actor_user_id: string;
+          factor_id?: string | null;
+          session_id: string;
+        };
+        Update: {
+          actor_user_id?: string;
+          factor_id?: string | null;
+          session_id?: string;
+        };
         Relationships: [];
       };
       aircraft_document_categories: {

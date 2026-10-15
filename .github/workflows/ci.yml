@@ -152,6 +152,14 @@ jobs:
       - name: Run SQL and RLS tests
         run: pnpm test:sql
 
+      - name: Verify migration types before runtime
+        run: |
+          if ! pnpm db:types:check; then
+            pnpm db:types
+            git diff -- src/lib/database.types.ts
+            exit 1
+          fi
+
       - name: Verify A010 limiter concurrency and cleanup
         run: |
           node scripts/test-a010-limiter.mjs --cleanup-probe
