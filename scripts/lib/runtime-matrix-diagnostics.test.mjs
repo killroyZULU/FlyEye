@@ -149,7 +149,7 @@ describe('R2 member MFA browser gate', () => {
 });
 
 describe('R3 provider consistency gate', () => {
-  it('runs churn first while retaining every mode and cleanup-gated restart', async () => {
+  it('runs current-factor cases first while retaining every mode and cleanup-gated restart', async () => {
     vi.stubEnv('CI', 'true');
     vi.stubEnv('GITHUB_ACTIONS', 'true');
     mocks.fixture = 'test-feat-003-runtime.mjs';
@@ -163,6 +163,8 @@ describe('R3 provider consistency gate', () => {
       args[0].endsWith(mocks.fixture),
     );
     expect(children.map(([, args]) => args.slice(1))).toEqual([
+      ['--current-factor-cleanup-probe'],
+      ['--current-factor'],
       ['--uncertainty-cleanup-probe'],
       ['--provider-uncertainty'],
       ['--churn-cleanup-probe'],
@@ -180,24 +182,28 @@ describe('R3 provider consistency gate', () => {
       .map(([, args]) => (args[0].endsWith(mocks.fixture) ? 'fixture' : args[1]))
       .filter((value) => ['stop', 'start', 'fixture'].includes(value));
     expect(lifecycle).toEqual(
-      Array.from({ length: 11 }, () => ['stop', 'start', 'fixture']).flat(),
+      Array.from({ length: 13 }, () => ['stop', 'start', 'fixture']).flat(),
     );
   });
   it.each([
-    ['--uncertainty-cleanup-probe', 0, 1],
-    ['--uncertainty-cleanup-probe', 1, 1],
-    ['--provider-uncertainty', 0, 2],
-    ['--provider-uncertainty', 1, 2],
-    ['--churn-cleanup-probe', 0, 3],
-    ['--churn-cleanup-probe', 1, 3],
-    ['--factor-churn', 0, 4],
-    ['--factor-churn', 1, 4],
-    ['--provider-cleanup-probe', 0, 6],
-    ['--provider-cleanup-probe', 1, 6],
-    ['--stale-cleanup-probe', 0, 8],
-    ['--stale-cleanup-probe', 1, 8],
-    ['--challenge-cleanup-probe', 0, 10],
-    ['--challenge-cleanup-probe', 1, 10],
+    ['--current-factor-cleanup-probe', 0, 1],
+    ['--current-factor-cleanup-probe', 1, 1],
+    ['--current-factor', 0, 2],
+    ['--current-factor', 1, 2],
+    ['--uncertainty-cleanup-probe', 0, 3],
+    ['--uncertainty-cleanup-probe', 1, 3],
+    ['--provider-uncertainty', 0, 4],
+    ['--provider-uncertainty', 1, 4],
+    ['--churn-cleanup-probe', 0, 5],
+    ['--churn-cleanup-probe', 1, 5],
+    ['--factor-churn', 0, 6],
+    ['--factor-churn', 1, 6],
+    ['--provider-cleanup-probe', 0, 8],
+    ['--provider-cleanup-probe', 1, 8],
+    ['--stale-cleanup-probe', 0, 10],
+    ['--stale-cleanup-probe', 1, 10],
+    ['--challenge-cleanup-probe', 0, 12],
+    ['--challenge-cleanup-probe', 1, 12],
   ])(
     'blocks restart and further cases on %s exit %s without sufficient success evidence',
     async (probe, exitCode, count) => {

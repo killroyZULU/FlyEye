@@ -171,13 +171,14 @@ authority controls. Other H002 paths and historical A024 remain open.
 
 ### Provider consistency evidence map
 
+[#165](https://github.com/killroyZULU/FlyEye/issues/165): [focused binding evidence](FEAT-003_CURRENT_FACTOR_TRACEABILITY.md).
+
 [SEC-025/#164](https://github.com/killroyZULU/FlyEye/issues/164):
 [uncertainty cases](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-uncertainty-investigation).
 [Server](../../../scripts/lib/onboarding-uncertainty-server.mjs)/[browser](../../../scripts/lib/onboarding-uncertainty-browser.mjs)
 `--provider-uncertainty`/`--uncertainty-cleanup-probe`.
 
-[SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154): exact-target results,
-unreached cases and review for [four schedules and limitations](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
+[SEC-020 / #154](https://github.com/killroyZULU/FlyEye/issues/154): results for [four schedules and limitations](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#provider-changes-during-completion-waits).
 [Runtime](../../../scripts/test-feat-003-runtime.mjs) modes `--provider-state` and
 `--provider-cleanup-probe` retain normal mode.
 [runOnboardingProviderCases](../../../scripts/lib/onboarding-provider-cases.mjs) observes

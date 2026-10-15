@@ -78,6 +78,15 @@ Deno.serve(
       if (error) throw error;
       return completeFactorInventorySchema.parse(data.factors);
     },
+    validateSessionFactor: async ({ actor, factorId, requireAal2 }) =>
+      z.boolean().parse(
+        await rpc('validate_admin_session_factor', {
+          p_actor_user_id: actor.actorUserId,
+          p_session_id: actor.sessionId,
+          p_factor_id: factorId,
+          p_require_aal2: requireAal2,
+        }),
+      ),
     consumeLimit: async ({ actorSubjectId, action, correlationId }) => {
       const result = await rpc('consume_admin_onboarding_rate_limit', {
         p_limiter_key_hash: await limiterKeyHash(actorSubjectId, action),

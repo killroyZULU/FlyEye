@@ -108,6 +108,11 @@ export type AdminOnboardingDependencies = {
   allowedOrigin: string;
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
   listFactors: (actorUserId: string) => Promise<unknown>;
+  validateSessionFactor: (input: {
+    actor: VerifiedAuthenticationEvidence;
+    factorId: string | null;
+    requireAal2: boolean;
+  }) => Promise<boolean>;
   consumeLimit: (input: {
     actorSubjectId: string;
     action: AdminOnboardingAction;

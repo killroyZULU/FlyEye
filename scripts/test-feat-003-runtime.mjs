@@ -24,6 +24,11 @@ import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
 import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
 import {
+  currentFactorCases,
+  runCurrentFactorCases,
+} from './lib/onboarding-current-factor-cases.mjs';
+import { onboardingCurrentFactorBrowser } from './lib/onboarding-current-factor-browser.mjs';
+import {
   collectGatewayDiagnostics,
   gatewayResponseDetails,
 } from './lib/onboarding-gateway-diagnostics.mjs';
@@ -40,6 +45,9 @@ import {
   uncertaintyServerCases,
 } from './lib/onboarding-uncertainty-server.mjs';
 const uncertaintyProbe = process.argv.includes('--uncertainty-cleanup-probe');
+const currentProbe = process.argv.includes('--current-factor-cleanup-probe');
+const currentMode = currentProbe || process.argv.includes('--current-factor');
+const currentBrowser = currentMode ? onboardingCurrentFactorBrowser() : undefined;
 const uncertaintyMode = uncertaintyProbe || process.argv.includes('--provider-uncertainty');
 const uncertaintyBrowser = uncertaintyMode ? onboardingUncertaintyBrowser() : undefined;
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
@@ -50,6 +58,7 @@ const challengeMode = challengeProbe || process.argv.includes('--verified-challe
 const churnProbe = process.argv.includes('--churn-cleanup-probe');
 const churnMode = churnProbe || process.argv.includes('--factor-churn');
 const providerMode =
+  currentMode ||
   uncertaintyMode ||
   churnMode ||
   challengeMode ||
@@ -126,7 +135,9 @@ function enterStage(diagnosticStage, description) {
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
   const since = new Date().toISOString();
   const options =
-    challengeMode || uncertaintyMode ? fixtureConnectionOptions(input, init, apiUrl) : init;
+    challengeMode || uncertaintyMode || currentMode
+      ? fixtureConnectionOptions(input, init, apiUrl)
+      : init;
   const operation = () =>
     fetch(input, {
       ...options,
@@ -464,7 +475,7 @@ function bootstrap(token, organizationId) {
 }
 
 async function waitForEdgeRuntime() {
-  if (churnMode || uncertaintyMode) {
+  if (churnMode || uncertaintyMode || currentMode) {
     return waitForOnboardingWorker({
       url: `${apiUrl}/functions/v1/organization-admin-onboarding`,
       origin,
@@ -1214,19 +1225,26 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(uncertaintyMode
-      ? [...uncertaintyServerCases, ...uncertaintyBrowserCases].map(
-          (_value, index) => `providerUncertainty${index}`,
-        )
-      : churnMode
-        ? churnCases.map((_value, index) => `providerChurn${index}`)
-        : challengeMode
-          ? ['providerChallenge', 'providerForeign']
-          : staleMode
-            ? ['providerStale', 'providerFresh']
-            : providerMode
-              ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-              : []),
+    ...(currentMode
+      ? [...currentFactorCases, 'browser'].map((_value, index) => `providerCurrent${index}`)
+      : uncertaintyMode
+        ? [...uncertaintyServerCases, ...uncertaintyBrowserCases].map(
+            (_value, index) => `providerUncertainty${index}`,
+          )
+        : churnMode
+          ? churnCases.map((_value, index) => `providerChurn${index}`)
+          : challengeMode
+            ? ['providerChallenge', 'providerForeign']
+            : staleMode
+              ? ['providerStale', 'providerFresh']
+              : providerMode
+                ? [
+                    'providerOrgKeep',
+                    'providerOrgRemove',
+                    'providerGrantKeep',
+                    'providerGrantRemove',
+                  ]
+                : []),
   ].map((name) => [
     name,
     {
@@ -1256,6 +1274,20 @@ try {
   enterStage('auth-reset-initial', 'local Auth initial scenario reset');
   await restartLocalAuth();
 
+  if (currentMode) {
+    const providerImage = spawnSync(
+      'docker',
+      ['inspect', '--format', '{{.Config.Image}}', 'supabase_auth_flyeye'],
+      {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: commandTimeoutMs,
+      },
+    );
+    assert.equal(providerImage.status, 0);
+    assert.match(providerImage.stdout.trim(), /\/(?:gotrue|auth):v?2\.192\.0$/);
+  }
+
   enterStage('identity-creation', 'synthetic identity creation');
   cleanupRequired = true;
   await createUsers();
@@ -1265,6 +1297,11 @@ try {
 
   enterStage('fixture-issuance', 'atomic fixture issuance');
   seedFixture();
+
+  if (currentMode) {
+    enterStage('browser-frontend-startup', 'isolated current-factor frontend');
+    origin = await currentBrowser.start(apiUrl, publishableKey);
+  }
 
   if (staleMode || challengeMode || uncertaintyMode) {
     enterStage('browser-frontend-startup', 'isolated onboarding frontend');
@@ -1301,6 +1338,31 @@ try {
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
   });
   await waitForEdgeRuntime();
+
+  if (currentMode) {
+    const context = {
+      users: providerUsers,
+      organizationId: organizations.a,
+      sourceInstanceId,
+      psql,
+      admin: adminClient,
+      signIn,
+      promoteToAal2,
+      invoke: invokeFunction,
+      evidence: providerEvidence,
+      clearScenario: clearCompletedScenario,
+      enterStage,
+      reportDiagnostic,
+      cleanupProbe: currentProbe,
+      currentTotp,
+      origin,
+      apiUrl,
+      password,
+    };
+    await runCurrentFactorCases(context);
+    if (!currentProbe) await currentBrowser.run(context);
+    throw providerFinished;
+  }
 
   if (uncertaintyMode && !uncertaintyProbe) {
     await runUncertaintyServer({
@@ -1692,6 +1754,8 @@ try {
     await diagnostics.run('fixture-cleanup', () =>
       runOnboardingCleanup(diagnostics, [
         ['cleanup-provider-parents', async () => providerEvidence?.captureParents()],
+        ['cleanup-current-browser', async () => currentBrowser?.closeBrowser()],
+        ['cleanup-current-frontend', async () => currentBrowser?.closeFrontend()],
         ['cleanup-stale-browser', async () => staleBrowser?.closeBrowser()],
         ['cleanup-stale-frontend', async () => staleBrowser?.closeFrontend()],
         ['cleanup-challenge-browser', async () => challengeBrowser?.closeBrowser()],

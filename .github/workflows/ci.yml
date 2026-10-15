@@ -106,7 +106,8 @@ jobs:
   database:
     name: Local Supabase security
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # The retained matrix takes about 31 minutes; SEC-026 adds real TOTP windows and lock schedules.
+    timeout-minutes: 50
 
     steps:
       - name: Check out repository
@@ -150,6 +151,14 @@ jobs:
 
       - name: Run SQL and RLS tests
         run: pnpm test:sql
+
+      - name: Verify migration types before runtime
+        run: |
+          if ! pnpm db:types:check; then
+            pnpm db:types
+            git diff -- src/lib/database.types.ts
+            exit 1
+          fi
 
       - name: Verify A010 limiter concurrency and cleanup
         run: |

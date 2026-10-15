@@ -372,12 +372,10 @@ prove Auth descendant/limiter residue absent. Reuse retained-factor controls and
 cross-school evidence. Outages, timeouts and quotas never count as factor denial.
 
 This manifest excludes provider outages and sole VERIFIED replacement under an
-older factor's session. Verified replacement must reject the old-factor session
-and onboarding attempt; refresh alone is insufficient. Continuing requires fresh
-password sign-in and verification with the current factor. Preserve any already
-committed administrator while denying stale access. A separate manifest must
-verify old-session/operation denial, fresh-current-factor recovery and replacement
-during completion. This does not introduce a recovery/replacement workflow.
+older factor's session. The [current-factor session contract](FEAT-003_CURRENT_FACTOR_SESSIONS.md)
+owns that replacement rule, immutable server binding, fresh-sign-in recovery and
+verification matrix. This focused reference preserves reviewable invariants within
+the parent specification's size budget.
 
 ## Acceptance criteria
 

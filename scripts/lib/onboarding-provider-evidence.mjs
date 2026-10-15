@@ -187,6 +187,9 @@ export function onboardingProviderEvidence({ users, organizationId, limiterSecre
   const foreignBootstrapSql = `select coalesce(jsonb_agg(to_jsonb(t) order by actor_user_id),'[]')
     from public.auth_bootstrap_rate_limit_state t where actor_user_id not in (${owned.ids});`;
   const foreignBootstrap = psql(foreignBootstrapSql, {}, true);
+  const foreignBindingsSql = `select coalesce(jsonb_agg(to_jsonb(t) order by session_id),'[]')
+    from public.admin_session_factor_bindings t where actor_user_id not in (${owned.ids});`;
+  const foreignBindings = psql(foreignBindingsSql, {}, true);
   return {
     json,
     captureParents() {
@@ -217,6 +220,15 @@ export function onboardingProviderEvidence({ users, organizationId, limiterSecre
       assert.equal(psql(authScopeSql(scope, parents).residue, {}, true), '0');
       assert.equal(psql(owned.foreignLimiter, {}, true), foreign);
       assert.equal(psql(foreignBootstrapSql, {}, true), foreignBootstrap);
+      assert.equal(psql(foreignBindingsSql, {}, true), foreignBindings);
+      assert.equal(
+        psql(
+          `select count(*) from public.admin_session_factor_bindings where actor_user_id in (${owned.ids});`,
+          {},
+          true,
+        ),
+        '0',
+      );
       assert.deepEqual(json(authoritySql), authority);
     },
   };

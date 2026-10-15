@@ -8,6 +8,7 @@ import { recordFailClosedDenial } from './audit.ts';
 import { readFactorInventory, factorStateForClient } from './factors.ts';
 import { sha256Hex } from './idempotency.ts';
 import { jsonResponse, errorResponseForDecision } from './responses.ts';
+import { checkSessionFactor } from './session-factor.ts';
 
 export async function startAdminOnboarding(
   context: AdminOnboardingContext,
@@ -31,6 +32,14 @@ export async function startAdminOnboarding(
     if (auditFailure) return auditFailure;
     return errorResponseForDecision(allowedOrigin, 'conflict', correlationId);
   }
+
+  const sessionFailure = await checkSessionFactor(
+    context,
+    input.bootstrapGrantId,
+    classification.kind === 'one_verified_totp' ? classification.factorId : null,
+    false,
+  );
+  if (sessionFailure) return sessionFailure;
 
   const result = startResultSchema.safeParse(
     await dependencies.start({
@@ -91,6 +100,14 @@ export async function completeAdminOnboarding(
     if (auditFailure) return auditFailure;
     return errorResponseForDecision(allowedOrigin, 'conflict', correlationId);
   }
+
+  const sessionFailure = await checkSessionFactor(
+    context,
+    input.bootstrapGrantId,
+    classification.factorId,
+    true,
+  );
+  if (sessionFailure) return sessionFailure;
 
   const result = completeResultSchema.safeParse(
     await dependencies.complete({
