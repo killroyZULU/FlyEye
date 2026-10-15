@@ -243,7 +243,8 @@ export function onboardingChallengeBrowser() {
           .getByRole('button', { name: 'Verify and create administrator', exact: true })
           .click();
         if (cleanupProbe) {
-          await page.getByRole('alert').filter({ hasText: 'invalid or expired' }).waitFor();
+          await page.getByRole('heading', { name: 'Onboarding is blocked' }).waitFor();
+          await noCredential();
           assert.equal(interrupted, true);
           assert.deepEqual(snapshot(), beforeChallenge);
           assert.deepEqual(providerAssurance(), beforeAssurance);

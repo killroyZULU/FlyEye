@@ -33,6 +33,15 @@ import {
   withFactorTransportDiagnostics,
 } from './lib/provider-transport-diagnostics.mjs';
 
+import { onboardingUncertaintyBrowser } from './lib/onboarding-uncertainty-browser.mjs';
+import { uncertaintyBrowserCases } from './lib/onboarding-uncertainty-routes.mjs';
+import {
+  runUncertaintyServer,
+  uncertaintyServerCases,
+} from './lib/onboarding-uncertainty-server.mjs';
+const uncertaintyProbe = process.argv.includes('--uncertainty-cleanup-probe');
+const uncertaintyMode = uncertaintyProbe || process.argv.includes('--provider-uncertainty');
+const uncertaintyBrowser = uncertaintyMode ? onboardingUncertaintyBrowser() : undefined;
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
 const staleMode = staleProbe || process.argv.includes('--stale-factors');
@@ -41,6 +50,7 @@ const challengeMode = challengeProbe || process.argv.includes('--verified-challe
 const churnProbe = process.argv.includes('--churn-cleanup-probe');
 const churnMode = churnProbe || process.argv.includes('--factor-churn');
 const providerMode =
+  uncertaintyMode ||
   churnMode ||
   challengeMode ||
   staleMode ||
@@ -115,7 +125,8 @@ function enterStage(diagnosticStage, description) {
 
 function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
   const since = new Date().toISOString();
-  const options = challengeMode ? fixtureConnectionOptions(input, init, apiUrl) : init;
+  const options =
+    challengeMode || uncertaintyMode ? fixtureConnectionOptions(input, init, apiUrl) : init;
   const operation = () =>
     fetch(input, {
       ...options,
@@ -453,7 +464,7 @@ function bootstrap(token, organizationId) {
 }
 
 async function waitForEdgeRuntime() {
-  if (churnMode) {
+  if (churnMode || uncertaintyMode) {
     return waitForOnboardingWorker({
       url: `${apiUrl}/functions/v1/organization-admin-onboarding`,
       origin,
@@ -1203,15 +1214,19 @@ const users = Object.fromEntries(
     'raceAdminTwo',
     'uiAdmin',
     'noAccess',
-    ...(churnMode
-      ? churnCases.map((_value, index) => `providerChurn${index}`)
-      : challengeMode
-        ? ['providerChallenge', 'providerForeign']
-        : staleMode
-          ? ['providerStale', 'providerFresh']
-          : providerMode
-            ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
-            : []),
+    ...(uncertaintyMode
+      ? [...uncertaintyServerCases, ...uncertaintyBrowserCases].map(
+          (_value, index) => `providerUncertainty${index}`,
+        )
+      : churnMode
+        ? churnCases.map((_value, index) => `providerChurn${index}`)
+        : challengeMode
+          ? ['providerChallenge', 'providerForeign']
+          : staleMode
+            ? ['providerStale', 'providerFresh']
+            : providerMode
+              ? ['providerOrgKeep', 'providerOrgRemove', 'providerGrantKeep', 'providerGrantRemove']
+              : []),
   ].map((name) => [
     name,
     {
@@ -1251,9 +1266,12 @@ try {
   enterStage('fixture-issuance', 'atomic fixture issuance');
   seedFixture();
 
-  if (staleMode || challengeMode) {
+  if (staleMode || challengeMode || uncertaintyMode) {
     enterStage('browser-frontend-startup', 'isolated onboarding frontend');
-    origin = await (staleBrowser ?? challengeBrowser).start(apiUrl, publishableKey);
+    origin = await (staleBrowser ?? challengeBrowser ?? uncertaintyBrowser).start(
+      apiUrl,
+      publishableKey,
+    );
   }
   if (churnMode) origin = `https://onboarding-${randomUUID()}.invalid`;
 
@@ -1284,9 +1302,29 @@ try {
   });
   await waitForEdgeRuntime();
 
-  if (staleMode || challengeMode) {
-    await (staleBrowser ?? challengeBrowser).run({
-      users: providerUsers,
+  if (uncertaintyMode && !uncertaintyProbe) {
+    await runUncertaintyServer({
+      users: providerUsers.slice(0, uncertaintyServerCases.length),
+      organizationId: organizations.a,
+      sourceInstanceId,
+      psql,
+      signIn,
+      promoteToAal2,
+      evidence: providerEvidence,
+      invoke: invokeFunction,
+      clearScenario: clearCompletedScenario,
+      enterStage,
+      reportDiagnostic,
+      origin,
+      apiUrl,
+      publishableKey,
+      serviceRoleKey,
+      limiterSecret,
+    });
+  }
+  if (staleMode || challengeMode || uncertaintyMode) {
+    await (staleBrowser ?? challengeBrowser ?? uncertaintyBrowser).run({
+      users: uncertaintyMode ? providerUsers.slice(uncertaintyServerCases.length) : providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,
       psql,
@@ -1299,7 +1337,9 @@ try {
       currentTotp,
       enterStage,
       reportDiagnostic,
-      cleanupProbe: staleProbe || challengeProbe,
+      cleanupProbe: staleProbe || challengeProbe || uncertaintyProbe,
+      apiUrl,
+      clearScenario: clearCompletedScenario,
     });
     throw providerFinished;
   }
@@ -1656,6 +1696,8 @@ try {
         ['cleanup-stale-frontend', async () => staleBrowser?.closeFrontend()],
         ['cleanup-challenge-browser', async () => challengeBrowser?.closeBrowser()],
         ['cleanup-challenge-frontend', async () => challengeBrowser?.closeFrontend()],
+        ['cleanup-uncertainty-browser', async () => uncertaintyBrowser?.closeBrowser()],
+        ['cleanup-uncertainty-frontend', async () => uncertaintyBrowser?.closeFrontend()],
         ['cleanup-edge-shutdown', () => stopChild(edgeProcess, 'edge-runtime-shutdown')],
         ['cleanup-provider-limiter', async () => providerEvidence?.cleanupLimiter()],
         [

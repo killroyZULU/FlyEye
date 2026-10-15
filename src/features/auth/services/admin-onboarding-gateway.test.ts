@@ -427,6 +427,15 @@ describe('Shared onboarding authenticator compatibility', () => {
 
   it.each([
     ['challenge rate limit', 'challengeAndVerify', { error: { status: 429 } }, 'rate_limited'],
+    ...[0, 500, 502, 503, 504].map(
+      (status) =>
+        [
+          `provider uncertainty ${status}`,
+          'challengeAndVerify' as const,
+          { error: { status } },
+          'admin_onboarding_provider_unavailable',
+        ] as const,
+    ),
     ['challenge rejected', 'challengeAndVerify', { error: { status: 400 } }, 'mfa_invalid'],
     [
       'assurance rate limit',
@@ -459,6 +468,8 @@ describe('Shared onboarding authenticator compatibility', () => {
         const { gateway, mfa } = fixture();
         mfa[method].mockResolvedValue(result);
         await expect(gateway[caller](factor.id, '123456')).rejects.toMatchObject({ code });
+        expect(mfa.challengeAndVerify).toHaveBeenCalledTimes(1);
+        expect(mfa.enroll).not.toHaveBeenCalled();
         if (method === 'challengeAndVerify')
           expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
       }
