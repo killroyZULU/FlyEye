@@ -65,6 +65,10 @@ export async function assertRecipient(test, result, before, after, peerState) {
     assert.equal(newProfiles.length, 1);
     assert.equal(newProfiles[0].organization_id, ids.org);
     assert.equal(newProfiles[0].created_by, ids.recipient);
+    assert.equal(newProfiles[0].updated_by, ids.recipient);
+    assert.equal(newProfiles[0].version, 1);
+    assert.equal(newProfiles[0].display_name, null);
+    assert.equal(newProfiles[0].contact_number, null);
     assert.deepEqual(
       after.profiles.filter((profile) => profile.membership_id !== result.value.membershipId),
       before.profiles,

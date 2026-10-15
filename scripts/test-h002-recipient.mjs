@@ -236,13 +236,14 @@ try {
   await preflight();
   const selected = probe
     ? [cases.find((item) => item.kind === 'identity' && item.action === 'accept')]
-    : process.argv.includes('--baseline')
-      ? cases.filter((item) => ['stale', 'insert', 'reassign'].includes(item.kind))
-      : cases;
+    : cases;
   for (const test of selected) {
     const passed = await runCase(test);
     // A success line is only valid when that case's assertion and cleanup passed.
-    if (passed) process.stdout.write(`H002 recipient: ${test.name} passed.\n`);
+    if (passed)
+      process.stdout.write(
+        `H002 recipient: ${probe ? 'observed-wait interruption probe' : test.name} passed.\n`,
+      );
   }
 } catch (error) {
   process.stderr.write(

@@ -144,7 +144,8 @@ pending/delivery_failed/delivery_uncertain/stale issuing --revoke--> revoked
     `delivery_uncertain`, or `issuing` at least 60 seconds old. It blocks
     acceptance even if a provider link is still valid. Accepted invitations
     cannot be revoked; later member suspension is FEAT-005.
-12. Acceptance locks the organization, invitation, matching membership, and
+12. Preparation and acceptance first lock and revalidate the current confirmed
+    Auth identity. Acceptance then locks the organization, invitation, matching membership, and
     role in a stable order; revalidates actor subject, confirmed email, password
     AMR, role, status, expiry, organization, and version; then creates one active
     membership, assigns one initial role, accepts the invitation, and writes

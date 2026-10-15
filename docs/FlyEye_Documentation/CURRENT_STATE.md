@@ -45,7 +45,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
 - Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry](https://github.com/killroyZULU/FlyEye/pull/115), [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) and [SEC-003](https://github.com/killroyZULU/FlyEye/pull/119) integrated through `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed. [Untested H002 scenarios](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary) and database/session-policy gates remain.
 - [A010 / PR #121](https://github.com/killroyZULU/FlyEye/pull/121) merged at `e938371`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37567228502) passed all gates/cleanup. [Limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
-- [PR #167](https://github.com/killroyZULU/FlyEye/pull/167) merged `a8038e9`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/38685230085) passed gates/cleanup. R1–R3 complete locally. R4 [recipient concurrency #168](https://github.com/killroyZULU/FlyEye/issues/168) active; R5–R8: #39.
+- [PR #167](https://github.com/killroyZULU/FlyEye/pull/167) merged `a8038e9`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/38685230085) passed gates/cleanup. R1–R3 complete locally. R4 [recipient concurrency #169](https://github.com/killroyZULU/FlyEye/pull/169) awaits verification/integration; R5–R8: #39.
 
 ## Aircraft and dashboard integration
 
