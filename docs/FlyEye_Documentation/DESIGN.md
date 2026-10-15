@@ -54,26 +54,26 @@ These elements create identity through repetition. Do not add decorative variant
 
 ### 5.1 Color tokens
 
-| Token | Value | Intended use |
-|---|---:|---|
-| `--color-navy-700` | `#0E2246` | Primary actions, application structure, strong headings |
-| `--color-navy-800` | `#0B1B3D` | Primary hover/pressed state and rare dark utility surfaces |
-| `--color-teal-700` | `#176C69` | Links, focus treatment, selected indicators on light surfaces |
-| `--color-teal-500` | `#2B9B95` | Small brand accents or indicators on dark surfaces; not normal text on white |
-| `--color-teal-50` | `#ECF8F7` | Subtle selected or highlighted surface |
-| `--color-white` | `#FFFFFF` | Primary surface |
-| `--color-slate-50` | `#F8F9FA` | Secondary surface and subtle grouping |
-| `--color-slate-200` | `#E5E7EB` | Borders and dividers |
-| `--color-slate-400` | `#9CA3AF` | Disabled decoration; not normal body text |
-| `--color-slate-500` | `#6B7280` | Metadata on white where contrast is sufficient |
-| `--color-slate-700` | `#374151` | Body text |
-| `--color-slate-800` | `#1F2937` | Headings |
-| `--color-positive-text` | `#166534` | Positive status text/icons |
-| `--color-positive-bg` | `#F0FDF4` | Positive status tint |
-| `--color-warning-text` | `#854D0E` | Attention status text/icons |
-| `--color-warning-bg` | `#FFFBEB` | Attention status tint |
-| `--color-danger-text` | `#B91C1C` | Error, destructive, or blocked status text/icons |
-| `--color-danger-bg` | `#FEF2F2` | Error, destructive, or blocked status tint |
+| Token                   |     Value | Intended use                                                                 |
+| ----------------------- | --------: | ---------------------------------------------------------------------------- |
+| `--color-navy-700`      | `#0E2246` | Primary actions, application structure, strong headings                      |
+| `--color-navy-800`      | `#0B1B3D` | Primary hover/pressed state and rare dark utility surfaces                   |
+| `--color-teal-700`      | `#176C69` | Links, focus treatment, selected indicators on light surfaces                |
+| `--color-teal-500`      | `#2B9B95` | Small brand accents or indicators on dark surfaces; not normal text on white |
+| `--color-teal-50`       | `#ECF8F7` | Subtle selected or highlighted surface                                       |
+| `--color-white`         | `#FFFFFF` | Primary surface                                                              |
+| `--color-slate-50`      | `#F8F9FA` | Secondary surface and subtle grouping                                        |
+| `--color-slate-200`     | `#E5E7EB` | Borders and dividers                                                         |
+| `--color-slate-400`     | `#9CA3AF` | Disabled decoration; not normal body text                                    |
+| `--color-slate-500`     | `#6B7280` | Metadata on white where contrast is sufficient                               |
+| `--color-slate-700`     | `#374151` | Body text                                                                    |
+| `--color-slate-800`     | `#1F2937` | Headings                                                                     |
+| `--color-positive-text` | `#166534` | Positive status text/icons                                                   |
+| `--color-positive-bg`   | `#F0FDF4` | Positive status tint                                                         |
+| `--color-warning-text`  | `#854D0E` | Attention status text/icons                                                  |
+| `--color-warning-bg`    | `#FFFBEB` | Attention status tint                                                        |
+| `--color-danger-text`   | `#B91C1C` | Error, destructive, or blocked status text/icons                             |
+| `--color-danger-bg`     | `#FEF2F2` | Error, destructive, or blocked status tint                                   |
 
 Teal is a brand and interaction color, not a success state. Semantic colors describe interface treatment, not aviation status. A feature specification must define whether a record is current, expired, blocked, eligible, approved, or otherwise operationally meaningful. Never use color alone, and verify WCAG 2.2 AA contrast in each rendered context.
 
@@ -204,7 +204,7 @@ Preferred words describe observable actions: save draft, submit for review, retu
 
 ### 10.1 Anti-template check
 
-A screen should fail design review if it relies on several of these patterns without a workflow reason:
+Evaluate the following patterns by their concrete effects on task completion, scanability, accessibility, consistency and the approved visual identity. Findings must identify the affected task or component and the applicable rule; resemblance to a generic template alone is not a defect:
 
 - oversized centered headings above routine application work;
 - many floating cards with identical visual weight;
@@ -215,7 +215,7 @@ A screen should fail design review if it relies on several of these patterns wit
 - different accent colors or component treatments introduced feature by feature;
 - placeholder copy that could belong to any SaaS product.
 
-Use real FlyEye field names and states with synthetic values. A polished screen should still look specific to flight-school operations when its logo is temporarily hidden.
+Use real FlyEye field names and states with synthetic values. Perceived AI origin and recognizability with the logo hidden are not acceptance criteria. Existing visual-system and feature-contract requirements still apply.
 
 ## 11. Adoption and verification
 
@@ -226,5 +226,7 @@ If this system is adopted before a later redesign supersedes it, use bounded fol
 1. Complete one bounded adoption slice for tokens, focus treatment, shared primitives, and an existing authentication shell without changing authority or workflow behavior.
 2. Use that verified slice as the visual baseline for later interface implementation; business-logic specification may proceed independently.
 3. Migrate remaining existing flows only through separately scoped follow-up work or when a feature is otherwise touched; a full retrospective migration is not a Stage 2 prerequisite.
-4. For each slice, verify its applicable states and desktop/phone behavior and retain before/after evidence where authorized.
+4. For each slice, define the reviewed surface, task, reference and acceptance criteria before inspection. Batch desktop and phone visual review, including applicable device and zoom checks from [Spacing and layout](#53-spacing-and-layout). Verify applicable states and retain authorized before/after evidence under [QA test evidence](11_QA_TEST_PLAN.md#9-test-evidence).
 5. Run automated accessibility checks plus keyboard and screen-reader workflow review. Formal WCAG evidence and pilot-user validation remain separate qualified gates.
+
+Discretionary visual refinement is limited to one correction batch and at most one confirmation round. Report further discretionary refinement as a separate proposed task. This ceiling does not limit required functional, security or accessibility verification, defect correction, or affected-behavior reverification under [QA applicability](11_QA_TEST_PLAN.md#verification-applicability) and [verification tiers](11_QA_TEST_PLAN.md#verification-tiers). Unresolved acceptance failures block completion.
