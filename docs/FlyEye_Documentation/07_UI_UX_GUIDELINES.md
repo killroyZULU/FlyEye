@@ -34,6 +34,8 @@ Use the tokens, application-shell patterns, and component presentation in the [V
 
 Use plain labels and consistent colors/icons, but never color alone. Show current state, previous action, actor/time, permitted next actions, and why an action is unavailable. Destructive or authority-bearing actions require clear confirmation; high-risk actions may require reauthentication and a reason.
 
+For the affected workflow, review repeated submissions and interruption by navigation, connectivity loss or session change against its approved feature contract. Distinguish confirmed success or failure from an uncertain outcome, and show only the recovery actions that contract permits, including its safe-retry rules. State whether entered work is preserved or cleared, respecting the contract's access and storage boundaries. Apply the existing [form behavior](#5-form-behavior), [offline interaction](#9-offline-interaction), [accessibility](#10-accessibility) and [content style](#12-content-style) rules. This review does not authorize new persistence, cancellation or retry behavior.
+
 ## 7. Source and freshness
 
 Weather, NOTAM, aircraft documents, qualifications, aircraft configuration, and AI summaries show source, timestamp/effective period, freshness, and access to original information. Stale or unavailable information must not look current.
@@ -79,13 +81,13 @@ Use Philippine flight-school terminology validated by users. FlyEye's voice is p
 
 Examples:
 
-| Situation | Preferred | Avoid |
-|---|---|---|
-| Saved draft | “Draft saved.” | “Awesome! Your data is safe!” |
-| Empty filtered list | “No members match these filters.” | “Nothing to see here.” |
-| Preserved error | “We couldn't save this change. Your entries are still here. Try again.” | “Oops! Something went wrong.” |
-| Permission denial | “You don't have permission to change this role.” | “Access forbidden.” |
-| Protected continuation | “Enter the code from your authenticator app to continue.” | “Verify now.” |
+| Situation              | Preferred                                                               | Avoid                         |
+| ---------------------- | ----------------------------------------------------------------------- | ----------------------------- |
+| Saved draft            | “Draft saved.”                                                          | “Awesome! Your data is safe!” |
+| Empty filtered list    | “No members match these filters.”                                       | “Nothing to see here.”        |
+| Preserved error        | “We couldn't save this change. Your entries are still here. Try again.” | “Oops! Something went wrong.” |
+| Permission denial      | “You don't have permission to change this role.”                        | “Access forbidden.”           |
+| Protected continuation | “Enter the code from your authenticator app to continue.”               | “Verify now.”                 |
 
 ## 13. Responsive tables and reports
 
