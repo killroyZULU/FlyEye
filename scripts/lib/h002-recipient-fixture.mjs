@@ -11,7 +11,9 @@ export const changes = {
 };
 export const resetIdentity = `update auth.users set email='${email}',email_confirmed_at=now()
   where id=${q('recipient')};
-  update public.organization_invitations set provider_operation_class='existing_identity_sign_in'
+  update public.organization_invitations set provider_operation_class='existing_identity_sign_in',
+    delivery_operation_id=${q('correlation')},delivery_outcome='accepted',delivery_attempt_count=1,
+    last_delivery_attempt_at=now()
   where id=${q('invitation')};`;
 export const prepare = `select public.prepare_member_invitation_acceptance(
   ${q('recipient')},'${email}',${q('invitation')},1,${q('correlation')});`;
