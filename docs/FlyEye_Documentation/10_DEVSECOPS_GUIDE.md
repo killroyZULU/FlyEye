@@ -6,7 +6,7 @@ DevSecOps integrates build, test, security, deployment, monitoring, recovery, an
 
 ## 2. Source-control model
 
-Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. Use one bounded `feat/*`, `fix/*`, `docs/*`, `chore/*`, or `security/*` branch per task. A requested bounded task carries standing authority to commit, push that task branch, and open a review-ready pull request after local verification and separate-agent review. Merge into stable `main` only through an explicit human merge decision. Never push or force-push feature work directly to `main`.
+Use one repository containing the React app, `supabase/` migrations/functions/tests, end-to-end tests, and docs. [Branch policy](../../AGENTS.md#git-policy) and [delivery authorization](../../AGENTS.md#delivery-workflow) follow AGENTS.md; [publication](09_AI_DEVELOPMENT_GUIDE.md#6-publish) and [integration](09_AI_DEVELOPMENT_GUIDE.md#7-integrate-when-authorized) follow the AI Development Guide.
 
 Verify repository protection settings rather than assuming plan restrictions. Where GitHub-enforced protection is not configured, apply the manual gate: use a pull request and checklist, require green CI, inspect the final diff and unresolved conversations, keep deployment separate, and obtain explicit authorization before every merge. Add required reviews/CODEOWNERS when additional qualified collaborators join and the repository plan supports the controls.
 
