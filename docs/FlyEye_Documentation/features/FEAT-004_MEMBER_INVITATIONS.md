@@ -173,6 +173,34 @@ This SQL boundary receives identity and password evidence from the trusted Edge
 handler. It does not establish provider-email/session changes during a lock wait,
 global session-expiry policy, every implicit wait, or hosted validation.
 
+### Recipient concurrency investigation
+
+R4 extends the existing acceptance matrix to current confirmed identity and
+recipient membership contention. Serialize the current Auth identity read before
+domain locks: a winning email/confirmation change denies stale captured evidence;
+a winning acceptance preserves its committed membership. Fresh current-email
+same-key replay remains stable. This adds no email-change workflow or retroactive
+membership removal.
+
+Observe sixteen SQL schedules: stale email/confirmation before prepare/accept;
+Auth-writer commit/rollback before prepare-email, accept-email and
+accept-confirmation; prepare/accept before an email writer; competing recipient
+membership insertion and recipient-key reassignment, each commit/rollback.
+Distinguish Auth-row, organization-FK and uniqueness waits. Compare exact
+membership/profile/role/invitation/audit effects, including stale-identity and
+uniqueness-conflict audit failures when corrected. Correct only reproduced defects.
+
+Use pinned-provider evidence for a real confirmed-email snapshot becoming stale,
+acceptance blocking a real provider email update with stable fresh-email replay,
+and a fresh current-email invitation succeeding for the still-unaffiliated actor.
+Require observed blocking, normal and interrupted-wait cleanup, unchanged foreign
+state and existing roles/permissions, service-only execution and existing tenant
+regressions. Run database/provider cases only in disposable CI. Execution results
+belong to [SEC-027/#168](https://github.com/killroyZULU/FlyEye/issues/168);
+source inspection and planned cases do not establish passing evidence. Global
+permission changes, other implicit waits, recovery, session policy and hosted
+operation retain their separate scope.
+
 ## Data and server contract
 
 `organization_invitations` contains:
