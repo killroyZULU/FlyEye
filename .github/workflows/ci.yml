@@ -106,7 +106,8 @@ jobs:
   database:
     name: Local Supabase security
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # The retained matrix takes about 31 minutes; SEC-026 adds real TOTP windows and lock schedules.
+    timeout-minutes: 50
 
     steps:
       - name: Check out repository

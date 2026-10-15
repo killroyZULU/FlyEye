@@ -29,6 +29,7 @@ Deno.serve(
       );
       return {
         userId: data.user.id,
+        sessionId: authenticationContext.sessionId,
         assuranceLevel: authenticationContext.assuranceLevel,
         authenticationMethods: authenticationContext.authenticationMethods,
       };
@@ -43,12 +44,22 @@ Deno.serve(
       if (error) throw error;
       return data;
     },
-    validateAdminFactorState: async (actorUserId) => {
+    validateAdminFactorState: async (actorUserId, sessionId) => {
       const { data, error } = await serverClient.auth.admin.mfa.listFactors({
         userId: actorUserId,
       });
       if (error) throw error;
-      return classifyCompleteFactorInventory(data.factors).kind === 'one_verified_totp';
+      const classification = classifyCompleteFactorInventory(data.factors);
+      if (classification.kind !== 'one_verified_totp') return false;
+      const binding = await serverClient.rpc('validate_admin_session_factor', {
+        p_actor_user_id: actorUserId,
+        p_session_id: sessionId,
+        p_factor_id: classification.factorId,
+        p_require_aal2: true,
+      });
+      if (binding.error || typeof binding.data !== 'boolean')
+        throw new Error('Session factor validation failed.');
+      return binding.data;
     },
     resolveAccessContext: async ({ actorUserId, assuranceLevel }) => {
       const { data, error } = await serverClient.rpc('resolve_auth_access_context', {

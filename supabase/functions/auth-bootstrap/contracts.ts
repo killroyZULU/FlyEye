@@ -2,6 +2,7 @@ import type { AssuranceLevel } from '../_shared/access-context.ts';
 
 export type AuthenticatedActor = {
   userId: string;
+  sessionId: string;
   assuranceLevel: AssuranceLevel;
   authenticationMethods: string[];
 };
@@ -22,7 +23,7 @@ export type AuthBootstrapDependencies = {
   allowedOrigin: string;
   authenticate: (accessToken: string) => Promise<AuthenticatedActor>;
   consumeLimit: (actorUserId: string, correlationId: string) => Promise<unknown>;
-  validateAdminFactorState?: (actorUserId: string) => Promise<boolean>;
+  validateAdminFactorState: (actorUserId: string, sessionId: string) => Promise<boolean>;
   resolveAccessContext: (input: {
     actorUserId: string;
     assuranceLevel: AssuranceLevel;

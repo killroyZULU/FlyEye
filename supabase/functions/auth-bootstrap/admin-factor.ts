@@ -12,10 +12,11 @@ export async function checkAdminFactorState(
   const grantedAdmin = context.memberships.some(
     (membership) => membership.role === 'admin' && membership.accessStatus === 'granted',
   );
-  if (grantedAdmin && dependencies.validateAdminFactorState) {
+  if (grantedAdmin) {
     let factorStateValid: boolean;
     try {
-      factorStateValid = await dependencies.validateAdminFactorState(actor.userId);
+      factorStateValid = await dependencies.validateAdminFactorState(actor.userId, actor.sessionId);
+      if (typeof factorStateValid !== 'boolean') throw new Error('Invalid session binding result.');
     } catch {
       try {
         await dependencies.recordDecision({

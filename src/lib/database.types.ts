@@ -91,6 +91,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_session_factor_bindings: {
+        Row: { actor_user_id: string; factor_id: string | null; session_id: string };
+        Insert: { actor_user_id: string; factor_id?: string | null; session_id: string };
+        Update: { actor_user_id?: string; factor_id?: string | null; session_id?: string };
+        Relationships: [];
+      };
       aircraft_document_categories: {
         Row: {
           archived_at: string | null;
@@ -2589,6 +2595,15 @@ export type Database = {
           p_membership_id: string;
         };
         Returns: Json;
+      };
+      validate_admin_session_factor: {
+        Args: {
+          p_actor_user_id: string;
+          p_factor_id: string;
+          p_require_aal2: boolean;
+          p_session_id: string;
+        };
+        Returns: boolean;
       };
       write_admin_onboarding_event: {
         Args: {

@@ -45,10 +45,12 @@ function dependencies(
     }),
     authenticate: vi.fn().mockResolvedValue({
       userId: actorUserId,
+      sessionId: '20000000-0000-4000-8000-000000000099',
       assuranceLevel: 'aal1',
       authenticationMethods: ['password'],
     }),
     resolveAccessContext: vi.fn().mockResolvedValue(validContext),
+    validateAdminFactorState: vi.fn().mockResolvedValue(true),
     recordDecision: vi.fn().mockResolvedValue(undefined),
     createCorrelationId: () => fallbackCorrelationId,
     ...overrides,
@@ -116,6 +118,7 @@ describe('auth-bootstrap Edge Function handler', () => {
       const configured = dependencies({
         authenticate: vi.fn().mockResolvedValue({
           userId: actorUserId,
+          sessionId: '20000000-0000-4000-8000-000000000099',
           assuranceLevel: 'aal1',
           authenticationMethods,
         }),
@@ -153,6 +156,7 @@ describe('auth-bootstrap Edge Function handler', () => {
     const configured = dependencies({
       authenticate: vi.fn().mockResolvedValue({
         userId: actorUserId,
+        sessionId: '20000000-0000-4000-8000-000000000099',
         assuranceLevel: 'aal1',
         authenticationMethods: ['otp'],
       }),
@@ -175,6 +179,7 @@ describe('auth-bootstrap Edge Function handler', () => {
     const configured = dependencies({
       authenticate: vi.fn().mockResolvedValue({
         userId: actorUserId,
+        sessionId: '20000000-0000-4000-8000-000000000099',
         assuranceLevel: 'aal2',
         authenticationMethods: ['password', 'totp'],
       }),
@@ -331,6 +336,7 @@ describe('auth-bootstrap Edge Function handler', () => {
     const configured = dependencies({
       authenticate: vi.fn().mockResolvedValue({
         userId: actorUserId,
+        sessionId: '20000000-0000-4000-8000-000000000099',
         assuranceLevel: 'aal2',
         authenticationMethods: ['password', 'totp'],
       }),
@@ -341,7 +347,10 @@ describe('auth-bootstrap Edge Function handler', () => {
     const response = await createAuthBootstrapHandler(configured)(request());
 
     expect(response.status).toBe(200);
-    expect(validateAdminFactorState).toHaveBeenCalledWith(actorUserId);
+    expect(validateAdminFactorState).toHaveBeenCalledWith(
+      actorUserId,
+      '20000000-0000-4000-8000-000000000099',
+    );
     expect(configured.recordDecision).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: 'authentication.access_context_loaded',
@@ -369,6 +378,7 @@ describe('auth-bootstrap Edge Function handler', () => {
     const configured = dependencies({
       authenticate: vi.fn().mockResolvedValue({
         userId: actorUserId,
+        sessionId: '20000000-0000-4000-8000-000000000099',
         assuranceLevel: 'aal2',
         authenticationMethods: ['password', 'totp'],
       }),
@@ -407,6 +417,7 @@ describe('auth-bootstrap Edge Function handler', () => {
     const configured = dependencies({
       authenticate: vi.fn().mockResolvedValue({
         userId: actorUserId,
+        sessionId: '20000000-0000-4000-8000-000000000099',
         assuranceLevel: 'aal2',
         authenticationMethods: ['password', 'totp'],
       }),
@@ -664,6 +675,7 @@ describe('auth-bootstrap extraction compatibility', () => {
           await Promise.resolve();
           return {
             userId: actorUserId,
+            sessionId: '20000000-0000-4000-8000-000000000099',
             assuranceLevel: 'aal2',
             authenticationMethods: ['password', 'totp'],
           };
@@ -816,6 +828,7 @@ describe('auth-bootstrap extraction compatibility', () => {
       const configured = dependencies({
         authenticate: vi.fn().mockResolvedValue({
           userId: actorUserId,
+          sessionId: '20000000-0000-4000-8000-000000000099',
           assuranceLevel: 'aal1',
           authenticationMethods: passwordDenied ? ['otp'] : ['password'],
         }),

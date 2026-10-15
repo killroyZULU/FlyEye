@@ -26,6 +26,7 @@ function setup(value: unknown = allowed) {
     allowedOrigin: origin,
     authenticate: vi.fn().mockResolvedValue({
       userId: user,
+      sessionId: '20000000-0000-4000-8000-000000000099',
       assuranceLevel: 'aal1',
       authenticationMethods: ['password'],
     }),
@@ -134,6 +135,7 @@ describe('A010 auth-bootstrap limiting', () => {
     );
     vi.mocked(dependencies.authenticate).mockResolvedValue({
       userId: user,
+      sessionId: '20000000-0000-4000-8000-000000000099',
       assuranceLevel: 'aal2',
       authenticationMethods: ['password', 'totp'],
     });
@@ -164,6 +166,7 @@ describe('A010 auth-bootstrap limiting', () => {
     const { dependencies, handler } = setup();
     vi.mocked(dependencies.authenticate).mockResolvedValue({
       userId: user,
+      sessionId: '20000000-0000-4000-8000-000000000099',
       assuranceLevel: 'aal1',
       authenticationMethods: ['otp'],
     });

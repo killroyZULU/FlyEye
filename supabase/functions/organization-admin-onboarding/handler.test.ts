@@ -47,6 +47,7 @@ function dependencies(
     allowedOrigin: ORIGIN,
     authenticate: vi.fn().mockResolvedValue(actor),
     listFactors: vi.fn().mockResolvedValue([verifiedFactor]),
+    validateSessionFactor: vi.fn().mockResolvedValue(true),
     consumeLimit: vi.fn().mockResolvedValue({
       allowed: true,
       retryAfterSeconds: null,
@@ -107,6 +108,92 @@ function request(body: unknown, options: { origin?: string; token?: string } = {
 async function payload(response: Response): Promise<Record<string, unknown>> {
   return (await response.json()) as Record<string, unknown>;
 }
+
+describe('SEC-026 current-factor session boundary', () => {
+  it.each(['start', 'complete'] as const)(
+    'validates the authenticated session before %s',
+    async (action) => {
+      const deps = dependencies();
+      const response = await createAdminOnboardingHandler(deps)(
+        request({
+          action,
+          bootstrapGrantId: GRANT_ID,
+          expectedVersion: 1,
+          idempotencyKey: IDEMPOTENCY_KEY,
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(deps.validateSessionFactor).toHaveBeenCalledExactlyOnceWith({
+        actor,
+        factorId: FACTOR_ID,
+        requireAal2: action === 'complete',
+      });
+      expect(vi.mocked(deps.validateSessionFactor).mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(deps[action]).mock.invocationCallOrder[0]!,
+      );
+    },
+  );
+  it.each([
+    ['invalid', false, 403, 'admin_onboarding.recent_authentication_required'],
+    ['invalid', true, 500, 'admin_onboarding.audit_unavailable'],
+    ['unavailable', false, 503, 'admin_onboarding.provider_unavailable'],
+    ['unavailable', true, 500, 'admin_onboarding.audit_unavailable'],
+    ['malformed', false, 503, 'admin_onboarding.provider_unavailable'],
+  ] as const)(
+    'fails closed for %s binding with audit failure %s',
+    async (mode, auditFails, status, code) => {
+      const deps = dependencies({
+        validateSessionFactor:
+          mode === 'unavailable'
+            ? vi.fn().mockRejectedValue(new Error('Private binding failure'))
+            : vi.fn().mockResolvedValue(mode === 'invalid' ? false : null),
+        recordDenied: auditFails
+          ? vi.fn().mockRejectedValue(new Error('Private audit failure'))
+          : vi.fn().mockResolvedValue(undefined),
+      });
+      const response = await createAdminOnboardingHandler(deps)(
+        request({
+          action: 'complete',
+          bootstrapGrantId: GRANT_ID,
+          expectedVersion: 1,
+          idempotencyKey: IDEMPOTENCY_KEY,
+        }),
+      );
+      expect(response.status).toBe(status);
+      expect((await payload(response)).error).toMatchObject({ code });
+      expect(deps.start).not.toHaveBeenCalled();
+      expect(deps.complete).not.toHaveBeenCalled();
+      expect(deps.validateSessionFactor).toHaveBeenCalledOnce();
+      expect(deps.recordDenied).toHaveBeenCalledOnce();
+    },
+  );
+  it.each(['start', 'complete'])(
+    'rejects %s when the sole factor replaced the session binding',
+    async (action) => {
+      const replacementId = '60000000-0000-4000-8000-000000000002';
+      const deps = {
+        ...dependencies({
+          listFactors: vi.fn().mockResolvedValue([{ ...verifiedFactor, id: replacementId }]),
+        }),
+        validateSessionFactor: vi.fn().mockResolvedValue(false),
+      };
+      const response = await createAdminOnboardingHandler(deps)(
+        request({
+          action,
+          bootstrapGrantId: GRANT_ID,
+          expectedVersion: 1,
+          idempotencyKey: IDEMPOTENCY_KEY,
+        }),
+      );
+      expect(response.status).toBe(403);
+      expect((await payload(response)).error).toMatchObject({
+        code: 'admin_onboarding.recent_authentication_required',
+      });
+      expect(deps.start).not.toHaveBeenCalled();
+      expect(deps.complete).not.toHaveBeenCalled();
+    },
+  );
+});
 
 describe('administrator onboarding handler compatibility', () => {
   const IDEMPOTENCY_DIGEST = '3eb1bd439947eb762998e566ccc2e099c791118b2f40579cc4f7da2b5061b7f9';
