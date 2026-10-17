@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 import type { AccessMembership } from '../../../lib/access-context';
 import type { WorkspaceNavigationItem, WorkspaceView } from '../workspace-navigation';
+import '../../../styles/header-navigation-foundation.css';
 
 type AuthenticatedShellProps = {
   membership: AccessMembership;
@@ -11,6 +12,15 @@ type AuthenticatedShellProps = {
   onSignOut: () => void;
   children: ReactNode;
 };
+
+function revealNavigationItem(button: HTMLButtonElement) {
+  const container = button.parentElement;
+  if (!container) return;
+  const item = button.getBoundingClientRect();
+  const visible = container.getBoundingClientRect();
+  container.scrollLeft +=
+    Math.min(0, item.left - visible.left) + Math.max(0, item.right - visible.right);
+}
 
 export function AuthenticatedShell({
   membership,
@@ -65,6 +75,7 @@ export function AuthenticatedShell({
               className="primary-navigation__item"
               type="button"
               aria-current={currentView === item.view ? 'page' : undefined}
+              onFocus={(event) => revealNavigationItem(event.currentTarget)}
               onClick={() => onNavigate(item.view)}
             >
               {item.label}

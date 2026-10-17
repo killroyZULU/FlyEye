@@ -6,6 +6,7 @@ import { chromium } from '@playwright/test';
 import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
 import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
 import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
+import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -164,21 +165,22 @@ async function mockSupabase(page, options = {}) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(
-        options.empty
-          ? { ...studentContext, memberships: [], decision: 'denied', organizationIds: [] }
-          : options.privilegedMissingMfa
-            ? {
-                ...adminContext,
-                memberships: adminContext.memberships.map((membership) => ({
-                  ...membership,
-                  accessStatus: 'mfa_required',
-                })),
-                decision: 'mfa_required',
-                currentAssuranceLevel: 'aal1',
-              }
-            : options.admin
-              ? adminContext
-              : studentContext,
+        options.context ??
+          (options.empty
+            ? { ...studentContext, memberships: [], decision: 'denied', organizationIds: [] }
+            : options.privilegedMissingMfa
+              ? {
+                  ...adminContext,
+                  memberships: adminContext.memberships.map((membership) => ({
+                    ...membership,
+                    accessStatus: 'mfa_required',
+                  })),
+                  decision: 'mfa_required',
+                  currentAssuranceLevel: 'aal1',
+                }
+              : options.admin
+                ? adminContext
+                : studentContext),
       ),
     });
   });
@@ -743,7 +745,8 @@ const scenarios = [
   { name: 'documents-admin', options: { admin: true } },
   { name: 'documents-student', options: {} },
 ];
-const selectedScenarios = process.argv.includes('--deferred-only') ? [] : scenarios;
+const headerOnly = process.argv.includes('--header-only');
+const selectedScenarios = process.argv.includes('--deferred-only') || headerOnly ? [] : scenarios;
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
   { name: 'mobile', size: { width: 393, height: 851 } },
@@ -762,10 +765,15 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production)
+    if (production && !headerOnly)
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
-    if (!process.argv.includes('--deferred-only'))
-      await checkSignInFoundation(browser, mockSupabase);
+    if (!process.argv.includes('--deferred-only')) {
+      if (!headerOnly) await checkSignInFoundation(browser, mockSupabase);
+      await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
+        student: studentContext,
+        admin: adminContext,
+      });
+    }
   } finally {
     await browser.close();
   }

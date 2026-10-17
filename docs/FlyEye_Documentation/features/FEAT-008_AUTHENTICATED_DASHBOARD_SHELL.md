@@ -62,6 +62,22 @@ The header shows the FlyEye identity, deployment school, current role label, and
 
 The selected navigation item uses visible styling and `aria-current="page"`. Navigation buttons preserve the existing in-memory view model and do not claim to replace server authorization. On narrow screens the header stacks and the navigation scrolls horizontally without creating page-level horizontal overflow.
 
+### Header and navigation visual foundation
+
+Adopt the [visual foundations](../DESIGN.md#5-foundations) only in the header, primary navigation and skip link, reusing the locally licensed fonts from the [password-entry foundation](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation). Keep the existing identity/copy, destination order, callbacks, in-memory view model and focus-on-view-change behavior. The school name and existing role label remain readable through wrapping on narrow screens. The top navigation contract above remains in force; rail/drawer adoption and Home content are separate decisions.
+
+Styles must not change module content, footer or other authentication flows. No data, RLS, function, permission, audit, dependency, storage, confirmation or retry behavior changes are required. The Home destination/work-queue conflict remains unresolved before affected implementation.
+
+Acceptance for this presentation slice:
+
+- `FEAT-008-VIS-01`: Existing Student, Instructor, Admin, restricted-permission and unavailable-module navigation entries/order remain exact; selection is visible and uses `aria-current="page"`.
+- `FEAT-008-VIS-02`: Header/navigation satisfy [reference widths, targets and zoom](../DESIGN.md#53-spacing-and-layout), including long synthetic school names, tablet orientations, reduced-height reachability and font fallback. Navigation may scroll within its own container, never the page.
+- `FEAT-008-VIS-03`: Keyboard and screen-reader workflow review confirms accessible names, current location, unclipped visible focus, skip-link destination and Sign out. Contrast and non-color selection cues satisfy [accessibility guidance](../07_UI_UX_GUIDELINES.md#10-accessibility).
+- `FEAT-008-VIS-04`: Repeated navigation, delayed/rejected imports, explicit recovery, navigation away, sign-out and session changes preserve the [deferred delivery contract](#deferred-screen-delivery), existing preservation/clearing of work and stale-content protection.
+- `FEAT-008-VIS-05`: Module and authentication styles/behavior remain unchanged; scoped token use cannot restyle descendants outside the reviewed elements. No new assets or external font requests are introduced.
+
+Verification uses focused shell/component and production-browser checks, synthetic before/after captures, manual zoom/screen-reader review, [bounded visual review](../DESIGN.md#11-adoption-and-verification) and [QA applicability](../11_QA_TEST_PLAN.md#verification-applicability). Formal accessibility and physical-device evidence remain separately identified.
+
 ### Role dashboards
 
 The role label determines the heading only:
