@@ -16,6 +16,54 @@
 
 The local evidence uses synthetic users and organizations only. On 2026-07-19, formatting, lint, type checking, 32 unit/component/Edge-handler tests, 45 SQL/RLS tests, actual local Auth/TOTP/Edge/browser integration, 8 Playwright E2E scenarios, database lint, dependency audit, production build, generated-type hash comparison, and source/build secret scans passed. This is not production validation, an independent penetration test, privacy approval, aviation-SME approval, or deployment authorization.
 
+## Password-entry visual foundation
+
+[#174](https://github.com/killroyZULU/FlyEye/issues/174) tracks the
+[password-entry contract](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation).
+
+| Requirement                                                                   | Evidence locator                                                                                                                                                                                                   | Result and boundary                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [FEAT-001-VF-01](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation) | [Entry suite](../../../src/features/auth/components/AuthEntryView.test.tsx): `password-entry presentation boundary`                                                                                                | Two password states opt in; twelve other states and three separate routes retain the existing presentation.                                                                                                                                                                                  |
+| [FEAT-001-VF-02](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation) | [Form suite](../../../src/features/auth/components/LoginForm.test.tsx): `sign-in foundation behavior preservation`; [browser helper](../../../scripts/lib/sign-in-foundation-browser.mjs): `checkSignInFoundation` | Invalid input makes no request; pending submission disables controls; repeated submission makes one mocked request; rejection preserves input identity, values and visibility.                                                                                                               |
+| [FEAT-001-VF-03](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation) | Browser helper: `inspectLayout`, `assertLayout`, keyboard/AX-tree, font-failure and touch assertions                                                                                                               | Six reference widths, 44 px targets, text contrast, focus order, error descriptions, live-status semantics and fallback reflow passed in Edge. Reduced viewport and emulated touch checks do not establish actual browser zoom, screen-reader output or physical software-keyboard behavior. |
+| [FEAT-001-VF-04](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation) | [Auth UI suite](../../../src/features/auth/AuthApp.test.tsx); [compiled-browser runner](../../../scripts/run-e2e.mjs) and browser helper's recovery-boundary assertions                                            | Existing transition/race coverage is retained. The linked delivery PR owns full application and disposable database CI execution results.                                                                                                                                                    |
+| [FEAT-001-VF-05](FEAT-001_LOGIN_AND_RBAC.md#password-entry-visual-foundation) | Delivery PR's desktop/phone before-and-after evidence and separate-agent review                                                                                                                                    | Synthetic captures compare baseline `7f5c5d994798fa2309f37b13616ea5fb3502fa65` with this slice. One correction batch and one confirmation assessed sign-in emphasis, alignment and readability; this is bounded visual judgment, not formal WCAG evidence.                                   |
+
+Visual captures, taken on 2026-10-15 in headless Edge with synthetic frontend
+configuration and no backend traffic: desktop 1280×900
+([before](evidence/FEAT-001-sign-in-foundation/before-desktop.png),
+[after](evidence/FEAT-001-sign-in-foundation/after-desktop.png)); phone 390×844
+([before](evidence/FEAT-001-sign-in-foundation/before-phone.png),
+[after](evidence/FEAT-001-sign-in-foundation/after-phone.png)). Images capture the
+full page, so image height may exceed viewport height. The baseline is the
+commit identified above; the after images show this slice's reviewed source.
+
+On 2026-10-15, the owner confirmed that the synthetic sign-in page in Edge worked
+at actual 200% browser zoom without horizontal scrolling and that Windows
+Narrator output was understandable. The task script covered control names,
+empty-field validation, pending/rejected sign-in and preserved entered values.
+The temporary page rendered the changed Auth UI with an in-memory gateway that
+returned a generic rejection; it made no backend requests. This human-reported
+workflow check supplements the automated evidence and does not claim formal WCAG
+conformance or physical-device/software-keyboard validation.
+
+### Bundled font provenance
+
+Unmodified Latin WOFF2 assets are served locally with system fallbacks and no
+runtime Google Fonts request. [Archivo](../../../public/fonts/archivo-latin-600-700.woff2)
+(34,928 bytes) and [IBM Plex Sans](../../../public/fonts/ibm-plex-sans-latin-400-600.woff2)
+(45,712 bytes) came from the official
+[Archivo delivery URL](https://fonts.gstatic.com/s/archivo/v25/k3kPo8UDI-1M0wlSV9XAw6lQkqWY8Q82sLydOxI.woff2)
+and [IBM Plex Sans delivery URL](https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYY.woff2).
+Their SHA-256 values are respectively
+`8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967`
+and `e2291e842cf5af167122a22881a740c7f2dda7716f1e8cd76680264f4a859470`.
+The accompanying [Archivo license](../../../public/fonts/Archivo-OFL.txt) and
+[IBM Plex Sans license](../../../public/fonts/IBMPlexSans-OFL.txt) retain SIL OFL 1.1
+notices from [Google Fonts commit 9430147](https://github.com/google/fonts/tree/94301472b4d809299b4775bc6502592b83dd6934).
+These are static font assets, not new packages. Hashes and licenses establish
+provenance; they do not constitute a font-parser security assessment.
+
 ## A010 bootstrap limiter
 
 [SEC-004 / #120](https://github.com/killroyZULU/FlyEye/issues/120) implements the

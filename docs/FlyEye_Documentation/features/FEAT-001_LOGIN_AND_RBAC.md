@@ -175,6 +175,41 @@ behavior. Follow [QA applicability](../11_QA_TEST_PLAN.md#verification-applicabi
 - Role workspaces remain labelled placeholders until separately approved features exist
 - Authentication requires connectivity
 
+### Password-entry visual foundation
+
+The password-entry surface adopts [DESIGN foundations](../DESIGN.md#5-foundations)
+and [control presentation](../DESIGN.md#8-reusable-components). Retain the two-panel
+desktop and single-column mobile contract above; this slice does not adopt
+DESIGN's single-column desktop authentication target. Existing copy and identity
+remain. The Home/work-queue decision is unrelated.
+
+- `FEAT-001-VF-01`: Apply opt-in tokens, local Archivo/IBM Plex Sans fonts with
+  system fallbacks, and field/button/link presentation only in `signed-out` and
+  `signing-in` on the sign-in route. Other routes and authentication states retain
+  their presentation; shared selectors must not restyle them.
+- `FEAT-001-VF-02`: Preserve form identity, values, validation, accessible labels,
+  password visibility, busy behavior, messages and recovery destination across
+  initial, validation, pending and rejected states. Repeated submissions and
+  interrupted navigation retain existing request/session behavior. No changes to
+  storage, retries, authentication, permissions, audit or backend contracts.
+- `FEAT-001-VF-03`: Meet [layout/target requirements](../DESIGN.md#53-spacing-and-layout)
+  and [accessibility requirements](../07_UI_UX_GUIDELINES.md#10-accessibility),
+  including reference widths, zoom, keyboard/focus, contrast and status feedback.
+  Font failure must leave readable, usable controls without external requests.
+- `FEAT-001-VF-04`: Regress existing access, MFA/onboarding, recovery, invitation,
+  sign-out and revocation transitions without redesigning those flows. Keep
+  component and compiled-browser checks in the existing application gate.
+- `FEAT-001-VF-05`: Review synthetic desktop/phone before-and-after evidence under
+  [bounded visual review](../DESIGN.md#11-adoption-and-verification). Assess task
+  emphasis, alignment and readability separately from automated checks; unmet
+  required verification blocks delivery.
+
+Affected work is limited to the entry wrapper, scoped styles/font assets,
+component/browser regressions and this feature's contract/evidence. No package,
+logo, workflow, data/RLS/function or operational-authority change is required.
+The main risk is shared-shell CSS or remounting affecting unrelated flows; state
+boundary tests and preserved-input checks are required mitigations.
+
 ## Validation and safety
 
 - Zod validates login input, Edge request bodies, and access-context responses at runtime.

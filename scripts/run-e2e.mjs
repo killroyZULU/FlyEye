@@ -5,6 +5,7 @@ import process from 'node:process';
 import { chromium } from '@playwright/test';
 import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
 import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
+import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -763,6 +764,8 @@ try {
     }
     if (production)
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
+    if (!process.argv.includes('--deferred-only'))
+      await checkSignInFoundation(browser, mockSupabase);
   } finally {
     await browser.close();
   }
