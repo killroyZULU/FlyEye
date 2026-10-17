@@ -1,5 +1,6 @@
 /* Opt-in presentation primitives; other surfaces retain their current styling. */
-.auth-shell.auth-shell--password {
+.auth-shell.auth-shell--password,
+.application-shell > :is(.application-header, .primary-navigation, .skip-link) {
   --color-navy-700: #0e2246;
   --color-navy-800: #0b1b3d;
   --color-teal-700: #176c69;
@@ -21,6 +22,9 @@
   --space-6: 3rem;
   --radius-control: 0.5rem;
   --radius-panel: 0.75rem;
+}
+
+.auth-shell.auth-shell--password {
   font-family: var(--font-body);
   color: var(--color-slate-700);
   background: var(--color-white);
