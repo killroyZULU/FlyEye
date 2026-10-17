@@ -74,10 +74,31 @@ describe('invitation fixture cleanup evidence', () => {
     expect(queries[1]).toContain('actor_user_id in');
     expect(queries[1]).toContain('member_invitation_rate_limit_events where limiter_key_hash in');
     expect(queries[2]).toContain('from auth.users');
+    for (const table of ['auth.sessions', 'auth.refresh_tokens', 'auth.identities']) {
+      expect(queries[2]).toContain(`from ${table} where user_id in (`);
+    }
+    expect(queries[2]).toContain(
+      'from public.admin_session_factor_bindings where actor_user_id in (',
+    );
     expect(queries[2]).toContain('from public.authentication_events');
     expect(options.cleanMail).toHaveBeenCalledWith([admin.email, existing.email, recipientEmail]);
     expect(lines.at(-1)).toBe('FEAT-004 runtime diagnostic: stage=fixture-cleanup event=passed.');
     expect(runtimeDiagnosticLines('test-feat-004-runtime.mjs', lines.join('\n'))).toEqual(lines);
+  });
+
+  it('discovers both email aliases while deleting a changed identity only once', async () => {
+    const { options, run } = harness();
+    const changedEmail = 'changed-recipient@example.test';
+    options.identities.push({ ...existing, email: changedEmail });
+    await run();
+    expect(options.deleteUser.mock.calls.filter(([id]) => id === existing.id)).toHaveLength(1);
+    expect(options.cleanMail).toHaveBeenCalledWith([
+      admin.email,
+      existing.email,
+      changedEmail,
+      recipientEmail,
+    ]);
+    expect(options.psql.mock.calls[0][0]).toContain(`'${changedEmail}'`);
   });
 
   it.each(['shutdown', 'discovery', 'database', 'auth', 'residue', 'mail', 'files'])(

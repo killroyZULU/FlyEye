@@ -11,12 +11,16 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
 import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
 import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+import { runInvitationRecipients } from './lib/invitation-recipient-runtime.mjs';
 import {
   cleanupInvitationRuntime,
   cleanInvitationMail,
 } from './lib/invitation-runtime-cleanup.mjs';
 
 const diagnostics = createFixtureDiagnostics('FEAT-004');
+const recipientChecks = process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
+const recipientProbe = process.argv.includes('--recipient-cleanup-probe');
+if (recipientProbe && !recipientChecks) throw new Error('Recipient probes require disposable CI.');
 
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
 const status = spawnSync(process.execPath, [cliPath, 'status', '-o', 'json'], {
@@ -42,6 +46,13 @@ const limiterSecret = randomBytes(32).toString('hex');
 const admin = { id: randomUUID(), email: `invite-admin-${runId}@example.test` };
 const recipientEmail = `invite-recipient-${runId}@example.test`;
 const existing = { id: randomUUID(), email: `invite-existing-${runId}@example.test` };
+const recipientActors = recipientChecks
+  ? ['snapshot', 'winner'].map((kind) => ({
+      id: randomUUID(),
+      email: `invite-${kind}-${runId}@example.test`,
+      changedEmail: `invite-${kind}-changed-${runId}@example.test`,
+    }))
+  : [];
 const organizationA = randomUUID();
 const organizationB = randomUUID();
 const adminMembership = randomUUID();
@@ -197,7 +208,11 @@ async function cleanup() {
     },
     cleanMail: (emails) => cleanInvitationMail(mailpitUrl, emails),
     organizationId: organizationA,
-    identities: [admin, existing],
+    identities: [
+      admin,
+      existing,
+      ...recipientActors.flatMap((actor) => [actor, { id: actor.id, email: actor.changedEmail }]),
+    ],
     recipientEmail,
     recipientId,
     limiterKeys,
@@ -489,6 +504,22 @@ try {
     `),
     '1',
   );
+
+  if (recipientChecks)
+    await runInvitationRecipients({
+      actors: recipientActors,
+      server,
+      browserClient,
+      password: recipientPassword,
+      psql,
+      organization: organizationA,
+      admin: admin.id,
+      diagnostics,
+      invoke,
+      correlations,
+      register: (user, action, scope) => limiterKeys.add(limiterHash(user, action, scope)),
+      probe: recipientProbe,
+    });
 
   diagnostics.enter('forged-school');
   limiterKeys.add(limiterHash(admin.id, 'list', '00000000-0000-0000-0000-000000000000'));
