@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +26,90 @@ const membership: AccessMembership = {
 };
 
 describe('FEAT-008 authenticated shell', () => {
+  it('reveals a clipped focused item horizontally without navigating', () => {
+    const onNavigate = vi.fn();
+    render(
+      <AuthenticatedShell
+        membership={membership}
+        currentView="home"
+        navigation={workspaceNavigation(membership)}
+        onNavigate={onNavigate}
+        onSignOut={vi.fn()}
+      >
+        <h1>Home</h1>
+      </AuthenticatedShell>,
+    );
+    const item = screen.getByRole('button', { name: 'My profile' });
+    const container = item.parentElement!;
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 56));
+    const bounds = vi.spyOn(item, 'getBoundingClientRect');
+    bounds.mockReturnValue(new DOMRect(80, 0, 80, 56));
+    fireEvent.focus(item);
+    expect(container.scrollLeft).toBe(60);
+    bounds.mockReturnValue(new DOMRect(-20, 0, 80, 56));
+    fireEvent.focus(item);
+    expect(container.scrollLeft).toBe(40);
+    bounds.mockReturnValue(new DOMRect(0, 0, 80, 56));
+    fireEvent.focus(item);
+    expect(container.scrollLeft).toBe(40);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['student_pilot', ['portal.student.access'], ['home', 'profile', 'security']],
+    [
+      'instructor_pilot',
+      ['portal.instructor.access', 'aircraft.document.status.read'],
+      ['home', 'documents', 'profile', 'security'],
+    ],
+    [
+      'admin',
+      membership.permissions,
+      ['home', 'aircraft', 'documents', 'invitations', 'members', 'profile', 'security'],
+    ],
+  ])('preserves the exact available destination order for %s', (role, permissions, expected) => {
+    expect(
+      workspaceNavigation(
+        { ...membership, role, permissions },
+        {
+          aircraftAvailable: true,
+          aircraftDocumentsAvailable: true,
+        },
+      ).map((item) => item.view),
+    ).toEqual(expected);
+  });
+
+  it('preserves the main element and view-change focus while updating current-page semantics', () => {
+    const props = {
+      membership,
+      navigation: workspaceNavigation(membership),
+      onNavigate: vi.fn(),
+      onSignOut: vi.fn(),
+    };
+    const { rerender } = render(
+      <AuthenticatedShell {...props} currentView="home">
+        <h1>Home</h1>
+      </AuthenticatedShell>,
+    );
+    const main = screen.getByRole('main');
+    expect(main).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'Skip to workspace content' })).toHaveAttribute(
+      'href',
+      '#workspace-main',
+    );
+    rerender(
+      <AuthenticatedShell {...props} currentView="profile">
+        <h1>Profile</h1>
+      </AuthenticatedShell>,
+    );
+    expect(screen.getByRole('main')).toBe(main);
+    expect(main).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'My profile' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('button', { name: 'Home' })).not.toHaveAttribute('aria-current');
+  });
+
   it('builds navigation only from available modules and approved permissions', () => {
     expect(workspaceNavigation(membership).map((item) => item.label)).toEqual([
       'Home',
