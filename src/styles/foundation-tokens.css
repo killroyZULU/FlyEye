@@ -1,5 +1,6 @@
 /* Opt-in presentation primitives; other surfaces retain their current styling. */
 .auth-shell.auth-shell--password,
+.profile-foundation,
 .application-shell > :is(.application-header, .primary-navigation, .skip-link) {
   --color-navy-700: #0e2246;
   --color-navy-800: #0b1b3d;
