@@ -1,0 +1,221 @@
+@import './foundation-tokens.css';
+@import './foundation-fonts.css';
+
+/* Opt in only this profile; administration and other module styles stay local. */
+.member-workspace.profile-foundation {
+  width: min(100%, 56rem);
+  gap: var(--space-3);
+  color: var(--color-slate-700);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.625;
+}
+
+.profile-foundation .workspace-heading {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.profile-foundation .workspace-heading h2 {
+  margin: var(--space-inline) 0 0;
+  color: var(--color-slate-800);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2.5rem;
+}
+
+.profile-foundation .eyebrow {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.profile-foundation .member-form {
+  gap: var(--space-3);
+}
+
+.profile-foundation .readonly-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-slate-200);
+}
+
+.profile-foundation .readonly-grid > div {
+  gap: var(--space-inline);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.profile-foundation :is(.readonly-grid span, .field-guidance) {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.profile-foundation .readonly-grid strong {
+  color: var(--color-slate-800);
+  font-weight: 600;
+}
+
+.profile-foundation :is(.field-group, .member-form > .field-guidance) {
+  width: min(100%, 36rem);
+  margin: 0;
+}
+
+.profile-foundation .field-group {
+  gap: var(--space-1);
+}
+
+.profile-foundation .field-group label {
+  color: var(--color-slate-800);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.profile-foundation .field-group input {
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-slate-500);
+  border-radius: var(--radius-control);
+  background: var(--color-white);
+  color: var(--color-slate-800);
+  font: inherit;
+  line-height: 1.5;
+  caret-color: var(--color-navy-700);
+  box-shadow: none;
+}
+
+.profile-foundation .field-group input[aria-invalid='true'] {
+  border-color: var(--color-danger-text);
+}
+
+.profile-foundation .field-error {
+  color: var(--color-danger-text);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.profile-foundation :is(.primary-button, .text-button) {
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-navy-700);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+.profile-foundation .primary-button {
+  justify-self: start;
+  background: var(--color-navy-700);
+  color: var(--color-white);
+}
+
+.profile-foundation .primary-button:is(:hover, :active):not(:disabled) {
+  background: var(--color-navy-800);
+}
+
+.profile-foundation .text-button {
+  border-color: var(--color-slate-500);
+  background: var(--color-white);
+  color: var(--color-navy-700);
+}
+
+.profile-foundation .text-button:is(:hover, :active) {
+  background: var(--color-slate-50);
+}
+
+.profile-foundation :is(input, button, a, .validation-summary):focus-visible {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.profile-foundation :is(.notice, .validation-summary) {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.profile-foundation .notice--warning {
+  color: #854d0e;
+  background: #fffbeb;
+}
+
+.profile-foundation .validation-summary {
+  color: var(--color-danger-text);
+  background: #fef2f2;
+}
+
+.profile-foundation .validation-summary a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.profile-foundation > .status-message {
+  margin: 0;
+  color: var(--color-slate-700);
+  font-size: 1rem;
+  line-height: 1.625;
+  overflow-wrap: anywhere;
+}
+
+.profile-foundation :is(input, button):disabled {
+  opacity: 1;
+  cursor: wait;
+}
+
+.profile-foundation input:disabled {
+  background: var(--color-slate-50);
+}
+
+.profile-foundation .loading-line {
+  background: var(--color-slate-200);
+}
+
+.profile-foundation .loading-line::after {
+  background: var(--color-teal-700);
+}
+
+.profile-foundation ::selection {
+  color: var(--color-navy-700);
+  background: var(--color-teal-50);
+}
+
+@media (max-width: 640px) {
+  .member-workspace.profile-foundation {
+    padding-inline: 6px;
+  }
+
+  .profile-foundation .workspace-heading {
+    align-items: flex-start;
+  }
+
+  .profile-foundation .workspace-heading h2 {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+  }
+
+  .profile-foundation .readonly-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-foundation .loading-line::after {
+    animation: none;
+  }
+}

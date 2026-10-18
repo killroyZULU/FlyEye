@@ -1,6 +1,7 @@
 import type { AuthGateway } from '../../auth';
 import { MemberProfileForm } from './MemberProfileForm';
 import { useMemberProfile } from './useMemberProfile';
+import '../../../styles/profile-foundation.css';
 
 type MemberProfilePanelProps = {
   gateway: AuthGateway;
@@ -21,7 +22,7 @@ export function MemberProfilePanel({ gateway, membershipId, onClose }: MemberPro
     save,
   } = useMemberProfile({ gateway, membershipId });
   return (
-    <section className="member-workspace" aria-labelledby="profile-heading">
+    <section className="member-workspace profile-foundation" aria-labelledby="profile-heading">
       <div className="workspace-heading">
         <div>
           <span className="eyebrow">Organization profile</span>

@@ -7,6 +7,7 @@ import { startProductionBrowserServer } from './lib/production-browser-server.mj
 import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
 import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
+import { checkProfileFoundation } from './lib/profile-foundation-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -746,7 +747,9 @@ const scenarios = [
   { name: 'documents-student', options: {} },
 ];
 const headerOnly = process.argv.includes('--header-only');
-const selectedScenarios = process.argv.includes('--deferred-only') || headerOnly ? [] : scenarios;
+const profileOnly = process.argv.includes('--profile-only');
+const selectedScenarios =
+  process.argv.includes('--deferred-only') || headerOnly || profileOnly ? [] : scenarios;
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
   { name: 'mobile', size: { width: 393, height: 851 } },
@@ -765,14 +768,16 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production && !headerOnly)
+    if (production && !headerOnly && !profileOnly)
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
     if (!process.argv.includes('--deferred-only')) {
-      if (!headerOnly) await checkSignInFoundation(browser, mockSupabase);
-      await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
-        student: studentContext,
-        admin: adminContext,
-      });
+      if (!headerOnly && !profileOnly) await checkSignInFoundation(browser, mockSupabase);
+      if (!profileOnly)
+        await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
+          student: studentContext,
+          admin: adminContext,
+        });
+      if (!headerOnly) await checkProfileFoundation(browser, mockSupabase, submitLogin);
     }
   } finally {
     await browser.close();
