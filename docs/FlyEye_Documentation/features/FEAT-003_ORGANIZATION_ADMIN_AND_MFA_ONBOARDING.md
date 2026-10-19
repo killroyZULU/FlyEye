@@ -326,10 +326,12 @@ unverified factor. Re-entry must fail closed without another enrollment. Compare
 exact command responses, grant snapshots and audit deltas; require no challenge,
 verification, deletion or completion requests in either journey.
 
-Run only in disposable CI with synthetic identities. Interrupt a separate run
-after enrollment to verify browser/frontend shutdown, captured Auth descendants,
-domain/limiter cleanup and unchanged foreign state. This does not prove memory
-erasure, global session revocation, factor recovery or other provider schedules.
+Use disposable synthetic CI. Interrupt after enrollment; verify browser/frontend
+shutdown, captured Auth descendants, domain/limiter cleanup and unchanged foreign
+state. This does not prove memory erasure, global revocation or factor recovery.
+Diagnostics distinguish existing form/response/screen waits and passively report
+only fixed request-outcome categories. Preserve requests, timeouts and retries;
+never emit bodies, URLs, credentials, tokens or arbitrary provider/DOM text.
 
 ### Existing verified factor and foreign-factor challenge
 
