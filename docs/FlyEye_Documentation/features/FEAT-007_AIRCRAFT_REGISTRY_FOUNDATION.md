@@ -398,6 +398,9 @@ Limiter acceptance does not authorize a protected domain action.
 
 ## H002 lock-wait investigation
 
+The [R5 implicit-write contract](FEAT-007_REGISTRY_IMPLICIT_WAITS.md) is a focused
+reference because this specification is near its size budget.
+
 [SEC-001 / #114](https://github.com/killroyZULU/FlyEye/issues/114) tests the
 [audit hypothesis](https://github.com/killroyZULU/FlyEye/issues/39) against the
 existing active-membership and permission contract. Observe an actual advisory
