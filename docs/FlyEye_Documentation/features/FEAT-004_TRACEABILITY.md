@@ -50,6 +50,38 @@ does not extend that evidence to provider identity changes during waits, global
 session policy, every implicit write wait or hosted operation. Broader H002
 coverage remains in [issue #39](https://github.com/killroyZULU/FlyEye/issues/39).
 
+## Recipient concurrency evidence
+
+[SEC-027/#168](https://github.com/killroyZULU/FlyEye/issues/168) and
+[PR #169](https://github.com/killroyZULU/FlyEye/pull/169) own execution/review for the
+[recipient contract](FEAT-004_MEMBER_INVITATIONS.md#recipient-concurrency-investigation).
+Baseline `594b1db` / [CI 38690740719](https://github.com/killroyZULU/FlyEye/actions/runs/38690740719)
+reproduced stale email/confirmation preparation and acceptance, and a missing
+conflict audit after recipient-key reassignment. Three insertion/rollback controls
+passed; seven desired-contract assertions failed. Normal and observed-wait
+interruption cleanup passed. Earlier `9c75608` failed fixture setup with verified
+cleanup and establishes no application behavior.
+
+The [SQL runner](../../../scripts/test-h002-recipient.mjs) executes sixteen
+schedules and two audit-failure controls from its [case manifest](../../../scripts/lib/h002-recipient-cases.mjs).
+[Exact state assertions](../../../scripts/lib/h002-recipient-assertions.mjs) include
+profiles, committed competing membership, scoped audit and unchanged permissions.
+The [migration](../../../supabase/migrations/20261015061433_sec_027_invitation_current_identity.sql)
+locks and rereads current confirmed identity before domain locks and records an
+atomic uniqueness-conflict denial. Function signatures, service-only grants,
+tenant constraints and password freshness remain unchanged.
+
+The [provider helper](../../../scripts/lib/invitation-recipient-runtime.mjs), called
+by the existing invitation runtime fixture, tests captured `getUser` evidence,
+real Edge acceptance blocking an Auth email update, fresh-email accepted replay,
+and a new current-email invitation for an unaffiliated actor. Its normal and
+interrupted modes must settle requests and prove owned domain/Auth/session/mail
+cleanup. [Assertion regressions](../../../scripts/lib/invitation-recipient-state.test.mjs)
+reject extra authority, wrong-scope or missing audit, and changed prior evidence.
+Corrected execution remains pending until PR #169 supplies final-head CI; these
+sources alone are not passing database/provider evidence. Historical failures,
+other H002 schedules and hosted operation remain outside this package.
+
 ## Limiter concurrency evidence
 
 [SEC-010 / #132](https://github.com/killroyZULU/FlyEye/issues/132) owns execution

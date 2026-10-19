@@ -54,11 +54,29 @@ function isFactorRequest(input, method, apiUrl) {
   }
 }
 
-export async function withFactorTransportDiagnostics(operation, { input, method, apiUrl, report }) {
+function isPasswordLogin(input, method, apiUrl) {
+  try {
+    const base = new URL(apiUrl);
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    return (
+      method === 'POST' &&
+      base.protocol === 'http:' &&
+      ['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname) &&
+      url.origin === base.origin &&
+      url.pathname === '/auth/v1/token' &&
+      url.searchParams.getAll('grant_type').length === 1 &&
+      url.searchParams.get('grant_type') === 'password'
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function withTransportDiagnostics(operation, { input, method, apiUrl, report }, matches) {
   try {
     return await operation();
   } catch (error) {
-    if (isFactorRequest(input, method, apiUrl)) {
+    if (matches(input, method, apiUrl)) {
       try {
         report(transportDetail(error));
       } catch {
@@ -67,4 +85,12 @@ export async function withFactorTransportDiagnostics(operation, { input, method,
     }
     throw error;
   }
+}
+
+export function withFactorTransportDiagnostics(operation, options) {
+  return withTransportDiagnostics(operation, options, isFactorRequest);
+}
+
+export function withPasswordLoginTransportDiagnostics(operation, options) {
+  return withTransportDiagnostics(operation, options, isPasswordLogin);
 }

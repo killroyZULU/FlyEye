@@ -36,6 +36,7 @@ import { waitForOnboardingWorker } from './lib/onboarding-worker-readiness.mjs';
 import {
   fixtureConnectionOptions,
   withFactorTransportDiagnostics,
+  withPasswordLoginTransportDiagnostics,
 } from './lib/provider-transport-diagnostics.mjs';
 
 import { onboardingUncertaintyBrowser } from './lib/onboarding-uncertainty-browser.mjs';
@@ -142,6 +143,16 @@ function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
     fetch(input, {
       ...options,
       signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+    });
+  if (churnMode && diagnosticsEnabled)
+    return withPasswordLoginTransportDiagnostics(operation, {
+      input,
+      method: init.method ?? input?.method,
+      apiUrl,
+      report: (detail) =>
+        process.stdout.write(
+          fixtureDiagnostic('FEAT-003', 'password-transport', 'failed', detail) + '\n',
+        ),
     });
   if (!challengeMode || !diagnosticsEnabled) return operation();
   return withFactorTransportDiagnostics(operation, {
@@ -371,6 +382,7 @@ function browserClient() {
 }
 
 async function signIn(user) {
+  if (churnMode) enterStage('churn-password', 'provider password sign-in');
   const client = browserClient();
   const { data, error } = await client.auth.signInWithPassword({
     email: user.email,

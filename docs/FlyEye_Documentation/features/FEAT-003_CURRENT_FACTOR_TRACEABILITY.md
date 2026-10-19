@@ -39,7 +39,9 @@ still failing. The existing post-runtime type check remains. Subsequent exact-he
 type/aggregate evidence belongs to [PR #167](https://github.com/killroyZULU/FlyEye/pull/167).
 No local database or occupied service was changed.
 
-R3 closure and merge remain pending. These cases do not establish global H002
+[PR #167](https://github.com/killroyZULU/FlyEye/pull/167) merged as `a8038e9`;
+[post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/38685230085) passed
+all gates and cleanup, completing the frozen local R3 package. These cases do not establish global H002
 closure, hosted behavior, recovery capability, global session policy or production
 readiness. Historical failures retain their existing unknowns in
 [the audit inventory](https://github.com/killroyZULU/FlyEye/issues/39).
