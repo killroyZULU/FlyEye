@@ -115,6 +115,17 @@ async function layout(page) {
 }
 
 async function focused(locator) {
+  // Keyboard focus styling may settle after the key event in touch emulation.
+  await locator
+    .page()
+    .waitForFunction(
+      (e) =>
+        e === document.activeElement &&
+        e.matches(':focus-visible') &&
+        getComputedStyle(e).outlineWidth === '2px',
+      await locator.elementHandle(),
+      { timeout: 5_000 },
+    );
   assert.equal(await locator.evaluate((e) => e === document.activeElement), true);
   assert.equal(await locator.evaluate((e) => getComputedStyle(e).outlineWidth), '2px');
   await locator.scrollIntoViewIfNeeded();
