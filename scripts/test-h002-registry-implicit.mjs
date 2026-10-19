@@ -236,6 +236,7 @@ try {
     for (const authority of probe ? ['retained'] : ['membership', 'role', 'retained'])
       await runCase(test, authority);
   }
+  phase = 'matrix-summary';
   if (probe) assert.equal(injected, true);
   else assert.equal(passed, 63);
 } catch (error) {
