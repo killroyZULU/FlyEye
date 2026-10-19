@@ -161,6 +161,10 @@ Active member + no factor
    audited before provider enrollment. If provider verification succeeds but
    readiness completion fails, FlyEye reports confirmation incomplete and
    grants no new authority; the same bounded operation may retry completion.
+   A failed or unconfirmed provider verification must not show verified copy or
+   offer readiness-completion retry. Except for invalid-code correction and
+   required password reauthentication, clear displayed credentials and use the
+   blocked sign-out/resume path; retain the bound factor under rule 10.
 9. A member with exactly one existing verified TOTP may run the confirmation
    path. The user must successfully challenge it before FlyEye creates or
    refreshes the matching readiness record.
