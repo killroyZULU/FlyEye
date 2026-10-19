@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import process from 'node:process';
 
 import { chromium } from '@playwright/test';
+import { checkMemberMfaVerification } from './lib/member-mfa-verification-browser.mjs';
 import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
 import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
 import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
@@ -762,6 +763,8 @@ try {
     headless: true,
   });
   try {
+    if (!headerOnly && !profileOnly && !process.argv.includes('--deferred-only'))
+      await checkMemberMfaVerification(browser, mockSupabase, submitLogin);
     for (const viewport of viewports) {
       for (const scenario of selectedScenarios) {
         await runScenario(browser, viewport.size, scenario);
