@@ -8,6 +8,7 @@ import {
 import {
   quote,
   hash,
+  acceptanceRequest,
   seedInvitation,
   snapshot,
   assertDenied,
@@ -86,12 +87,12 @@ async function staleSnapshot(context, actor, session, invitation) {
     assertDenied(before, snapshot(psql, actor, invitation), actor, correlation);
     const beforeEdge = snapshot(psql, actor, invitation);
     register(actor.id, action, zero);
-    const response = await invoke(session.token, {
-      action,
-      invitationId: invitation,
-      expectedVersion: 1,
-      ...(action === 'accept' ? { idempotencyKey: randomUUID() } : {}),
-    });
+    const response = await invoke(
+      session.token,
+      action === 'accept'
+        ? acceptanceRequest(invitation)
+        : { action, invitationId: invitation, expectedVersion: 1 },
+    );
     assert.equal(response.response.status, 404);
     assert.equal(response.payload.error.code, 'member_invitation.not_available');
     assertDenied(
@@ -110,7 +111,8 @@ export async function commandWins(context, actor, session, invitation) {
   const before = await diagnostics.run('recipient-before', () => snapshot(psql, actor, invitation));
   const blocker = postgresSession('r4_provider_blocker');
   const observer = postgresSession('r4_provider_observer');
-  const key = randomUUID();
+  const request = acceptanceRequest(invitation);
+  const key = request.idempotencyKey;
   let caseFailure;
   let cleanupFailure;
   let acceptance;
@@ -125,14 +127,7 @@ export async function commandWins(context, actor, session, invitation) {
       select 1 from public.organizations where id=${quote(organization)} for update;`),
     );
     register(actor.id, 'accept', invitation);
-    acceptance = settled(
-      invoke(session.token, {
-        action: 'accept',
-        invitationId: invitation,
-        expectedVersion: 1,
-        idempotencyKey: key,
-      }),
-    );
+    acceptance = settled(invoke(session.token, request));
     tasks.push(acceptance);
     const workerQuery = `select w.pid from pg_stat_activity w join pg_stat_activity b
       on b.pid=any(pg_blocking_pids(w.pid)) where b.application_name='r4_provider_blocker'
@@ -200,12 +195,7 @@ export async function commandWins(context, actor, session, invitation) {
   assertAccepted(before, after, actor, accepted.payload, key);
   if (!probe) {
     register(actor.id, 'accept', zero);
-    const replay = await invoke(session.token, {
-      action: 'accept',
-      invitationId: invitation,
-      expectedVersion: 1,
-      idempotencyKey: key,
-    });
+    const replay = await invoke(session.token, acceptanceRequest(invitation, key));
     assert.equal(replay.response.status, 200);
     assert.deepEqual(replay.payload, {
       ...accepted.payload,
@@ -246,7 +236,8 @@ export async function runInvitationRecipients(context) {
     diagnostics.enter('recipient-recovery');
     const before = snapshot(psql, actors[0], recovery);
     assert.equal(before.members.length, 0);
-    const key = randomUUID();
+    const request = acceptanceRequest(recovery);
+    const key = request.idempotencyKey;
     register(actors[0].id, 'prepare', recovery);
     const prepared = await invoke(sessions[0].token, {
       action: 'prepare',
@@ -257,12 +248,7 @@ export async function runInvitationRecipients(context) {
     assert.equal(prepared.payload.credentialMode, 'existing');
     assert.deepEqual(snapshot(psql, actors[0], recovery), before);
     register(actors[0].id, 'accept', recovery);
-    const accepted = await invoke(sessions[0].token, {
-      action: 'accept',
-      invitationId: recovery,
-      expectedVersion: 1,
-      idempotencyKey: key,
-    });
+    const accepted = await invoke(sessions[0].token, request);
     assert.equal(accepted.response.status, 200);
     assertAccepted(before, snapshot(psql, actors[0], recovery), actors[0], accepted.payload, key);
     diagnostics.pass();

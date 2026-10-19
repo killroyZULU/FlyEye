@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { requestSchema } from '../../supabase/functions/member-invitations/contracts.ts';
 import { postgresSession, waitForSql } from './h002-postgres-session.mjs';
 import { snapshot } from './invitation-recipient-state.mjs';
 import { commandWins } from './invitation-recipient-runtime.mjs';
@@ -90,6 +92,21 @@ describe('recipient owned-session cleanup and sanitized diagnostics', () => {
     expect(lines.some((line) => line.includes('recipient-command-wait event=failed'))).toBe(true);
     expect(lines.some((line) => line.includes('recipient-release event=failed'))).toBe(true);
     expect(lines.join('\n')).not.toContain('private');
+  });
+
+  it('sends a schema-valid acceptance request before observing the command wait', async () => {
+    const { context, observer } = fixture();
+    const invitation = randomUUID();
+    const waitError = new Error('controlled wait interruption');
+    context.invoke.mockImplementation(async (_token, body) => {
+      expect(requestSchema.parse(body)).toEqual(body);
+      expect(body.invitationId).toBe(invitation);
+      return { response: { status: 200 }, payload: {} };
+    });
+    waitForSql.mockRejectedValueOnce(waitError);
+    await expect(commandWins(context, { id: 'actor' }, {}, invitation)).rejects.toBe(waitError);
+    expect(context.invoke).toHaveBeenCalledOnce();
+    expect(observer.close).toHaveBeenCalledOnce();
   });
 
   it('preserves request errors internally without exposing payloads or skipping later cleanup', async () => {

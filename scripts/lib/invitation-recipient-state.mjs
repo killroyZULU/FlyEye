@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 export const quote = (value) => `'${value.replaceAll("'", "''")}'`;
 export const hash = (value) => createHash('sha256').update(value).digest('hex');
+export const acceptanceRequest = (
+  invitationId,
+  idempotencyKey = randomBytes(16).toString('hex'),
+) => ({
+  action: 'accept',
+  invitationId,
+  expectedVersion: 1,
+  idempotencyKey,
+});
 export function seedInvitation(psql, org, admin, email) {
   const id = randomUUID();
   psql(`insert into public.organization_invitations(id,organization_id,email_original,email_canonical,

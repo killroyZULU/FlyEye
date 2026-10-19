@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { assertDenied, assertAccepted, hash } from './invitation-recipient-state.mjs';
+import { randomUUID } from 'node:crypto';
+import { requestSchema } from '../../supabase/functions/member-invitations/contracts.ts';
+import {
+  acceptanceRequest,
+  assertDenied,
+  assertAccepted,
+  hash,
+} from './invitation-recipient-state.mjs';
+
+describe('recipient acceptance fixture request contract', () => {
+  it('passes the production schema and preserves the same request key for replay', () => {
+    const request = acceptanceRequest(randomUUID());
+    expect(requestSchema.parse(request)).toEqual(request);
+    expect(acceptanceRequest(request.invitationId, request.idempotencyKey)).toEqual(request);
+    expect(acceptanceRequest(request.invitationId).idempotencyKey).not.toBe(request.idempotencyKey);
+  });
+
+  it('reproduces rejection of the UUID-formatted key before acceptance can execute', () => {
+    const request = acceptanceRequest(randomUUID(), randomUUID());
+    const result = requestSchema.safeParse(request);
+    expect(result.success).toBe(false);
+    expect(result.error.issues.map(({ path }) => path)).toEqual([['idempotencyKey']]);
+  });
+});
 
 const actor = { id: 'recipient' };
 function state() {
