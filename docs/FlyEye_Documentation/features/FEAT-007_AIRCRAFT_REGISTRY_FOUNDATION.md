@@ -243,6 +243,26 @@ focus, status announcements, confirmation-dialog focus management, and 200%
 reflow follow `07_UI_UX_GUIDELINES.md`. Formal accessibility validation remains
 a later lifecycle gate.
 
+### Registry list visual foundation
+
+Adopt the [visual foundations](../DESIGN.md#5-foundations) only in the list heading,
+disclaimer, search/filter controls, record rows/actions, pagination and existing
+list-state messages. Reuse local fonts and tokens. Preserve copy, callbacks,
+permissions, ordering, criteria, paging and recovery behavior. Editor and
+confirmation styling, documents, Home, backend commands, dependencies and
+persistence remain outside this presentation slice.
+
+- `FEAT-007A-VIS-01`: Empty, single-record and 25-record lists, including maximum
+  permitted text, remain readable and actionable at all [reference widths and
+  input/zoom checks](../DESIGN.md#53-spacing-and-layout), without horizontal page overflow.
+- `FEAT-007A-VIS-02`: Keyboard/screen-reader operation, visible focus, names,
+  status, contrast and targets follow [accessibility guidance](../07_UI_UX_GUIDELINES.md#10-accessibility).
+- `FEAT-007A-VIS-03`: Existing list states, repeated searches, stale-response
+  rejection and protected-access cleanup remain intact. Opening/cancelling
+  editors and confirmations preserves their behavior and presentation.
+- `FEAT-007A-VIS-04`: Styles stay within the list; retain synthetic before/after
+  evidence and apply [bounded verification](../DESIGN.md#11-adoption-and-verification).
+
 ## Audit and observability
 
 Successful mutations emit `aircraft_record.created`,

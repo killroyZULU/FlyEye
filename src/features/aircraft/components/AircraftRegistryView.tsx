@@ -1,5 +1,7 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useRef } from 'react';
 
+import '../../../styles/aircraft-list-foundation.css';
+
 import type { AircraftRecord, ArchiveReason, ReactivationReason } from '../aircraft-registry';
 
 export type AircraftConfirmation = {
@@ -48,6 +50,7 @@ const reactivationOptions: Array<{ value: ReactivationReason; label: string }> =
   { value: 'tracking_resumed', label: 'Tracking resumed' },
   { value: 'archive_incorrect', label: 'Archive was incorrect' },
 ];
+const reasonOptions = { archive: archiveOptions, reactivate: reactivationOptions };
 
 function trapConfirmationFocus(
   event: KeyboardEvent<HTMLDivElement>,
@@ -81,11 +84,14 @@ export function AircraftRegistryView(props: AircraftRegistryViewProps) {
   const confirmationHeadingRef = useRef<HTMLHeadingElement>(null);
   const confirmationRef = useRef<HTMLDivElement>(null);
   useEffect(() => confirmationHeadingRef.current?.focus(), [props.confirmation]);
-  const options = props.confirmation?.action === 'archive' ? archiveOptions : reactivationOptions;
 
   return (
     <section className="member-workspace" aria-labelledby="aircraft-registry-heading">
-      <div inert={props.confirmation ? true : undefined} aria-hidden={Boolean(props.confirmation)}>
+      <div
+        className="aircraft-list-foundation"
+        inert={props.confirmation ? true : undefined}
+        aria-hidden={Boolean(props.confirmation)}
+      >
         <div className="workspace-heading">
           <div>
             <span className="eyebrow">{props.organizationName}</span>
@@ -243,7 +249,7 @@ export function AircraftRegistryView(props: AircraftRegistryViewProps) {
               value={props.reason}
               onChange={(event) => props.onReason(event.target.value as typeof props.reason)}
             >
-              {options.map((option) => (
+              {reasonOptions[props.confirmation.action].map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
