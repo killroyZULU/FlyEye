@@ -15,6 +15,42 @@
 This record separates the two sequential delivery slices. Local results do not
 establish hosted, production, qualified aviation, or customer readiness.
 
+## Authenticated Account security foundation evidence
+
+The [visual acceptance criteria](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation)
+apply only to the authenticated destination. The composition wrapper and scoped
+CSS preserve the existing MFA flow, gateway and callbacks. Issue
+[#180](https://github.com/killroyZULU/FlyEye/issues/180) tracks delivery from
+`badf351`; #169 remains deferred.
+
+| Requirement                                                                                         | Evidence                                                                                                                                                                                                                                       | Result and boundary                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [FEAT-006A-VIS-01/02](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation) | [Enrollment component suite](../../../src/features/auth/components/MemberMfaEnrollmentFlow.test.tsx), `FEAT-006A member TOTP enrollment UI`; [browser checks](../../../scripts/lib/security-foundation-browser.mjs), `checkSecurityFoundation` | Existing retention/clearing, interrupted resume, pending-command suppression, cancellation and same-operation completion retry; synthetic gateways/provider responses                                                |
+| [FEAT-006A-VIS-03/04](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation) | Same browser helper, `layout` and six-width, keyboard, reduced-motion/font-fallback and orientation checks                                                                                                                                     | Automated supporting evidence; owner reported Edge actual 200% zoom and Windows Narrator pass on 2026-10-19, including manual toggle, field label, empty validation, pending feedback and confirmation retry/success |
+| [FEAT-006A-VIS-05](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation)    | Same helper, mandatory-sign-in isolation assertion; [composition](../../../src/features/auth/components/AuthenticatedWorkspace.tsx)                                                                                                            | Shared sign-in enrollment does not opt in; no hook/gateway changes or credential-bearing captures                                                                                                                    |
+
+Before/after captures use the actual components with an injected synthetic
+gateway, Student navigation and a resumed challenge with an empty code field:
+[before desktop](evidence/FEAT-006-security-foundation/before-desktop.png),
+[after desktop](evidence/FEAT-006-security-foundation/after-desktop.png),
+[before phone](evidence/FEAT-006-security-foundation/before-phone.png),
+[after phone](evidence/FEAT-006-security-foundation/after-phone.png).
+The baseline is `badf351`; captures are 1280×900 and 390×844 on 2026-10-19.
+One correction batch fixed inherited button flex sizing, followed by one
+confirmation round. Header, navigation, main container and footer computed
+styles matched the baseline. Enrollment layout uses nonfunctional placeholders
+for inspection; no credential material is retained and authenticator scanning
+is not verified by these placeholders. This is not physical-device,
+hosted-provider or formal WCAG certification evidence.
+
+`pnpm verify:app` passed in a disposable checkout with Node 24.14.0: 1,618
+tests across 87 files, coverage, formatting/docs/lint/types, build/bundle,
+secret scans, 26 browser scenarios plus deferred and all four foundation
+checks, and dependency audit with no known vulnerabilities. Separate-agent
+implementation and evidence review found no actionable issues. The delivery PR
+records final-head CI and cleanup; unchanged database behavior uses disposable
+CI under [QA applicability](../11_QA_TEST_PLAN.md#verification-applicability).
+
 ## Slice A requirements and results
 
 | Requirement/AC ID                                  | Design or control                                                                                                                       | Test/evidence ID                                                                   | Result                 | Limitation or later gate                                                                                |

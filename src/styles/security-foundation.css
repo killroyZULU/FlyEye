@@ -1,0 +1,208 @@
+@import './foundation-tokens.css';
+@import './foundation-fonts.css';
+
+/* Only the authenticated Account security destination opts in. */
+.security-foundation {
+  width: min(100%, 44rem);
+  color: var(--color-slate-700);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.625;
+  overflow-wrap: anywhere;
+}
+
+.security-foundation .state-panel {
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+}
+
+.security-foundation .eyebrow {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.security-foundation .state-panel h2 {
+  margin: 0 0 var(--space-1);
+  color: var(--color-slate-800);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2.5rem;
+}
+
+.security-foundation .state-panel p {
+  margin: 0;
+  color: var(--color-slate-700);
+  font-size: 1rem;
+  line-height: 1.625;
+}
+
+.security-foundation .state-panel--success h2 {
+  color: #166534;
+}
+
+.security-foundation .state-panel--warning h2 {
+  color: #854d0e;
+}
+
+.security-foundation .auth-form {
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.security-foundation .field-group {
+  width: min(100%, 20rem);
+  gap: var(--space-1);
+}
+
+.security-foundation label {
+  color: var(--color-slate-800);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.security-foundation .code-input {
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-slate-500);
+  border-radius: var(--radius-control);
+  background: var(--color-white);
+  color: var(--color-slate-800);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.25em;
+  line-height: 1.5;
+  caret-color: var(--color-navy-700);
+  box-shadow: none;
+}
+
+.security-foundation button {
+  justify-self: start;
+  max-width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-slate-500);
+  border-radius: var(--radius-control);
+  background: var(--color-white);
+  color: var(--color-navy-700);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+.security-foundation .primary-button {
+  border-color: var(--color-navy-700);
+  background: var(--color-navy-700);
+  color: var(--color-white);
+}
+
+.security-foundation .button-row > button {
+  flex: 0 1 auto;
+}
+
+.security-foundation .primary-button:is(:hover, :active):not(:disabled) {
+  background: var(--color-navy-800);
+}
+
+.security-foundation :is(.secondary-button, .text-button):is(:hover, :active):not(:disabled) {
+  background: var(--color-slate-50);
+}
+
+.security-foundation .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: start;
+  gap: var(--space-2);
+}
+
+.security-foundation :is(input, button, h2):focus-visible {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.security-foundation :is(input, button):disabled {
+  opacity: 1;
+  cursor: wait;
+}
+
+.security-foundation input:disabled {
+  background: var(--color-slate-50);
+}
+
+.security-foundation .admin-enrollment-credential {
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-panel);
+  background: var(--color-white);
+}
+
+.security-foundation .admin-enrollment-qr {
+  width: min(100%, 15rem);
+}
+
+.security-foundation .manual-secret {
+  padding: var(--space-2);
+  border-color: var(--color-slate-500);
+  border-radius: var(--radius-control);
+  overflow-wrap: anywhere;
+}
+
+.security-foundation .form-error {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-danger-text);
+  border-radius: var(--radius-control);
+  color: var(--color-danger-text);
+  background: #fef2f2;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.security-foundation .loading-line {
+  background: var(--color-slate-200);
+}
+
+.security-foundation .loading-line::after {
+  background: var(--color-teal-700);
+}
+
+.security-foundation ::selection {
+  color: var(--color-navy-700);
+  background: var(--color-teal-50);
+}
+
+@media (max-width: 640px) {
+  .security-foundation .state-panel h2 {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .security-foundation {
+    padding-inline: 6px;
+  }
+
+  .security-foundation .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .security-foundation .loading-line::after {
+    animation: none;
+  }
+}
