@@ -1,0 +1,228 @@
+@import './foundation-tokens.css';
+@import './foundation-fonts.css';
+
+.auth-shell.auth-shell--password {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  min-height: 100svh;
+}
+
+.auth-shell.auth-shell--password .brand-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-slate-50);
+  color: var(--color-navy-700);
+  border-right: 1px solid var(--color-slate-200);
+}
+
+.auth-shell.auth-shell--password .brand-panel::after {
+  content: none;
+}
+
+.auth-shell.auth-shell--password .brand-mark {
+  margin: 0;
+}
+
+.auth-shell.auth-shell--password .brand-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.auth-shell.auth-shell--password :is(.brand-tagline, .safety-note) {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.auth-shell.auth-shell--password .brand-copy {
+  grid-column: 1 / -1;
+  max-width: 26rem;
+  margin: 0;
+  padding: var(--space-4) 0;
+}
+
+.auth-shell.auth-shell--password .brand-copy h1 {
+  max-width: none;
+  margin: var(--space-2) 0;
+  color: var(--color-navy-700);
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 2.125rem;
+  letter-spacing: 0;
+}
+
+.auth-shell.auth-shell--password .brand-copy p {
+  color: var(--color-slate-700);
+  font-size: 1rem;
+  line-height: 1.625rem;
+}
+
+.auth-shell.auth-shell--password .safety-note {
+  grid-column: 1 / -1;
+}
+
+.auth-shell.auth-shell--password .eyebrow {
+  color: var(--color-teal-700);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  letter-spacing: 0.04em;
+}
+
+.auth-shell.auth-shell--password .auth-panel {
+  padding: var(--space-4);
+  background: var(--color-white);
+}
+
+.auth-shell.auth-shell--password .auth-card {
+  width: min(100%, 30rem);
+  min-height: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-panel);
+  background: var(--color-white);
+  box-shadow: none;
+}
+
+.auth-shell.auth-shell--password .section-heading h2 {
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--color-navy-700);
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 3rem;
+  letter-spacing: -0.02em;
+}
+
+.auth-shell.auth-shell--password .section-heading p {
+  color: var(--color-slate-700);
+  font-size: 1rem;
+  line-height: 1.625rem;
+}
+
+.auth-shell.auth-shell--password .auth-form {
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.auth-shell.auth-shell--password .field-group {
+  gap: var(--space-1);
+}
+
+.auth-shell.auth-shell--password .field-group label {
+  color: var(--color-slate-800);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.auth-shell.auth-shell--password .password-field input {
+  padding-right: 5rem;
+}
+
+.auth-shell.auth-shell--password .password-toggle {
+  min-width: 3rem;
+  min-height: 2.75rem;
+  padding: var(--space-inline) var(--space-1);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-teal-700);
+}
+
+.auth-shell.auth-shell--password .password-toggle:hover:not(:disabled) {
+  background: var(--color-teal-50);
+}
+
+.auth-shell.auth-shell--password :is(.field-error, .status-message) {
+  color: var(--color-danger-text);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.auth-shell.auth-shell--password .status-message:empty {
+  display: block;
+  min-height: 0;
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.auth-shell.auth-shell--password .text-link {
+  align-self: center;
+  padding: 0.75rem var(--space-1);
+  color: var(--color-teal-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  text-underline-offset: 0.2em;
+}
+
+.auth-shell.auth-shell--password .support-copy {
+  margin-top: var(--space-2);
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  text-align: left;
+}
+
+.auth-shell.auth-shell--password footer {
+  margin-top: var(--space-3);
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .auth-shell.auth-shell--password :is(.brand-panel, .auth-panel) {
+    padding: var(--space-3);
+  }
+
+  .auth-shell.auth-shell--password .section-heading h2 {
+    font-size: 2rem;
+    line-height: 2.5rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-shell.auth-shell--password {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .auth-shell.auth-shell--password .brand-panel {
+    grid-template-rows: auto auto;
+    padding: var(--space-2);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-slate-200);
+  }
+
+  .auth-shell.auth-shell--password .brand-copy {
+    padding: 0;
+  }
+
+  .auth-shell.auth-shell--password .brand-copy h1 {
+    margin: var(--space-1) 0 0;
+    font-size: 1.25rem;
+    line-height: 1.5625rem;
+  }
+
+  .auth-shell.auth-shell--password .auth-panel {
+    padding: var(--space-3) max(var(--space-2), env(safe-area-inset-right))
+      max(var(--space-3), env(safe-area-inset-bottom))
+      max(var(--space-2), env(safe-area-inset-left));
+    align-content: start;
+  }
+
+  .auth-shell.auth-shell--password .auth-card {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+}

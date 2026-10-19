@@ -228,6 +228,16 @@ exists; destructive profile or audit removal is not an ordinary rollback.
   size, contrast, desktop/mobile behavior, and responsive member cards receive
   automated support plus explicit formal-review limitations.
 
+### My profile visual foundation
+
+Apply the [visual foundations](../DESIGN.md#5-foundations) only to My profile, reusing the existing locally served fonts and opt-in tokens. Distinguish read-only organization, role and email from the two editable fields through hierarchy and grouping. Preserve existing copy, validation, save/version/conflict handling, navigation, authority and input-preservation behavior under [UI behavior](#ui-behavior). Account security, People administration, Home, new fields/features and backend changes are excluded.
+
+- `FEAT-005-VIS-01`: Loading, incomplete profile, validation, saving, success, safe failure/conflict, offline and interrupted interactions retain the approved behavior and accessible status/focus semantics.
+- `FEAT-005-VIS-02`: Long synthetic account values, [reference widths and device/zoom checks](../DESIGN.md#53-spacing-and-layout), keyboard/screen-reader workflow, contrast and targets remain usable without horizontal page scrolling.
+- `FEAT-005-VIS-03`: Profile styles are opt-in; other module and authentication surfaces, the shell and footer retain their presentation. No new dependencies, assets, persistence or retry behavior are introduced.
+
+Verify using existing profile component regressions, affected production-browser assertions, synthetic before/after captures and manual accessibility checks. Follow [bounded visual review](../DESIGN.md#11-adoption-and-verification) and [QA applicability](../11_QA_TEST_PLAN.md#verification-applicability); record execution and limitations in [FEAT-005 traceability](FEAT-005_TRACEABILITY.md).
+
 ## Audit and observability
 
 - Successful status events record status transition, target membership, actor,

@@ -148,6 +148,8 @@ const stages = new Map([
       'churn-org-replacement',
       'churn-grant-replacement',
       'churn-setup',
+      'churn-password',
+      'password-transport',
       'churn-start',
       'churn-enroll',
       'churn-verify',

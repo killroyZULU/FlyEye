@@ -346,6 +346,56 @@ describe('FEAT-006A member TOTP enrollment UI', () => {
     expect(screen.queryByText('private provider diagnostic')).not.toBeInTheDocument();
   });
 
+  describe.each([false, true])('verification failure with required=%s', (required) => {
+    it.each([
+      new AuthGatewayError('rate_limited', 'Too many attempts. Wait before trying again.'),
+      new AuthGatewayError(
+        'admin_onboarding_provider_unavailable',
+        'Authenticator verification could not be confirmed. Sign in again before continuing.',
+      ),
+      new Error('private provider diagnostic'),
+    ])('blocks unconfirmed verification without offering readiness retry: %s', async (error) => {
+      const pending = deferred();
+      const client = gateway({ verifyMemberTotp: vi.fn().mockReturnValue(pending.promise) });
+      const callbacks = renderFlow(client, required);
+      const user = await enterEnrollment();
+      await user.click(screen.getByRole('button', { name: 'Show manual setup key' }));
+      await user.type(screen.getByLabelText('Verification code'), '123456');
+      await user.click(screen.getByRole('button', { name: 'Verify authenticator' }));
+      const verifying = screen.getByRole('button', { name: 'Verifying code…' });
+      expect(verifying).toBeDisabled();
+      await user.click(verifying);
+      expect(client.verifyMemberTotp).toHaveBeenCalledOnce();
+      await act(async () => {
+        pending.reject(error);
+        await pending.promise.catch(() => undefined);
+      });
+      expect(screen.getByRole('heading', { name: 'Authenticator setup is blocked' })).toHaveFocus();
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        error instanceof AuthGatewayError
+          ? error.message
+          : 'Authenticator setup could not be confirmed. Try again.',
+      );
+      expect(screen.queryByText(/Your authenticator code was verified/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Retry confirmation' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Manual authenticator setup key')).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Authenticator setup QR code')).not.toBeInTheDocument();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:synthetic-member-qr');
+      expect(client.completeMemberMfaEnrollment).not.toHaveBeenCalled();
+      expect(callbacks.onCompleted).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Cancel and sign out' }));
+      expect(client.cancelMemberMfaEnrollment).toHaveBeenCalledWith(
+        expect.objectContaining({ operationId: start.operationId, operationVersion: 2 }),
+        '50000000-0000-4000-8000-000000000001',
+        expect.any(String),
+      );
+      expect(callbacks.onRequirePassword).toHaveBeenCalledWith(
+        'Authenticator setup remains incomplete and was retained safely. Sign in to resume.',
+      );
+    });
+  });
+
   it.each(['loadMemberMfaStatus', 'startMemberMfaEnrollment', 'prepareMemberTotp'] as const)(
     'shows safe failure and preserves cancellation scope when %s fails',
     async (method) => {
@@ -537,5 +587,23 @@ describe('FEAT-006A member TOTP enrollment UI', () => {
     expect(
       await screen.findByRole('heading', { name: 'Confirm authenticator readiness' }),
     ).toHaveFocus();
+  });
+
+  it('ignores a late provider rejection after unmount', async () => {
+    const pending = deferred();
+    const client = gateway({ verifyMemberTotp: vi.fn().mockReturnValue(pending.promise) });
+    const callbacks = renderFlow(client);
+    const user = await enterEnrollment();
+    await user.type(screen.getByLabelText('Verification code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Verify authenticator' }));
+    callbacks.unmount();
+    await act(async () => {
+      pending.reject(new AuthGatewayError('admin_onboarding_provider_unavailable', 'Unconfirmed.'));
+      await pending.promise.catch(() => undefined);
+    });
+    expect(client.completeMemberMfaEnrollment).not.toHaveBeenCalled();
+    expect(callbacks.onRequirePassword).not.toHaveBeenCalled();
+    expect(callbacks.onCompleted).not.toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:synthetic-member-qr');
   });
 });

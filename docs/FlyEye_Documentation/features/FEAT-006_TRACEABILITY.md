@@ -15,6 +15,35 @@
 This record separates the two sequential delivery slices. Local results do not
 establish hosted, production, qualified aviation, or customer readiness.
 
+## Authenticated Account security foundation evidence
+
+[PR #181](https://github.com/killroyZULU/FlyEye/pull/181) owns delivery/checks for
+[#180](https://github.com/killroyZULU/FlyEye/issues/180). Scoped composition/CSS
+preserves the shared flow; [verification recovery](#verification-failure-and-readiness-retry-boundary)
+comes from main `3cab528`.
+
+| Requirement                                                                                         | Evidence                                                                                                                                                                                                                            | Result and boundary                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [FEAT-006A-VIS-01/02](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation) | [Component suite](../../../src/features/auth/components/MemberMfaEnrollmentFlow.test.tsx), `FEAT-006A member TOTP enrollment UI`; [browser helper](../../../scripts/lib/security-foundation-browser.mjs), `checkSecurityFoundation` | Synthetic retention/clearing, interrupted resume, pending suppression, cancellation and same-operation retry                                                        |
+| [FEAT-006A-VIS-03/04](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation) | Same helper: `layout`, six-width, keyboard, reduced-motion/font-fallback and orientation assertions                                                                                                                                 | Owner reported Edge actual 200% zoom and Narrator pass on historical `ee50eff`, 2026-10-19: toggle, label, empty validation, pending and confirmation retry/success |
+| [FEAT-006A-VIS-05](FEAT-006_ROLE_ASSIGNMENT.md#authenticated-account-security-visual-foundation)    | Same helper's mandatory-sign-in isolation assertion; [composition](../../../src/features/auth/components/AuthenticatedWorkspace.tsx)                                                                                                | Mandatory enrollment retains its presentation                                                                                                                       |
+
+Captures compare `badf351` with `ee50eff` on 2026-10-19 at 1280×900 and 390×844:
+[before desktop](evidence/FEAT-006-security-foundation/before-desktop.png),
+[after desktop](evidence/FEAT-006-security-foundation/after-desktop.png),
+[before phone](evidence/FEAT-006-security-foundation/before-phone.png),
+[after phone](evidence/FEAT-006-security-foundation/after-phone.png).
+Actual components use a synthetic gateway, Student navigation and resumed
+challenge with empty input. One button-flex correction batch and one confirmation
+round completed; surrounding shell computed styles matched baseline. Setup
+placeholders contain no credentials and do not verify scanning. Evidence does not
+certify physical devices, hosted providers or WCAG compliance.
+
+Historical `ee50eff`: `pnpm verify:app` (1,618 tests/87 files), browser checks
+and separate review passed.
+PR #181 records integration-target verification, CI and cleanup under
+[QA applicability](../11_QA_TEST_PLAN.md#verification-applicability).
+
 ## Slice A requirements and results
 
 | Requirement/AC ID                                  | Design or control                                                                                                                       | Test/evidence ID                                                                   | Result                 | Limitation or later gate                                                                                |
@@ -196,6 +225,28 @@ These synthetic mocks establish compatibility, not hosted provider behavior. Fin
 The [runtime fixture](../../../scripts/test-feat-006b-runtime.mjs) retains its role-assignment, forged-school, replay, audit and last-admin assertions. The `role assignment fixture cleanup` and `role assignment fixture completion` suites in [fixture tests](../../../scripts/lib/role-assignment-runtime-fixture.test.mjs) pass synthetic failure injections for cleanup continuation, exact-run scopes, residue rejection and success only after verified cleanup. The `runtime matrix FEAT-006B diagnostics integration` suite in [runner tests](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs) verifies capture and filtering on both successful and failed child exits. Worker readiness and shutdown reuse the [tested lifecycle helper](../../../scripts/lib/local-edge-lifecycle.test.mjs).
 
 These unit results do not establish database cleanup. Disposable CI must supply SQL/RLS, all runtime cleanup, lint/types and teardown evidence; delivery results belong to #88's linked PR. The occupied local database remains excluded, and a later passing run cannot establish the historical failure cause.
+
+## Verification failure and readiness retry boundary
+
+[FIX-018 / #182](https://github.com/killroyZULU/FlyEye/issues/182) corrects the
+[Slice A rules 6–10](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules).
+The `verification failure with required=%s` cases in the
+[enrollment component suite](../../../src/features/auth/components/MemberMfaEnrollmentFlow.test.tsx)
+reproduced six failures against `badf351`: unconfirmed verification displayed
+verified copy and offered completion retry. The corrected cases verify both
+entry points, blocked-heading focus, safe error text, credential clearing,
+pending-command suppression and retained-factor cancellation. The same suite
+covers invalid-code correction, password reauthentication, same-operation
+completion retry and late responses after unmount.
+
+[Production browser checks](../../../scripts/lib/member-mfa-verification-browser.mjs),
+`checkMemberMfaVerification`, exercise challenge rate limits, unavailable
+verification and unconfirmed assurance through the actual gateway, then
+sign-out/resume and confirmation retry without re-enrollment. Responses are
+synthetic; these checks do not establish hosted provider behavior or a new
+screen-reader certification. The delivery PR records final checks, separate
+review and disposable CI/cleanup evidence. Server authority and factor
+lifecycle are unchanged.
 
 ## Evidence rules
 

@@ -27,17 +27,17 @@ Non-goals:
 
 ## Sources, assumptions, and unresolved questions
 
-| Item | Source/owner/version | State |
-|---|---|---|
-| | | Verified / assumed / unresolved |
+| Item | Source/owner/version | State                           |
+| ---- | -------------------- | ------------------------------- |
+|      |                      | Verified / assumed / unresolved |
 
 Do not implement an unverified aviation, aircraft, legal, privacy, or operational rule as authoritative.
 
 ## Roles and authority
 
 | Action | Permission | Tenant/record rule | Direct RLS or protected command | Reauthentication |
-|---|---|---|---|---|
-| | | | | |
+| ------ | ---------- | ------------------ | ------------------------------- | ---------------- |
+|        |            |                    |                                 |                  |
 
 ## Workflow and business rules
 
@@ -84,8 +84,8 @@ Record the environment supplying database/runtime evidence and any justified
 local N/A; all required CI remains mandatory. List feature-specific cases below.
 
 | Test ID | Level | Scenario | Expected result |
-|---|---|---|---|
-| | | | |
+| ------- | ----- | -------- | --------------- |
+|         |       |          |                 |
 
 ## Dependencies
 
@@ -101,9 +101,8 @@ Excluded areas:
 
 - Unrelated modules
 - Architecture or authority changes outside this specification
-- Merge, real data, production deployment, destructive actions, and branch deletion
 
-Do not restate the global delivery envelope or hard stops; reference `AGENTS.md`.
+Record only feature-specific boundaries here. [Delivery authorization](../../../AGENTS.md#delivery-workflow), [hard stops, and excluded actions](../../../AGENTS.md#hard-stops) remain governed by AGENTS.md.
 
 ## Definition of done
 

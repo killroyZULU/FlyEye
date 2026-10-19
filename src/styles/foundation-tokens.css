@@ -1,0 +1,82 @@
+/* Opt-in presentation primitives; other surfaces retain their current styling. */
+.auth-shell.auth-shell--password,
+.profile-foundation,
+.security-foundation,
+.application-shell > :is(.application-header, .primary-navigation, .skip-link) {
+  --color-navy-700: #0e2246;
+  --color-navy-800: #0b1b3d;
+  --color-teal-700: #176c69;
+  --color-teal-50: #ecf8f7;
+  --color-white: #ffffff;
+  --color-slate-50: #f8f9fa;
+  --color-slate-200: #e5e7eb;
+  --color-slate-500: #6b7280;
+  --color-slate-700: #374151;
+  --color-slate-800: #1f2937;
+  --color-danger-text: #b91c1c;
+  --font-heading: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --space-inline: 0.25rem;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-6: 3rem;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+}
+
+.auth-shell.auth-shell--password {
+  font-family: var(--font-body);
+  color: var(--color-slate-700);
+  background: var(--color-white);
+}
+
+.auth-shell.auth-shell--password :is(input, button, a):focus-visible {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.auth-shell.auth-shell--password .field-group input {
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-slate-500);
+  border-radius: var(--radius-control);
+  background: var(--color-white);
+  color: var(--color-slate-800);
+  font-size: 1rem;
+  line-height: 1.5;
+  caret-color: var(--color-navy-700);
+  box-shadow: none;
+}
+
+.auth-shell.auth-shell--password .field-group input[aria-invalid='true'] {
+  border-color: var(--color-danger-text);
+}
+
+.auth-shell.auth-shell--password .primary-button {
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--color-navy-700);
+  color: var(--color-white);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+.auth-shell.auth-shell--password .primary-button:hover:not(:disabled),
+.auth-shell.auth-shell--password .primary-button:active:not(:disabled) {
+  background: var(--color-navy-800);
+}
+
+.auth-shell.auth-shell--password :is(input, button):disabled {
+  opacity: 1;
+  cursor: wait;
+}
+
+.auth-shell.auth-shell--password input:disabled {
+  background: var(--color-slate-50);
+}

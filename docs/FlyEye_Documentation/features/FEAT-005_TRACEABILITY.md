@@ -121,6 +121,47 @@ inspection alone is not passing evidence.
 Existing authorization, trusted scope and cross-school tests retain their original
 scope. Other H002 schedules and hosted thresholds remain outside this matrix.
 
+## My profile visual foundation evidence
+
+[#178](https://github.com/killroyZULU/FlyEye/issues/178) owns the delivery target,
+review and final CI for the [visual foundation contract](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#my-profile-visual-foundation).
+The presentation change opts only My profile into the existing tokens and local
+fonts; form, gateway, versioning, navigation and session logic are unchanged.
+
+- [FEAT-005-VIS-01](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#my-profile-visual-foundation): the existing [profile compatibility tests](../../../src/features/members/components/MemberProfilePanel.test.tsx), suite `MemberProfilePanel`,
+  retain loading, validation, pending saves, conflicts, offline edits and late
+  response coverage. The focused profile/gateway/contract command passed 126 tests
+  across six discovered files. [Production browser checks](../../../scripts/lib/profile-foundation-browser.mjs),
+  `checkProfileFoundation`, passed exact versioned save payloads, disabled repeated
+  activation, safe failures and preserved conflict/offline input with synthetic
+  transport responses.
+- [FEAT-005-VIS-02](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#my-profile-visual-foundation): the same browser checks passed six reference widths, long
+  read-only values, contrast and control boundaries, 44 px minimum targets,
+  keyboard/validation focus, accessible field names, loading/unavailable states,
+  reduced motion, font failure and emulated touch/tablet orientation/reduced-height
+  reachability. The owner reported a pass in Edge at actual 200% browser zoom and
+  with Windows Narrator for read-only context, field guidance, validation links,
+  pending/success feedback and preserved input after an injected conflict.
+- [FEAT-005-VIS-03](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#my-profile-visual-foundation): sampled header/navigation/main/footer computed styles matched
+  before and after at both capture widths. Existing application and deferred-screen
+  browser suites retain other-surface regression coverage; sampled equality is not
+  exhaustive visual equivalence.
+
+The synthetic component harness rendered the actual shell and profile in Edge
+without backend requests on 2026-10-18. Captures compare baseline `759bac0` with
+this delivery at 1280 × 900 and 390 × 844: [desktop before](evidence/FEAT-005-profile-foundation/before-desktop.png),
+[desktop after](evidence/FEAT-005-profile-foundation/after-desktop.png),
+[phone before](evidence/FEAT-005-profile-foundation/before-phone.png) and
+[phone after](evidence/FEAT-005-profile-foundation/after-phone.png).
+One desktop/phone review, one correction batch and one confirmation round were
+completed. Separate technical review found no actionable in-scope issues.
+
+These checks establish scoped presentation and frontend compatibility, not formal
+accessibility certification, physical-device safe-area/software-keyboard behavior,
+hosted authorization or operational readiness. The existing SQL/RLS and runtime
+fixtures supply separate backend evidence through disposable CI; the occupied
+local database was preserved. Final application and CI gates belong to #178.
+
 ## Evidence rules
 
 - One row represents one independently testable requirement group.

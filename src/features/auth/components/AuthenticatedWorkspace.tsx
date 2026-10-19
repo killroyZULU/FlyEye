@@ -13,6 +13,7 @@ import type { AuthSession } from '../useAuthSession';
 import { workspaceNavigation } from '../workspace-navigation';
 import { AuthenticatedShell } from './AuthenticatedShell';
 import { WorkspaceDashboard } from './WorkspaceDashboard';
+import '../../../styles/security-foundation.css';
 
 const MemberAdministrationPanel = lazy(() =>
   import('../../members/components/MemberAdministrationPanel').then((module) => ({
@@ -95,12 +96,14 @@ export function AuthenticatedWorkspace({
         ) : null}
 
         {workspaceView === 'security' ? (
-          <MemberMfaEnrollmentFlow
-            gateway={gateway}
-            onCompleted={() => setWorkspaceView('home')}
-            onClose={() => setWorkspaceView('home')}
-            onRequirePassword={(reason) => void returnToPassword(reason)}
-          />
+          <div className="security-foundation">
+            <MemberMfaEnrollmentFlow
+              gateway={gateway}
+              onCompleted={() => setWorkspaceView('home')}
+              onClose={() => setWorkspaceView('home')}
+              onRequirePassword={(reason) => void returnToPassword(reason)}
+            />
+          </div>
         ) : null}
 
         {workspaceView === 'aircraft' && aircraftGateway ? (

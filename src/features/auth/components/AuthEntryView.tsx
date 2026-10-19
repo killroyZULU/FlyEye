@@ -6,14 +6,17 @@ import type { AuthGateway } from '../services/auth-gateway';
 import type { AuthSession } from '../useAuthSession';
 import type { AuthRoute } from '../auth-app-state';
 import { AuthSignInView } from './AuthSignInView';
+import '../../../styles/sign-in-foundation.css';
 
 const RecoveryRequestForm = lazy(() =>
   import('./RecoveryRequestForm').then((module) => ({ default: module.RecoveryRequestForm })),
 );
 type AuthEntryViewProps = { gateway: AuthGateway; route: AuthRoute; session: AuthSession };
 export function AuthEntryView({ gateway, route, session }: AuthEntryViewProps) {
+  const passwordEntry =
+    route === 'sign-in' && (session.state === 'signed-out' || session.state === 'signing-in');
   return (
-    <main className="auth-shell">
+    <main className={`auth-shell${passwordEntry ? ' auth-shell--password' : ''}`}>
       <section className="brand-panel" aria-label="FlyEye introduction">
         <div className="brand-mark" aria-hidden="true">
           <span>F</span>
