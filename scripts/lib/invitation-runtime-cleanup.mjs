@@ -129,7 +129,11 @@ export async function cleanupInvitationRuntime({
         + (select count(*) from public.member_invitation_rate_limit_events where ${limiterScope} or ${correlationScope})
         + (select count(*) from public.member_invitation_rate_limit_state where ${limiterScope})
         + (select count(*) from public.authentication_events where actor_user_id in (${idValues}))
-        + (select count(*) from auth.users where id in (${idValues}) or lower(email) in (${emailValues}));
+        + (select count(*) from auth.users where id in (${idValues}) or lower(email) in (${emailValues}))
+        + (select count(*) from auth.sessions where user_id in (${idValues}))
+        + (select count(*) from auth.refresh_tokens where user_id in (${idValues}))
+        + (select count(*) from auth.identities where user_id in (${idValues}))
+        + (select count(*) from public.admin_session_factor_bindings where actor_user_id in (${idValues}));
     `);
     assert.equal(residue, '0');
   });

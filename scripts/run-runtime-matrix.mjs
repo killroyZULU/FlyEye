@@ -137,6 +137,9 @@ for (const fixture of fixtures) {
     fixture === 'test-feat-007b-runtime.mjs';
   const memberMfa = fixture === 'test-feat-006-runtime.mjs';
   const onboardingFixture = fixture === 'test-feat-003-runtime.mjs';
+  const invitationFixture = fixture === 'test-feat-004-runtime.mjs';
+  const invitationProvider =
+    invitationFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const onboardingProvider =
     onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const modes = onboardingProvider
@@ -155,13 +158,15 @@ for (const fixture of fixtures) {
         ['--challenge-cleanup-probe'],
         ['--verified-challenge'],
       ]
-    : memberMfa
-      ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
-      : priority.has(fixture)
-        ? [['--cleanup-probe'], []]
-        : [[]];
+    : invitationProvider
+      ? [['--recipient-cleanup-probe'], []]
+      : memberMfa
+        ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
+        : priority.has(fixture)
+          ? [['--cleanup-probe'], []]
+          : [[]];
   for (const [modeIndex, mode] of modes.entries()) {
-    if (onboardingProvider && modeIndex > 0) {
+    if ((onboardingProvider || invitationProvider) && modeIndex > 0) {
       // The preceding mode must pass its cleanup gate before replacing disposable workers.
       try {
         await restartLocalRuntime();
@@ -187,13 +192,15 @@ for (const fixture of fixtures) {
 
     const feature = onboardingFixture
       ? 'FEAT-003'
-      : memberMfa
-        ? 'FEAT-006'
-        : fixture === 'test-edge-runtime.mjs'
-          ? 'FEAT-001'
-          : 'FEAT-002';
+      : invitationFixture
+        ? 'FEAT-004'
+        : memberMfa
+          ? 'FEAT-006'
+          : fixture === 'test-edge-runtime.mjs'
+            ? 'FEAT-001'
+            : 'FEAT-002';
     const cleanupProved =
-      (!priority.has(fixture) && !memberMfa && !onboardingFixture) ||
+      (!priority.has(fixture) && !memberMfa && !onboardingFixture && !invitationFixture) ||
       diagnosticLines.includes(
         `${feature} runtime diagnostic: stage=fixture-cleanup event=passed.`,
       );
