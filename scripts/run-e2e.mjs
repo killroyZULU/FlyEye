@@ -9,6 +9,7 @@ import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
 import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
 import { checkProfileFoundation } from './lib/profile-foundation-browser.mjs';
+import { checkSecurityFoundation } from './lib/security-foundation-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -749,8 +750,11 @@ const scenarios = [
 ];
 const headerOnly = process.argv.includes('--header-only');
 const profileOnly = process.argv.includes('--profile-only');
+const securityOnly = process.argv.includes('--security-only');
 const selectedScenarios =
-  process.argv.includes('--deferred-only') || headerOnly || profileOnly ? [] : scenarios;
+  process.argv.includes('--deferred-only') || headerOnly || profileOnly || securityOnly
+    ? []
+    : scenarios;
 const viewports = [
   { name: 'desktop', size: { width: 1280, height: 720 } },
   { name: 'mobile', size: { width: 393, height: 851 } },
@@ -771,16 +775,20 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production && !headerOnly && !profileOnly)
+    if (production && !headerOnly && !profileOnly && !securityOnly)
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
     if (!process.argv.includes('--deferred-only')) {
-      if (!headerOnly && !profileOnly) await checkSignInFoundation(browser, mockSupabase);
-      if (!profileOnly)
+      if (!headerOnly && !profileOnly && !securityOnly)
+        await checkSignInFoundation(browser, mockSupabase);
+      if (!profileOnly && !securityOnly)
         await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
           student: studentContext,
           admin: adminContext,
         });
-      if (!headerOnly) await checkProfileFoundation(browser, mockSupabase, submitLogin);
+      if (!headerOnly && !securityOnly)
+        await checkProfileFoundation(browser, mockSupabase, submitLogin);
+      if (!headerOnly && !profileOnly)
+        await checkSecurityFoundation(browser, mockSupabase, submitLogin);
     }
   } finally {
     await browser.close();

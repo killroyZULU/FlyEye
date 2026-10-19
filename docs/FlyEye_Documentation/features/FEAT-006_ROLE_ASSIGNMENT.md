@@ -231,6 +231,38 @@ Correct only reproduced defects through versioned migrations. Enrollment,
 provider/factor mutation, cancellation reconciliation, session policy, other
 limiters and hosted abuse remain separate; consumption grants no MFA authority.
 
+### Authenticated Account security visual foundation
+
+Apply the [visual foundations](../DESIGN.md#5-foundations) only to the
+authenticated Account security destination, using the existing local fonts and
+tokens. Improve heading hierarchy, readable measure, status treatment,
+verification fields, QR/manual setup layout and action alignment. Keep the
+existing copy, controls, focus and announcements. Mandatory sign-in enrollment
+and onboarding share components but do not opt into this presentation.
+
+The [Slice A contract](#slice-a-data-server-ui-and-audit-contract) and
+[business rules](#slice-a-workflow-and-rules) continue to own behavior. No hook,
+gateway, factor lifecycle, authentication, permission, data, audit, dependency
+or storage changes are required. Home, other modules and role assignment are
+outside this slice. Frontend composition/styles, focused browser verification
+and this feature's specification/traceability are the affected areas.
+
+- `FEAT-006A-VIS-01`: Preserve loading, unconfigured, ready, interrupted setup,
+  verification, pending confirmation, retry, failure and success actions and
+  transitions, including repeated activation and navigation away.
+- `FEAT-006A-VIS-02`: Keep provider verification distinct from readiness
+  confirmation. Preserve existing credential retention/clearing and bounded
+  retry/cancellation under [Slice A](#slice-a-workflow-and-rules).
+- `FEAT-006A-VIS-03`: Meet [reference widths, targets and zoom](../DESIGN.md#53-spacing-and-layout)
+  with long school names, tablet orientations and reduced-height reachability;
+  no horizontal page overflow or clipped setup material/actions.
+- `FEAT-006A-VIS-04`: Verify keyboard and screen-reader labels, toggle state,
+  focus, validation and pending/recovery announcements under
+  [accessibility guidance](../07_UI_UX_GUIDELINES.md#10-accessibility).
+- `FEAT-006A-VIS-05`: Scope styles to authenticated Account security; other
+  surfaces retain their presentation. Evidence obeys `FEAT-006A-AC-09`; captures
+  contain no authenticator credentials or verification codes.
+
 ### Member-MFA cancellation concurrency investigation
 
 Characterize cancellation, factor binding and completion at the enrollment-operation
