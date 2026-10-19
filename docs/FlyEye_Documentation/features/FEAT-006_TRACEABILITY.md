@@ -197,6 +197,28 @@ The [runtime fixture](../../../scripts/test-feat-006b-runtime.mjs) retains its r
 
 These unit results do not establish database cleanup. Disposable CI must supply SQL/RLS, all runtime cleanup, lint/types and teardown evidence; delivery results belong to #88's linked PR. The occupied local database remains excluded, and a later passing run cannot establish the historical failure cause.
 
+## Verification failure and readiness retry boundary
+
+[FIX-018 / #182](https://github.com/killroyZULU/FlyEye/issues/182) corrects the
+[Slice A rules 6–10](FEAT-006_ROLE_ASSIGNMENT.md#slice-a-workflow-and-rules).
+The `verification failure with required=%s` cases in the
+[enrollment component suite](../../../src/features/auth/components/MemberMfaEnrollmentFlow.test.tsx)
+reproduced six failures against `badf351`: unconfirmed verification displayed
+verified copy and offered completion retry. The corrected cases verify both
+entry points, blocked-heading focus, safe error text, credential clearing,
+pending-command suppression and retained-factor cancellation. The same suite
+covers invalid-code correction, password reauthentication, same-operation
+completion retry and late responses after unmount.
+
+[Production browser checks](../../../scripts/lib/member-mfa-verification-browser.mjs),
+`checkMemberMfaVerification`, exercise challenge rate limits, unavailable
+verification and unconfirmed assurance through the actual gateway, then
+sign-out/resume and confirmation retry without re-enrollment. Responses are
+synthetic; these checks do not establish hosted provider behavior or a new
+screen-reader certification. The delivery PR records final checks, separate
+review and disposable CI/cleanup evidence. Server authority and factor
+lifecycle are unchanged.
+
 ## Evidence rules
 
 - Do not mark `Pass` without reproducible evidence for the reviewed slice target.

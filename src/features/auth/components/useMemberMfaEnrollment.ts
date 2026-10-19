@@ -98,11 +98,8 @@ function useMemberMfaCredential() {
   };
 }
 
-export function useMemberMfaEnrollment({
-  gateway,
-  onClose,
-  onRequirePassword,
-}: MemberMfaEnrollmentOptions) {
+export function useMemberMfaEnrollment(options: MemberMfaEnrollmentOptions) {
+  const { gateway, onClose, onRequirePassword } = options;
   const [state, setState] = useState<FlowState>('loading');
   const [status, setStatus] = useState<MemberMfaStatus>();
   const [start, setStart] = useState<MemberMfaStart>();
@@ -203,9 +200,11 @@ export function useMemberMfaEnrollment({
     const current = ++operation.current;
     setState('verifying');
     setMessage(undefined);
+    let verificationConfirmed = false;
     try {
       await gateway.verifyMemberTotp(preparation.factorId, code);
       if (operation.current !== current) return;
+      verificationConfirmed = true;
       setState('completing');
       clearCredential();
       await gateway.completeMemberMfaEnrollment(start, completeKey.current);
@@ -216,7 +215,7 @@ export function useMemberMfaEnrollment({
       if (operation.current !== current) return;
       const safe = safeError(error);
       setMessage(safe.message);
-      if (safe.code === 'mfa_invalid') {
+      if (!verificationConfirmed && safe.code === 'mfa_invalid') {
         setState('ready');
         requestAnimationFrame(() => codeRef.current?.focus());
       } else if (safe.code === 'member_mfa_recent_authentication_required') {
@@ -224,7 +223,7 @@ export function useMemberMfaEnrollment({
         onRequirePassword(safe.message);
       } else {
         clearCredential();
-        setState('completion_failed');
+        setState(verificationConfirmed ? 'completion_failed' : 'failure');
       }
     }
   }
