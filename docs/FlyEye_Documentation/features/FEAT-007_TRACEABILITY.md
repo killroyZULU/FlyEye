@@ -143,19 +143,13 @@ capacity and operational authority are outside this correction.
 
 ## Slice A historical evidence boundary
 
-- Delivery target: Issue #31 on `feat/FEAT-007A-aircraft-registry`; PR #32
-- Verification date: 2026-08-31
-- Local/hosted/data boundary: Local synthetic verification only
-- Review and CI: Final implementation and diagnostic-remediation technical
-  re-reviews clear; all required pull-request checks passed for reviewed head
-  `ef61821` after four intermittent FEAT-006 fixture failures
-- Known limitations: No hosted validation, real-data authority, formal
-  accessibility review, qualified aviation workflow review, retention decision,
-  deployment, or production approval
-
-The following counts and results apply to the recorded Slice A baseline;
-integration and Slice B evidence are recorded separately below. Neither slice establishes airworthiness, operational availability,
-compliance, registration validity, ownership, or dispatch authority.
+Issue #31 / PR #32, `feat/FEAT-007A-aircraft-registry`: local synthetic
+verification on 2026-08-31 at `ef61821`. Technical re-review and required CI
+passed after four intermittent FEAT-006 fixture failures. The following counts
+are historical; final integration is recorded below. Neither aircraft slice
+establishes operational, airworthiness, compliance, registration, ownership or
+dispatch authority. Hosted, real-data, formal accessibility, qualified aviation,
+retention, deployment and production gates remain open.
 
 ## Requirements and results
 
@@ -172,22 +166,29 @@ compliance, registration validity, ownership, or dispatch authority.
 
 ## Verification summary
 
-- App suite: 32 files and 303 tests; coverage thresholds passed.
-- Database suite: 9 files and 382 rollback-only assertions passed, including 56
-  FEAT-007A assertions.
-- Browser suite: 22 desktop/mobile scenarios passed, including the full admin
-  registry lifecycle.
-- Runtime target: all eight local synthetic fixtures passed; FEAT-007 covered
-  real Auth, TOTP, Edge, normalization, concurrent duplicate prevention,
-  lifecycle races, replay, conflict, concealment, direct Data API denial, audit,
-  and cleanup.
-- Database lint reported no schema warnings, and generated types match the
-  applied schema.
+At `ef61821`: 303 app tests/32 files with coverage; 382 rollback-only SQL
+assertions/9 files (56 FEAT-007A); 22 desktop/mobile scenarios including admin
+lifecycle; eight synthetic runtime fixtures; database lint/types and all three
+required PR checks passed. Runtime covered Auth/TOTP/Edge, normalization,
+duplicates, lifecycle races, replay/conflict, concealment, direct Data API denial,
+audit and cleanup. FEAT-006 failure diagnostics remain restricted to approved
+stage/event/error categories.
 
-All three required pull-request checks passed for `ef61821`. Fail-closed
-diagnostics remain available if the intermittent FEAT-006
-fixture failure recurs; their output is limited to approved stage, event, and
-error-category labels.
+## Registry list foundation evidence
+
+[VIS-01–04](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#registry-list-visual-foundation):
+[checkAircraftListFoundation](../../../scripts/lib/aircraft-list-foundation-browser.mjs)
+passes six widths, long/empty/single lists, keyboard, contrast/targets, states,
+font fallback, touch/reduced height and editor/dialog isolation.
+[Component regressions](../../../src/features/aircraft/components/AircraftRegistryPanel.test.tsx)
+retain filters, reject older responses, preserve conflicts/retry keys and clear
+revoked access. Captures: [desktop before](evidence/FEAT-007-list-foundation/before-desktop.png)/[after](evidence/FEAT-007-list-foundation/after-desktop.png),
+[phone before](evidence/FEAT-007-list-foundation/before-phone.png)/[after](evidence/FEAT-007-list-foundation/after-phone.png).
+Synthetic component harness, Edge, 1440/390 px, 2026-10-19, baseline `76b1da3`;
+no backend requests. Editor/dialog computed styles match baseline. Owner-reported
+actual Edge 200% zoom/Narrator workflow passed; this is not formal accessibility
+certification. Local application matrix and separate review passed;
+[#184](https://github.com/killroyZULU/FlyEye/issues/184) links delivery/CI evidence.
 
 ## Final integration evidence
 
