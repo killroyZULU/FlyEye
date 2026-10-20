@@ -123,8 +123,8 @@ function resolveSupabaseBinary() {
   throw new Error('Pinned local Supabase binary is unavailable for this platform.');
 }
 
-function reportDiagnostic(diagnosticStage, event) {
-  const line = fixtureDiagnostic('FEAT-003', diagnosticStage, event);
+function reportDiagnostic(diagnosticStage, event, detail) {
+  const line = fixtureDiagnostic('FEAT-003', diagnosticStage, event, detail);
   if (diagnosticsEnabled) process.stdout.write(line + '\n');
 }
 

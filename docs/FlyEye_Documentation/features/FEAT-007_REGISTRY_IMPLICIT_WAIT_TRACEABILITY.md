@@ -45,6 +45,14 @@ reject deletion after unverified session absence or failed settlement.
 [SEC-028](../../../supabase/migrations/20261019124941_sec_028_registry_implicit_revalidation.sql)
 adds a final fresh authority check on normal and uniqueness-conflict paths and
 an outer rollback handler for only SQLSTATE `P7304`. Existing `P7001` audit
-failure must propagate. Correction execution is not yet recorded. Existing
-registry SQL/RLS cases and earlier explicit-wait evidence retain their original
-targets and limits; no broader R5 or H002 closure follows from this manifest.
+failure must propagate. Correction `6e3a021e2e1592e5aa2eee3fa7c533f2ee51e968`
+passed [CI 39255447507](https://github.com/killroyZULU/FlyEye/actions/runs/39255447507):
+all 42 revocation schedules denied with rollback and all 21 retained-authority
+controls passed. Controlled interruption and final cleanup/residue passed, as
+did SQL/RLS, all 27 runtime executions/final cleanup markers, database lint/types,
+teardown and the required application/aggregate gates.
+
+[PR #187](https://github.com/killroyZULU/FlyEye/pull/187) owns reconciliation and
+final-head evidence after diagnostic #189. Existing registry SQL/RLS cases and
+earlier explicit-wait evidence retain their original targets and limits; no
+broader R5 or H002 closure follows from this manifest.

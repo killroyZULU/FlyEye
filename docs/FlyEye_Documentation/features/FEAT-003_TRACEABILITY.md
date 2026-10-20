@@ -210,14 +210,17 @@ the shared completion/bootstrap and cleanup evidence above.
 
 ### Stale-factor browser evidence map
 
-[SEC-022 / #158](https://github.com/killroyZULU/FlyEye/issues/158): results/review;
+[SEC-022](https://github.com/killroyZULU/FlyEye/issues/158);
 [contract/limitations](FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#stale-unverified-factor-entry-and-cancellation).
 [Runtime](../../../scripts/test-feat-003-runtime.mjs) modes `--stale-factors` and
 `--stale-cleanup-probe` run [onboardingStaleBrowser](../../../scripts/lib/onboarding-stale-browser.mjs)
 with provider cleanup. [assertStaleTransition/assertFactorRequests](../../../scripts/lib/onboarding-stale-evidence.mjs):
 state/audit/request assertions; [mutation regressions](../../../scripts/lib/onboarding-stale-evidence.test.mjs).
 [R3 provider consistency gate](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs):
-cleanup enforcement. Browser cancellation separately checks rendered credentials/local storage.
+cleanup enforcement; browser verifies credentials/storage.
+[SEC-029](https://github.com/killroyZULU/FlyEye/issues/188): passive
+[observeOnboardingLogin](../../../scripts/lib/onboarding-login-diagnostics.mjs);
+[privacy/lifecycle tests](../../../scripts/lib/onboarding-login-diagnostics.test.mjs).
 
 ### Grant ownership evidence map
 

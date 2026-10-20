@@ -78,9 +78,17 @@ and a new current-email invitation for an unaffiliated actor. Its normal and
 interrupted modes must settle requests and prove owned domain/Auth/session/mail
 cleanup. [Assertion regressions](../../../scripts/lib/invitation-recipient-state.test.mjs)
 reject extra authority, wrong-scope or missing audit, and changed prior evidence.
-Corrected execution remains pending until PR #169 supplies final-head CI; these
-sources alone are not passing database/provider evidence. Historical failures,
-other H002 schedules and hosted operation remain outside this package.
+Corrected `46b6365` passed [PR CI](https://github.com/killroyZULU/FlyEye/actions/runs/39244434082).
+Merge `e79e5ef` [post-merge attempt 1](https://github.com/killroyZULU/FlyEye/actions/runs/39251566655/attempts/1)
+failed at FEAT-003 stale-browser-login with cleanup/teardown passed.
+[Attempt 2](https://github.com/killroyZULU/FlyEye/actions/runs/39251566655/attempts/2)
+passed all gates, eighteen recipient SQL cases, provider cases, 27 runtime
+executions/final cleanup markers, lint/types and teardown.
+Diagnostic-only [#189](https://github.com/killroyZULU/FlyEye/pull/189) merged at
+`46fb26a`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/39424610673)
+also passed those integration gates and cleanup. This closes the frozen local
+recipient-concurrency acceptance, not the cause of the earlier timeout.
+Historical causes, other H002 schedules and hosted operation remain outside this package.
 
 ## Limiter concurrency evidence
 
