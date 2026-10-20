@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { memberMfaBrowser } from './member-mfa-browser.mjs';
 import { issueGrant } from './onboarding-provider-cases.mjs';
 import { assertStaleTransition, assertFactorRequests } from './onboarding-stale-evidence.mjs';
+import { observeOnboardingLogin } from './onboarding-login-diagnostics.mjs';
 
 export function onboardingStaleBrowser() {
   // Reuse the existing isolated production-preview lifecycle; its member journey is not run.
@@ -27,6 +28,7 @@ export function onboardingStaleBrowser() {
         invoke,
         evidence,
         origin,
+        apiUrl,
         password,
         enterStage,
         reportDiagnostic,
@@ -70,6 +72,7 @@ export function onboardingStaleBrowser() {
         page.setDefaultTimeout(15_000);
         const counts = { enroll: 0, challenge: 0, verify: 0, remove: 0, complete: 0 };
         const records = [];
+        const loginDiagnostics = observeOnboardingLogin(page, reportDiagnostic, apiUrl);
         let routeFailed = false;
         let leaked = false;
         let secret;
@@ -145,22 +148,37 @@ export function onboardingStaleBrowser() {
         async function login(blocked) {
           enterStage('stale-browser-login', 'stale factor browser sign-in');
           const response = responseFor('start');
-          await page.getByLabel('Email address').fill(user.email);
-          await page.getByLabel('Password', { exact: true }).fill(password);
-          await page.getByRole('button', { name: 'Sign in securely' }).click();
-          await assertResponse(await response, blocked ? 'entry' : 'start');
-          if (blocked) {
-            await page
-              .getByRole('heading', { name: 'Administrator review is required', exact: true })
-              .waitFor();
-            await page
-              .getByText('Your administrator onboarding information needs review.', { exact: true })
-              .waitFor();
-            await noCredential();
-          } else
-            await page
-              .getByRole('heading', { name: 'Set up your authenticator', exact: true })
-              .waitFor();
+          loginDiagnostics.begin();
+          try {
+            enterStage('stale-login-email', 'stale factor email control');
+            await page.getByLabel('Email address').fill(user.email);
+            enterStage('stale-login-password', 'stale factor password control');
+            await page.getByLabel('Password', { exact: true }).fill(password);
+            enterStage('stale-login-submit', 'stale factor sign-in submit');
+            await page.getByRole('button', { name: 'Sign in securely' }).click();
+            enterStage('stale-login-start-response', 'stale factor onboarding start response');
+            await assertResponse(await response, blocked ? 'entry' : 'start');
+            if (blocked) {
+              enterStage('stale-login-review-heading', 'stale factor review heading');
+              await page
+                .getByRole('heading', { name: 'Administrator review is required', exact: true })
+                .waitFor();
+              enterStage('stale-login-review-guidance', 'stale factor review guidance');
+              await page
+                .getByText('Your administrator onboarding information needs review.', {
+                  exact: true,
+                })
+                .waitFor();
+              await noCredential();
+            } else {
+              enterStage('stale-login-enrollment-heading', 'stale factor enrollment heading');
+              await page
+                .getByRole('heading', { name: 'Set up your authenticator', exact: true })
+                .waitFor();
+            }
+          } finally {
+            loginDiagnostics.finish();
+          }
         }
         try {
           await page.goto(origin);
@@ -224,6 +242,7 @@ export function onboardingStaleBrowser() {
             'passed',
           );
         } finally {
+          loginDiagnostics.dispose();
           try {
             evidence.captureParents();
           } finally {

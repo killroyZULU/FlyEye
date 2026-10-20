@@ -78,9 +78,11 @@ and a new current-email invitation for an unaffiliated actor. Its normal and
 interrupted modes must settle requests and prove owned domain/Auth/session/mail
 cleanup. [Assertion regressions](../../../scripts/lib/invitation-recipient-state.test.mjs)
 reject extra authority, wrong-scope or missing audit, and changed prior evidence.
-Corrected execution remains pending until PR #169 supplies final-head CI; these
-sources alone are not passing database/provider evidence. Historical failures,
-other H002 schedules and hosted operation remain outside this package.
+Corrected `46b6365` passed [PR CI](https://github.com/killroyZULU/FlyEye/actions/runs/39244434082).
+Merge `e79e5ef` [CI](https://github.com/killroyZULU/FlyEye/actions/runs/39251566655)
+failed at FEAT-003 stale-browser-login with cleanup/teardown passed; integration
+remains open under [#188](https://github.com/killroyZULU/FlyEye/issues/188).
+Historical causes, other H002 schedules and hosted operation remain outside this package.
 
 ## Limiter concurrency evidence
 
