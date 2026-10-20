@@ -128,6 +128,17 @@ const stages = new Map([
       'stale-issuance',
       'stale-seed-factor',
       'stale-browser-login',
+      'stale-login-email',
+      'stale-login-password',
+      'stale-login-submit',
+      'stale-login-start-response',
+      'stale-login-review-heading',
+      'stale-login-review-guidance',
+      'stale-login-enrollment-heading',
+      'stale-network-password',
+      'stale-network-bootstrap',
+      'stale-network-status',
+      'stale-network-start',
       'stale-api-cancel',
       'stale-browser-enrolled',
       'stale-browser-cancel',
@@ -394,7 +405,26 @@ const responseDetails = new Set([
 ]);
 
 export function fixtureDiagnostic(feature, stage, event, detail) {
+  const staleObservation =
+    feature === 'FEAT-003' &&
+    [
+      'stale-network-password',
+      'stale-network-bootstrap',
+      'stale-network-status',
+      'stale-network-start',
+    ].includes(stage) &&
+    event === 'response' &&
+    [
+      'http-2xx',
+      'http-other',
+      'transport-failed',
+      'request-pending',
+      'request-finished',
+      'request-not-observed',
+      ...[...httpStatuses].map((status) => `http-${status}`),
+    ].includes(detail);
   const validEvent =
+    staleObservation ||
     (['enter', 'passed'].includes(event) && detail === undefined) ||
     (event === 'failed' && failureDetails.has(detail)) ||
     (event === 'response' && responseDetails.has(detail)) ||
