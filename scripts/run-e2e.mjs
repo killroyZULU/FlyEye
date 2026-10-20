@@ -10,6 +10,7 @@ import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
 import { checkProfileFoundation } from './lib/profile-foundation-browser.mjs';
 import { checkSecurityFoundation } from './lib/security-foundation-browser.mjs';
+import { checkAircraftListFoundation } from './lib/aircraft-list-foundation-browser.mjs';
 
 import {
   checkCompletedRecoveryNavigation,
@@ -749,10 +750,15 @@ const scenarios = [
   { name: 'documents-student', options: {} },
 ];
 const headerOnly = process.argv.includes('--header-only');
+const aircraftListOnly = process.argv.includes('--aircraft-list-only');
 const profileOnly = process.argv.includes('--profile-only');
 const securityOnly = process.argv.includes('--security-only');
 const selectedScenarios =
-  process.argv.includes('--deferred-only') || headerOnly || profileOnly || securityOnly
+  process.argv.includes('--deferred-only') ||
+  headerOnly ||
+  profileOnly ||
+  securityOnly ||
+  aircraftListOnly
     ? []
     : scenarios;
 const viewports = [
@@ -767,7 +773,12 @@ try {
     headless: true,
   });
   try {
-    if (!headerOnly && !profileOnly && !process.argv.includes('--deferred-only'))
+    if (
+      !aircraftListOnly &&
+      !headerOnly &&
+      !profileOnly &&
+      !process.argv.includes('--deferred-only')
+    )
       await checkMemberMfaVerification(browser, mockSupabase, submitLogin);
     for (const viewport of viewports) {
       for (const scenario of selectedScenarios) {
@@ -775,20 +786,22 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production && !headerOnly && !profileOnly && !securityOnly)
+    if (production && !aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
     if (!process.argv.includes('--deferred-only')) {
-      if (!headerOnly && !profileOnly && !securityOnly)
+      if (!aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
         await checkSignInFoundation(browser, mockSupabase);
-      if (!profileOnly && !securityOnly)
+      if (!aircraftListOnly && !profileOnly && !securityOnly)
         await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
           student: studentContext,
           admin: adminContext,
         });
-      if (!headerOnly && !securityOnly)
+      if (!aircraftListOnly && !headerOnly && !securityOnly)
         await checkProfileFoundation(browser, mockSupabase, submitLogin);
-      if (!headerOnly && !profileOnly)
+      if (!aircraftListOnly && !headerOnly && !profileOnly)
         await checkSecurityFoundation(browser, mockSupabase, submitLogin);
+      if (!headerOnly && !profileOnly && !securityOnly)
+        await checkAircraftListFoundation(browser, mockSupabase, submitLogin);
     }
   } finally {
     await browser.close();
