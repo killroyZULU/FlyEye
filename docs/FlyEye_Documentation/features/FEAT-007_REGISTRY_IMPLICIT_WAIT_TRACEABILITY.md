@@ -156,6 +156,14 @@ only `P7306` in both functions. Existing `P5005`/`P7101` audit failures propagat
 The frozen harness is unchanged; [PR #199](https://github.com/killroyZULU/FlyEye/pull/199)
 owns correction verification. This does not close other R5 paths or global H002.
 
+The [runtime runner](../../../scripts/run-runtime-matrix.mjs), `reportReadiness`,
+distinguishes lifecycle stop/start outcomes from template-probe exhaustion using
+fixed categories, fixture identifiers and zero-based mode indices. The
+[SEC-033 readiness diagnostics tests](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+verify redaction, unchanged commands/delays/attempt counts and that failed
+readiness prevents the next fixture or mode. Prior readiness and invitation-list
+failure causes remain unresolved in PR #199; instrumentation alone is not a fix.
+
 | Contract                                                                                                         | Evidence locator                                                                                                                                                            | Current boundary                                                         |
 | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | [State, audit and retry](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)    | [Assertions](../../../scripts/lib/h002-member-write-assertions.mjs), `assertWrite`/`assertRetry`; [regressions](../../../scripts/lib/h002-member-write-assertions.test.mjs) | Baseline: 35 rollback failures, 40 controls passed                       |
