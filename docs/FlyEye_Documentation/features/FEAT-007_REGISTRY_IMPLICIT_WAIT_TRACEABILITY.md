@@ -97,13 +97,28 @@ cleanup markers, database lint/types and teardown. The merge tree matches review
 
 ## Document/category write investigation
 
-Production baseline `853b697a9871c27fd806e081548ca53b9f67b5ec` retains normal-path
-rollback checks and existing uniqueness-conflict handlers. Source inspection
-identifies the latter as candidates, not reproduced defects.
+[Baseline CI 40070565206](https://github.com/killroyZULU/FlyEye/actions/runs/40070565206)
+at `5a1b49af3b8f429331114fe3123071ceed5d85b9` ran all 243 schedules against unchanged
+production source `853b697a9871c27fd806e081548ca53b9f67b5ec`. All 132 non-collision
+revocation schedules and 81 retained-authority controls passed. Thirty committed
+uniqueness-collision schedules returned `state_conflict` after revocation committed:
+22 idempotency, four category-label and four notification cases. Each passed the
+full rollback/peer snapshot before failing response classification, reported as
+`response-after-verified-rollback`. No unauthorized writes survived in those
+cases; the reproduced defect is missing fresh denial on the exception path.
+No schedule serialized revocation behind the worker. Both document cleanup checks,
+549 SQL/RLS assertions, application CI and disposable teardown passed. The expected
+concurrency failure prevented later runtime/lint checks; the baseline is not green.
 
-| Contract                                                                                       | Evidence locator                                                                                                                                                                          | Result and boundary                                                      |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [Frozen barriers and ordering](FEAT-007_DOCUMENT_WRITE_WAITS.md#frozen-investigation-manifest) | [Runner](../../../scripts/test-h002-document-implicit.mjs), `runCase`; [fixture](../../../scripts/lib/h002-document-implicit-fixture.mjs), `cases`                                        | Execution required; source inspection is not runtime proof               |
-| [State, audit and retry](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)         | [Assertions](../../../scripts/lib/h002-document-implicit-assertions.mjs), `assertDocument`/`assertReplay`; [regressions](../../../scripts/lib/h002-document-implicit-assertions.test.mjs) | Expected rollback and retained controls; no inferred global H002 closure |
-| [Cleanup hard stop](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)              | Runner `--cleanup-probe`; [cleanup](../../../scripts/lib/h002-document-implicit-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-document-implicit-cleanup.test.mjs)      | Disposable CI only; settlement, absence and residue required             |
-| [Scope and mandatory audit](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)      | [Rollback-only SQL](../../../supabase/tests/sec_032_document_implicit_test.sql), School A/B and audit-failure assertions                                                                  | Database execution required; no hosted or provider claim                 |
+[SEC-032](../../../supabase/migrations/20261024064007_sec_032_document_conflict_revalidation.sql)
+adds a fresh authority check inside each existing uniqueness handler, after its
+subtransaction rollback. Normal `P7303` handling and mandatory audit `P7101`
+propagation remain unchanged. [PR #195](https://github.com/killroyZULU/FlyEye/pull/195)
+owns correction verification and final-head evidence; the frozen harness is unchanged.
+
+| Contract                                                                                       | Evidence locator                                                                                                                                                                          | Result and boundary                                               |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [Frozen barriers and ordering](FEAT-007_DOCUMENT_WRITE_WAITS.md#frozen-investigation-manifest) | [Runner](../../../scripts/test-h002-document-implicit.mjs), `runCase`; [fixture](../../../scripts/lib/h002-document-implicit-fixture.mjs), `cases`                                        | Baseline: 132 safe denials, 81 controls, 30 response-path defects |
+| [State, audit and retry](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)         | [Assertions](../../../scripts/lib/h002-document-implicit-assertions.mjs), `assertDocument`/`assertReplay`; [regressions](../../../scripts/lib/h002-document-implicit-assertions.test.mjs) | Baseline rollback and controls passed; no global H002 closure     |
+| [Cleanup hard stop](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)              | Runner `--cleanup-probe`; [cleanup](../../../scripts/lib/h002-document-implicit-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-document-implicit-cleanup.test.mjs)      | Disposable CI only; settlement, absence and residue required      |
+| [Scope and mandatory audit](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)      | [Rollback-only SQL](../../../supabase/tests/sec_032_document_implicit_test.sql), School A/B and audit-failure assertions                                                                  | All 15 added assertions passed; no hosted or provider claim       |
