@@ -11,6 +11,7 @@ import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
 import { checkProfileFoundation } from './lib/profile-foundation-browser.mjs';
 import { checkSecurityFoundation } from './lib/security-foundation-browser.mjs';
+import { checkAircraftEditorFoundation } from './lib/aircraft-editor-foundation-browser.mjs';
 import { checkAircraftListFoundation } from './lib/aircraft-list-foundation-browser.mjs';
 
 import {
@@ -751,6 +752,7 @@ const scenarios = [
   { name: 'documents-student', options: {} },
 ];
 const headerOnly = process.argv.includes('--header-only');
+const aircraftEditorOnly = process.argv.includes('--aircraft-editor-only');
 const aircraftListOnly = process.argv.includes('--aircraft-list-only');
 const profileOnly = process.argv.includes('--profile-only');
 const securityOnly = process.argv.includes('--security-only');
@@ -759,7 +761,8 @@ const selectedScenarios =
   headerOnly ||
   profileOnly ||
   securityOnly ||
-  aircraftListOnly
+  aircraftListOnly ||
+  aircraftEditorOnly
     ? []
     : scenarios;
 const viewports = [
@@ -775,6 +778,7 @@ try {
   });
   try {
     if (
+      !aircraftEditorOnly &&
       !aircraftListOnly &&
       !headerOnly &&
       !profileOnly &&
@@ -787,24 +791,33 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production && !aircraftListOnly && !headerOnly && !profileOnly && !securityOnly) {
+    if (
+      production &&
+      !aircraftEditorOnly &&
+      !aircraftListOnly &&
+      !headerOnly &&
+      !profileOnly &&
+      !securityOnly
+    ) {
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
       await checkDeferredAircraftGateways(browser, production.manifest, mockSupabase, submitLogin);
     }
     if (!process.argv.includes('--deferred-only')) {
-      if (!aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
+      if (!aircraftEditorOnly && !aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
         await checkSignInFoundation(browser, mockSupabase);
-      if (!aircraftListOnly && !profileOnly && !securityOnly)
+      if (!aircraftEditorOnly && !aircraftListOnly && !profileOnly && !securityOnly)
         await checkHeaderNavigation(browser, mockSupabase, submitLogin, {
           student: studentContext,
           admin: adminContext,
         });
-      if (!aircraftListOnly && !headerOnly && !securityOnly)
+      if (!aircraftEditorOnly && !aircraftListOnly && !headerOnly && !securityOnly)
         await checkProfileFoundation(browser, mockSupabase, submitLogin);
-      if (!aircraftListOnly && !headerOnly && !profileOnly)
+      if (!aircraftEditorOnly && !aircraftListOnly && !headerOnly && !profileOnly)
         await checkSecurityFoundation(browser, mockSupabase, submitLogin);
-      if (!headerOnly && !profileOnly && !securityOnly)
+      if (!aircraftEditorOnly && !headerOnly && !profileOnly && !securityOnly)
         await checkAircraftListFoundation(browser, mockSupabase, submitLogin);
+      if (!aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
+        await checkAircraftEditorFoundation(browser, mockSupabase, submitLogin);
     }
   } finally {
     await browser.close();
