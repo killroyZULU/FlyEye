@@ -11,6 +11,8 @@
 
 Delivery status and dependencies are recorded in [Current State](../CURRENT_STATE.md).
 Implementation and integration evidence are recorded in [FEAT-007 Traceability](FEAT-007_TRACEABILITY.md).
+The [document/category write-wait manifest](FEAT-007_DOCUMENT_WRITE_WAITS.md)
+is split into a focused reference to keep this contract within its size budget.
 
 ## User outcome
 
