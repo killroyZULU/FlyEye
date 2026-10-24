@@ -101,10 +101,10 @@ for nine schedules in `cases`: `assign_category-archived-document`,
 rollback from serialization; `assertReviewSuccess` checks restoration, creation
 or unchanged conflict and audit. Cleanup includes the competing invitation.
 
-Onboarding, remaining [invitation acceptance schedules](FEAT-004_TRACEABILITY.md#acceptance-concurrency-evidence), cancellation, six quota limiters, implicit
-DML/FK/uniqueness/trigger/audit waits, global permission changes and session expiry
-remain open in [audit #39](https://github.com/killroyZULU/FlyEye/issues/39).
-Schedules do not establish global safety.
+[R5 implicit-wait inventory](FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md) is
+split here because this record is near its size budget. R1–R4 evidence belongs
+to the linked feature records; R5–R8 remain in [audit #39](https://github.com/killroyZULU/FlyEye/issues/39).
+Named schedules do not establish global safety.
 
 ## Bounded request-body transport
 
