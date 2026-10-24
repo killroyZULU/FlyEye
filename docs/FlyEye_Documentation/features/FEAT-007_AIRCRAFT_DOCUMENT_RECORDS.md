@@ -158,6 +158,9 @@ Current/Suspended --aircraft or custom requirement archived--> Archived history
 
 ### Attachment rules
 
+The [R5 file-wait contract](FEAT-007_FILE_IMPLICIT_WAITS.md) defines the bounded
+concurrency investigation for staging, completion and download confirmation.
+
 1. A proposed new document version may contain no file or exactly one PDF, JPEG,
    or PNG. The initial ceiling is 20 MiB; PDFs are limited to 200 pages and
    images to 40 megapixels. Limits are server-controlled and may only change

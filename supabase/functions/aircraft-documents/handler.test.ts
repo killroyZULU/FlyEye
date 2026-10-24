@@ -476,6 +476,36 @@ describe('aircraft documents Edge handler', () => {
     expect(deps.rpc).toHaveBeenCalledTimes(1);
   });
 
+  it('withholds a signed URL when final download confirmation denies changed authority', async () => {
+    const fileId = 'a0000000-0000-4000-8000-000000000003';
+    const objectKey = `${organizationId}/${aircraftId}/${fileId}/${fileId}.pdf`;
+    const deps = dependencies({
+      rpc: vi
+        .fn()
+        .mockResolvedValueOnce({
+          decision: 'authorized',
+          fileId,
+          bucketId: 'aircraft-documents',
+          objectKey,
+          downloadName: 'record.pdf',
+          mediaType: 'application/pdf',
+          correlationId,
+        })
+        .mockResolvedValueOnce({ decision: 'unauthorized', correlationId }),
+      createSignedDownload: vi.fn().mockResolvedValue('http://local/private-signed'),
+    });
+    const response = await createAircraftDocumentHandler(deps)(
+      request({ action: 'attachment_download', fileId }),
+    );
+    expect(response.status).toBe(403);
+    const body = await response.text();
+    expect(body).not.toContain('http://local/private-signed');
+    expect(body).not.toContain(objectKey);
+    expect(deps.rpc).toHaveBeenCalledTimes(2);
+    expect(deps.createSignedDownload).toHaveBeenCalledOnce();
+    expect(deps.recordSecurity).toHaveBeenCalledOnce();
+  });
+
   it('validates staged bytes before marking an attachment clean', async () => {
     const fileId = 'a0000000-0000-4000-8000-000000000002';
     const objectKey = `${organizationId}/${aircraftId}/${fileId}/${fileId}.png`;

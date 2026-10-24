@@ -56,3 +56,18 @@ teardown and the required application/aggregate gates.
 final-head evidence after diagnostic #189. Existing registry SQL/RLS cases and
 earlier explicit-wait evidence retain their original targets and limits; no
 broader R5 or H002 closure follows from this manifest.
+
+## File-operation investigation
+
+The [frozen file manifest](FEAT-007_FILE_IMPLICIT_WAITS.md#frozen-investigation-manifest)
+targets source `30b6472f85a4266d2a864e2e1d3aec67b529812e`. Production functions are
+unchanged in the baseline investigation. Source inspection is not execution
+evidence; [#192](https://github.com/killroyZULU/FlyEye/issues/192) owns its results.
+
+| Contract                                                                                    | Evidence locator                                                                                                                                                                   | Boundary                                                                         |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [60 observed schedules](FEAT-007_FILE_IMPLICIT_WAITS.md#frozen-investigation-manifest)      | [Runner](../../../scripts/test-h002-file-implicit.mjs), `runCase`; [fixture](../../../scripts/lib/h002-file-implicit-fixture.mjs), `cases`                                         | Selected implicit waits only; previous explicit-wait evidence retains its target |
+| [Exact state/audit and replay](FEAT-007_FILE_IMPLICIT_WAITS.md#acceptance-and-verification) | [Assertions](../../../scripts/lib/h002-file-implicit-assertions.mjs), `assertFile`/`assertFileReplay`; [regressions](../../../scripts/lib/h002-file-implicit-assertions.test.mjs)  | Assertions are not proof until the corresponding schedule executes               |
+| [Cleanup hard stop](FEAT-007_FILE_IMPLICIT_WAITS.md#acceptance-and-verification)            | Runner `--cleanup-probe`; [final cleanup](../../../scripts/lib/h002-file-implicit-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-file-implicit-cleanup.test.mjs) | Requires observed settlement, absence, residue and unchanged permissions         |
+| [Scope and audit failure](FEAT-007_FILE_IMPLICIT_WAITS.md#acceptance-and-verification)      | [Rollback-only SQL](../../../supabase/tests/sec_031_file_implicit_test.sql), School A/B denial and mandatory-audit assertions                                                      | Synthetic database evidence; no real file scanning or hosted Storage proof       |
+| [Withheld download URL](FEAT-007_FILE_IMPLICIT_WAITS.md#acceptance-and-verification)        | [Handler tests](../../../supabase/functions/aircraft-documents/handler.test.ts), `withholds a signed URL when final download confirmation denies changed authority`                | Mocked handler boundary; previously issued URL lifetime remains separate         |
