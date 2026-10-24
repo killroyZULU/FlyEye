@@ -2,10 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
-import {
-  SupabaseAircraftDocumentGateway,
-  SupabaseAircraftRegistryGateway,
-} from './features/aircraft';
+import { SupabaseAircraftDocumentGateway } from './features/aircraft/document-gateway';
+import { SupabaseAircraftRegistryGateway } from './features/aircraft/gateway';
 import { StatePanel } from './features/auth/components/StatePanel';
 import { SupabaseAuthGateway } from './features/auth/services/auth-gateway';
 import { createBrowserSupabaseClient } from './lib/supabase';

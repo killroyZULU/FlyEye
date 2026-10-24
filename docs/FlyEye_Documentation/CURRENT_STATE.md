@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-10-20
+- Last updated: 2026-10-24
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production: not deployed or approved
 - Data boundary: local synthetic data only
@@ -45,7 +45,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
 - Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry](https://github.com/killroyZULU/FlyEye/pull/115), [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) and [SEC-003](https://github.com/killroyZULU/FlyEye/pull/119) integrated through `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed. [Untested H002 scenarios](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary) and database/session-policy gates remain.
 - [A010 / PR #121](https://github.com/killroyZULU/FlyEye/pull/121) merged at `e938371`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37567228502) passed all gates/cleanup. [Limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
-- R1–R4 frozen local scopes integrated. [#189](https://github.com/killroyZULU/FlyEye/pull/189) merged `46fb26a`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/39424610673) passed gates/cleanup. [R5 #187](https://github.com/killroyZULU/FlyEye/pull/187): registry correction. [R5](features/FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md#r5-source-inventory), R6–R8 and #39 dependencies remain open.
+- R1–R4 local scopes integrated. [#187](https://github.com/killroyZULU/FlyEye/pull/187) merged `ff766f3`. [Integration](https://github.com/killroyZULU/FlyEye/actions/runs/40047379310) failed dependency audit; [#190](https://github.com/killroyZULU/FlyEye/issues/190) blocks file-operation tests. [R5](features/FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md#r5-source-inventory), R6–R8 and #39 remain open.
 
 ## Aircraft and dashboard integration
 
