@@ -140,11 +140,24 @@ teardown. Integration is verified; the first transport failure cause remains unk
 [75-schedule manifest](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits).
 The [runner](../../../scripts/test-h002-member-write.mjs), `runCase`, and
 [fixture](../../../scripts/lib/h002-member-write-fixture.mjs), `cases`, target
-unchanged production functions at `19f547e`. No baseline database execution result
-is recorded yet; source inspection alone does not establish a defect.
+unchanged production functions at `19f547e`.
+[Baseline CI 40080317509](https://github.com/killroyZULU/FlyEye/actions/runs/40080317509)
+at `b8249639e1e5f9e8e1a84489f77243c5635f2d35` reached all 75 schedules. All 35
+revocation schedules failed full rollback: 15 profile cases returned `updated` and
+20 notification cases returned `opened` after revocation committed. All 40 retained
+controls passed exact state/audit/response/retry assertions. No schedule serialized
+revocation behind the worker. These are reproduced defects, not safe denials.
+Both member-write cleanup checks, all 571 SQL/RLS assertions, application CI and
+teardown passed; later runtime/lint checks were not reached.
+
+[SEC-033](../../../supabase/migrations/20261024091019_sec_033_member_write_revalidation.sql)
+adds a final fresh authority check after mandatory audit and a rollback handler for
+only `P7306` in both functions. Existing `P5005`/`P7101` audit failures propagate.
+The frozen harness is unchanged; [PR #199](https://github.com/killroyZULU/FlyEye/pull/199)
+owns correction verification. This does not close other R5 paths or global H002.
 
 | Contract                                                                                                         | Evidence locator                                                                                                                                                            | Current boundary                                                         |
 | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [State, audit and retry](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)    | [Assertions](../../../scripts/lib/h002-member-write-assertions.mjs), `assertWrite`/`assertRetry`; [regressions](../../../scripts/lib/h002-member-write-assertions.test.mjs) | Database execution pending                                               |
-| [Scope and mandatory audit](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits) | [Rollback-only SQL](../../../supabase/tests/sec_033_member_write_test.sql), School A/B denial and six audit-failure variants                                                | Execution pending                                                        |
+| [State, audit and retry](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)    | [Assertions](../../../scripts/lib/h002-member-write-assertions.mjs), `assertWrite`/`assertRetry`; [regressions](../../../scripts/lib/h002-member-write-assertions.test.mjs) | Baseline: 35 rollback failures, 40 controls passed                       |
+| [Scope and mandatory audit](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits) | [Rollback-only SQL](../../../supabase/tests/sec_033_member_write_test.sql), School A/B denial and six audit-failure variants                                                | All 22 baseline assertions passed                                        |
 | [Cleanup hard stop](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)         | Runner `--cleanup-probe`; [cleanup](../../../scripts/lib/h002-member-write-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-member-write-cleanup.test.mjs)  | Requires settled/absent sessions, zero residue and unchanged permissions |
