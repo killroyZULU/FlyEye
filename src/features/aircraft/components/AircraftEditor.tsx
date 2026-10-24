@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import {
   validateAircraftForm,
+  type AircraftFormError,
   type AircraftFormValues,
   type AircraftMutationResult,
   type AircraftRecord,
@@ -16,6 +17,8 @@ import {
   releaseDefinitiveAttempt,
   type PendingAircraftAttempt,
 } from '../idempotency-retry';
+import { AircraftEditorForm } from './AircraftEditorForm';
+import '../../../styles/aircraft-editor-foundation.css';
 
 type AircraftEditorProps = {
   gateway: AircraftRegistryGateway;
@@ -51,7 +54,7 @@ export function AircraftEditor({
         }
       : emptyForm,
   );
-  const [validation, setValidation] = useState<string[]>([]);
+  const [validation, setValidation] = useState<AircraftFormError[]>([]);
   const [message, setMessage] = useState<string>();
   const [busy, setBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -63,7 +66,7 @@ export function AircraftEditor({
     event.preventDefault();
     const checked = validateAircraftForm(form);
     if (!checked.success) {
-      setValidation(checked.messages);
+      setValidation(checked.errors);
       return;
     }
     if (!online) return;
@@ -101,7 +104,10 @@ export function AircraftEditor({
   }
 
   return (
-    <section className="member-workspace" aria-labelledby="aircraft-editor-heading">
+    <section
+      className="member-workspace aircraft-editor-foundation"
+      aria-labelledby="aircraft-editor-heading"
+    >
       <div className="workspace-heading">
         <div>
           <span className="eyebrow">Aircraft registry</span>
@@ -110,51 +116,20 @@ export function AircraftEditor({
           </h2>
         </div>
       </div>
-      {validation.length > 0 ? (
-        <div className="validation-summary" role="alert">
-          <strong>Review these details:</strong>
-          <ul>
-            {validation.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
       {message ? (
         <p className="notice notice--warning" role="alert">
           {message}
         </p>
       ) : null}
-      <form className="member-form" onSubmit={(event) => void submit(event)}>
-        {(['registrationMark', 'manufacturer', 'model'] as const).map((field) => (
-          <label className="field" key={field}>
-            <span>
-              {field === 'registrationMark'
-                ? 'Registration mark'
-                : field[0]!.toUpperCase() + field.slice(1)}
-            </span>
-            <input
-              value={form[field]}
-              onChange={(event) => setForm({ ...form, [field]: event.target.value })}
-              disabled={busy}
-              required
-            />
-          </label>
-        ))}
-        <div className="button-row">
-          <button className="primary-button" type="submit" disabled={busy || !online}>
-            {busy ? 'Saving…' : 'Save record'}
-          </button>
-          <button className="text-button" type="button" disabled={busy} onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-        {!online ? (
-          <p className="notice notice--warning">
-            Reconnect before saving. Changes are not queued offline.
-          </p>
-        ) : null}
-      </form>
+      <AircraftEditorForm
+        form={form}
+        onChange={setForm}
+        errors={validation}
+        busy={busy}
+        online={online}
+        onSubmit={submit}
+        onCancel={onCancel}
+      />
     </section>
   );
 }

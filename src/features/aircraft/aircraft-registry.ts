@@ -79,17 +79,31 @@ export type AircraftFormValues = {
   model: string;
 };
 
+export type AircraftFormError = { field: keyof AircraftFormValues; message: string };
+
 export function validateAircraftForm(
   values: AircraftFormValues,
-): { success: true; data: AircraftFormValues } | { success: false; messages: string[] } {
+):
+  | { success: true; data: AircraftFormValues }
+  | { success: false; messages: string[]; errors: AircraftFormError[] } {
   const registrationMark = normalizeField(values.registrationMark, 32);
   const manufacturer = normalizeField(values.manufacturer, 100);
   const model = normalizeField(values.model, 100);
-  const messages: string[] = [];
-  if (!registrationMark) messages.push('Enter a valid registration mark of up to 32 characters.');
-  if (!manufacturer) messages.push('Enter a valid manufacturer of up to 100 characters.');
-  if (!model) messages.push('Enter a valid model of up to 100 characters.');
-  if (messages.length > 0) return { success: false, messages };
+  const errors: AircraftFormError[] = [];
+  if (!registrationMark)
+    errors.push({
+      field: 'registrationMark',
+      message: 'Enter a valid registration mark of up to 32 characters.',
+    });
+  if (!manufacturer)
+    errors.push({
+      field: 'manufacturer',
+      message: 'Enter a valid manufacturer of up to 100 characters.',
+    });
+  if (!model)
+    errors.push({ field: 'model', message: 'Enter a valid model of up to 100 characters.' });
+  if (errors.length > 0)
+    return { success: false, messages: errors.map((error) => error.message), errors };
   return {
     success: true,
     data: {
