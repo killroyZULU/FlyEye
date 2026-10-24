@@ -4,7 +4,19 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
-  build: { manifest: true },
+  build: {
+    manifest: true,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          // Static dependencies still count toward the total initial-JavaScript budget.
+          groups: [
+            { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

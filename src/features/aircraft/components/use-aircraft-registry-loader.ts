@@ -97,6 +97,7 @@ export function useAircraftRegistryLoader(
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
+      loadGenerationRef.current += 1;
       window.clearTimeout(initialLoad);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);

@@ -283,6 +283,20 @@ provider/session, pruning, other implicit waits and hosted abuse remain outside
 this schedule-bounded evidence. Results belong in the
 [limiter evidence record](FEAT-007_LIMITER_TRACEABILITY.md).
 
+## Deferred aircraft gateway loading
+
+Registry and document gateway implementations and their response schemas load
+on the first explicit aircraft operation, outside the login bundle. Share pending
+module loading per gateway instance, never command results. Preserve arguments,
+receiver, validation, error identity, idempotency and server authorization.
+Loading failure returns the existing unavailable error before any request; only
+a later explicit call may retry. Command failures never trigger automatic retry.
+Preserve stale-result disposal after navigation/sign-out and existing auth-bootstrap
+behavior. Keep both [bundle budgets](../../../scripts/lib/bundle-budget.mjs),
+including every transitive static dependency; grouping vendor chunks does not
+exclude bytes. [#190](https://github.com/killroyZULU/FlyEye/issues/190) owns execution
+evidence and integration. No visual, SQL or permission changes belong to this boundary.
+
 ## UI design
 
 The authenticated Aircraft workspace opens a selected aircraft as

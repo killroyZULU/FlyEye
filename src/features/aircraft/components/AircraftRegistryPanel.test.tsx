@@ -333,6 +333,37 @@ describe('AircraftRegistryPanel', () => {
     expect(model).toHaveValue('Preserved attempt');
   });
 
+  it.each(['unauthenticated', 'mfa_required', 'unauthorized'] as const)(
+    'ignores a late %s list response after leaving the screen',
+    async (code) => {
+      let reject!: (error: Error) => void;
+      const pending = new Promise<Awaited<ReturnType<AircraftRegistryGateway['list']>>>(
+        (_resolve, rejectPromise) => {
+          reject = rejectPromise;
+        },
+      );
+      const list = vi.fn().mockReturnValue(pending);
+      const onAccessRevoked = vi.fn();
+      const view = render(
+        <AircraftRegistryPanel
+          gateway={gateway({ list })}
+          organizationName="School"
+          canManage
+          onClose={vi.fn()}
+          onAccessRevoked={onAccessRevoked}
+        />,
+      );
+      await waitFor(() => expect(list).toHaveBeenCalledOnce());
+      view.unmount();
+      await act(async () => {
+        reject(new AircraftRegistryError(code, 'Synthetic stale denial.'));
+        await pending.catch(() => {});
+      });
+      expect(onAccessRevoked).not.toHaveBeenCalled();
+      expect(list).toHaveBeenCalledOnce();
+    },
+  );
+
   it('clears current-session data and exits when protected access is revoked', async () => {
     const user = userEvent.setup();
     const onAccessRevoked = vi.fn();

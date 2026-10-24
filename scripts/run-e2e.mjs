@@ -6,6 +6,7 @@ import { chromium } from '@playwright/test';
 import { checkMemberMfaVerification } from './lib/member-mfa-verification-browser.mjs';
 import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
 import { checkDeferredScreens } from './lib/deferred-screen-browser.mjs';
+import { checkDeferredAircraftGateways } from './lib/deferred-aircraft-gateway-browser.mjs';
 import { checkSignInFoundation } from './lib/sign-in-foundation-browser.mjs';
 import { checkHeaderNavigation } from './lib/header-navigation-browser.mjs';
 import { checkProfileFoundation } from './lib/profile-foundation-browser.mjs';
@@ -786,8 +787,10 @@ try {
         process.stdout.write(`PASS ${viewport.name}: ${scenario.name}\n`);
       }
     }
-    if (production && !aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
+    if (production && !aircraftListOnly && !headerOnly && !profileOnly && !securityOnly) {
       await checkDeferredScreens(browser, production.manifest, mockSupabase, submitLogin);
+      await checkDeferredAircraftGateways(browser, production.manifest, mockSupabase, submitLogin);
+    }
     if (!process.argv.includes('--deferred-only')) {
       if (!aircraftListOnly && !headerOnly && !profileOnly && !securityOnly)
         await checkSignInFoundation(browser, mockSupabase);

@@ -9,7 +9,7 @@ export const AircraftDocumentsPanel = lazy(() =>
     default: module.AircraftDocumentsPanel,
   })),
 );
-export { aircraftDocumentCapabilities } from './aircraft-documents';
+export { aircraftDocumentCapabilities } from './document-capabilities';
 export {
   AircraftDocumentError,
   SupabaseAircraftDocumentGateway,
