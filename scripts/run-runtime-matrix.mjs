@@ -24,8 +24,35 @@ const fixtures = readdirSync(scriptsDirectory, { withFileTypes: true })
     return leftPriority - rightPriority || left.localeCompare(right);
   });
 
-function recoveryTemplateIsReady() {
-  const result = spawnSync(
+const readinessFixtures = new Map([
+  ['test-edge-runtime.mjs', 'FEAT-001'],
+  ['test-recovery-runtime.mjs', 'FEAT-002'],
+  ['test-feat-003-runtime.mjs', 'FEAT-003'],
+  ['test-feat-004-runtime.mjs', 'FEAT-004'],
+  ['test-feat-005-runtime.mjs', 'FEAT-005'],
+  ['test-feat-006-runtime.mjs', 'FEAT-006'],
+  ['test-feat-006b-runtime.mjs', 'FEAT-006B'],
+  ['test-feat-007-runtime.mjs', 'FEAT-007'],
+  ['test-feat-007b-runtime.mjs', 'FEAT-007B'],
+]);
+let readinessFixture = 'unknown';
+let readinessMode = 0;
+
+// Never forward subprocess output, errors, signal names or environment values.
+function reportReadiness(phase, result, attempts = 1) {
+  let outcome = 'unknown';
+  if (result.status === 0) outcome = 'success';
+  else if (result.error?.code === 'ETIMEDOUT') outcome = 'timeout';
+  else if (result.error) outcome = 'spawn-error';
+  else if (result.signal) outcome = 'signal';
+  else if (Number.isInteger(result.status)) outcome = 'nonzero-exit';
+  process.stdout.write(
+    `Runtime readiness diagnostic: fixture=${readinessFixture} mode=${readinessMode} phase=${phase} outcome=${outcome} attempts=${attempts}.\n`,
+  );
+}
+
+function recoveryTemplateProbe() {
+  return spawnSync(
     'docker',
     [
       'exec',
@@ -40,12 +67,15 @@ function recoveryTemplateIsReady() {
       windowsHide: true,
     },
   );
-  return result.status === 0;
 }
 
 async function waitForRecoveryTemplate(attempts) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (recoveryTemplateIsReady()) return true;
+    const result = recoveryTemplateProbe();
+    if (result.status === 0 || attempt + 1 === attempts) {
+      reportReadiness('template', result, attempt + 1);
+      return result.status === 0;
+    }
     if (attempt + 1 < attempts) {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
@@ -59,6 +89,7 @@ async function restartLocalRuntime() {
     timeout: 2 * 60 * 1_000,
     windowsHide: true,
   });
+  reportReadiness('stop', stop);
   if (stop.status !== 0) {
     throw new Error(
       'Runtime readiness failed: local Supabase lifecycle recovery could not stop cleanly.',
@@ -70,7 +101,13 @@ async function restartLocalRuntime() {
     timeout: 3 * 60 * 1_000,
     windowsHide: true,
   });
-  if (start.status !== 0 || !(await waitForRecoveryTemplate(80))) {
+  reportReadiness('start', start);
+  if (start.status !== 0) {
+    throw new Error(
+      'Runtime readiness failed: local Supabase lifecycle recovery could not start cleanly.',
+    );
+  }
+  if (!(await waitForRecoveryTemplate(80))) {
     throw new Error(
       'Runtime readiness failed: the local Auth template route remained unavailable.',
     );
@@ -95,6 +132,8 @@ if (process.argv.includes('--list')) {
 }
 
 for (const fixture of fixtures) {
+  readinessFixture = readinessFixtures.get(fixture) ?? 'unknown';
+  readinessMode = 0;
   if (
     fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
@@ -166,6 +205,7 @@ for (const fixture of fixtures) {
           ? [['--cleanup-probe'], []]
           : [[]];
   for (const [modeIndex, mode] of modes.entries()) {
+    readinessMode = modeIndex;
     if ((onboardingProvider || invitationProvider) && modeIndex > 0) {
       // The preceding mode must pass its cleanup gate before replacing disposable workers.
       try {

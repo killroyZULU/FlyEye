@@ -12,7 +12,7 @@ identified candidates; it did not execute these schedules or establish a defect.
 | `mutate_aircraft_record`                                          | [SEC-001](../../../supabase/migrations/20261005234138_sec_001_registry_lock_revalidation.sql) rechecks after explicit advisory/record locks. The [frozen 63 schedules](FEAT-007_REGISTRY_IMPLICIT_WAITS.md#frozen-investigation-manifest) reproduced later implicit-wait gaps; see execution evidence below. Early-return audit branches are outside this manifest. |
 | `mutate_aircraft_document`, `mutate_aircraft_document_category`   | [SEC-003](../../../supabase/migrations/20261006110323_sec_003_remaining_h002_revalidation.sql) includes final authorization checks with rollback. The [243-schedule manifest](FEAT-007_DOCUMENT_WRITE_WAITS.md#frozen-investigation-manifest) targets remaining implicit writes; execution evidence is recorded below.                                              |
 | File staging, completion and download confirmation                | The [60-schedule file manifest](FEAT-007_FILE_IMPLICIT_WAITS.md#frozen-investigation-manifest) reproduced implicit-wait gaps; see file-operation evidence below. Previously issued signed-URL lifetime remains a separate policy boundary.                                                                                                                          |
-| `open_aircraft_document_notification`, `update_my_member_profile` | SEC-003 covers named explicit waits. Subsequent domain/audit writes still need separately frozen implicit-wait cases.                                                                                                                                                                                                                                               |
+| `open_aircraft_document_notification`, `update_my_member_profile` | SEC-003 covers named explicit waits. The [75-schedule manifest](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits) targets subsequent domain/audit waits; see the investigation below.                                                                                                                                            |
 | Audited member/profile reads                                      | `list_organization_members`, `get_organization_member`, `get_my_member_profile` can wait on mandatory audit writes before returning a result. Not covered by this registry mutation manifest.                                                                                                                                                                       |
 | Audited aircraft/document reads                                   | `list_aircraft_records`, `get_aircraft_record`, `list_aircraft_document_status`, `list_aircraft_for_document_status`, `get_aircraft_document_detail`, `list_aircraft_document_history`, `list_aircraft_document_notifications`: audit-write candidates remain untested.                                                                                             |
 | Onboarding and invitations                                        | Reuse only named R2–R4 tests in [FEAT-003](FEAT-003_TRACEABILITY.md) and [FEAT-004](FEAT-004_TRACEABILITY.md). Onboarding status audit writes and invitation-list expiry materialization need explicit inventory disposition; family-level coverage is not assumed.                                                                                                 |
@@ -116,9 +116,56 @@ subtransaction rollback. Normal `P7303` handling and mandatory audit `P7101`
 propagation remain unchanged. [PR #195](https://github.com/killroyZULU/FlyEye/pull/195)
 owns correction verification and final-head evidence; the frozen harness is unchanged.
 
+PR #195 integrated at `19f547e10294ae155ba47a0ac2bb9f200b078146`, matching reviewed
+`765ff98`. [Post-merge attempt 1](https://github.com/killroyZULU/FlyEye/actions/runs/40074891482/attempts/1)
+passed all 243 schedules and cleanup but failed unchanged FEAT-003 factor-churn
+password transport with `transport-socket-closed`. Eight runtime executions passed;
+nine final cleanup markers include the failed fixture. Residue assertions and
+teardown passed; later lint/types were skipped. Independent review supported one
+unchanged-head failed-job retry. [Attempt 2](https://github.com/killroyZULU/FlyEye/actions/runs/40074891482/attempts/2)
+passed every gate: 549 SQL/RLS assertions, 162 document denials/81 controls, both
+document cleanup checks, 27 runtime executions/final cleanup markers, lint/types and
+teardown. Integration is verified; the first transport failure cause remains unknown.
+
 | Contract                                                                                       | Evidence locator                                                                                                                                                                          | Result and boundary                                               |
 | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | [Frozen barriers and ordering](FEAT-007_DOCUMENT_WRITE_WAITS.md#frozen-investigation-manifest) | [Runner](../../../scripts/test-h002-document-implicit.mjs), `runCase`; [fixture](../../../scripts/lib/h002-document-implicit-fixture.mjs), `cases`                                        | Baseline: 132 safe denials, 81 controls, 30 response-path defects |
 | [State, audit and retry](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)         | [Assertions](../../../scripts/lib/h002-document-implicit-assertions.mjs), `assertDocument`/`assertReplay`; [regressions](../../../scripts/lib/h002-document-implicit-assertions.test.mjs) | Baseline rollback and controls passed; no global H002 closure     |
 | [Cleanup hard stop](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)              | Runner `--cleanup-probe`; [cleanup](../../../scripts/lib/h002-document-implicit-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-document-implicit-cleanup.test.mjs)      | Disposable CI only; settlement, absence and residue required      |
 | [Scope and mandatory audit](FEAT-007_DOCUMENT_WRITE_WAITS.md#acceptance-and-verification)      | [Rollback-only SQL](../../../supabase/tests/sec_032_document_implicit_test.sql), School A/B and audit-failure assertions                                                                  | All 15 added assertions passed; no hosted or provider claim       |
+
+## Profile/notification write investigation
+
+[Issue #198](https://github.com/killroyZULU/FlyEye/issues/198) owns the
+[75-schedule manifest](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits).
+The [runner](../../../scripts/test-h002-member-write.mjs), `runCase`, and
+[fixture](../../../scripts/lib/h002-member-write-fixture.mjs), `cases`, target
+unchanged production functions at `19f547e`.
+[Baseline CI 40080317509](https://github.com/killroyZULU/FlyEye/actions/runs/40080317509)
+at `b8249639e1e5f9e8e1a84489f77243c5635f2d35` reached all 75 schedules. All 35
+revocation schedules failed full rollback: 15 profile cases returned `updated` and
+20 notification cases returned `opened` after revocation committed. All 40 retained
+controls passed exact state/audit/response/retry assertions. No schedule serialized
+revocation behind the worker. These are reproduced defects, not safe denials.
+Both member-write cleanup checks, all 571 SQL/RLS assertions, application CI and
+teardown passed; later runtime/lint checks were not reached.
+
+[SEC-033](../../../supabase/migrations/20261024091019_sec_033_member_write_revalidation.sql)
+adds a final fresh authority check after mandatory audit and a rollback handler for
+only `P7306` in both functions. Existing `P5005`/`P7101` audit failures propagate.
+The frozen harness is unchanged; [PR #199](https://github.com/killroyZULU/FlyEye/pull/199)
+owns correction verification. This does not close other R5 paths or global H002.
+
+The [runtime runner](../../../scripts/run-runtime-matrix.mjs), `reportReadiness`,
+distinguishes lifecycle stop/start outcomes from template-probe exhaustion using
+fixed categories, fixture identifiers and zero-based mode indices. The
+[SEC-033 readiness diagnostics tests](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+verify redaction, unchanged commands/delays/attempt counts and that failed
+readiness prevents the next fixture or mode. Prior readiness and invitation-list
+failure causes remain unresolved in PR #199; instrumentation alone is not a fix.
+
+| Contract                                                                                                         | Evidence locator                                                                                                                                                            | Current boundary                                                         |
+| ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [State, audit and retry](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)    | [Assertions](../../../scripts/lib/h002-member-write-assertions.mjs), `assertWrite`/`assertRetry`; [regressions](../../../scripts/lib/h002-member-write-assertions.test.mjs) | Baseline: 35 rollback failures, 40 controls passed                       |
+| [Scope and mandatory audit](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits) | [Rollback-only SQL](../../../supabase/tests/sec_033_member_write_test.sql), School A/B denial and six audit-failure variants                                                | All 22 baseline assertions passed                                        |
+| [Cleanup hard stop](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#profile-and-notification-write-waits)         | Runner `--cleanup-probe`; [cleanup](../../../scripts/lib/h002-member-write-cleanup.mjs), `finishCleanup`; [tests](../../../scripts/lib/h002-member-write-cleanup.test.mjs)  | Requires settled/absent sessions, zero residue and unchanged permissions |

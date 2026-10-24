@@ -29,10 +29,163 @@ vi.mock('node:process', async (original) => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   mocks.fixture = 'test-feat-006b-runtime.mjs';
   vi.resetAllMocks();
   vi.resetModules();
+});
+
+describe('SEC-033 readiness diagnostics', () => {
+  const privateText = 'synthetic-private-url-token-email';
+  const output = () => [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join('');
+  const children = () =>
+    mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture));
+  const probes = () => mocks.spawnSync.mock.calls.filter(([command]) => command === 'docker');
+  const lifecycle = () =>
+    mocks.spawnSync.mock.calls.filter(([, args]) => ['stop', 'start'].includes(args[1]));
+
+  async function runTimedMatrix() {
+    const wait = vi.fn((callback) => {
+      queueMicrotask(callback);
+      return 0;
+    });
+    vi.stubGlobal('setTimeout', wait);
+    try {
+      await import('../run-runtime-matrix.mjs');
+    } catch (error) {
+      return error;
+    } finally {
+      const sequences = mocks.stdout.mock.calls.filter(([line]) =>
+        line.includes('phase=template'),
+      ).length;
+      expect(wait).toHaveBeenCalledTimes(probes().length - sequences);
+      for (const [, delay] of wait.mock.calls) expect(delay).toBe(250);
+    }
+  }
+
+  for (const phase of ['stop', 'start']) {
+    it.each([
+      ['timeout', { status: null, error: { code: 'ETIMEDOUT', message: privateText } }],
+      ['spawn-error', { status: null, error: { code: privateText, message: privateText } }],
+      ['signal', { status: null, signal: privateText }],
+      ['nonzero-exit', { status: 1 }],
+      ['unknown', { status: null }],
+    ])(`reports ${phase} %s without probing or launching a fixture`, async (outcome, result) => {
+      mocks.spawnSync.mockImplementation((_command, args) =>
+        args[1] === phase ? { ...result, stdout: privateText, stderr: privateText } : { status: 0 },
+      );
+      mocks.exit.mockImplementation(() => {
+        throw new Error('test-exit');
+      });
+      await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      expect(output()).toContain(
+        `fixture=FEAT-006B mode=0 phase=${phase} outcome=${outcome} attempts=1.`,
+      );
+      expect(output()).toContain(`could not ${phase} cleanly`);
+      expect(output()).not.toContain(privateText);
+      expect(probes()).toHaveLength(0);
+      expect(children()).toHaveLength(0);
+      expect(lifecycle().map(([, args]) => args[1])).toEqual(
+        phase === 'stop' ? ['stop'] : ['stop', 'start'],
+      );
+      for (const [, args, options] of lifecycle()) {
+        expect(args).toHaveLength(2);
+        expect(options).toEqual({
+          stdio: 'ignore',
+          timeout: args[1] === 'stop' ? 120_000 : 180_000,
+          windowsHide: true,
+        });
+      }
+    });
+  }
+
+  it.each([
+    ['timeout', { status: null, error: { code: 'ETIMEDOUT', message: privateText } }],
+    ['spawn-error', { status: null, error: { code: privateText } }],
+    ['signal', { status: null, signal: privateText }],
+    ['nonzero-exit', { status: 8 }],
+    ['unknown', { status: null }],
+  ])('reports exhausted template probes with last outcome %s', async (outcome, result) => {
+    mocks.spawnSync.mockImplementation((command) =>
+      command === 'docker'
+        ? { ...result, stdout: privateText, stderr: privateText }
+        : { status: 0 },
+    );
+    mocks.exit.mockImplementation(() => {
+      throw new Error('test-exit');
+    });
+    expect((await runTimedMatrix()).message).toBe('test-exit');
+    expect(output()).toContain(`phase=template outcome=${outcome} attempts=80.`);
+    expect(output()).toContain('the local Auth template route remained unavailable');
+    expect(output()).not.toContain(privateText);
+    expect(probes()).toHaveLength(80);
+    expect(children()).toHaveLength(0);
+    expect(lifecycle().map(([, args]) => args[1])).toEqual(['stop', 'start']);
+    for (const [, args, options] of probes()) {
+      expect(args).toEqual([
+        'exec',
+        'supabase_auth_flyeye',
+        'sh',
+        '-c',
+        'wget -q -O /dev/null "$GOTRUE_MAILER_TEMPLATES_RECOVERY"',
+      ]);
+      expect(options).toEqual({ stdio: 'ignore', timeout: 5_000, windowsHide: true });
+    }
+  });
+
+  it('stops probing at the first success without another lifecycle call', async () => {
+    let attempts = 0;
+    mocks.spawnSync.mockImplementation((command) => ({
+      status: command === 'docker' && ++attempts < 3 ? 1 : 0,
+      stdout: 'FEAT-006B runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    expect(await runTimedMatrix()).toBeUndefined();
+    expect(probes()).toHaveLength(3);
+    expect(children()).toHaveLength(1);
+    expect(lifecycle()).toHaveLength(2);
+    expect(output()).toContain('phase=template outcome=success attempts=3.');
+  });
+
+  it('preserves the recovery preflight of 20 probes before its existing restart', async () => {
+    mocks.fixture = 'test-recovery-runtime.mjs';
+    let attempts = 0;
+    mocks.spawnSync.mockImplementation((command) => ({
+      status: command === 'docker' && ++attempts <= 20 ? 1 : 0,
+      stdout: 'FEAT-002 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    expect(await runTimedMatrix()).toBeUndefined();
+    expect(probes()).toHaveLength(21);
+    expect(children()).toHaveLength(2);
+    expect(lifecycle().map(([, args]) => args[1])).toEqual(['stop', 'start']);
+    expect(output()).toContain(
+      'fixture=FEAT-002 mode=0 phase=template outcome=nonzero-exit attempts=20.',
+    );
+    expect(output()).toContain(
+      'fixture=FEAT-002 mode=0 phase=template outcome=success attempts=1.',
+    );
+  });
+
+  it('identifies the pending mode and never launches it after readiness failure', async () => {
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
+    mocks.fixture = 'test-feat-004-runtime.mjs';
+    let starts = 0;
+    mocks.spawnSync.mockImplementation((_command, args) => ({
+      status: args[1] === 'start' && ++starts === 2 ? 1 : 0,
+      stdout: 'FEAT-004 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    }));
+    mocks.exit.mockImplementation(() => {
+      throw new Error('test-exit');
+    });
+    await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+    expect(output()).toContain(
+      'fixture=FEAT-004 mode=1 phase=start outcome=nonzero-exit attempts=1.',
+    );
+    expect(children()).toHaveLength(1);
+    expect(children()[0][1]).toContain('--recipient-cleanup-probe');
+    expect(probes()).toHaveLength(1);
+  });
 });
 
 describe('runtime matrix FEAT-006B diagnostics integration', () => {
