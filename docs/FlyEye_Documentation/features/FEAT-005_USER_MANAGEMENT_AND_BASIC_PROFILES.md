@@ -385,6 +385,47 @@ database failure, and retain the outer cleanup fallback until restoration succee
 Fault-injection tests must cover each phase, dual failure, disabled logging, and
 the [runtime output boundary](../10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety).
 
+## Profile and notification write waits
+
+R5 covers `update_my_member_profile` and `open_aircraft_document_notification`
+under the [document contract](FEAT-007_AIRCRAFT_DOCUMENT_RECORDS.md).
+[Issue #198](https://github.com/killroyZULU/FlyEye/issues/198) owns delivery;
+[R5 traceability](FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md#profilenotification-write-investigation)
+records results. Baseline: `19f547e10294ae155ba47a0ac2bb9f200b078146`.
+
+| Function variants                                          | Observed barriers                                                                                 | Authority variants                                                               | Schedules |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------: |
+| Profile completion, contact clearing, unchanged-value save | Domain/audit SHARE locks; natural organization, actor and target-membership foreign-key waits     | Protected membership revocation, retained administrator, retained student        |        45 |
+| Notification open/read/resolved                            | Audit SHARE lock and natural organization/actor foreign-key waits; open-to-read domain SHARE lock | Protected membership revocation, protected role demotion, retained administrator |        30 |
+
+Freeze 75 schedules before production changes. Observe blocking backends and
+ungranted RowExclusiveLocks on intended relation barriers. Foreign-key and
+profile-audit holders perform protected revocation; other revokers commit before
+holder release. Investigate unexpected serialization; it does not pass a denial schedule.
+
+When revocation commits before release, require the existing non-disclosing
+`not_found` profile result or `unauthorized` notification result and complete worker
+rollback. Snapshot domain, profile, notification, audit, membership, role-link and
+idempotency state after the protected revocation but before releasing the worker;
+preserve those separately committed changes exactly. Profile editing remains
+available to active members with any active role. Demotion does not itself revoke
+profile ownership; global permission changes remain R6.
+
+Retained controls verify exact returned fields, versions, attribution, timestamps,
+changed-field metadata and unrelated rows. An unchanged-value profile save still
+increments its version and audits an empty changed-field list. Same-version profile
+retry remains `state_conflict`; reopening a read/resolved notification adds the
+existing access event without changing its state. Denied retries add no worker
+writes. No automatic retry is introduced.
+
+Require rollback-only School A/B ownership/permission denials, service-only execution
+and mandatory audit failure propagation (`P5005` profile, `P7101` notification).
+Disposable CI requires empty-school/identifier-ownership preflight, settled/absent
+sessions before deletion, controlled-failure cleanup, zero residue and unchanged
+permissions. Uncertain cleanup stops execution. Preserve signatures, grants, tenant
+predicates, validation, explicit locks and frontend behavior. Correct only reproduced
+defects through reviewed migrations; schema, provider, UI and policy changes are excluded.
+
 ## Dependencies
 
 No new package, paid provider, file storage, or external notification service is
