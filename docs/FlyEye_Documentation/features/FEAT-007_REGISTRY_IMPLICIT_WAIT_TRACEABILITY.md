@@ -26,17 +26,28 @@ The [audit inventory](https://github.com/killroyZULU/FlyEye/issues/39) remains o
 
 [SEC-034 / #202](https://github.com/killroyZULU/FlyEye/issues/202) owns the
 [33-schedule contract](FEAT-005_MEMBER_READ_WAITS.md).
-Source inspection identified response assembly before mandatory audit with no
-subsequent authority check; this is not yet reproduced evidence.
+[Baseline CI 40441949650](https://github.com/killroyZULU/FlyEye/actions/runs/40441949650)
+at `9fd0dfa1505e439435f03c1704d4f9a8ebaa6b39` ran unchanged production functions.
+All 18 revocation schedules returned data after revocation committed: six
+`listed`, twelve `found`. Each failed the full rollback comparison
+(`evidence=rollback`); no revocation serialized behind the worker. All 15
+retained controls passed full payload, audit and explicit retry assertions.
+All 592 SQL/RLS assertions, interrupted/final cleanup and teardown passed;
+later runtime/lint checks were skipped after the expected baseline failure.
+
 The [runner](../../../scripts/test-h002-member-read.mjs), `runCase`, observes
 natural waits and protected revocation; [fixture](../../../scripts/lib/h002-member-read-fixture.mjs),
-`cases`/`authorities`, freezes the manifest. [Assertion tests](../../../scripts/lib/h002-member-read-assertions.test.mjs),
-`audited member/profile read waits`, and [cleanup tests](../../../scripts/lib/h002-member-read-cleanup.test.mjs),
-`member read fixture final cleanup hard stop`, passed 27 synthetic regressions.
-[Rollback-only SQL](../../../supabase/tests/sec_034_member_read_test.sql) covers
-service-only signatures, cross-school/ownership denial and mandatory audit failure.
-Database execution remains pending in disposable CI; occupied local stacks are
-preserved. No production correction or closure is claimed by these unit tests.
+`cases`/`authorities`, freezes the manifest. [Assertion tests](../../../scripts/lib/h002-member-read-assertions.test.mjs)
+and [cleanup tests](../../../scripts/lib/h002-member-read-cleanup.test.mjs)
+passed 27 synthetic regressions. [Rollback-only SQL](../../../supabase/tests/sec_034_member_read_test.sql)
+covers service-only signatures, cross-school/ownership denial and mandatory audit failure.
+
+[SEC-034](../../../supabase/migrations/20261027031141_sec_034_member_read_revalidation.sql)
+rechecks authority after mandatory audit and rolls back only on private
+`P7307`, withholding cached data. Own-profile access still accepts active
+students; mandatory `P5005` failures propagate. [PR #203](https://github.com/killroyZULU/FlyEye/pull/203)
+owns correction verification; the frozen harness is unchanged. Correction CI
+remains pending. Occupied local stacks are preserved; broader R5 remains open.
 
 ## Execution evidence
 

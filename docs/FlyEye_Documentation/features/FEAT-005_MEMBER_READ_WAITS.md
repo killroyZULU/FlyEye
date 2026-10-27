@@ -29,6 +29,10 @@ retries create another event; denied retries add none. Student own-profile acces
 remains valid. Reuse existing pagination/validation evidence; add service-only
 signature, School A/B, foreign-target, ownership and mandatory `P5005` regressions.
 
+Revalidate authority after the mandatory audit wait; revoked authority rolls back
+the access event and withholds cached data. Catch only the private authority-change
+signal; mandatory audit errors propagate. Preserve service-only grants and signatures.
+
 Use unchanged-production characterization before any correction. Preserve
 quiescence, session absence, interrupted cleanup, zero residue and unchanged
 permissions under [database safety](../10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety).
