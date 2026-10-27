@@ -31,7 +31,7 @@ export function fixtureConnectionOptions(input, init, apiUrl) {
   return { ...init, headers };
 }
 
-function transportDetail(error) {
+export function transportDetail(error) {
   // Native fetch normally wraps the useful code in cause; never inspect messages or URLs.
   for (let depth = 0; error && depth < 3; depth += 1, error = error.cause) {
     if (codes.has(error.code)) return codes.get(error.code);

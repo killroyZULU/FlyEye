@@ -218,6 +218,9 @@ const stages = new Map([
       'totp-enroll',
       'totp-verify',
       'invitation-list',
+      ...['prepare', 'transport', 'decode', 'correlation', 'status', 'roles', 'invitations'].map(
+        (step) => `invitation-list-${step}`,
+      ),
       'new-invitation-create',
       'new-invitation-readback',
       'new-recipient-mail',
@@ -424,6 +427,12 @@ export function fixtureDiagnostic(feature, stage, event, detail) {
       ...[...httpStatuses].map((status) => `http-${status}`),
     ].includes(detail);
   const validEvent =
+    (feature === 'FEAT-004' &&
+      stage === 'invitation-list-decode' &&
+      event === 'response' &&
+      ['http-2xx', 'http-other', ...[...httpStatuses].map((status) => `http-${status}`)].includes(
+        detail,
+      )) ||
     staleObservation ||
     (['enter', 'passed'].includes(event) && detail === undefined) ||
     (event === 'failed' && failureDetails.has(detail)) ||

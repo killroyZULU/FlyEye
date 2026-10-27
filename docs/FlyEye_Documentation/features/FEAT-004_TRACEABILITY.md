@@ -187,6 +187,20 @@ hosted delivery remains outside this evidence.
 
 ## Invitation runtime diagnostic evidence
 
+The [initial-list follow-up #200](https://github.com/killroyZULU/FlyEye/issues/200)
+addresses the unresolved `invitation-list/unclassified` failure in
+[post-merge run 40197982525](https://github.com/killroyZULU/FlyEye/actions/runs/40197982525)
+at `ca364e5`. Readiness and all launched cleanup passed; subsequent gates were
+unreached. [Synthetic tests](../../../scripts/lib/invitation-list-diagnostics.test.mjs),
+`initial invitation-list diagnostics`, execute the fixture's actual initial call
+with synthetic dependencies to distinguish preparation, transport, decoding,
+correlation and the three original assertions. They check fixed output,
+error identity, one body read and unchanged request/signal/retry timing.
+[Runner tests](../../../scripts/lib/runtime-matrix-diagnostics.test.mjs),
+`retains invitation-list substages while suppressing private child output and stopping on failure`,
+retain failure gates. Exact-head runtime verification belongs to #200's linked PR;
+these diagnostics do not identify the historical cause or change provider behavior.
+
 [FIX-008 / #62](https://github.com/killroyZULU/FlyEye/issues/62) records the reviewed
 target, final checks and integration outcome for A019 under the structural audit.
 [Post-merge CI 36228732729](https://github.com/killroyZULU/FlyEye/actions/runs/36228732729)

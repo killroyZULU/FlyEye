@@ -415,6 +415,27 @@ describe('R3 provider consistency gate', () => {
   });
 });
 
+it('retains invitation-list substages while suppressing private child output and stopping on failure', async () => {
+  mocks.fixture = 'test-feat-004-runtime.mjs';
+  const diagnostic =
+    'FEAT-004 runtime diagnostic: stage=invitation-list-decode event=failed detail=transport-socket-closed.';
+  mocks.spawnSync.mockImplementation((_command, args) => ({
+    status: args[0].endsWith(mocks.fixture) ? 1 : 0,
+    stdout: `${diagnostic}\nFEAT-004 runtime diagnostic: stage=fixture-cleanup event=passed.\nsynthetic-private-body-token`,
+  }));
+  mocks.exit.mockImplementation(() => {
+    throw new Error('test-exit');
+  });
+  await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+  const output = [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join('');
+  expect(output).toContain(diagnostic);
+  expect(output).not.toContain('synthetic-private-body-token');
+  expect(mocks.exit).toHaveBeenCalledWith(1);
+  expect(
+    mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
+  ).toHaveLength(1);
+});
+
 it('fails closed when an Auth fixture exits zero without explicit cleanup evidence', async () => {
   mocks.fixture = 'test-recovery-runtime.mjs';
   mocks.spawnSync.mockImplementation(() => ({ status: 0, stdout: 'private' }));
