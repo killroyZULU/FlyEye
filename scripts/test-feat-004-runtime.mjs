@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchLocalEdge } from './lib/local-edge-request.mjs';
 import { stopLocalEdge, waitForLocalEdgeWorker } from './lib/local-edge-lifecycle.mjs';
 import { createFixtureDiagnostics } from './lib/fixture-diagnostics.mjs';
+import { withInvitationListDiagnostics } from './lib/invitation-list-diagnostics.mjs';
 import { runInvitationRecipients } from './lib/invitation-recipient-runtime.mjs';
 import {
   cleanupInvitationRuntime,
@@ -134,23 +135,24 @@ function limiterHash(subjectId, action, scopeId) {
     .digest('hex');
 }
 
-async function invoke(token, body) {
-  const response = await fetchLocalEdge(
-    `${apiUrl}/functions/v1/member-invitations`,
-    {
-      method: 'POST',
-      headers: {
-        apikey: publishableKey,
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-        origin,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30_000),
+async function invoke(token, body, observe = () => {}) {
+  const url = `${apiUrl}/functions/v1/member-invitations`;
+  const init = {
+    method: 'POST',
+    headers: {
+      apikey: publishableKey,
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/json',
+      origin,
     },
-    diagnostics.retry,
-  );
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  };
+  observe('transport');
+  const response = await fetchLocalEdge(url, init, diagnostics.retry);
+  observe('decode', response.status);
   const { payload } = await diagnostics.readResponse(response);
+  observe('correlation');
   if (typeof payload?.correlationId === 'string') correlations.add(payload.correlationId);
   return { response, payload };
 }
@@ -318,14 +320,23 @@ try {
   );
 
   diagnostics.enter('invitation-list');
-  limiterKeys.add(limiterHash(admin.id, 'list', organizationA));
-  const initialList = await invoke(aal2Data.session.access_token, {
-    action: 'list',
-    organizationId: organizationA,
+  await withInvitationListDiagnostics(async (stage) => {
+    limiterKeys.add(limiterHash(admin.id, 'list', organizationA));
+    const initialList = await invoke(
+      aal2Data.session.access_token,
+      {
+        action: 'list',
+        organizationId: organizationA,
+      },
+      stage,
+    );
+    stage('status');
+    assert.equal(initialList.response.status, 200);
+    stage('roles');
+    assert.equal(initialList.payload.roles.length, 3);
+    stage('invitations');
+    assert.equal(initialList.payload.invitations.length, 0);
   });
-  assert.equal(initialList.response.status, 200);
-  assert.equal(initialList.payload.roles.length, 3);
-  assert.equal(initialList.payload.invitations.length, 0);
 
   diagnostics.enter('new-invitation-create');
   limiterKeys.add(limiterHash(admin.id, 'create', organizationA));
