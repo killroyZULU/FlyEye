@@ -22,6 +22,22 @@ Global permission changes remain R6; recovery/session/provider residuals remain
 R7/R8 and the [governance decisions](../17_PRODUCT_AND_GOVERNANCE_DECISIONS.md).
 The [audit inventory](https://github.com/killroyZULU/FlyEye/issues/39) remains open.
 
+## Member/profile read investigation
+
+[SEC-034 / #202](https://github.com/killroyZULU/FlyEye/issues/202) owns the
+[33-schedule contract](FEAT-005_MEMBER_READ_WAITS.md).
+Source inspection identified response assembly before mandatory audit with no
+subsequent authority check; this is not yet reproduced evidence.
+The [runner](../../../scripts/test-h002-member-read.mjs), `runCase`, observes
+natural waits and protected revocation; [fixture](../../../scripts/lib/h002-member-read-fixture.mjs),
+`cases`/`authorities`, freezes the manifest. [Assertion tests](../../../scripts/lib/h002-member-read-assertions.test.mjs),
+`audited member/profile read waits`, and [cleanup tests](../../../scripts/lib/h002-member-read-cleanup.test.mjs),
+`member read fixture final cleanup hard stop`, passed 27 synthetic regressions.
+[Rollback-only SQL](../../../supabase/tests/sec_034_member_read_test.sql) covers
+service-only signatures, cross-school/ownership denial and mandatory audit failure.
+Database execution remains pending in disposable CI; occupied local stacks are
+preserved. No production correction or closure is claimed by these unit tests.
+
 ## Execution evidence
 
 [Baseline CI 39254525835](https://github.com/killroyZULU/FlyEye/actions/runs/39254525835)

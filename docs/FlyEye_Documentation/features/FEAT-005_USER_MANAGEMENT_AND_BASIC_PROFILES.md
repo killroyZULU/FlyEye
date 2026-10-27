@@ -407,8 +407,8 @@ When revocation commits before release, require the existing non-disclosing
 `not_found` profile result or `unauthorized` notification result and complete worker
 rollback. Snapshot domain, profile, notification, audit, membership, role-link and
 idempotency state after the protected revocation but before releasing the worker;
-preserve those separately committed changes exactly. Profile editing remains
-available to active members with any active role. Demotion does not itself revoke
+preserve those committed changes exactly. Active members with active roles retain
+profile editing. Demotion does not revoke
 profile ownership; global permission changes remain R6.
 
 Retained controls verify exact returned fields, versions, attribution, timestamps,
@@ -448,6 +448,8 @@ Excluded areas:
 - Architecture or authority changes outside this specification
 - Hosted resources, real data, production deployment, destructive operations,
   merge, and branch deletion
+
+[Read-wait scope](FEAT-005_MEMBER_READ_WAITS.md) split for budget.
 
 ## Definition of done
 
