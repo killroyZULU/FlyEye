@@ -46,8 +46,16 @@ covers service-only signatures, cross-school/ownership denial and mandatory audi
 rechecks authority after mandatory audit and rolls back only on private
 `P7307`, withholding cached data. Own-profile access still accepts active
 students; mandatory `P5005` failures propagate. [PR #203](https://github.com/killroyZULU/FlyEye/pull/203)
-owns correction verification; the frozen harness is unchanged. Correction CI
-remains pending. Occupied local stacks are preserved; broader R5 remains open.
+owns final-head readiness; the frozen harness is unchanged.
+Correction `7b89d07`, [CI 40443039593 attempt 1](https://github.com/killroyZULU/FlyEye/actions/runs/40443039593/attempts/1),
+passed all 18 denials with exact rollback/retry and all 15 controls. Database job
+121987644507 passed 592 SQL/RLS assertions, both member-read cleanup checks,
+retained concurrency suites, 27 runtime executions/final cleanup markers,
+lint/types and teardown. Application job 121987644664 passed unit/build checks
+but timed out in unchanged `checkStates` awaiting the aircraft panel becoming
+hidden. It does not prove an unauthorized response arrived; cause remains unknown.
+PR #203 records final-head readiness. Occupied local stacks are preserved;
+broader R5 remains open.
 
 ## Execution evidence
 
