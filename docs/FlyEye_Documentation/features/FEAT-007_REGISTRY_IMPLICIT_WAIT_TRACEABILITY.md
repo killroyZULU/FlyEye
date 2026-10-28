@@ -22,6 +22,41 @@ Global permission changes remain R6; recovery/session/provider residuals remain
 R7/R8 and the [governance decisions](../17_PRODUCT_AND_GOVERNANCE_DECISIONS.md).
 The [audit inventory](https://github.com/killroyZULU/FlyEye/issues/39) remains open.
 
+## Member/profile read investigation
+
+[SEC-034 / #202](https://github.com/killroyZULU/FlyEye/issues/202) owns the
+[33-schedule contract](FEAT-005_MEMBER_READ_WAITS.md).
+[Baseline CI 40441949650](https://github.com/killroyZULU/FlyEye/actions/runs/40441949650)
+at `9fd0dfa1505e439435f03c1704d4f9a8ebaa6b39` ran unchanged production functions.
+All 18 revocation schedules returned data after revocation committed: six
+`listed`, twelve `found`. Each failed the full rollback comparison
+(`evidence=rollback`); no revocation serialized behind the worker. All 15
+retained controls passed full payload, audit and explicit retry assertions.
+All 592 SQL/RLS assertions, interrupted/final cleanup and teardown passed;
+later runtime/lint checks were skipped after the expected baseline failure.
+
+The [runner](../../../scripts/test-h002-member-read.mjs), `runCase`, observes
+natural waits and protected revocation; [fixture](../../../scripts/lib/h002-member-read-fixture.mjs),
+`cases`/`authorities`, freezes the manifest. [Assertion tests](../../../scripts/lib/h002-member-read-assertions.test.mjs)
+and [cleanup tests](../../../scripts/lib/h002-member-read-cleanup.test.mjs)
+passed 27 synthetic regressions. [Rollback-only SQL](../../../supabase/tests/sec_034_member_read_test.sql)
+covers service-only signatures, cross-school/ownership denial and mandatory audit failure.
+
+[SEC-034](../../../supabase/migrations/20261027031141_sec_034_member_read_revalidation.sql)
+rechecks authority after mandatory audit and rolls back only on private
+`P7307`, withholding cached data. Own-profile access still accepts active
+students; mandatory `P5005` failures propagate. [PR #203](https://github.com/killroyZULU/FlyEye/pull/203)
+owns final-head readiness; the frozen harness is unchanged.
+Correction `7b89d07`, [CI 40443039593 attempt 1](https://github.com/killroyZULU/FlyEye/actions/runs/40443039593/attempts/1),
+passed all 18 denials with exact rollback/retry and all 15 controls. Database job
+121987644507 passed 592 SQL/RLS assertions, both member-read cleanup checks,
+retained concurrency suites, 27 runtime executions/final cleanup markers,
+lint/types and teardown. Application job 121987644664 passed unit/build checks
+but timed out in unchanged `checkStates` awaiting the aircraft panel becoming
+hidden. It does not prove an unauthorized response arrived; cause remains unknown.
+PR #203 records final-head readiness. Occupied local stacks are preserved;
+broader R5 remains open.
+
 ## Execution evidence
 
 [Baseline CI 39254525835](https://github.com/killroyZULU/FlyEye/actions/runs/39254525835)

@@ -179,6 +179,8 @@ jobs:
           node scripts/test-h002-document-implicit.mjs
             node scripts/test-h002-member-write.mjs --cleanup-probe
             node scripts/test-h002-member-write.mjs
+          node scripts/test-h002-member-read.mjs --cleanup-probe
+          node scripts/test-h002-member-read.mjs
           node scripts/test-h002-acceptance.mjs --cleanup-probe
           node scripts/test-h002-acceptance.mjs
           node scripts/test-h002-recipient.mjs --cleanup-probe
