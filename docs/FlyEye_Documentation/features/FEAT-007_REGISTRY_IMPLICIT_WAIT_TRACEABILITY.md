@@ -57,6 +57,36 @@ hidden. It does not prove an unauthorized response arrived; cause remains unknow
 PR #203 records final-head readiness. Occupied local stacks are preserved;
 broader R5 remains open.
 
+PR #203 merged as `d1eb5397b0838040208cab7143acfffbe68e7b12`.
+[Post-merge CI 40637287324](https://github.com/killroyZULU/FlyEye/actions/runs/40637287324)
+passed application checks, 592 SQL assertions and all 33 member-read schedules
+with both cleanup markers. FEAT-003 `provider-start` returned HTTP502 before the
+completion-lock scenario; 11 runtime executions passed and all 12 launched
+executions confirmed cleanup, with provider residue checks and teardown passed.
+Later runtime, lint and final types were not reached; aggregate failed.
+[#204](https://github.com/killroyZULU/FlyEye/issues/204) owns bounded CI recovery
+in [PR #205](https://github.com/killroyZULU/FlyEye/pull/205). Cause remains unknown;
+the next two aircraft reads remain gated on restored integration.
+
+### CI recovery observations
+
+Diagnostic head `050044f`, [CI 40642829576](https://github.com/killroyZULU/FlyEye/actions/runs/40642829576),
+failed earlier at churn-password `transport-socket-closed`, before START.
+Application, SQL/concurrency and eight runtime executions passed; all nine
+launched executions confirmed cleanup, provider residue and teardown passed.
+Later runtime/lint/types were unexecuted. This does not identify either cause.
+
+[Wiring experiments](../../../scripts/lib/onboarding-recovery-wiring.test.mjs),
+`provider-state readiness wiring`, executed unchanged `050044f` runtime code:
+Normal/probe modes accepted generic gateway 401; normal mode also accepted the old-origin handler.
+Three regression assertions failed. The correction uses the existing exact
+current-origin 405 helper and unique fixture origin only for provider-state/probe;
+protected actions, timeouts and cleanup are unchanged. Those regressions passed
+locally after correction. The native/SDK password socket comparison returned
+200 in all four Windows arms, including unchanged churn wiring: inconclusive,
+so connection handling is unchanged. Linux characterization and final CI belong
+to #205; neither a simulated mechanism nor a passing run proves historical cause.
+
 ## Execution evidence
 
 [Baseline CI 39254525835](https://github.com/killroyZULU/FlyEye/actions/runs/39254525835)
