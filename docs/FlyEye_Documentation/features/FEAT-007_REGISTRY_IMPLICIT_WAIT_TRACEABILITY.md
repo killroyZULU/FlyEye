@@ -57,6 +57,17 @@ hidden. It does not prove an unauthorized response arrived; cause remains unknow
 PR #203 records final-head readiness. Occupied local stacks are preserved;
 broader R5 remains open.
 
+PR #203 merged as `d1eb5397b0838040208cab7143acfffbe68e7b12`.
+[Post-merge CI 40637287324](https://github.com/killroyZULU/FlyEye/actions/runs/40637287324)
+passed application checks, 592 SQL assertions and all 33 member-read schedules
+with both cleanup markers. FEAT-003 `provider-start` returned HTTP502 before the
+completion-lock scenario; 11 runtime executions passed and all 12 launched
+executions confirmed cleanup, with provider residue checks and teardown passed.
+Later runtime, lint and final types were not reached; aggregate failed.
+[#204](https://github.com/killroyZULU/FlyEye/issues/204) owns diagnostic-only
+follow-up using the existing gateway classifiers. Cause remains unknown;
+the next two aircraft reads remain gated on restored integration.
+
 ## Execution evidence
 
 [Baseline CI 39254525835](https://github.com/killroyZULU/FlyEye/actions/runs/39254525835)

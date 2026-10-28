@@ -439,7 +439,12 @@ async function invokeFunction(pathname, token, body) {
   } catch {
     throw new Error('Local Edge Function returned a non-JSON contract.');
   } finally {
-    if (churnMode && diagnosticsEnabled && response.status >= 500) {
+    if (
+      diagnosticsEnabled &&
+      response.status >= 500 &&
+      (churnMode ||
+        (providerMode && pathname === 'organization-admin-onboarding' && body?.action === 'start'))
+    ) {
       const evidence = [
         { stage: 'gateway-response', details: gatewayResponseDetails(response, payload) },
         ...collectGatewayDiagnostics({
