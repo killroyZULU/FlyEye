@@ -4,7 +4,7 @@
 
 FlyEye uses contract-first vertical slices. For one user outcome, implement only the required data, protected server behavior, frontend, authorization, audit, tests, observability, and documentation.
 
-A direct bounded feature, fix, documentation, or maintenance request authorizes routine delivery through a green review-ready pull request. The agent selects safe, reversible defaults from repository evidence and does not ask for approval of every value, file, command, correction, local check, commit, push, or pull-request action.
+A direct bounded delivery request authorizes routine work through a green review-ready PR. Choose safe, reversible defaults without repeated permission prompts for in-scope corrections, checks or publication.
 
 Explicit narrower instructions override this default. The hard stops and excluded actions are defined once in the root `AGENTS.md`.
 
@@ -17,9 +17,9 @@ Repository authority cannot be silently overridden by chat.
 
 ## Planning and tracking
 
-GitHub Issues and the [FlyEye Delivery project](https://github.com/users/killroyZULU/projects/1) coordinate active work. Create one issue for each bounded feature, fix, security task, documentation task, or chore; add it to the project; and link the implementing pull request with `Closes #<issue>`. Use issue dependencies for real blockers and keep only near-term work active.
+Create or reuse one bounded issue in the [FlyEye Delivery project](https://github.com/users/killroyZULU/projects/1), linking the PR with `Closes #<issue>`. Use dependencies for real blockers. Issues link canonical contracts and evidence; they do not duplicate requirements or become another status authority.
 
-Issues and project fields are operational views, not new requirement or status authorities. They link to the applicable specification, [Current State](CURRENT_STATE.md), roadmap, decision, or evidence record instead of duplicating those documents. Closed issues and pull requests provide history; they do not replace traceability evidence.
+Before execution, declare outcome/scope, acceptance criteria, exclusions, assumptions, risks, affected files, dependencies, stopping conditions and the completion boundary. Use the existing feature contract for discovery/design. A bounded correction records only changed behavior, assumptions, risks and verification; do not repeat feature planning or create another specification without a material contract change. New findings require a separate scope decision, not automatic expansion.
 
 ### Integration checkpoint
 
@@ -65,7 +65,7 @@ Agent review is technical evidence, not qualified independent human review or ri
 
 Inspect the complete diff and worktree, stage only scoped files, commit, push the task branch, open a review-ready pull request linked to the bounded issue, and follow required CI through green. Publication ends at the merge decision unless merge authorization is already explicit.
 
-The handoff reports only the outcome, checks and review, branch/commit/PR, material limitations, and next human action. State whether the outcome is review-ready on a branch or integrated into `main`; publication alone does not complete integration.
+The handoff reports what changed, checks/review, branch/commit/PR and push state, changed/untracked files, limitations and the next owner decision. Distinguish review-ready publication from integration and separate release/real-data acceptance.
 
 ### 7. Integrate when authorized
 
@@ -77,17 +77,42 @@ Update stale canonical status, confirm the final remote state, and refresh a cle
 
 ## Documentation behavior
 
-Follow [Documentation Standard](DOCUMENTATION_STANDARD.md) for canonical homes,
-stable IDs, prospective contracts, retrospective evidence, budgets and checks.
-Make the smallest required update. Active work disposition belongs in the linked
-issue/PR; avoid a pending-review or pending-merge sentence in a specification or
-checkpoint that becomes false as soon as its own PR progresses. Current State
-should identify the work and link its live disposition, then record completed
-integration when next changed for a bounded outcome.
+Follow [Documentation Standard](DOCUMENTATION_STANDARD.md). Make the smallest canonical update. Active disposition belongs in the issue/PR; Current State links it and records completed integration when next touched. Keep transient review/merge status out of specifications.
 
 ## Status reporting
 
-Every substantive FlyEye update uses the compact phase bar defined in `AGENTS.md`. Marks are evidence-based and reopen when later findings invalidate a phase. Do not add a second proximity report, decision form, upcoming-feature list, or percentage unless it materially helps the requested task.
+Before execution, fix the boundary, milestone weights and acceptance conditions. Percentages sum completed milestones; they do not estimate time remaining. Define any submilestones and their weights in advance. Use these defaults:
+
+| Milestone and acceptance                                                                          | Integrated |          PR-only |
+| ------------------------------------------------------------------------------------------------- | ---------: | ---------------: |
+| Scope/plan: bounded contract, dependencies, exclusions and stops fixed                            |        10% |              10% |
+| Implementation: scoped changes complete for verification                                          |        30% |              30% |
+| Applicable verification: required local/feature evidence valid, including any CI-supplied results |        25% |              30% |
+| Independent review: stable target reviewed, blocking findings corrected and reverified            |        15% |              20% |
+| PR/final-head CI/handoff: published target green and complete handoff                             |        10% |              10% |
+| Separately authorized merge/post-merge verification: exact main gates and cleanup pass            |        10% | Outside boundary |
+
+Read-only assessment ends at a delivered proposal: baseline/handoffs 25%, assessment 35%, proposal/test cases 30%, final handoff 10%. Declare any different task-specific weights and acceptance conditions before starting; never redistribute weights or use arbitrary N/A labels to inflate progress. PR-only completion does not silently convert an integration-tracked task to 100%.
+
+Every substantive update shows the boundary, bar, exact percentage, status, current phase, completed milestones and next step. Fill one of ten bar cells per complete ten percentage points; the numeric value is authoritative. Example for an integration-tracked task:
+
+```text
+Boundary: integration through verified main
+Progress: [#########-] 90% | AWAITING OWNER
+Current: merge decision
+Done: plan, implementation, verification, review, PR/handoff
+Next: separately authorized merge, then post-merge verification
+```
+
+Use RUNNING for work proceeding, BLOCKED for an unmet prerequisite or failed required evidence, AWAITING OWNER for a decision, PR-ONLY COMPLETE for the fulfilled publication boundary, and INTEGRATED COMPLETE only after verified integration. A delivered read-only assessment can be 100% AWAITING OWNER; its boundary excludes implementation. Task 100% never means FlyEye is production-ready.
+
+Credit a milestone only when all its acceptance conditions pass. A merge without successful post-merge checks does not earn the final milestone. Reopen invalidated milestones and subtract their credit when evidence becomes stale or fails. Explain scope changes, affected acceptance and revised planning before proceeding; preserve the original denominator unless the owner explicitly changes the task boundary.
+
+## Policy adoption
+
+After an authorized policy merge and successful exact-main integration checks, each existing FlyEye chat must read that immutable policy commit and its applicable AGENTS hierarchy before resuming under the new rules. Contacting other chats requires owner authorization; dormant chats adopt on resumption. Record a receipt in the task/PR with policy SHA and integration run, files read, task branch/head, conflicts and overlapping ownership, retained checks and invalidated evidence, milestone weights/acceptance/current credit, and existing authorization limits.
+
+Reading policy does not update an old branch's CI workflow. Identify its actual workflow version; reconcile code through the normal explicitly authorized branch workflow. Adoption grants no reset, rebase, merge, retroactive evidence waiver, scope expansion or additional permissions. Resolve conflicts before dependent work; keep prior evidence's original target and limitations.
 
 ## Implementation order
 

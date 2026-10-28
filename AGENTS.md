@@ -38,7 +38,7 @@ Use React, TypeScript, Vite, Supabase PostgreSQL/Auth/private Storage/Row-Level 
 A direct request to build, fix, document, or continue a bounded outcome authorizes delivery through a green review-ready pull request:
 
 1. Inspect the implementation, current branch, and working tree; apply the [integration checkpoint](docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#integration-checkpoint) before starting another delivery slice.
-2. Define or refine the smallest coherent specification. Record assumptions, unresolved questions, scope, non-goals, risks, affected files, and required data/RLS/function/frontend/audit/test/doc changes.
+2. Define the outcome, acceptance criteria, exclusions, stopping conditions and completion boundary using [proportional planning](docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#planning-and-tracking). Keep discovery/design at feature level; bounded corrections record relevant deltas.
 3. Create or confirm the bounded GitHub issue and add it to the FlyEye Delivery project. Link canonical requirements instead of copying them into the issue.
 4. Create or continue the task branch from current `main`, or use the explicitly directed stack described in the integration checkpoint; preserve unrelated work.
 5. Implement with synthetic data and existing patterns. Cover loading, empty, error, unauthorized, conflict, and success behavior where applicable.
@@ -80,21 +80,11 @@ Never weaken a safety, tenancy, privacy, audit, or authority boundary merely to 
 
 ## Status reporting
 
-Every substantive FlyEye update and final response includes:
-
-```text
-SDLC progress
-Discovery ○ → Specification ○ → Design ○ → Implementation ○ → Verification ○ → Review ○ → PR/CI ○ → Merge ○ → Release ○
-Current: <evidence-based current activity>. Next: <smallest next action>.
-```
-
-Use `✓` complete, `▶` current, `○` later/not started, `!` hard-stop blocked, and `—` not applicable. Do not use percentages without a defined checklist and denominator. Report other features only when asked or when they materially block the task.
-
-Final handoffs stay concise: outcome, checks/review, branch/PR, material limitations, and next human action.
+Every substantive update and final response uses the [weighted milestone display](docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#status-reporting). Declare the completion boundary and acceptance conditions before execution; credit completed evidence, not effort. Report other features only when requested or materially blocking this task. Existing chats follow [policy adoption](docs/FlyEye_Documentation/09_AI_DEVELOPMENT_GUIDE.md#policy-adoption) before resuming under a newly integrated policy.
 
 ## Git policy
 
-- `main` is protected. Never commit or push directly to it, rewrite it, or merge without explicit authorization.
+- Treat `main` as protected; verify actual enforcement and apply the [manual gate](docs/FlyEye_Documentation/10_DEVSECOPS_GUIDE.md#2-source-control-model) when absent. Never commit or push directly to it, rewrite it, or merge without explicit authorization.
 - Branches: `feat/FEAT-XXX-name`, `fix/FIX-XXX-name`, `security/SEC-XXX-name`, `docs/name`, or `chore/name`.
 - Before branching, inspect status and refresh remote state when needed. Use `pull --ff-only` only on a verified clean base branch.
 - Never discard, move, stage, or commit unrelated user changes. Do not use `git add .` before inspecting the complete tree.

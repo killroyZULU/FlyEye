@@ -164,10 +164,17 @@ export async function checkDeferredScreens(browser, manifest, mockSupabase, subm
 
   await run('failed module keeps navigation and recovers after explicit reload', async (page) => {
     let attempts = 0;
+    let recovering = false;
+    let allowedRequests = 0;
     await page.route(`**${profile}`, async (route) => {
       attempts += 1;
-      if (attempts === 1) await route.abort('failed');
-      else await route.continue();
+      // A browser can request the module again after the first failed fetch.
+      // Keep the outage in place until this fixture explicitly requests reload.
+      if (!recovering) await route.abort('failed');
+      else {
+        allowedRequests += 1;
+        await route.continue();
+      }
     });
     await page.goto(origin);
     await submitLogin(page);
@@ -179,17 +186,21 @@ export async function checkDeferredScreens(browser, manifest, mockSupabase, subm
       await page.getByRole('button', { name: 'Sign out', exact: true }).isVisible(),
       true,
     );
-    assert.equal(attempts, 1);
+    assert.ok(attempts > 0, 'The module outage must be exercised.');
+    assert.equal(allowedRequests, 0, 'The module must remain unavailable before reload.');
+    const failedAttempts = attempts;
     await page.getByRole('button', { name: 'Back to workspace', exact: true }).click();
     await page.getByRole('heading', { name: 'Student dashboard' }).waitFor();
     await navigation.getByRole('button', { name: 'My profile', exact: true }).click();
     await page.getByRole('heading', { name: 'This screen could not load' }).waitFor();
-    assert.equal(attempts, 1, 'Do not automatically retry a cached failed import.');
+    assert.equal(attempts, failedAttempts, 'Do not automatically retry a cached failed import.');
+    recovering = true;
     await page.getByRole('button', { name: 'Reload page', exact: true }).click();
     await page.getByRole('heading', { name: 'Student dashboard' }).waitFor();
     navigation = page.getByRole('navigation', { name: 'Primary navigation' });
     await navigation.getByRole('button', { name: 'My profile', exact: true }).click();
     await page.getByRole('heading', { name: 'My basic profile', exact: true }).waitFor();
-    assert.equal(attempts, 2);
+    assert.equal(attempts, failedAttempts + 1);
+    assert.equal(allowedRequests, 1, 'Only the explicit reload may recover the module.');
   });
 }
