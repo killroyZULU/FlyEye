@@ -52,6 +52,7 @@ const currentBrowser = currentMode ? onboardingCurrentFactorBrowser() : undefine
 const uncertaintyMode = uncertaintyProbe || process.argv.includes('--provider-uncertainty');
 const uncertaintyBrowser = uncertaintyMode ? onboardingUncertaintyBrowser() : undefined;
 const providerProbe = process.argv.includes('--provider-cleanup-probe');
+const providerStateMode = providerProbe || process.argv.includes('--provider-state');
 const staleProbe = process.argv.includes('--stale-cleanup-probe');
 const staleMode = staleProbe || process.argv.includes('--stale-factors');
 const challengeProbe = process.argv.includes('--challenge-cleanup-probe');
@@ -59,13 +60,7 @@ const challengeMode = challengeProbe || process.argv.includes('--verified-challe
 const churnProbe = process.argv.includes('--churn-cleanup-probe');
 const churnMode = churnProbe || process.argv.includes('--factor-churn');
 const providerMode =
-  currentMode ||
-  uncertaintyMode ||
-  churnMode ||
-  challengeMode ||
-  staleMode ||
-  providerProbe ||
-  process.argv.includes('--provider-state');
+  currentMode || uncertaintyMode || churnMode || challengeMode || staleMode || providerStateMode;
 const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
 const challengeBrowser = challengeMode ? onboardingChallengeBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
@@ -492,7 +487,7 @@ function bootstrap(token, organizationId) {
 }
 
 async function waitForEdgeRuntime() {
-  if (churnMode || uncertaintyMode || currentMode) {
+  if (churnMode || uncertaintyMode || currentMode || providerStateMode) {
     return waitForOnboardingWorker({
       url: `${apiUrl}/functions/v1/organization-admin-onboarding`,
       origin,
@@ -1327,7 +1322,7 @@ try {
       publishableKey,
     );
   }
-  if (churnMode) origin = `https://onboarding-${randomUUID()}.invalid`;
+  if (churnMode || providerStateMode) origin = `https://onboarding-${randomUUID()}.invalid`;
 
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
