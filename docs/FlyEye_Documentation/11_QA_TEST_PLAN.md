@@ -6,24 +6,24 @@ Prove that FlyEye performs approved workflows correctly, protects tenant and per
 
 ## 2. Test levels
 
-| Level | Focus |
-|---|---|
-| Unit | Domain rules, calculation, expiry, state transitions, validation |
-| Property/boundary | Envelope limits, dates, units, rounding, statuses |
-| Mutation | Strength of safety-relevant calculation/rule tests |
-| Component | Forms, states, accessibility, client behavior |
-| Integration | Supabase Auth, Data API, PostgreSQL functions, Edge Functions, Storage, PDF, providers |
-| Authorization | Every RLS policy, Edge/RPC command, role/permission/record scope, positive and negative |
-| Tenant isolation | School A attempts all direct and protected read/write/search/download/export paths on School B |
-| Contract | Generated database types and Edge Function request/response schema compatibility |
-| End-to-end | Complete role workflows through browser and API |
-| Security | Injection, XSS, CSRF, auth/session, upload, abuse, DAST |
-| Privacy | Export, correction, retention, deletion/blocking workflows |
-| Offline/sync | Loss, retries, duplicates, conflicts, stale data, queued files |
-| Performance | Concurrent sessions, dashboards, submission, PDF/export, jobs |
-| Recovery | Backup restore, integrity, RPO/RTO measurement |
-| Usability/UAT | Realistic users, tasks, errors, terminology, acceptance |
-| AI | Accuracy, hallucination, prompt injection, leakage, schema/failure behavior |
+| Level             | Focus                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| Unit              | Domain rules, calculation, expiry, state transitions, validation                               |
+| Property/boundary | Envelope limits, dates, units, rounding, statuses                                              |
+| Mutation          | Strength of safety-relevant calculation/rule tests                                             |
+| Component         | Forms, states, accessibility, client behavior                                                  |
+| Integration       | Supabase Auth, Data API, PostgreSQL functions, Edge Functions, Storage, PDF, providers         |
+| Authorization     | Every RLS policy, Edge/RPC command, role/permission/record scope, positive and negative        |
+| Tenant isolation  | School A attempts all direct and protected read/write/search/download/export paths on School B |
+| Contract          | Generated database types and Edge Function request/response schema compatibility               |
+| End-to-end        | Complete role workflows through browser and API                                                |
+| Security          | Injection, XSS, CSRF, auth/session, upload, abuse, DAST                                        |
+| Privacy           | Export, correction, retention, deletion/blocking workflows                                     |
+| Offline/sync      | Loss, retries, duplicates, conflicts, stale data, queued files                                 |
+| Performance       | Concurrent sessions, dashboards, submission, PDF/export, jobs                                  |
+| Recovery          | Backup restore, integrity, RPO/RTO measurement                                                 |
+| Usability/UAT     | Realistic users, tasks, errors, terminology, acceptance                                        |
+| AI                | Accuracy, hallucination, prompt injection, leakage, schema/failure behavior                    |
 
 ## 3. Test environments and data
 
@@ -66,12 +66,12 @@ Pilot release exit additionally requires security review, recovery drill, incide
 
 ## 8. Defect severity
 
-| Severity | Definition | Action |
-|---|---|---|
-| Critical | Data loss, wrong authoritative result, auth bypass, cross-tenant access, RCE, unsafe workflow authority | Stop release/pilot; immediate triage |
-| High | Unauthorized change, exposed restricted data, broken audit, core workflow unavailable, exploitable high issue | Block release |
-| Medium | Recoverable workflow/reporting/permission inconsistency with limited impact | Fix or time-bound accepted plan |
-| Low | Cosmetic/copy/minor inconvenience | Prioritized backlog |
+| Severity | Definition                                                                                                    | Action                               |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Critical | Data loss, wrong authoritative result, auth bypass, cross-tenant access, RCE, unsafe workflow authority       | Stop release/pilot; immediate triage |
+| High     | Unauthorized change, exposed restricted data, broken audit, core workflow unavailable, exploitable high issue | Block release                        |
+| Medium   | Recoverable workflow/reporting/permission inconsistency with limited impact                                   | Fix or time-bound accepted plan      |
+| Low      | Cosmetic/copy/minor inconvenience                                                                             | Prioritized backlog                  |
 
 ## 9. Test evidence
 
@@ -88,17 +88,18 @@ diff review, the [prepublication secret gate](10_DEVSECOPS_GUIDE.md#2-source-con
 and separate agent review. Report formatter exclusions honestly; a skipped file
 is not a formatting pass.
 
-| Change | Local verification before publication | Database/runtime evidence |
-|---|---|---|
-| Documentation, guidance, or templates only | Documentation checks and manual review of changed rules, links, examples, and decision paths | No local reset or runtime run for prose alone; changed behavioral requirements must be assessed under the affected rows below |
-| Presentation/UI behavior | `pnpm verify:app`, including affected component, state, accessibility-supporting and browser scenarios | Unchanged database behavior needs no duplicate local run; auth/permission/command changes also use the protected row |
-| Protected server/data behavior, authentication, authorization, migrations, RLS, Storage or audit | `pnpm verify:app` and affected handler/contract checks | Complete database gate on a verified disposable target, plus feature-specific positive, negative-authorization, cross-school, replay/race and cleanup evidence |
-| Tooling, dependencies, build, CI or test configuration | Focused tool/regression checks and the application or database groups whose inputs or execution changed; both when shared | Exercise affected fixtures, configuration and environment behavior; review the gate itself rather than relying only on the tool's own success |
+| Change                                                                                           | Local verification before publication                                                                                     | Database/runtime evidence                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation, guidance, or templates only                                                       | Documentation checks and manual review of changed rules, links, examples, and decision paths                              | No local reset or runtime run for prose alone; changed behavioral requirements must be assessed under the affected rows below                                  |
+| Presentation/UI behavior                                                                         | `pnpm verify:app`, including affected component, state, accessibility-supporting and browser scenarios                    | Unchanged database behavior needs no duplicate local run; auth/permission/command changes also use the protected row                                           |
+| Protected server/data behavior, authentication, authorization, migrations, RLS, Storage or audit | `pnpm verify:app` and affected handler/contract checks                                                                    | Complete database gate on a verified disposable target, plus feature-specific positive, negative-authorization, cross-school, replay/race and cleanup evidence |
+| Tooling, dependencies, build, CI or test configuration                                           | Focused tool/regression checks and the application or database groups whose inputs or execution changed; both when shared | Exercise affected fixtures, configuration and environment behavior; review the gate itself rather than relying only on the tool's own success                  |
 
-For every row, **all existing required PR CI jobs must pass on the final head**,
-including Application quality, Local Supabase security and Required quality gate.
-Post-merge CI must pass on the merge commit. Local applicability does not permit
-path-based CI skips, a reused PR status, or weaker coverage/security thresholds.
+For every row, **the full PR CI route must pass on the final head**, including
+Application quality, Local Supabase security and Required quality gate, except
+for the strictly eligible [non-normative prose route](#non-normative-prose-ci).
+Post-merge CI remains full on the merge commit. Local applicability does not
+permit additional CI skips, a reused PR status or weaker coverage/security thresholds.
 The workflow and commands are described in [DevSecOps](10_DEVSECOPS_GUIDE.md#3-pull-request-pipeline).
 
 When the local stack is occupied or its disposability is uncertain, preserve it
@@ -107,6 +108,34 @@ database/runtime evidence. Run safe applicable local checks first; record the
 database evidence as pending until CI passes. Publication to obtain CI is not a
 completed verification claim. Follow [database safety](10_DEVSECOPS_GUIDE.md#local-setup-and-database-safety);
 unavailable required evidence blocks delivery, never justifies an unsafe reset.
+
+### Non-normative prose CI
+
+The PR-only exception initially permits spacing/reflow of existing plain
+retrospective bullets in `16_CHANGE_LOG.md`, below `## Unreleased`, with exactly
+the same words, punctuation, order and block boundaries. The introduction and
+headings stay byte-identical. The classifier accepts a small grammar of past-tense
+entries and two-space letter-led continuation lines; unfamiliar syntax takes
+full CI. It cannot infer that arbitrary wording is harmless. Ordinary typo,
+wording, evidence-link or acceptance-claim changes therefore still take full CI.
+
+Only that exact tracked regular-file path may change. No added/deleted/renamed
+file, mode change, code/inline example, link, HTML, table, nested list, hard break,
+tab, control character or normative block can use this exception. Requirements,
+governance/security instructions, application code, CI/configuration, dependencies,
+migrations, mixed or ambiguous changes retain full verification. Markdown
+extensions, labels and author assertions do not establish eligibility. Independent
+review still checks meaning and scope; ambiguity requires full CI.
+
+Fresh prose CI runs frozen installation, formatting, documentation/link/budget
+checks, general secret scanning and classifier/gate regression tests. Summaries
+report application/database groups as not executed, never as tested. The complete
+comparison and both contents must establish eligibility; missing history or
+invalid classification blocks the aggregate. Main pushes and manual runs always
+use full CI. Changes to this policy, its classifier, tests or workflow must
+themselves pass the existing full application/database checks; they cannot
+validate themselves through the shortcut. No production or real-data acceptance
+is changed.
 
 ### Evidence reuse
 

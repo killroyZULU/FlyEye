@@ -23,7 +23,7 @@ stacked feature PRs. Push-triggered runs remain limited to `main`. A manually
 dispatched run is evidence for its recorded head, not an attached PR check;
 verify the current head and required results before delivery claims.
 
-The current CI baseline is verification-only. It runs frozen installation,
+The full CI baseline is verification-only. It runs frozen installation,
 formatting, documentation and code-maintainability architecture checks, ESLint,
 TypeScript, coverage-gated unit/component/handler tests, production build, a
 browser-specific Supabase key scan, a general Git-history secret scan,
@@ -50,8 +50,36 @@ comparing them.
   runner, database lint, and a non-mutating generated-type comparison against an
   already running local stack. **It starts with `db:reset` and is destructive**;
   apply [database safety](#local-setup-and-database-safety) first; and
-- GitHub Actions publishes one aggregate `Required quality gate` result after
-  the parallel application and database jobs finish.
+- GitHub Actions publishes the stable aggregate `Required quality gate` after
+  the [selected route](#ci-routing-and-required-checks) finishes.
+
+### CI routing and required checks
+
+The [QA prose eligibility rule](11_QA_TEST_PLAN.md#non-normative-prose-ci) is the
+only exception to full PR CI. Keep workflow triggers unfiltered; classify the
+entire Git comparison using explicit event base/head and checkout SHAs, not a
+truncated path API or commit message. Require the base to be an ancestor of the
+head and the checked-out tree to match the head before granting prose eligibility;
+otherwise run full. Missing objects, malformed identities or classifier failure
+block the aggregate and never grant prose eligibility. Changed classifier/workflow
+code is itself subject to full verification and independent review.
+
+Keep `Application quality`, `Local Supabase security` and `Required quality gate`
+names stable. Preserve the full jobs' commands and parallel execution. Full jobs
+run unless successful classification explicitly selects prose; the prose job
+requires affirmative eligibility. The aggregate uses `always()` and all job
+dependencies: full requires classification/application/database success and prose
+unselected; prose requires classification/prose success and both full jobs
+unselected. Unknown routes, failures, missing outputs, cancellations and unexpected
+skips cannot pass. Summaries identify route, compared SHAs and unexecuted groups.
+
+Recheck actual branch protection/rulesets before publication and integration;
+never change settings as part of routing. A skipped check is not test evidence.
+If required-check configuration cannot represent the route reliably, retain full
+verification until a separately authorized compatible decision. Main push and
+manual-dispatch runs remain full; a manual run cannot substitute for final-head
+PR checks. Exact post-merge checks, fixture cleanup and teardown remain necessary
+for integration, separately from PR completion.
 
 ### Local setup and database safety
 
@@ -121,8 +149,8 @@ SAST/CodeQL, broader license review, SBOM generation, configuration scanning, st
 
 CI optimization must preserve useful parallelism and a stable required-check
 name rather than collapsing all verification into one opaque shell command.
-Application and database jobs may run independently; the aggregate gate fails
-unless both succeed or are explicitly replaced by a reviewed equivalent. Green
+The [route-aware aggregate](#ci-routing-and-required-checks) preserves the full
+application/database gate and explicitly reports the narrow prose exception. Green
 CI plus the local evidence and separate-agent review permits the agent to mark
 the PR ready for merge review. CI cannot merge, deploy, or approve production.
 
