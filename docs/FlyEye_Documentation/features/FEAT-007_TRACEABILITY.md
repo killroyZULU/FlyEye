@@ -185,10 +185,22 @@ retain filters, reject older responses, preserve conflicts/retry keys and clear
 revoked access. Captures: [desktop before](evidence/FEAT-007-list-foundation/before-desktop.png)/[after](evidence/FEAT-007-list-foundation/after-desktop.png),
 [phone before](evidence/FEAT-007-list-foundation/before-phone.png)/[after](evidence/FEAT-007-list-foundation/after-phone.png).
 Synthetic component harness, Edge, 1440/390 px, 2026-10-19, baseline `76b1da3`;
-no backend requests. Editor/dialog computed styles match baseline. Owner-reported
+no backend requests. Editor/dialog unchanged. Owner-reported
 actual Edge 200% zoom/Narrator workflow passed; this is not formal accessibility
 certification. Local application matrix and separate review passed;
 [#184](https://github.com/killroyZULU/FlyEye/issues/184) links delivery/CI evidence.
+
+## Editor
+
+[EDIT-01–04](FEAT-007_AIRCRAFT_REGISTRY_FOUNDATION.md#registry-editor-visual-foundation):
+[checkAircraftEditorFoundation](../../../scripts/lib/aircraft-editor-foundation-browser.mjs),
+[AircraftEditor tests](../../../src/features/aircraft/components/AircraftEditor.test.tsx),
+[regressions](../../../src/features/aircraft/components/AircraftRegistryPanel.test.tsx).
+[#196](https://github.com/killroyZULU/FlyEye/issues/196)
+
+Synthetic Edge: [desktop](evidence/FEAT-007-editor-foundation/before-desktop.png)/[after](evidence/FEAT-007-editor-foundation/after-desktop.png),
+[phone](evidence/FEAT-007-editor-foundation/before-phone.png)/[after](evidence/FEAT-007-editor-foundation/after-phone.png).
+1440/390 px, 2026-10-24, before baseline `19f547e`; no backend requests.
 
 ## Final integration evidence
 
