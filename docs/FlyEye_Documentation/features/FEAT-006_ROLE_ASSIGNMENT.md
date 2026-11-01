@@ -116,8 +116,12 @@ request-supplied organization alone.
 
 Future school-validated roles remain version-controlled built-in permission
 bundles under the governance role decision. Role security metadata and
-permission-driven interface checks may be centralized in Slice B, but the
-assignable set remains the three roles in this contract. Custom roles,
+permission-driven interface checks may be centralized in Slice B, but its
+implemented assignable set remains the three roles in this contract. The
+prospective [FEAT-009 TD01 extension](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td01-applicability-and-reviewer-bundles)
+adds designated credential reviewer bundles through the same protected assignment
+and MFA safeguards in its own S1 delivery. Existing three-role acceptance results
+do not verify that extension. Custom roles,
 permission editing, and multiple-role assignment remain excluded.
 
 ## Slice A workflow and rules

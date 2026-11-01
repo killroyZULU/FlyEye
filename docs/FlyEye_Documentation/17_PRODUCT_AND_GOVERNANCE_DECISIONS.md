@@ -41,14 +41,17 @@ Superseded decision processes remain available through Git history. They are not
 ### Session-control decision gate
 
 Retain the existing browser-managed Supabase sessions for local synthetic
-development. This is not approval of browser token storage for real-data, pilot
+development. The [selected session policy](08_SECURITY_REQUIREMENTS.md#selected-session-policy)
+defines owner-approved expiry, activity, tab/device, warning, credential MFA and
+temporary text-recovery behavior. Selection is not implementation evidence.
+This is not approval of browser token storage for real-data, pilot
 or production use and does not waive the secure-cookie requirement.
 
 Before release approval, the Founder/Product Owner and qualified security reviewer
 must resolve [SESS-01 through SESS-05](08_SECURITY_REQUIREMENTS.md#session-control-applicability):
-the credential storage/transport model and threat controls; inactivity definition
-and session lifetimes; termination events, scope and permitted enforcement delay;
-and any action-specific freshness still unspecified. Record the selected policy,
+the credential storage/transport model and threat controls; remaining enforcement,
+authentication-renewal and termination details; and action-specific freshness
+outside the selected personal-credential exception. Record the selected policy,
 verification evidence and unresolved risks. A material architecture change requires
 an accepted ADR; provider/plan/cost decisions follow [Hosting and environments](#hosting-and-environments).
 
@@ -56,6 +59,27 @@ Until then, agents may document gaps and preserve approved behavior during bound
 refactors. They must not invent timeout values, equate local test passes with
 hosted guarantees, silently waive session controls or implement a replacement
 architecture. Implementation evidence belongs in [session traceability](features/FEAT-001_TRACEABILITY.md#session-control-evidence).
+
+## Personal credential tracker
+
+The selected product decisions are defined once in the
+[FEAT-009 contract](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#selected-technical-decisions):
+[TD01](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td01-applicability-and-reviewer-bundles),
+[TD02](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td02-calendar-semantics),
+[TD03](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td03-current-band-catch-up),
+[TD04](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td04-synthetic-file-policy),
+[TD05](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td05-retention-boundary),
+[TD06](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td06-synthetic-delivery) and
+[TD07](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td07-field-and-completeness-rules).
+These resolve the source document's proposals only to their stated synthetic
+scope. Real-data retention/deletion, safe processing and external delivery remain
+gated. Retry schedule reference/exhaustion and enforcement mechanisms still need
+design resolution; they are not silently selected by these decisions.
+
+The role extension preserves a single assigned role and uses existing protected
+assignment. It does not introduce a second identity/permission system, combined
+account-administrator/reviewer authority or aviation approval. Feature slices and
+shared staging remain separately bounded; S0 is repository documentation only.
 
 ## Privacy, minors, and test data
 
@@ -77,7 +101,8 @@ architecture. Implementation evidence belongs in [session traceability](features
 - Separate Supabase projects, credentials, buckets, provider secrets, frontend deployments, backups, and monitoring are required for every school and lifecycle environment.
 - Development remains local and synthetic. No production environment or real-data workflow is approved.
 - A hosted synthetic run requires an exact approved target, provider/plan/region, cost ceiling, secure credential path, fixed frontend origin, monitoring owner, retention, cleanup, recovery plan, and any applicable risk-triggered qualified review.
-- FEAT-003 hosted-readiness planning is deferred until at least two non-identity-and-access product-workflow features are merged with their applicable local synthetic verification recorded. Login, password recovery, MFA and administrator onboarding, invitations, user/profile administration, and role assignment do not count toward this threshold. Reaching the threshold reopens hosted-readiness planning; it does not authorize a hosted resource, paid plan, credential use, real data, deployment, or production.
+- The [shared synthetic staging baseline](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md) is a bounded early-planning exception to the two-product-workflow threshold. S0 may specify that checkpoint before credential S2; provider recommendations remain undecided. This exception authorizes no hosted resource, account/credential setup, grant, migration execution, send, paid plan or deployment. Exact target and execution gates above remain mandatory.
+- Other FEAT-003 hosted-readiness work retains the threshold of at least two merged non-identity-and-access product-workflow features with applicable local synthetic verification. Login, recovery, MFA/onboarding, invitations, user/profile administration and role assignment do not count. Reaching the threshold reopens planning only.
 - Production hosting, domain, email, data residency, backup, recovery, monitoring, and cost commitments remain separate decisions.
 
 ## Delivery and review policy

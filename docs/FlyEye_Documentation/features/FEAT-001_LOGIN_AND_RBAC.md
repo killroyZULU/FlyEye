@@ -63,6 +63,13 @@ No aviation authority is inferred from a role label. The initial permissions gra
 
 ## Preconditions and business rules
 
+The table above records the initial role contract. Prospective
+[credential reviewer bundles](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#td01-applicability-and-reviewer-bundles)
+retain Instructor Pilot access and mandatory MFA; their resolver integration
+requires new evidence. Shared expiry and credential authentication follow the
+[selected session policy](../08_SECURITY_REQUIREMENTS.md#selected-session-policy),
+whose implementation is separate from this feature's recorded results.
+
 1. Public sign-up is disabled.
 2. The user authenticates directly with Supabase Auth.
 3. Application access requires an active organization and active membership.

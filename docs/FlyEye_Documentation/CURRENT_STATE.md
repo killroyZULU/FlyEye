@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-10-28
+- Last updated: 2026-11-01
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production: not deployed or approved
 - Data boundary: local synthetic data only
@@ -27,7 +27,7 @@ Merged code and green local or CI evidence do not imply hosted validation, quali
 - Each flight school uses a separate frontend and Supabase/cloud/data deployment from the same versioned product; the application has no school selector.
 - Student non-privileged access may use password-authenticated AAL1; instructors, administrators, and authority-bearing actions require TOTP/AAL2.
 - Development and demonstrations use synthetic data.
-- No staging or production environment, production domain, or customer-data workflow is currently approved.
+- [Staging planning](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md) excludes hosted activation, production and real data.
 - Aviation, legal, privacy, security, accessibility, customer, penetration-test, pilot-readiness, and production review remain risk- and lifecycle-triggered.
 - FEAT-001 through FEAT-006 are merged with their recorded local synthetic and required CI evidence. No larger operational product module is implemented.
 - The [Visual Design System](DESIGN.md) is a reversible working direction merged through PR #30; implementation remains separately bounded.
@@ -45,7 +45,7 @@ coverage and findings. Passing automated checks does not complete manual review.
 - Authentication: [PR #65](https://github.com/killroyZULU/FlyEye/pull/65) merged FIX-009 at `6898682`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/36415955194) passed on attempt 2. Diagnostics remain in #39.
 - Maintenance: [A011](https://github.com/killroyZULU/FlyEye/pull/113), [H002 registry](https://github.com/killroyZULU/FlyEye/pull/115), [SEC-002](https://github.com/killroyZULU/FlyEye/pull/117) and [SEC-003](https://github.com/killroyZULU/FlyEye/pull/119) integrated through `e48f039`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37457708402) passed. [Untested H002 scenarios](features/FEAT-007_TRACEABILITY.md#sql-inspection-boundary) and database/session-policy gates remain.
 - [A010 / PR #121](https://github.com/killroyZULU/FlyEye/pull/121) merged at `e938371`; [post-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/37567228502) passed all gates/cleanup. [Limiter evidence](features/FEAT-001_TRACEABILITY.md#a010-bootstrap-limiter); hosted validation remains open.
-- R1–R4 integrated. R5 [#203](https://github.com/killroyZULU/FlyEye/pull/203) merged `d1eb539`; [CI](https://github.com/killroyZULU/FlyEye/actions/runs/40637287324) failed provider START HTTP502; cleanup passed. [#204](https://github.com/killroyZULU/FlyEye/issues/204): CI recovery. Aircraft reads gated; [R5](features/FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md#r5-source-inventory), R6–R8/#39 open.
+- R1–R4 and R5 [#203](https://github.com/killroyZULU/FlyEye/pull/203) integrated; [#204](https://github.com/killroyZULU/FlyEye/issues/204) closed. Current main `c993f705` passed [full CI](https://github.com/killroyZULU/FlyEye/actions/runs/40842555528). Earlier provider failures remain unexplained; green main does not close the [R5 inventory](features/FEAT-007_REGISTRY_IMPLICIT_WAIT_TRACEABILITY.md#r5-source-inventory), aircraft-read investigation or R6–R8/#39.
 
 ## Aircraft and dashboard integration
 
@@ -60,7 +60,12 @@ PRs #30, #32, #36, #38, #34 merged with green [integration CI](https://github.co
 requires qualified school workflow evidence; Issue #39 remains the unfinished
 audit. [Deferred screen evidence](features/FEAT-008_TRACEABILITY.md#deferred-screen-delivery-evidence) records initial bundle measurements and loading regressions; #112 owns delivery verification.
 
-FEAT-003 hosted-readiness planning and activation remain deferred under the threshold and preserved gates in [Product and Governance Decisions](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
+## Credential planning
+
+[FEAT-009 S0](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md): documentation only;
+[execution evidence pending](features/FEAT-009_TRACEABILITY.md).
+[#208](https://github.com/killroyZULU/FlyEye/issues/208) follows
+[governance](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
 
 ## Open decisions requiring external evidence
 
