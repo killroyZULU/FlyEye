@@ -291,3 +291,7 @@ Race-actor tasks settle before cleanup. The
 requires later phases to run, partial cleanup to fail, and arbitrary error data
 to remain suppressed. The final CI linked from PR #119 owns runtime execution
 and current cleanup results; a later pass cannot identify the historical cause.
+
+## Staging readiness evidence
+
+See [staging evidence](FEAT-003_STAGING_TRACEABILITY.md).
