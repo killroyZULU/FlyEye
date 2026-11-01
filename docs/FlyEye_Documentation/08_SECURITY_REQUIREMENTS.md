@@ -18,7 +18,7 @@ Release-blocking threats include authentication bypass, cross-school data access
 - Email links/codes limited to mailbox verification and recovery, not privileged MFA; single-use recovery codes, audited factor replacement, supervised recovery, and throttling remain production requirements
 - Login/reset throttling, non-enumerating responses, lockout/risk detection
 - Secure session cookies, CSRF defense, session rotation, inactivity/absolute expiry, revocation; apply the explicit boundaries below
-- Reauthentication for exports, role changes, record reopening, sensitive document access, configuration/limit changes, and support elevation
+- Reauthentication for exports, role changes, record reopening, sensitive document access, configuration/limit changes, and support elevation; the personal-credential exception is defined in [Selected session policy](#selected-session-policy)
 - Rapid deprovisioning and periodic access review
 
 ### Session-control applicability
@@ -42,6 +42,69 @@ controls, target settings, unresolved tests and required reviewers. Validation m
 supply missing evidence; it is not release approval. Unresolved decisions or failed
 controls block real-data, pilot and production approval. This documentation does
 not authorize a session redesign, hosted setting change or weaker feature contract.
+
+### Selected session policy
+
+This prospective policy selects product behavior for SESS-03–05; it does not
+claim enforcement by the current implementation. Existing stricter feature
+contracts remain, except for the explicit personal-credential exception below.
+SESS-01 storage/transport and SESS-02 rotation/replay evidence remain release
+gates. [Planned session tests](features/FEAT-009_TRACEABILITY.md#shared-session-verification-plan)
+are not implementation results.
+
+- Expire the application session after **45 minutes of inactivity** or **12
+  hours from qualifying sign-in/reauthentication**, whichever comes first.
+  Server time is authoritative, including after lock waits. At the deadline
+  access is expired, with no grace. Activity extends only inactivity; token
+  refresh, a new token issue time, reload or a new tab cannot reset the maximum.
+- Activity means deliberate controls/clicks/taps, typing/editing, keyboard
+  navigation, deliberate scrolling, opening/navigating records or Continue
+  Session before expiry. Mouse movement alone, focus alone, quiet reading,
+  polling, refresh, retries, background downloads, automatic scrolling and use
+  of another application do not count. Report only activity fact/timing, never
+  typed contents or browsing history. Late/offline signals cannot revive expiry.
+- Tabs sharing the same authenticated session share activity/deadlines.
+  Separately authenticated browsers/devices have independent timers. Hidden tabs
+  must not generate synthetic activity. Resume/reconnect requires revalidation;
+  a cross-tab message is not proof of authority. Timeout affects only its session;
+  existing account-wide security/recovery revocation rules remain.
+- Warn five minutes before either deadline (40 minutes idle or 11h55 maximum).
+  Show one accessible warning for the earlier deadline, without focus theft or
+  per-second announcements. Continue Session can extend an unexpired inactivity
+  window; maximum expiry requires authentication. Warning display is not activity.
+  Wake after expiry requires authentication, not a restarted warning period.
+- Personal credential metadata/checklists/dates/status/notices may use Student
+  AAL1. Evidence upload/preview/download requires current MFA: reuse the valid
+  MFA-authenticated sign-in session or step up from AAL1. HoT/CFI approval and
+  rejection likewise use a valid current MFA-authenticated session. There is **no
+  separate evidence-viewing or credential-decision freshness timer**, and no
+  additional recent-password prompt solely for those operations. This is an
+  action-specific exception, not a claim that AAL2 proves recent authentication
+  for other actions. Preserve existing shorter role/status-change requirements.
+- Every protected operation still checks current membership, school, permission,
+  assurance, ownership and state. Revocation wins over a valid session; no
+  self-review or cross-school access is permitted by authentication alone.
+- On expiry, clear protected records, evidence previews and file selections from
+  the interface. Only allowlisted unsent text may remain hidden in the same tab's
+  memory. Exclude passwords, MFA codes and file bytes; no localStorage, IndexedDB,
+  server draft or cross-tab draft broadcast. Reload, tab close, explicit logout,
+  account change or confirmed authorization denial clears it. Restore only after
+  the same person/school passes fresh membership/permission checks and current
+  server state is loaded; show conflicts without overwriting. Network failure or
+  a mistyped password is not confirmed authorization denial.
+- Never automatically submit, approve or reject after authentication. Committed
+  actions persist; unknown outcomes require reconciliation before an explicit
+  retry. Interrupted uploads require fresh ownership/lifecycle checks and file
+  reselection where necessary; no automatic attachment or deletion.
+
+Before enforcement implementation, resolve qualifying authentication and renewal
+binding (including AAL1-to-MFA step-up), verified session identity, activity
+coalescing/rate limits and the complete Edge/SQL/RPC/Storage/provider access-path
+inventory. Prevent old tokens borrowing renewed deadlines; missing enforcement
+state fails closed. Do not treat provider refresh-based inactivity as user
+activity, or signed-link lifetime as current authorization. A failed mandatory
+audit blocks the sensitive grant/action, but failure to log expiry cannot restore
+access. Record applicable qualified review and remaining release risks.
 
 ## 4. Authorization and tenant isolation
 
