@@ -1398,6 +1398,7 @@ try {
   }
   if (staleMode || challengeMode || uncertaintyMode) {
     await (staleBrowser ?? challengeBrowser ?? uncertaintyBrowser).run({
+      projectId,
       users: uncertaintyMode ? providerUsers.slice(uncertaintyServerCases.length) : providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,

@@ -33,6 +33,7 @@ export function onboardingStaleBrowser() {
         enterStage,
         reportDiagnostic,
         cleanupProbe,
+        projectId,
       } = context;
       browser = await chromium.launch({ headless: true });
       for (const index of cleanupProbe ? [1] : [0, 1]) {
@@ -176,6 +177,9 @@ export function onboardingStaleBrowser() {
                 .getByRole('heading', { name: 'Set up your authenticator', exact: true })
                 .waitFor();
             }
+          } catch (error) {
+            await loginDiagnostics.diagnoseFailure(projectId);
+            throw error;
           } finally {
             loginDiagnostics.finish();
           }
