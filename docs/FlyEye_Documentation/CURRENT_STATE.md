@@ -14,7 +14,7 @@ Specifications define requirements; traceability/PRs/CI record evidence.
 | FEAT-001 Login and initial RBAC                   | Merged into `main`; FIX-006 removes school selection and preserves Student AAL1 plus Instructor/Admin TOTP/AAL2                                                | Hosted validation and production readiness remain later work                                                                                                     |
 | FEAT-002 Password Recovery                        | Merged through PR #5; closure documentation through PR #6                                                                                                      | Hosted email/provider behavior, remaining accessibility evidence, real-data approval, deployment, and production remain open                                     |
 | FEAT-003 Organization Admin and MFA Onboarding    | Merged through PR #7                                                                                                                                           | Hosted synthetic validation, provider activation, real data, deployment, and production remain open                                                              |
-| FEAT-003 Hosted Synthetic Hardening               | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free                                                                                  | No staging provider/project, credentials, paid plan, executable hosted issuer, or hosted run is authorized or configured                                         |
+| FEAT-003 Hosted Synthetic Hardening               | Merged through PR #8 at `48ba984`; safeguards remain disabled and target-free                                                                                  | [Staging selections and readiness](features/FEAT-003_STAGING_TRACEABILITY.md#staging-readiness-evidence) do not authorize resource creation or activation        |
 | FEAT-004 Member Invitations                       | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed                                                 | Hosted email, formal accessibility evidence, real data, deployment, and production remain open                                                                   |
 | FEAT-005 User Management and Basic Profiles       | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green     | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open                                                              |
 | FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
@@ -64,8 +64,10 @@ audit. [Deferred screen evidence](features/FEAT-008_TRACEABILITY.md#deferred-scr
 
 [FEAT-009 S0](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md): documentation only;
 [execution evidence pending](features/FEAT-009_TRACEABILITY.md).
-[#208](https://github.com/killroyZULU/FlyEye/issues/208) follows
-[governance](17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments).
+[Staging #210](https://github.com/killroyZULU/FlyEye/issues/210):
+[readiness](features/FEAT-003_STAGING_TRACEABILITY.md#staging-readiness-evidence),
+[execution gates](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md#finite-execution-sequence).
+Bitwarden/hosted verification pending.
 
 ## Open decisions requiring external evidence
 
