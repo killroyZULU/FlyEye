@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-11-01
+- Last updated: 2026-11-02
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production: not deployed or approved
 - Data boundary: local synthetic data only
@@ -64,7 +64,7 @@ audit. [Deferred screen evidence](features/FEAT-008_TRACEABILITY.md#deferred-scr
 
 [FEAT-009 S0](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md): documentation only;
 [execution evidence pending](features/FEAT-009_TRACEABILITY.md).
-[Staging #210](https://github.com/killroyZULU/FlyEye/issues/210):
+[Staging P1 #212](https://github.com/killroyZULU/FlyEye/issues/212):
 [readiness](features/FEAT-003_STAGING_TRACEABILITY.md#staging-readiness-evidence),
 [execution gates](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md#finite-execution-sequence).
 Bitwarden/hosted verification pending.

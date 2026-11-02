@@ -105,6 +105,12 @@ function functionSection(config, functionName) {
   ).test(config);
 }
 
+export function requireFeat003StagingDisabled(input) {
+  const manifest = parseFeat003StagingManifest(input);
+  if (manifest.enabled) throw new Error('Repository staging activation is not supported.');
+  return manifest;
+}
+
 export function validateFeat003RepositoryConfiguration(config, edgeEnvironmentExample) {
   if (
     typeof config !== 'string' ||

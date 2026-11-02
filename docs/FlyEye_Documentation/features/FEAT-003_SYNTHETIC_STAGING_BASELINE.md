@@ -127,6 +127,45 @@ pinned CLI help after adaptation; placeholder commands are not an executable pla
 
 ## Finite execution sequence
 
+### P1 offline preflight contract
+
+The [offline validator](../../../scripts/lib/feat-003-staging-preflight.mjs)
+accepts UTF-8 manifest, execution-package and separate review-record JSON text,
+an in-memory map of artifact bytes, and the independently captured checkout's
+full commit SHA. It accepts no file paths, credentials or execution callbacks.
+The repository validation command must reject activation; enabled manifests
+exist only as synthetic test inputs until a separately reviewed P3 change.
+
+The version-1 execution package binds staging/synthetic classification, provider
+account/organization and project identities, matching manifest targets, Singapore,
+Free/$0, the canonical Pages origin, source revision and the exact manifest-byte
+SHA-256. Its artifact inventory requires one nonempty byte bundle each named
+`configuration`, `edge`, `frontend`, `lockfile` and `migrations`, with SHA-256
+digests. These are opaque bundles: configuration/toolchain inventories and ordered
+migration contents still require P3 semantic review; hashing proves consistency,
+not safe content or build provenance.
+
+The fixed declarative operation sequence is `migrations`, `configuration`,
+`functions`, `fixtures`, `frontend`, `checkpoint`, `redeployment`. It cannot execute
+those operations. Distinct creation/deployment approval references must match the
+separate review record, which pins the entire execution-package byte digest,
+target and source revision. Whitespace changes also invalidate byte digests.
+The caller must independently establish review-record provenance, actual checkout
+identity and current owner authority; self-supplied matching JSON is not approval.
+
+| ID      | Acceptance                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------ |
+| P1-AC01 | Preserve disabled/target-free repository defaults; disabled execution stops first.                                 |
+| P1-AC02 | Reject missing, malformed or mismatched target identities.                                                         |
+| P1-AC03 | Bind checkout/review/package revisions, manifest digest and required artifact bytes.                               |
+| P1-AC04 | Require distinct, separately recorded creation/deployment approvals for the exact package.                         |
+| P1-AC05 | Fixed sanitized rejection, no credential/network/child-process access, and no execution authority even on success. |
+
+Successful offline validation returns `executionAuthorized: false`. No P2–P4 or
+STG acceptance follows from it.
+
+### Execution gates
+
 | Gate                                  | Deliverable and acceptance                                                                                                                                                                                                                      | Dependency and stop                                                                                                                                                                                                                                                                                     |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P1 Repository preparation             | Smallest next implementation: disabled manifest/run-package preflight validation and tests for incomplete/mismatched identities, artifacts and approvals; fail before credentials/network/child processes. Use synthetic test manifests only.   | This contract's reviewed merge and separate implementation authorization. No hosted issuer, credentials, configuration or activation. Stop at its reviewed green PR.                                                                                                                                    |
