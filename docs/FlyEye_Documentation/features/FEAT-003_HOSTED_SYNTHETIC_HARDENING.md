@@ -24,6 +24,12 @@ configuration must never be reused as hosted evidence.
 
 ## Decisions
 
+[P3a](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3a-exact-target-repository-binding)
+is the separately reviewed repository target transition anticipated by HS-01.
+It replaces the initial disabled/target-free repository gate with exact P2
+identity checks. HS-02–06's issuer, local runtime and hosted execution boundaries
+remain unchanged; the original acceptance evidence below describes PR #8.
+
 ### FEAT-003-HS-01: Hosted staging is disabled by default
 
 The committed staging-environment manifest starts with `enabled: false` and no

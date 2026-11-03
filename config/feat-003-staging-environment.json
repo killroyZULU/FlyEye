@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "enabled": false,
+  "enabled": true,
   "environment": "staging",
-  "projectRef": null,
-  "apiOrigin": null,
-  "databaseHost": null,
-  "frontendOrigin": null,
+  "projectRef": "ubzihnhmskkdinydlzlb",
+  "apiOrigin": "https://ubzihnhmskkdinydlzlb.supabase.co",
+  "databaseHost": "db.ubzihnhmskkdinydlzlb.supabase.co",
+  "frontendOrigin": "https://flyeye-staging.pages.dev",
   "dataClassification": "synthetic-only",
   "limiterPolicyVersion": "subject-action-v1"
 }

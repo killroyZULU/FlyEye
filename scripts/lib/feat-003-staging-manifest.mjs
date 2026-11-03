@@ -1,3 +1,5 @@
+import { feat003StagingTarget } from '../../config/feat-003-staging-target.mjs';
+
 const exactKeys = [
   'apiOrigin',
   'dataClassification',
@@ -105,10 +107,30 @@ function functionSection(config, functionName) {
   ).test(config);
 }
 
-export function requireFeat003StagingDisabled(input) {
+export function requireFeat003ReviewedStagingManifest(input) {
   const manifest = parseFeat003StagingManifest(input);
-  if (manifest.enabled) throw new Error('Repository staging activation is not supported.');
+  if (
+    !manifest.enabled ||
+    ['projectRef', 'apiOrigin', 'databaseHost', 'frontendOrigin'].some(
+      (key) => manifest[key] !== feat003StagingTarget[key],
+    )
+  ) {
+    throw new Error('The reviewed staging manifest is required.');
+  }
   return manifest;
+}
+
+export function requireFeat003ReviewedStagingTarget(input) {
+  const keys = Object.keys(feat003StagingTarget);
+  if (
+    !input ||
+    typeof input !== 'object' ||
+    Array.isArray(input) ||
+    Object.keys(input).length !== keys.length ||
+    keys.some((key) => !Object.hasOwn(input, key) || input[key] !== feat003StagingTarget[key])
+  ) {
+    throw new Error('The reviewed staging target is required.');
+  }
 }
 
 export function validateFeat003RepositoryConfiguration(config, edgeEnvironmentExample) {

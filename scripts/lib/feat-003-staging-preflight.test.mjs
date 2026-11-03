@@ -4,24 +4,27 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { describe, expect, it, vi } from 'vitest';
 
-import { requireFeat003StagingDisabled } from './feat-003-staging-manifest.mjs';
+import { feat003StagingTarget } from '../../config/feat-003-staging-target.mjs';
+import { requireFeat003ReviewedStagingManifest } from './feat-003-staging-manifest.mjs';
 import { validateFeat003StagingPreflight } from './feat-003-staging-preflight.mjs';
 
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const rejection = 'FEAT-003 staging preflight rejected.';
-const disabled = JSON.parse(
+const reviewedManifest = JSON.parse(
   readFileSync(new URL('../../config/feat-003-staging-environment.json', import.meta.url), 'utf8'),
 );
+const disabled = {
+  ...reviewedManifest,
+  enabled: false,
+  projectRef: null,
+  apiOrigin: null,
+  databaseHost: null,
+  frontendOrigin: null,
+};
 
 function fixture() {
-  const manifest = {
-    ...disabled,
-    enabled: true,
-    projectRef: 'abcdefghijklmnopqrst',
-    apiOrigin: 'https://abcdefghijklmnopqrst.supabase.co',
-    databaseHost: 'db.abcdefghijklmnopqrst.supabase.co',
-    frontendOrigin: 'https://synthetic-preflight.pages.dev',
-  };
+  // Real non-secret target identifiers; packages, approvals and bytes remain synthetic.
+  const manifest = structuredClone(reviewedManifest);
   const contents = new Map(
     ['configuration', 'edge', 'frontend', 'lockfile', 'migrations'].map((name) => [
       name,
@@ -32,20 +35,7 @@ function fixture() {
     schemaVersion: 1,
     environment: 'staging',
     dataClassification: 'synthetic-only',
-    target: {
-      cloudflareAccountId: '1'.repeat(32),
-      supabaseOrganizationId: 'z'.repeat(20),
-      pagesProjectId: 'synthetic-project-id',
-      pagesProjectName: 'synthetic-preflight',
-      supabaseProjectName: 'synthetic-preflight',
-      region: 'ap-southeast-1',
-      plan: 'free',
-      monthlyCeilingUsd: 0,
-      projectRef: manifest.projectRef,
-      apiOrigin: manifest.apiOrigin,
-      databaseHost: manifest.databaseHost,
-      frontendOrigin: manifest.frontendOrigin,
-    },
+    target: { ...feat003StagingTarget },
     sourceRevision: 'a'.repeat(40),
     manifestSha256: hash(JSON.stringify(manifest)),
     artifacts: [...contents].map(([name, bytes]) => ({ name, sha256: hash(bytes) })),
@@ -116,6 +106,85 @@ function rejects(data) {
 }
 
 describe('FEAT-003 P1 offline preflight', () => {
+  it('pins the checked-in manifest to the independently verified P2 identities', () => {
+    expect(feat003StagingTarget).toEqual({
+      cloudflareAccountId: 'bca1f638d55dc4770f073b33397fce62',
+      supabaseOrganizationId: 'pdabjpfgbewkofmcjolg',
+      pagesProjectId: '0494d41c-cdf9-4c15-ae11-fe8aa6aa5501',
+      pagesProjectName: 'flyeye-staging',
+      supabaseProjectName: 'flyeye-staging',
+      region: 'ap-southeast-1',
+      plan: 'free',
+      monthlyCeilingUsd: 0,
+      projectRef: 'ubzihnhmskkdinydlzlb',
+      apiOrigin: 'https://ubzihnhmskkdinydlzlb.supabase.co',
+      databaseHost: 'db.ubzihnhmskkdinydlzlb.supabase.co',
+      frontendOrigin: 'https://flyeye-staging.pages.dev',
+    });
+    expect(Object.isFrozen(feat003StagingTarget)).toBe(true);
+    expect(requireFeat003ReviewedStagingManifest(reviewedManifest)).toMatchObject({
+      enabled: true,
+    });
+  });
+
+  it.each([
+    ['cloudflareAccountId', '2'.repeat(32)],
+    ['supabaseOrganizationId', 'z'.repeat(20)],
+    ['pagesProjectId', '11111111-2222-3333-4444-555555555555'],
+    ['pagesProjectName', 'synthetic-other'],
+    ['supabaseProjectName', 'synthetic-other'],
+    ['region', 'ap-southeast-2'],
+    ['plan', 'pro'],
+    ['monthlyCeilingUsd', 25],
+  ])(
+    'rejects self-consistent substitution of %s despite matching review and hashes',
+    (key, value) => {
+      const data = fixture();
+      data.run.target[key] = value;
+      data.review.target = { ...data.run.target };
+      data.review.packageSha256 = hash(JSON.stringify(data.run));
+      rejects(data);
+    },
+  );
+
+  it('rejects a different coherent project even when every supplied binding agrees', () => {
+    const data = fixture();
+    const other = {
+      projectRef: 'abcdefghijklmnopqrst',
+      apiOrigin: 'https://abcdefghijklmnopqrst.supabase.co',
+      databaseHost: 'db.abcdefghijklmnopqrst.supabase.co',
+      frontendOrigin: 'https://synthetic-other.pages.dev',
+    };
+    Object.assign(data.manifest, other);
+    Object.assign(data.run.target, other, {
+      pagesProjectName: 'synthetic-other',
+      supabaseProjectName: 'synthetic-other',
+    });
+    data.run.manifestSha256 = hash(JSON.stringify(data.manifest));
+    data.review.target = { ...data.run.target };
+    data.review.packageSha256 = hash(JSON.stringify(data.run));
+    rejects(data);
+  });
+
+  it('rejects an unreviewed manifest before parsing package or review inputs', () => {
+    const data = fixture();
+    data.manifest.frontendOrigin = 'https://synthetic-other.pages.dev';
+    const manifestText = JSON.stringify(data.manifest);
+    const parse = vi.spyOn(JSON, 'parse');
+    let outcome;
+    let parsedInputs;
+    try {
+      outcome = guardedCall(() =>
+        validateFeat003StagingPreflight(manifestText, '{}', '{}', null, null),
+      );
+      parsedInputs = [...parse.mock.calls];
+    } finally {
+      parse.mockRestore();
+    }
+    expect(outcome.error?.message).toBe(rejection);
+    expect(parsedInputs).toEqual([[manifestText]]);
+  });
+
   it('reports consistency only, without granting execution or changing inputs', () => {
     const data = fixture();
     const before = JSON.stringify(data);
@@ -126,9 +195,8 @@ describe('FEAT-003 P1 offline preflight', () => {
     expect(JSON.stringify(data)).toBe(before);
   });
 
-  it('keeps the repository disabled and stops before inspecting later inputs', () => {
-    expect(requireFeat003StagingDisabled(disabled)).toEqual({ enabled: false });
-    expect(() => requireFeat003StagingDisabled(fixture().manifest)).toThrow();
+  it('rejects a disabled manifest before inspecting later inputs', () => {
+    expect(() => requireFeat003ReviewedStagingManifest(disabled)).toThrow();
     const access = vi.fn(() => {
       throw new Error('Later input accessed.');
     });
@@ -536,7 +604,8 @@ describe('FEAT-003 P1 offline preflight', () => {
   it('keeps the complete validator dependency graph free of IO and execution capabilities', () => {
     const allowedImports = new Map([
       ['feat-003-staging-preflight.mjs', ['node:crypto', './feat-003-staging-manifest.mjs']],
-      ['feat-003-staging-manifest.mjs', []],
+      ['feat-003-staging-manifest.mjs', ['../../config/feat-003-staging-target.mjs']],
+      ['../../config/feat-003-staging-target.mjs', []],
     ]);
     const forbidden = new Set([
       'process',

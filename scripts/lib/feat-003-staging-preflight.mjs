@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 
-import { parseFeat003StagingManifest } from './feat-003-staging-manifest.mjs';
+import {
+  requireFeat003ReviewedStagingManifest,
+  requireFeat003ReviewedStagingTarget,
+} from './feat-003-staging-manifest.mjs';
 
 const artifactNames = ['configuration', 'edge', 'frontend', 'lockfile', 'migrations'];
 const operations = [
@@ -63,6 +66,7 @@ function sha256(bytes) {
 
 function validateTarget(target, manifest) {
   exactFields(target, targetKeys);
+  requireFeat003ReviewedStagingTarget(target);
   matches(target.cloudflareAccountId, /^[a-f0-9]{32}$/);
   matches(target.supabaseOrganizationId, /^[a-z0-9]{20}$/);
   matches(target.pagesProjectId, /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/);
@@ -154,8 +158,7 @@ export function validateFeat003StagingPreflight(
   checkoutRevision,
 ) {
   try {
-    const manifest = parseFeat003StagingManifest(parse(manifestText));
-    requireCondition(manifest.enabled);
+    const manifest = requireFeat003ReviewedStagingManifest(parse(manifestText));
     const run = parse(packageText);
     validatePackage(run, manifest, manifestText, checkoutRevision);
     validateReview(parse(reviewText), run, packageText, manifest);

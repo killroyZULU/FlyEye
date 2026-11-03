@@ -29,17 +29,17 @@ The frontend is deployed on a managed static host. The provider, production doma
 
 ## 3. Recommended MVP stack
 
-| Layer | Baseline |
-|---|---|
-| Frontend | React + TypeScript + Vite |
-| PWA | Web manifest and cached application shell; offline drafts deferred until online workflows stabilize |
-| UI/forms | One maintained component library plus the minimum form/schema tools justified by implemented features |
-| Managed backend | Supabase Auth, PostgreSQL, Storage, Edge Functions, generated Data API, and optional Realtime |
-| Authorization | PostgreSQL Row-Level Security plus explicit checks in protected Edge/PostgreSQL functions |
-| Migrations/types | Supabase CLI SQL migrations and generated TypeScript database types |
-| Hosting | Managed static frontend hosting plus managed Supabase projects |
-| Delivery | GitHub, protected main branch, focused GitHub Actions, staging, manual production approval |
-| Testing | Vitest/component tests, SQL/RLS tests, Edge Function integration tests, Playwright E2E, security/recovery tests |
+| Layer            | Baseline                                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| Frontend         | React + TypeScript + Vite                                                                                       |
+| PWA              | Web manifest and cached application shell; offline drafts deferred until online workflows stabilize             |
+| UI/forms         | One maintained component library plus the minimum form/schema tools justified by implemented features           |
+| Managed backend  | Supabase Auth, PostgreSQL, Storage, Edge Functions, generated Data API, and optional Realtime                   |
+| Authorization    | PostgreSQL Row-Level Security plus explicit checks in protected Edge/PostgreSQL functions                       |
+| Migrations/types | Supabase CLI SQL migrations and generated TypeScript database types                                             |
+| Hosting          | Managed static frontend hosting plus managed Supabase projects                                                  |
+| Delivery         | GitHub, protected main branch, focused GitHub Actions, staging, manual production approval                      |
+| Testing          | Vitest/component tests, SQL/RLS tests, Edge Function integration tests, Playwright E2E, security/recovery tests |
 
 Exact package and runtime versions must be verified when implementation starts. Do not pin versions from old planning documents without checking current support.
 
@@ -182,15 +182,15 @@ Recovery objectives are commitments only after database and object restore drill
 
 ## 13. Deployment environments
 
-| Environment | Frontend | Supabase project | Data |
-|---|---|---|---|
-| Development | Local Vite | Local Supabase CLI or dedicated dev project | Synthetic |
-| Staging | Managed preview/staging | Separate staging project | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
-| Production | Managed production host | Separate production project | Approved real customer data |
+| Environment | Frontend                | Supabase project                            | Data                                                                                       |
+| ----------- | ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Development | Local Vite              | Local Supabase CLI or dedicated dev project | Synthetic                                                                                  |
+| Staging     | Managed preview/staging | Separate staging project                    | Realistic synthetic or approved anonymized pilot-like data; never unapproved customer data |
+| Production  | Managed production host | Separate production project                 | Approved real customer data                                                                |
 
 Do not share project URLs, service-role keys, buckets, databases, AI keys, or email providers between staging and production.
 
-No staging or production environment, provider, domain, or paid plan is currently configured. These are future human-approved delivery decisions, not implementation claims.
+Environment provisioning and acceptance status belong in [Current State](CURRENT_STATE.md). Resource creation does not establish hosted application or production readiness.
 
 ## 14. Capacity
 
