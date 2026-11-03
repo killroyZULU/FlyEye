@@ -18,6 +18,7 @@ import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagnostics.mjs';
 import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
+import { verifyStagingIssuer } from './lib/staging-issuer-fixture.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
@@ -1181,6 +1182,15 @@ assert.equal(inspected.Config.Labels?.['com.supabase.cli.project'], projectId);
 const boundDatabasePort = inspected.HostConfig.PortBindings?.['5432/tcp']?.[0]?.HostPort;
 assert.equal(String(boundDatabasePort), database.port);
 assert.ok(api.port);
+
+// P3b uses only this attested disposable CI stack; no hosted transport is invoked.
+if (
+  process.env.CI === 'true' &&
+  process.env.GITHUB_ACTIONS === 'true' &&
+  process.argv.length === 2
+) {
+  await verifyStagingIssuer(psql);
+}
 
 const baselineLimiterState = psql(
   `

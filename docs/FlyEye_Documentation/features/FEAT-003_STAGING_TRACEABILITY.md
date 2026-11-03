@@ -24,8 +24,8 @@ provider screenshots are required to retain this evidence.
 The historical observations above predate the P2 receipt below.
 
 All [STG-01–08](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#first-checkpoint-acceptance)
-remain **pending**: P2 resources and P3a repository identity checks do not supply
-hosted issuer/no-send behavior, application account/role setup, migrations, functions,
+remain **pending**: P2 resources and repository-only P3 changes do not supply
+hosted issuer/no-send validation, application account/role setup, migrations, functions,
 frontend deployment, hosted smoke/redeployment or a data recovery drill.
 Provider account checks do not close these gates. Historical CI above is not
 this documentation PR's final-head CI; record fresh results in the linked PR.
@@ -70,6 +70,9 @@ passed on `02fcaf7a1b5e7bdc9a935b9af7729d8f811554e0`. Historical bootstrap HTTP 
 and password transport-socket-closed causes remain unresolved; later passes do
 not establish their causes. P3a final-head evidence belongs to
 [issue #215](https://github.com/killroyZULU/FlyEye/issues/215) and its linked PR.
+P3a merged as `9ea1abc82d30df5e260c6767a57ed011a807ba35`; its
+[exact-main CI](https://github.com/killroyZULU/FlyEye/actions/runs/41599189957)
+passed. This is the P3b integration baseline, not evidence for changed issuer code.
 
 ## P3a verification map
 
@@ -85,3 +88,27 @@ in the linked PR; this map does not claim hosted execution.
 | [P3A-AC03](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3a-exact-target-repository-binding) | P1 map above, `reports consistency only, without granting execution or changing inputs`, `guardedCall` and complete dependency-graph capability guard.                                                                                                              |
 | [P3A-AC04](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3a-exact-target-repository-binding) | Manifest suite `FEAT-003 protected function configuration`; unchanged [runtime configuration tests](../../../supabase/functions/_shared/edge-runtime-configuration.test.ts) and scoped diff review.                                                                 |
 | [P3A-AC05](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3a-exact-target-repository-binding) | Required check and independent-review receipts in the linked PR; database/runtime results supplied by disposable CI, without resetting existing local stacks.                                                                                                       |
+
+## P3b verification map
+
+[Issue #217](https://github.com/killroyZULU/FlyEye/issues/217) and its linked PR own
+the stable-target review and final-head CI receipt. The offline
+[issuer suite](../../../scripts/lib/feat-003-staging-issuer.test.mjs),
+`P3b staging issuer`, and [file suite](../../../scripts/lib/feat-003-staging-issuer-files.test.mjs),
+`P3b issuer package files`, use synthetic request/package/tool bytes.
+The [transaction fixture](../../../scripts/lib/staging-issuer-fixture.mjs),
+`verifyStagingIssuer`, runs only in the existing attested default FEAT-003 mode
+on disposable GitHub Actions services. It is skipped on occupied local stacks.
+
+| Requirement                                                                    | Test locator and limit                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [P3B-AC01](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | Issuer suite: ordered callbacks, manifest/target/revision/artifact/approval/review mismatch table, request failure table and request-only byte change. Reuses P1/P3a validator assertions, not old CI for changed code.                                     |
+| [P3B-AC02](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | File suite: bounded files, detached/loose/packed/worktree HEAD, malformed metadata and missing package files. Issuer suite: terminal/binary/dirty/version/confirmation denial and exact TLS command. Native prompt and hosted connectivity remain untested. |
+| [P3B-AC03](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | `rollbackCases`: exact grant/audit provenance, expiry, null human attribution and no membership; grant/audit exception and suppressed-insert rollback.                                                                                                      |
+| [P3B-AC04](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | `rollbackCases`: application roles, missing/suspended school, unconfirmed/banned/deleted user, membership/admin and rollback-only second-school denial, duplicate requests. `raceCase`: observed competing school lock, one pair and exact fixture cleanup. |
+| [P3B-AC05](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | Issuer suite: fixed uncertain result for failed/ambiguous output, timeout/signal and thrown transport errors; exactly one call and no raw provider output.                                                                                                  |
+| [P3B-AC06](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | Linked PR records independent review and applicable final-head full CI. Existing hosted-runtime rejection tests remain required. No hosted execution or STG acceptance is supplied.                                                                         |
+
+Database cases and complete-matrix results remain pending until the linked PR's
+exact-head run completes. No migration, public grant/RPC, dependency, application
+or hosted configuration change is included.
