@@ -222,6 +222,8 @@ cleanup enforcement; browser verifies credentials/storage.
 [observeOnboardingLogin](../../../scripts/lib/onboarding-login-diagnostics.mjs);
 [privacy/lifecycle tests](../../../scripts/lib/onboarding-login-diagnostics.test.mjs).
 
+[Bootstrap tests](../../../scripts/lib/onboarding-bootstrap-diagnostics.test.mjs).
+
 ### Grant ownership evidence map
 
 [SEC-021 / #156](https://github.com/killroyZULU/FlyEye/issues/156) owns execution

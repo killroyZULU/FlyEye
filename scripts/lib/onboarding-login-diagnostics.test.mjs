@@ -1,8 +1,14 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { reportBootstrapFailure } from './onboarding-bootstrap-diagnostics.mjs';
 import { observeOnboardingLogin } from './onboarding-login-diagnostics.mjs';
 import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
 import { runtimeDiagnosticLines } from './runtime-diagnostics.mjs';
+
+vi.mock('./onboarding-bootstrap-diagnostics.mjs', () => ({ reportBootstrapFailure: vi.fn() }));
+beforeEach(() => {
+  vi.mocked(reportBootstrapFailure).mockReset();
+});
 
 function harness() {
   const page = new EventEmitter();
@@ -35,6 +41,68 @@ const response = (request, status) => ({
   }),
 });
 describe('passive stale-onboarding login diagnostics', () => {
+  it('captures only the first bootstrap server error and freezes observations before diagnostics', async () => {
+    const { page, lines, observer } = harness();
+    observer.begin();
+    const password = request();
+    const bootstrap = request('/functions/v1/auth-bootstrap?');
+    page.emit('request', password);
+    page.emit('response', response(password, 503));
+    page.emit('request', bootstrap);
+    page.emit('response', response(bootstrap, 200));
+    const first = response(bootstrap, 503);
+    page.emit('response', first);
+    page.emit('response', response(bootstrap, 502));
+    expect(reportBootstrapFailure).not.toHaveBeenCalled();
+    vi.mocked(reportBootstrapFailure).mockImplementation(async () => {
+      page.emit('requestfinished', bootstrap);
+      throw new Error('private diagnostic error');
+    });
+    const original = new Error('original browser failure');
+    const run = async () => {
+      try {
+        throw original;
+      } catch (error) {
+        await observer.diagnoseFailure('synthetic_ci');
+        throw error;
+      } finally {
+        observer.finish();
+      }
+    };
+    await expect(run()).rejects.toBe(original);
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenCalledTimes(1);
+    expect(reportBootstrapFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        response: first,
+        projectId: 'synthetic_ci',
+        since: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      }),
+    );
+    expect(first.json).not.toHaveBeenCalled();
+    expect(lines.some((line) => line.includes('request-finished'))).toBe(false);
+    expect(lines.join('\n')).toContain('request-pending');
+    observer.dispose();
+  });
+  it('discards captured failures after successful completion, reset and disposal', async () => {
+    const { page, observer } = harness();
+    observer.begin();
+    const req = request('/functions/v1/auth-bootstrap?');
+    page.emit('request', req);
+    page.emit('response', response(req, 503));
+    observer.finish();
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).not.toHaveBeenCalled();
+    observer.begin();
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ response: undefined }),
+    );
+    observer.begin();
+    observer.dispose();
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenCalledTimes(1);
+  });
   it.each([200, 201, 204, 400, 401, 403, 404, 405, 409, 422, 429, 500, 502, 503, 504, 302, 418])(
     'reports only the fixed category for HTTP %s',
     (status) => {

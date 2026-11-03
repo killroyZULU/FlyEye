@@ -33,3 +33,22 @@ issuer/no-send path, application account/role setup, migrations, functions,
 frontend deployment, hosted smoke/redeployment or data recovery drill is evidenced.
 Provider account checks do not close these gates. Historical CI above is not
 this documentation PR's final-head CI; record fresh results in the linked PR.
+
+## P1 preflight evidence
+
+[Issue #212](https://github.com/killroyZULU/FlyEye/issues/212) and its linked PR own
+the exact-target verification/review receipt. The offline
+[suite](../../../scripts/lib/feat-003-staging-preflight.test.mjs),
+`FEAT-003 P1 offline preflight`, uses synthetic JSON and byte bundles only.
+
+| Requirement                                                                     | Automated evidence and limit                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [P1-AC01](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) | `keeps the repository disabled and stops before inspecting later inputs`; real checked-in manifest remains target-free; repository validator rejects enabled configuration.                                                                                                                                         |
+| [P1-AC02](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) | Missing-field/target-identity table tests and the structurally valid other-account regression reject substitution against the separate review record.                                                                                                                                                               |
+| [P1-AC03](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) | Revision/hash failure table, artifact inventory/byte tests and `invalidates approval on a byte-only package or manifest change`. Hashes do not establish safe content or provenance.                                                                                                                                |
+| [P1-AC04](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) | Approval failure table rejects absent, identical, changed or unreviewed references. Reference equality is not approval authentication.                                                                                                                                                                              |
+| [P1-AC05](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) | `guardedCall` blocks environment/credential and global-fetch access around positive/negative calls; `keeps the complete validator dependency graph free of IO and execution capabilities` checks both modules' import/identifier boundaries. Fixed errors never echo inputs; success grants no execution authority. |
+
+Focused checks passed locally. Full final-head CI and separate review are recorded
+in the linked PR, not inferred from this evidence map. No hosted acceptance,
+issuer/no-send implementation or resource creation is supplied by P1.

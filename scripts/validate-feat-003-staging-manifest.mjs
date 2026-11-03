@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  parseFeat003StagingManifest,
+  requireFeat003StagingDisabled,
   validateFeat003RepositoryConfiguration,
 } from './lib/feat-003-staging-manifest.mjs';
 
@@ -18,16 +18,12 @@ const edgeEnvironmentExamplePath = path.resolve(
 );
 
 try {
-  const parsed = parseFeat003StagingManifest(JSON.parse(await readFile(manifestPath, 'utf8')));
+  requireFeat003StagingDisabled(JSON.parse(await readFile(manifestPath, 'utf8')));
   validateFeat003RepositoryConfiguration(
     await readFile(supabaseConfigPath, 'utf8'),
     await readFile(edgeEnvironmentExamplePath, 'utf8'),
   );
-  process.stdout.write(
-    parsed.enabled
-      ? 'FEAT-003 staging manifest is structurally ready for separate review.\n'
-      : 'FEAT-003 staging manifest is disabled.\n',
-  );
+  process.stdout.write('FEAT-003 staging manifest is disabled.\n');
 } catch {
   process.stderr.write('FEAT-003 staging manifest validation failed.\n');
   process.exitCode = 1;

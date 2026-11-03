@@ -1,3 +1,5 @@
+import { reportBootstrapFailure } from './onboarding-bootstrap-diagnostics.mjs';
+
 const stages = [
   'stale-network-password',
   'stale-network-bootstrap',
@@ -35,12 +37,15 @@ const responseCategory = (status) =>
       ? `http-${status}`
       : 'http-other';
 
-// Passive page listeners only: no request, route, wait, response-body read or retry.
+// Passive listeners; error evidence is read only after a failed browser scenario.
 export function observeOnboardingLogin(page, report, apiUrl) {
   const apiOrigin = new URL(apiUrl).origin;
   let active = false;
   let requests = new WeakMap();
   let observations;
+  let bootstrapResponse;
+  let since;
+  let diagnosed = false;
   function request(request) {
     if (!active) return;
     const stage = requestStage(request, apiOrigin);
@@ -61,6 +66,8 @@ export function observeOnboardingLogin(page, report, apiUrl) {
     if (!active) return;
     const stage = requests.get(value.request());
     if (stage) observations.get(stage).outcomes.add(responseCategory(value.status()));
+    if (stage === stages[1] && value.status() >= 500 && value.status() < 600 && !bootstrapResponse)
+      bootstrapResponse = value;
   };
   const failed = (request) => settled(request, 'transport-failed');
   const finished = (request) => settled(request, 'request-finished');
@@ -70,14 +77,28 @@ export function observeOnboardingLogin(page, report, apiUrl) {
   page.on('requestfinished', finished);
   return {
     begin() {
+      bootstrapResponse = undefined;
+      since = new Date().toISOString();
+      diagnosed = false;
       requests = new WeakMap();
       observations = new Map(
         stages.map((stage) => [stage, { seen: false, pending: 0, outcomes: new Set() }]),
       );
       active = true;
     },
+    async diagnoseFailure(projectId) {
+      if (!active || diagnosed) return;
+      diagnosed = true;
+      const snapshot = this.finish();
+      try {
+        await reportBootstrapFailure({ ...snapshot, projectId, report });
+      } catch {
+        // Diagnostics must preserve the original failure and cleanup.
+      }
+    },
     finish() {
       if (!active) return;
+      const snapshot = { response: bootstrapResponse, since };
       active = false;
       requests = new WeakMap();
       for (const [stage, value] of observations) {
@@ -92,10 +113,13 @@ export function observeOnboardingLogin(page, report, apiUrl) {
         }
       }
       observations = undefined;
+      bootstrapResponse = undefined;
+      return snapshot;
     },
     dispose() {
       active = false;
       observations = undefined;
+      bootstrapResponse = undefined;
       requests = new WeakMap();
       page.off('request', request);
       page.off('response', response);

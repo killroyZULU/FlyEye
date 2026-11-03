@@ -137,6 +137,7 @@ const stages = new Map([
       'stale-login-enrollment-heading',
       'stale-network-password',
       'stale-network-bootstrap',
+      'bootstrap-response',
       'stale-network-status',
       'stale-network-start',
       'stale-api-cancel',
@@ -384,6 +385,15 @@ const failureDetails = new Set([
   'http-other',
   ...[...httpStatuses].map((status) => `http-${status}`),
 ]);
+const bootstrapDetails = new Set([
+  'bootstrap-limiter-unavailable',
+  'bootstrap-factor-inventory-unavailable',
+  'bootstrap-audit-unavailable',
+  'bootstrap-access-context-unavailable',
+  'bootstrap-response-missing',
+  'bootstrap-response-unreadable',
+  'bootstrap-response-oversize',
+]);
 const responseDetails = new Set([
   'provider-panic',
   'provider-error-log',
@@ -427,6 +437,10 @@ export function fixtureDiagnostic(feature, stage, event, detail) {
       ...[...httpStatuses].map((status) => `http-${status}`),
     ].includes(detail);
   const validEvent =
+    (feature === 'FEAT-003' &&
+      stage === 'bootstrap-response' &&
+      event === 'response' &&
+      bootstrapDetails.has(detail)) ||
     (feature === 'FEAT-004' &&
       stage === 'invitation-list-decode' &&
       event === 'response' &&

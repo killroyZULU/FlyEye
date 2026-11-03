@@ -6,6 +6,8 @@ Entries should normally be no more than 100 words. Do not use this file as an im
 
 ## Unreleased
 
+- Added [P1 offline staging preflight](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p1-offline-preflight-contract) with exact package/review/artifact bindings and failure tests; repository staging remains disabled and no execution authority is granted.
+
 - Consolidated selected synthetic staging policies and a [finite execution plan](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md), separating [provider observations and owner confirmations](features/FEAT-003_STAGING_TRACEABILITY.md#staging-readiness-evidence) from pending vault and hosted verification. Resource creation and exact-target deployment remain separate decisions; no application or infrastructure implementation is included.
 - Specified [Personal Credential Tracker S0](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md), its CR/AC evidence plan, selected session policy and a separately gated [synthetic staging checkpoint](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md). This documentation establishes no feature implementation, hosted activation or production acceptance.
 - Implemented [FEAT-007B Aircraft Document Records](features/FEAT-007_AIRCRAFT_DOCUMENT_RECORDS.md) for local synthetic review: protected ARROWI status and metadata, immutable renewal/correction history, Admin lifecycle and notifications, configurable categories, private clean-only attachments, role-scoped responsive UI, atomic audit, idempotency, rate limits, and nine-fixture regression coverage. The feature reports configured record status only; hosted providers, real data, operational authority, deployment, and production remain excluded.
