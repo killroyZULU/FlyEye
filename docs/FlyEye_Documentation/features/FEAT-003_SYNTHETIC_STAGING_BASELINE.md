@@ -23,9 +23,10 @@ Auth/TOTP, protected Edge/SQL commands, private Storage, RLS and atomic audit.
 Repository observations and provider readiness are recorded separately in
 [traceability](FEAT-003_STAGING_TRACEABILITY.md#staging-readiness-evidence).
 
-The [manifest](../../../config/feat-003-staging-environment.json) starts disabled
-and target-free; its [validator](../../../scripts/lib/feat-003-staging-manifest.mjs)
-checks structure, not deployment authorization. [Runtime configuration](../../../supabase/functions/_shared/edge-runtime-configuration.ts)
+The [manifest](../../../config/feat-003-staging-environment.json) and
+[reviewed target](../../../config/feat-003-staging-target.mjs) supply the P3a
+repository binding; its [validator](../../../scripts/lib/feat-003-staging-manifest.mjs)
+checks identity, not deployment authorization. [Runtime configuration](../../../supabase/functions/_shared/edge-runtime-configuration.ts)
 rejects hosted onboarding/member-administration/MFA profiles. The staging issuer
 remains dormant under [HS-01–06](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md#decisions).
 
@@ -91,9 +92,9 @@ containment action; deleting displayed text is not remediation.
 
 ## Target manifest and run package
 
-Keep the committed manifest disabled/target-free until a separately reviewed
-exact-target activation commit. Creation first produces identifiers, not an
-application authorization. Before that commit/run, require:
+P3a permits the reviewed exact-target manifest transition described below.
+Creation produces identifiers, not application authorization. The complete P4
+run package still requires:
 
 - Selected provider account/organization IDs, project names, actual Pages project
   ID/canonical origin, Supabase project reference/API origin, region/plan, and
@@ -133,8 +134,8 @@ The [offline validator](../../../scripts/lib/feat-003-staging-preflight.mjs)
 accepts UTF-8 manifest, execution-package and separate review-record JSON text,
 an in-memory map of artifact bytes, and the independently captured checkout's
 full commit SHA. It accepts no file paths, credentials or execution callbacks.
-The repository validation command must reject activation; enabled manifests
-exist only as synthetic test inputs until a separately reviewed P3 change.
+Disabled manifests stop first. P3a additionally binds enabled inputs to the
+reviewed repository target; tests use synthetic packages without hosted IO.
 
 The version-1 execution package binds staging/synthetic classification, provider
 account/organization and project identities, matching manifest targets, Singapore,
@@ -155,7 +156,7 @@ identity and current owner authority; self-supplied matching JSON is not approva
 
 | ID      | Acceptance                                                                                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------ |
-| P1-AC01 | Preserve disabled/target-free repository defaults; disabled execution stops first.                                 |
+| P1-AC01 | Reject disabled execution first; repository target population is permitted only under the P3a contract below.      |
 | P1-AC02 | Reject missing, malformed or mismatched target identities.                                                         |
 | P1-AC03 | Bind checkout/review/package revisions, manifest digest and required artifact bytes.                               |
 | P1-AC04 | Require distinct, separately recorded creation/deployment approvals for the exact package.                         |
@@ -163,6 +164,35 @@ identity and current owner authority; self-supplied matching JSON is not approva
 
 Successful offline validation returns `executionAuthorized: false`. No P2–P4 or
 STG acceptance follows from it.
+
+### P3a exact-target repository binding
+
+P3a changes only the manifest, offline validation/tests and canonical evidence.
+The immutable [target record](../../../config/feat-003-staging-target.mjs) owns
+provider account/organization, opaque Pages ID, project names, origins, database
+host, region, Free plan and $0 ceiling. The enabled version-1 manifest must match
+that record exactly. Its `enabled` flag permits offline target validation; it
+does not authorize hosted execution or change the local-only runtime.
+
+Package and review records must match the repository target as well as each
+other. Matching caller-supplied records cannot authorize target substitution.
+Do not add an override, environment-selected allowlist or executable issuer.
+P1's revision, byte-digest, artifact and distinct approval checks remain required;
+P3a approval is not the separate P4 deployment approval. No real execution package
+or placeholder deployment approval is committed by this slice.
+
+| ID       | Acceptance                                                                                                                                                             |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3A-AC01 | Accept only the reviewed P2 manifest and complete target record, including the independently observed opaque Pages ID.                                                 |
+| P3A-AC02 | Reject missing/substituted identities even when manifest, package, review and hashes agree with one another; reject disabled/unreviewed manifests before later inputs. |
+| P3A-AC03 | Retain P1 revision/artifact/approval checks, fixed sanitized errors, no credential/network/process capability and `executionAuthorized: false`.                        |
+| P3A-AC04 | Preserve local examples, JWT checks, hosted-runtime rejection and dormant issuer; no hosted mutation, migration, account, role or deployment implementation.           |
+| P3A-AC05 | Pass focused regressions, applicable repository verification, independent review and full final-head CI; stop at the reviewed green PR. Merge is separate.             |
+
+Verify identity metadata read-only before implementation. A missing identifier,
+pooler requirement or necessary runtime/issuer change stops for a bounded decision.
+Database connectivity, hosted no-send behavior and STG acceptance remain later
+evidence. Retain prior evidence only under the QA input-equivalence rule.
 
 ### Execution gates
 

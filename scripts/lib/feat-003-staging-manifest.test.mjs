@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   parseFeat003StagingManifest,
+  requireFeat003ReviewedStagingManifest,
+  requireFeat003ReviewedStagingTarget,
   validateFeat003RepositoryConfiguration,
 } from './feat-003-staging-manifest.mjs';
 
@@ -27,9 +29,23 @@ const enabledManifest = {
 };
 
 describe('FEAT-003 staging manifest', () => {
-  it('accepts the disabled target-free repository default', () => {
+  it('parses disabled target-free input without permitting execution', () => {
     expect(parseFeat003StagingManifest(disabledManifest)).toEqual({ enabled: false });
   });
+
+  it('rejects structurally valid but unreviewed repository targets', () => {
+    expect(() => requireFeat003ReviewedStagingManifest(enabledManifest)).toThrow();
+    expect(() => requireFeat003ReviewedStagingManifest(disabledManifest)).toThrow();
+  });
+
+  it.each([null, undefined, [], 'synthetic', {}, { projectRef: 'abcdefghijklmnopqrst' }])(
+    'rejects incomplete reviewed-target records: case %#',
+    (target) => {
+      expect(() => requireFeat003ReviewedStagingTarget(target)).toThrow(
+        'The reviewed staging target is required.',
+      );
+    },
+  );
 
   it.each([
     [
