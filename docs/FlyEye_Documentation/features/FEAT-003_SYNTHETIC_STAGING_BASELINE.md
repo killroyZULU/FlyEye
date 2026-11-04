@@ -27,8 +27,9 @@ The [manifest](../../../config/feat-003-staging-environment.json) and
 [reviewed target](../../../config/feat-003-staging-target.mjs) supply the P3a
 repository binding; its [validator](../../../scripts/lib/feat-003-staging-manifest.mjs)
 checks identity, not deployment authorization. [Runtime configuration](../../../supabase/functions/_shared/edge-runtime-configuration.ts)
-rejects hosted onboarding/member-administration/MFA profiles. The separate
-[P3b issuer](#p3b-cli-only-grant-issuance) does not activate those profiles.
+accepts only the [P3c runtime contract](#p3c-exact-target-runtime-guards) for
+staging. The separate [P3b issuer](#p3b-cli-only-grant-issuance) grants no runtime
+authority or hosted activation.
 
 | Surface                 | Bounded adaptation before activation                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -249,6 +250,50 @@ reconciliation without retry; a failed command does not prove rollback.
 Offline tests and the attested disposable-CI transaction fixture supply repository
 evidence. No hosted credentials, connectivity, prompt, deployment or STG acceptance
 can be inferred from them. Existing local stacks are not reset for this slice.
+
+### P3c exact-target runtime guards
+
+P3c transitions [HS-03](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md#feat-003-hs-03-runtime-configuration-fails-closed)
+through repository code and synthetic tests only. The runtime imports the P2
+[target record](../../../config/feat-003-staging-target.mjs); no environment value
+can substitute another project or frontend. Require exact API/origin/project-ref,
+`FLYEYE_RUNTIME_PROFILE=staging-synthetic-v1`,
+`FEAT003_STAGING_PROJECT_REF` and
+`FLYEYE_STAGING_ACTION_POLICY_VERSION=minimum-actions-v1` before client creation.
+Missing or conflicting settings stop startup with fixed errors.
+
+| Function                      | Staging actions                              | Required limiter policy / configuration prefix   |
+| ----------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| auth-bootstrap                | Existing empty-body access resolution only   | auth-bootstrap-subject-v1 / FEAT001              |
+| organization-admin-onboarding | status, start, complete, cancel              | subject-action-v1 / FEAT003                      |
+| member-mfa                    | status, start, bind_factor, complete, cancel | member-mfa-subject-action-v1 / FEAT006           |
+| member-administration         | get_profile only                             | member-administration-subject-scope-v1 / FEAT005 |
+
+Each prefix requires `_DATA_CLASSIFICATION=synthetic-only` and
+`_LIMITER_POLICY_VERSION` as above. Existing HMAC length/key-separation rules
+remain for FEAT003/005/006; bootstrap retains its database limiter without a new
+HMAC secret. The versioned server action policy denies unlisted actions before
+business commands. Authenticated denials retain mandatory audit and fail closed
+on audit failure. Existing JWT, current-factor, assurance, recent-password,
+permission, organization, idempotency and atomic-audit checks remain authoritative.
+A runtime profile never grants user authority. Local actions remain unchanged;
+other functions remain unavailable under the staging profile.
+
+| ID       | Acceptance                                                                                                                                                                                     |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3C-AC01 | Reject missing/substituted targets, profile, origin, classification and limiter policy before privileged client creation or network work.                                                      |
+| P3C-AC02 | Enforce only the versioned function/action inventory above; deny unknown actions and preserve mandatory denial audit.                                                                          |
+| P3C-AC03 | Preserve JWT, authentication/current-factor, permissions, cross-school isolation, idempotency and atomic audit; no new identity or role system.                                                |
+| P3C-AC04 | Synthetic positive/failure tests cover startup order, coherent target substitution, denied actions, assurance/tenant denial and unchanged local behavior; retain preflight/issuer regressions. |
+| P3C-AC05 | Update HS-03 and canonical traceability; no schema, package, account-lifecycle, credential-loading, browser packaging or deployment change.                                                    |
+| P3C-AC06 | Applicable verification, separate review and full final-head CI pass; stop at a reviewed green PR.                                                                                             |
+
+Runtime acceptance establishes configuration consistency, not independent provider
+attestation or deployment approval. P4 still binds reviewed revision/artifacts,
+settings and approvals. No-send/account lifecycle and browser packaging remain
+separate P3 work; absence of email functions does not disable provider Auth mail.
+Stop for a scope decision if a migration, new dependency or hosted operation is
+needed. Local tests cannot establish STG acceptance.
 
 ### Execution gates
 

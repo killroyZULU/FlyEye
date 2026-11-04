@@ -47,6 +47,7 @@ async function rpc(name: string, parameters: Record<string, unknown>): Promise<u
 Deno.serve(
   createMemberMfaHandler({
     allowedOrigin: configuration.allowedOrigin,
+    runtimeProfile: configuration.runtimeProfile,
     authenticate: async (token) => {
       const { data, error } = await publicClient.auth.getUser(token);
       if (error || !data.user) throw new Error('Authentication failed.');

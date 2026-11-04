@@ -78,6 +78,7 @@ function dependencies(
 ): MemberAdministrationDependencies {
   return {
     allowedOrigin: ORIGIN,
+    runtimeProfile: 'local-synthetic-v1',
     authenticate: vi.fn().mockResolvedValue(actor),
     resolveLimitScope: vi.fn().mockResolvedValue(ORGANIZATION_ID),
     resolveProfileAssurance: vi.fn().mockResolvedValue('aal1'),
@@ -228,6 +229,39 @@ describe('member administration handler compatibility', () => {
     'changeStatus',
     'changeRole',
   ] as const;
+
+  it.each(actions.filter((body) => body.action !== 'get_profile'))(
+    'P3c denies $action with an audited response before the command',
+    async (body) => {
+      const deps = dependencies({ runtimeProfile: 'staging-synthetic-v1' });
+      const response = await createMemberAdministrationHandler(deps)(request(body));
+      expect(response.status).toBe(403);
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reasonCode: 'runtime_action_denied' }),
+      );
+      expect(deps.consumeLimit).toHaveBeenCalledOnce();
+      for (const command of commands) expect(deps[command]).not.toHaveBeenCalled();
+    },
+  );
+
+  it('P3c blocks a disallowed action when mandatory denial audit fails', async () => {
+    const deps = dependencies({
+      runtimeProfile: 'staging-synthetic-v1',
+      recordDenied: vi.fn().mockRejectedValue(new Error('synthetic audit failure')),
+    });
+    const response = await createMemberAdministrationHandler(deps)(request(roleRequest));
+    expect(response.status).toBe(503);
+    expect(deps.changeRole).not.toHaveBeenCalled();
+  });
+
+  it('P3c rejects unknown actions before authentication', async () => {
+    const deps = dependencies({ runtimeProfile: 'staging-synthetic-v1' });
+    const response = await createMemberAdministrationHandler(deps)(
+      request({ action: 'future_action' }),
+    );
+    expect(response.status).toBe(422);
+    expect(deps.authenticate).not.toHaveBeenCalled();
+  });
 
   it.each(actions.map((body, index) => ({ body, command: commands[index]! })))(
     'preserves $body.action inputs and guard order',
@@ -726,51 +760,63 @@ describe('FEAT-005 member administration handler', () => {
     expect(deps.list).not.toHaveBeenCalled();
   });
 
-  it('allows an active member to read a profile without AAL2', async () => {
-    const deps = dependencies({
-      authenticate: vi
-        .fn()
-        .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
-    });
-    const response = await createMemberAdministrationHandler(deps)(
-      request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
-    );
-    expect(response.status).toBe(200);
-    expect((await payload(response)).profile).toEqual(profile);
-  });
+  it.each(['local-synthetic-v1', 'staging-synthetic-v1'] as const)(
+    'allows an active member to read a profile without AAL2 in %s',
+    async (runtimeProfile) => {
+      const deps = dependencies({
+        runtimeProfile,
+        authenticate: vi
+          .fn()
+          .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
+      });
+      const response = await createMemberAdministrationHandler(deps)(
+        request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
+      );
+      expect(response.status).toBe(200);
+      expect((await payload(response)).profile).toEqual(profile);
+    },
+  );
 
-  it('requires server-derived portal MFA for a privileged member profile', async () => {
-    const deps = dependencies({
-      authenticate: vi
-        .fn()
-        .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
-      resolveProfileAssurance: vi.fn().mockResolvedValue('aal2'),
-    });
-    const response = await createMemberAdministrationHandler(deps)(
-      request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
-    );
-    expect(response.status).toBe(403);
-    expect(deps.recordDenied).toHaveBeenCalledWith(
-      expect.objectContaining({ reasonCode: 'authentication_assurance_required' }),
-    );
-    expect(deps.getProfile).not.toHaveBeenCalled();
-  });
+  it.each(['local-synthetic-v1', 'staging-synthetic-v1'] as const)(
+    'requires server-derived portal MFA for a privileged member profile in %s',
+    async (runtimeProfile) => {
+      const deps = dependencies({
+        runtimeProfile,
+        authenticate: vi
+          .fn()
+          .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
+        resolveProfileAssurance: vi.fn().mockResolvedValue('aal2'),
+      });
+      const response = await createMemberAdministrationHandler(deps)(
+        request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
+      );
+      expect(response.status).toBe(403);
+      expect(deps.recordDenied).toHaveBeenCalledWith(
+        expect.objectContaining({ reasonCode: 'authentication_assurance_required' }),
+      );
+      expect(deps.getProfile).not.toHaveBeenCalled();
+    },
+  );
 
-  it('denies an inactive or missing server-derived profile role at AAL1', async () => {
-    const getProfile = vi.fn<MemberAdministrationDependencies['getProfile']>();
-    const deps = dependencies({
-      authenticate: vi
-        .fn()
-        .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
-      resolveProfileAssurance: vi.fn().mockResolvedValue('denied'),
-      getProfile,
-    });
-    const response = await createMemberAdministrationHandler(deps)(
-      request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
-    );
-    expect(response.status).toBe(404);
-    expect(getProfile).not.toHaveBeenCalled();
-  });
+  it.each(['local-synthetic-v1', 'staging-synthetic-v1'] as const)(
+    'denies an inactive or missing server-derived profile role at AAL1 in %s',
+    async (runtimeProfile) => {
+      const getProfile = vi.fn<MemberAdministrationDependencies['getProfile']>();
+      const deps = dependencies({
+        runtimeProfile,
+        authenticate: vi
+          .fn()
+          .mockResolvedValue({ ...actor, assuranceLevel: 'aal1', totpAuthenticatedAt: null }),
+        resolveProfileAssurance: vi.fn().mockResolvedValue('denied'),
+        getProfile,
+      });
+      const response = await createMemberAdministrationHandler(deps)(
+        request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
+      );
+      expect(response.status).toBe(404);
+      expect(getProfile).not.toHaveBeenCalled();
+    },
+  );
 
   it('preserves profile data when the database reports a stale version', async () => {
     const deps = dependencies({

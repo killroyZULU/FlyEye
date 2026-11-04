@@ -28,7 +28,8 @@ configuration must never be reused as hosted evidence.
 is the separately reviewed repository target transition anticipated by HS-01.
 It replaces the initial disabled/target-free repository gate with exact P2
 identity checks. [P3b](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance)
-transitions HS-05 to a guarded CLI. HS-02–04 and HS-06 retain their provenance,
+transitions HS-05 to a guarded CLI. [P3c](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards)
+transitions HS-03 to exact-target runtime guards. HS-02, HS-04 and HS-06 retain their provenance,
 local runtime and cleanup boundaries. The acceptance evidence below describes
 the original PR #8, not the later transitions.
 
@@ -64,18 +65,15 @@ a production operator, support role, approval, or human attribution.
 
 ### FEAT-003-HS-03: Runtime configuration fails closed
 
-The current Organization Admin onboarding Edge Function accepts only
-`local-synthetic-v1` against exact loopback hosts or the local Supabase `kong`
-host. Arbitrary HTTPS, custom domains, hosted Supabase, staging, production,
-non-synthetic data, unknown limiter policy, missing configuration, and reused
-Supabase/limiter keys stop function startup.
-
-`staging-synthetic-v1` is a reserved value that the current runtime always
-rejects. A later activation must bind an exact reviewed project identity to the
-version-controlled manifest and runtime build; an environment variable or
-syntactically valid project reference is not enough. The existing exact-origin,
-secret length and separation, JWT, RLS, protected-function, audit, and
-fail-closed checks remain in force.
+The local profile accepts only exact loopback or local Supabase `kong` targets.
+The [P3c contract](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards)
+permits `staging-synthetic-v1` only for the exact reviewed P2 target and minimum
+function/action inventory. Missing/mismatched identity, origin, classification,
+profile or limiter policy stops startup before privileged client creation.
+Production, arbitrary HTTPS targets, custom domains and unreviewed action-policy
+versions remain unsupported. Existing secret separation, JWT, current-factor,
+RLS, protected commands and audit remain in force. Repository capability does
+not authorize hosted execution; exact revision/package review and P4 remain gates.
 
 ### FEAT-003-HS-04: Staging limiter evidence is explicit and limited
 
@@ -110,7 +108,11 @@ and any destructive project or data cleanup before execution. Uncertain cleanup
 is a hard stop. Completed membership and audit evidence are not silently
 removed to make a test appear clean.
 
-## Acceptance criteria
+## Original hardening acceptance
+
+These criteria record the original disabled-build boundary. P3a, P3b and P3c
+acceptance in the [staging contract](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#finite-execution-sequence)
+supersedes the manifest, issuer and runtime rejection clauses respectively.
 
 - [x] **FEAT-003-HS-AC-01:** The committed staging manifest is disabled and
       contains no provider target or credential.

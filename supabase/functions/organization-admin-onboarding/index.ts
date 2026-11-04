@@ -27,6 +27,7 @@ const {
   supabasePublishableKey,
   supabaseServiceRoleKey,
   limiterSecret,
+  runtimeProfile,
   allowedOrigin,
 } = readAdminOnboardingRuntimeConfiguration((name) => Deno.env.get(name));
 
@@ -66,6 +67,7 @@ async function rpc(name: string, parameters: Record<string, unknown>): Promise<u
 Deno.serve(
   createAdminOnboardingHandler({
     allowedOrigin,
+    runtimeProfile,
     authenticate: async (accessToken) => {
       const { data, error } = await publicClient.auth.getUser(accessToken);
       if (error || !data.user) throw new Error('Authentication failed.');

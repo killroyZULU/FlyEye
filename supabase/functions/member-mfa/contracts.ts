@@ -1,3 +1,4 @@
+import type { RuntimeProfile } from '../_shared/staging-runtime-policy.ts';
 import { z } from 'zod';
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
 
@@ -62,6 +63,7 @@ export type MemberMfaLimiterDecision = {
 
 export type MemberMfaDependencies = {
   allowedOrigin: string;
+  runtimeProfile: RuntimeProfile;
   authenticate: (token: string) => Promise<VerifiedAuthenticationEvidence>;
   listFactors: (userId: string) => Promise<unknown>;
   consumeLimit: (input: {

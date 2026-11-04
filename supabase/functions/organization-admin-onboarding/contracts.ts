@@ -1,3 +1,4 @@
+import type { RuntimeProfile } from '../_shared/staging-runtime-policy.ts';
 import { z } from 'zod';
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
 
@@ -106,6 +107,7 @@ export type LimiterDecision = {
 
 export type AdminOnboardingDependencies = {
   allowedOrigin: string;
+  runtimeProfile: RuntimeProfile;
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
   listFactors: (actorUserId: string) => Promise<unknown>;
   validateSessionFactor: (input: {

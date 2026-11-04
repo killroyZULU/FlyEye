@@ -1,6 +1,6 @@
 # Current State
 
-- Last updated: 2026-11-03
+- Last updated: 2026-11-04
 - Delivery state: [main](https://github.com/killroyZULU/FlyEye/tree/main) and the linked PR/CI evidence below
 - Production: not deployed or approved
 - Data boundary: local synthetic; empty staging resources
@@ -9,15 +9,15 @@ Specifications define requirements; traceability/PRs/CI record evidence.
 
 ## Delivered foundation
 
-| Outcome                                           | Repository state                                                                                                                                                          | Remaining boundary                                                                                                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FEAT-001 Login and initial RBAC                   | Merged into `main`; FIX-006 removes school selection and preserves Student AAL1 plus Instructor/Admin TOTP/AAL2                                                           | Hosted validation and production readiness remain later work                                                                                                     |
-| FEAT-002 Password Recovery                        | Merged through PR #5; closure documentation through PR #6                                                                                                                 | Hosted email/provider behavior, remaining accessibility evidence, real-data approval, deployment, and production remain open                                     |
-| FEAT-003 Organization Admin and MFA Onboarding    | Merged through PR #7                                                                                                                                                      | Hosted synthetic validation, provider activation, real data, deployment, and production remain open                                                              |
-| FEAT-003 Hosted Synthetic Hardening               | P3a integrated (#216); [P3b issuer](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) [#217](https://github.com/killroyZULU/FlyEye/issues/217) | Local-only runtime; hosted execution remains gated                                                                                                               |
-| FEAT-004 Member Invitations                       | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed                                                            | Hosted email, formal accessibility evidence, real data, deployment, and production remain open                                                                   |
-| FEAT-005 User Management and Basic Profiles       | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green                | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open                                                              |
-| FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed            | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
+| Outcome                                           | Repository state                                                                                                                                                                        | Remaining boundary                                                                                                                                               |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FEAT-001 Login and initial RBAC                   | Merged into `main`; FIX-006 removes school selection and preserves Student AAL1 plus Instructor/Admin TOTP/AAL2                                                                         | Hosted validation and production readiness remain later work                                                                                                     |
+| FEAT-002 Password Recovery                        | Merged through PR #5; closure documentation through PR #6                                                                                                                               | Hosted email/provider behavior, remaining accessibility evidence, real-data approval, deployment, and production remain open                                     |
+| FEAT-003 Organization Admin and MFA Onboarding    | Merged through PR #7                                                                                                                                                                    | Hosted synthetic validation, provider activation, real data, deployment, and production remain open                                                              |
+| FEAT-003 Hosted Synthetic Hardening               | P3a/P3b integrated (#216/#218); [P3c runtime](features/FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) [#219](https://github.com/killroyZULU/FlyEye/issues/219) | Repository runtime adaptation; hosted execution remains gated                                                                                                    |
+| FEAT-004 Member Invitations                       | Merged through PR #12 at `558e8e6`; complete local matrices, separate technical review, and required CI passed                                                                          | Hosted email, formal accessibility evidence, real data, deployment, and production remain open                                                                   |
+| FEAT-005 User Management and Basic Profiles       | Merged through PR #15 at `a3a39ca`; correction PR #16 merged at `b63b6a0`; single-school FIX-006 merged through PR #17 at `a162e0c` with required CI green                              | Formal accessibility evidence, real data, hosted validation, deployment, and production remain open                                                              |
+| FEAT-006 Member MFA Readiness and Role Assignment | Slice A merged through PR #25 at `835b9dc`; Slice B merged through PR #27 at `65d11aa` after local matrices, separate technical review, and required CI passed                          | Factor recovery/replacement, formal accessibility evidence, qualified aviation role matrix, hosted validation, real data, deployment, and production remain open |
 
 Merged code and green local or CI evidence do not imply hosted validation, qualified regulated review, customer acceptance, real-data authority, deployment, or production approval.
 
@@ -65,8 +65,8 @@ audit. [Deferred screen evidence](features/FEAT-008_TRACEABILITY.md#deferred-scr
 [FEAT-009 S0](features/FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md): documentation only;
 [execution evidence pending](features/FEAT-009_TRACEABILITY.md).
 Staging: [P1/P2 evidence](features/FEAT-003_STAGING_TRACEABILITY.md#p2-resource-verification);
-[P3a #215](https://github.com/killroyZULU/FlyEye/issues/215) owns repository binding.
-Issuer/no-send/runtime adaptations and hosted checks remain pending.
+[P3c #219](https://github.com/killroyZULU/FlyEye/issues/219) owns runtime guards.
+No-send/browser adaptations and hosted checks remain pending.
 
 ## Open decisions requiring external evidence
 

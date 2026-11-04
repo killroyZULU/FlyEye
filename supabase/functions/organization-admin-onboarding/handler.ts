@@ -4,6 +4,8 @@ import { MAX_REQUEST_BYTES, requestSchema, type AdminOnboardingDependencies } fr
 import { responseHeaders, jsonResponse } from './responses.ts';
 import { checkRequestGuards } from './guards.ts';
 import { executeAdminOnboardingAction } from './actions.ts';
+import { runtimeActionAllowed } from '../_shared/staging-runtime-policy.ts';
+import { recordFailClosedDenial } from './audit.ts';
 
 export type {
   AdminOnboardingAction,
@@ -95,6 +97,30 @@ export function createAdminOnboardingHandler(
     }
 
     const correlationId = createCorrelationId();
+    if (
+      !runtimeActionAllowed(
+        dependencies.runtimeProfile,
+        'organization-admin-onboarding',
+        parsedRequest.data.action,
+      )
+    ) {
+      const auditFailure = await recordFailClosedDenial(
+        dependencies,
+        actor,
+        correlationId,
+        'runtime_action_denied',
+      );
+      return (
+        auditFailure ??
+        jsonResponse(allowedOrigin, 403, {
+          error: {
+            code: 'admin_onboarding.runtime_action_denied',
+            message: 'This request is not allowed.',
+          },
+          correlationId,
+        })
+      );
+    }
     const context = { dependencies, actor, allowedOrigin, correlationId };
     const denied = await checkRequestGuards(context, parsedRequest.data, nowSeconds);
     if (denied) return denied;
