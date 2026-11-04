@@ -91,6 +91,13 @@ in the linked PR; this map does not claim hosted execution.
 
 ## P3b verification map
 
+P3b integrated through [PR #218](https://github.com/killroyZULU/FlyEye/pull/218)
+at `e7490515b03eba5243cd4c7a157f5c0380e5f6c3`.
+[Exact-merge CI](https://github.com/killroyZULU/FlyEye/actions/runs/41779968587)
+passed application, database/runtime, aggregate, fixture cleanup/residue and
+teardown checks. This is P3c's integration baseline, not verification of changed
+runtime code. Historical bootstrap 503 and transport-socket causes remain unresolved.
+
 [Issue #217](https://github.com/killroyZULU/FlyEye/issues/217) and its linked PR own
 the stable-target review and final-head CI receipt. The offline
 [issuer suite](../../../scripts/lib/feat-003-staging-issuer.test.mjs),
@@ -109,6 +116,23 @@ on disposable GitHub Actions services. It is skipped on occupied local stacks.
 | [P3B-AC05](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | Issuer suite: fixed uncertain result for failed/ambiguous output, timeout/signal and thrown transport errors; exactly one call and no raw provider output.                                                                                                  |
 | [P3B-AC06](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance) | Linked PR records independent review and applicable final-head full CI. Existing hosted-runtime rejection tests remain required. No hosted execution or STG acceptance is supplied.                                                                         |
 
-Database cases and complete-matrix results remain pending until the linked PR's
-exact-head run completes. No migration, public grant/RPC, dependency, application
-or hosted configuration change is included.
+## P3c verification map
+
+[Issue #219](https://github.com/killroyZULU/FlyEye/issues/219) tracks the reviewed
+target and full final-head CI. The configuration/handler checks below use synthetic
+keys and mocked capabilities, including the real non-secret P2 identity; they
+do not contact staging or establish provider authenticity. Database/runtime
+evidence comes from disposable CI; existing local stacks are preserved.
+
+| Requirement                                                                        | Automated evidence                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [P3C-AC01](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | [Configuration suite](../../../supabase/functions/_shared/staging-runtime-policy.test.ts), `P3c %s configuration`: missing/substituted/coherent target, policy/classification failures and no key reads on target failure. [Startup suite](../../../supabase/functions/_shared/staging-entrypoints.test.mjs), `P3c %s startup`: actual entrypoints, no client/serve/network on invalid configuration, valid mocked construction. |
+| [P3C-AC02](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | Configuration suite `P3c minimum action policy`; [administration handler](../../../supabase/functions/member-administration/handler.test.ts), `P3c denies $action`, unknown action and failed mandatory denial audit cases.                                                                                                                                                                                                      |
+| [P3C-AC03](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | Existing [onboarding](../../../supabase/functions/organization-admin-onboarding/handler.test.ts) and [MFA](../../../supabase/functions/member-mfa/handler.test.ts) suites run under both profiles; administration profile-assurance cases run under both. Existing [FEAT-005 security evidence](FEAT-005_TRACEABILITY.md) remains the SQL/runtime authorization and cross-school contract, rerun in full CI.                     |
+| [P3C-AC04](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | Suites above plus retained P1/P3a/P3b maps. Preflight dependency-graph assertion includes the pure target module now inside the Edge bundle, re-exported for Node tooling; identity values are unchanged.                                                                                                                                                                                                                        |
+| [P3C-AC05](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | Scoped diff, documentation/link checks and independent review in the linked PR. Local examples, JWT configuration, migrations, dependencies and hosted settings are unchanged.                                                                                                                                                                                                                                                   |
+| [P3C-AC06](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3c-exact-target-runtime-guards) | Linked PR holds final-head checks and separate review; publication requires success, not this evidence map alone. Hosted STG acceptance remains pending.                                                                                                                                                                                                                                                                         |
+
+P3c complete-matrix results remain pending until its linked PR's exact-head run
+completes. No migration, public grant/RPC, dependency or hosted configuration
+change is included.

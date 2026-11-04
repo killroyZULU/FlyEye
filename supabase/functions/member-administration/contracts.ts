@@ -1,3 +1,4 @@
+import type { RuntimeProfile } from '../_shared/staging-runtime-policy.ts';
 import { z } from 'zod';
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
 
@@ -232,6 +233,7 @@ export class MemberAdministrationAuditWriteError extends Error {
 
 export type MemberAdministrationDependencies = {
   allowedOrigin: string;
+  runtimeProfile: RuntimeProfile;
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
   resolveLimitScope: (input: {
     actorUserId: string;

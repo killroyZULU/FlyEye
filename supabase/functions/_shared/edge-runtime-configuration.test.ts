@@ -180,10 +180,10 @@ describe('shared Edge runtime configuration', () => {
           ALLOWED_ORIGIN: 'https://staging.flyeye.example',
         }),
       ),
-    ).toThrow('local FEAT-003 profile');
+    ).toThrow('local runtime profile');
   });
 
-  it('rejects staging while the committed build guard remains disabled', () => {
+  it('rejects an unreviewed staging target', () => {
     expect(() =>
       readAdminOnboardingRuntimeConfiguration(
         reader({
@@ -194,10 +194,10 @@ describe('shared Edge runtime configuration', () => {
           FEAT003_STAGING_PROJECT_REF: 'abcdefghijklmnopqrst',
         }),
       ),
-    ).toThrow('disabled in this build');
+    ).toThrow('staging runtime binding');
   });
 
-  it('has no option that can enable a syntactically valid staging target', () => {
+  it('rejects a syntactically valid target without the reviewed action policy', () => {
     expect(() =>
       readAdminOnboardingRuntimeConfiguration(
         reader({
@@ -208,7 +208,7 @@ describe('shared Edge runtime configuration', () => {
           FEAT003_STAGING_PROJECT_REF: 'abcdefghijklmnopqrst',
         }),
       ),
-    ).toThrow('disabled in this build');
+    ).toThrow('staging runtime binding');
   });
 
   it('uses generic errors that do not echo provider hostnames or keys', () => {

@@ -8,6 +8,9 @@ import {
 import { headers, json } from './responses.ts';
 import { checkLimit, checkAssurance } from './guards.ts';
 import { executeAdministrationAction } from './actions.ts';
+import { runtimeActionAllowed } from '../_shared/staging-runtime-policy.ts';
+import { auditFailure } from './audit.ts';
+import { failure } from './responses.ts';
 
 export {
   MemberAdministrationAuditWriteError,
@@ -97,6 +100,32 @@ export function createMemberAdministrationHandler(
     const context = { dependencies, actor, origin, correlationId };
     const limited = await checkLimit(context, parsed.data);
     if (limited) return limited;
+    if (
+      !runtimeActionAllowed(
+        dependencies.runtimeProfile,
+        'member-administration',
+        parsed.data.action,
+      )
+    ) {
+      if (
+        !(await auditFailure(
+          dependencies,
+          parsed.data,
+          actor.actorUserId,
+          'runtime_action_denied',
+          correlationId,
+        ))
+      ) {
+        return failure(origin, 'service_unavailable', correlationId);
+      }
+      return json(origin, 403, {
+        error: {
+          code: 'member_administration.runtime_action_denied',
+          message: 'This request is not allowed.',
+        },
+        correlationId,
+      });
+    }
     const denied = await checkAssurance(context, parsed.data, nowSeconds);
     if (denied) return denied;
     return await executeAdministrationAction(context, parsed.data);

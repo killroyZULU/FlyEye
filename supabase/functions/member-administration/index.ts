@@ -76,6 +76,7 @@ async function limiterHash(
 Deno.serve(
   createMemberAdministrationHandler({
     allowedOrigin: configuration.allowedOrigin,
+    runtimeProfile: configuration.runtimeProfile,
     authenticate: async (accessToken) => {
       const { data, error } = await publicClient.auth.getUser(accessToken);
       if (error || !data.user) throw new Error('Authentication failed.');

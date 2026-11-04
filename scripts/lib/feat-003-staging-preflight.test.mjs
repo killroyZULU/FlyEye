@@ -605,7 +605,11 @@ describe('FEAT-003 P1 offline preflight', () => {
     const allowedImports = new Map([
       ['feat-003-staging-preflight.mjs', ['node:crypto', './feat-003-staging-manifest.mjs']],
       ['feat-003-staging-manifest.mjs', ['../../config/feat-003-staging-target.mjs']],
-      ['../../config/feat-003-staging-target.mjs', []],
+      [
+        '../../config/feat-003-staging-target.mjs',
+        ['../supabase/functions/_shared/feat-003-staging-target.mjs'],
+      ],
+      ['../../supabase/functions/_shared/feat-003-staging-target.mjs', []],
     ]);
     const forbidden = new Set([
       'process',

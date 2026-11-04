@@ -1,3 +1,5 @@
+import { readRuntimeProfile, type RuntimeProfile } from './staging-runtime-policy.ts';
+
 export type EdgeEnvironmentReader = (name: string) => string | undefined;
 
 export type CommonEdgeRuntimeConfiguration = {
@@ -10,7 +12,7 @@ export type CommonEdgeRuntimeConfiguration = {
 export type AdminOnboardingRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
   limiterSecret: string;
   limiterPolicyVersion: 'subject-action-v1';
-  runtimeProfile: 'local-synthetic-v1';
+  runtimeProfile: RuntimeProfile;
 };
 
 export type MemberInvitationRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
@@ -23,13 +25,13 @@ export type MemberInvitationRuntimeConfiguration = CommonEdgeRuntimeConfiguratio
 export type MemberAdministrationRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
   limiterSecret: string;
   limiterPolicyVersion: 'member-administration-subject-scope-v1';
-  runtimeProfile: 'local-synthetic-v1';
+  runtimeProfile: RuntimeProfile;
 };
 
 export type MemberMfaRuntimeConfiguration = CommonEdgeRuntimeConfiguration & {
   limiterSecret: string;
   limiterPolicyVersion: 'member-mfa-subject-action-v1';
-  runtimeProfile: 'local-synthetic-v1';
+  runtimeProfile: RuntimeProfile;
 };
 
 const loopbackHosts = new Set(['127.0.0.1', '::1', 'localhost']);
@@ -121,9 +123,7 @@ function validateKeys(publishableKey: string, serviceRoleKey: string): void {
   }
 }
 
-export function readCommonEdgeRuntimeConfiguration(
-  read: EdgeEnvironmentReader,
-): CommonEdgeRuntimeConfiguration {
+function readCommonConfiguration(read: EdgeEnvironmentReader): CommonEdgeRuntimeConfiguration {
   const supabaseUrl = parseSupabaseUrl(required(read, 'SUPABASE_URL')).origin;
   const supabasePublishableKey = required(read, 'SUPABASE_ANON_KEY');
   const supabaseServiceRoleKey = required(read, 'SUPABASE_SERVICE_ROLE_KEY');
@@ -133,11 +133,34 @@ export function readCommonEdgeRuntimeConfiguration(
   return { supabaseUrl, supabasePublishableKey, supabaseServiceRoleKey, allowedOrigin };
 }
 
+export function readCommonEdgeRuntimeConfiguration(
+  read: EdgeEnvironmentReader,
+): CommonEdgeRuntimeConfiguration {
+  if (read('FLYEYE_RUNTIME_PROFILE') === 'staging-synthetic-v1') {
+    throw new Error('This function is unavailable in staging.');
+  }
+  return readCommonConfiguration(read);
+}
+
+export function readAuthBootstrapRuntimeConfiguration(
+  read: EdgeEnvironmentReader,
+): CommonEdgeRuntimeConfiguration {
+  const profile = readRuntimeProfile(read, 'auth-bootstrap');
+  if (
+    profile === 'staging-synthetic-v1' &&
+    (read('FEAT001_DATA_CLASSIFICATION') !== 'synthetic-only' ||
+      read('FEAT001_LIMITER_POLICY_VERSION') !== 'auth-bootstrap-subject-v1')
+  ) {
+    throw new Error('The bootstrap staging policy is invalid.');
+  }
+  return readCommonConfiguration(read);
+}
+
 export function readAdminOnboardingRuntimeConfiguration(
   read: EdgeEnvironmentReader,
 ): AdminOnboardingRuntimeConfiguration {
-  const common = readCommonEdgeRuntimeConfiguration(read);
-  const runtimeProfile = required(read, 'FLYEYE_RUNTIME_PROFILE');
+  const runtimeProfile = readRuntimeProfile(read, 'organization-admin-onboarding');
+  const common = readCommonConfiguration(read);
   const limiterPolicyVersion = required(read, 'FEAT003_LIMITER_POLICY_VERSION');
   const dataClassification = required(read, 'FEAT003_DATA_CLASSIFICATION');
   const limiterSecret = required(read, 'FEAT003_LIMITER_HMAC_SECRET');
@@ -157,19 +180,7 @@ export function readAdminOnboardingRuntimeConfiguration(
     throw new Error('The FEAT-003 limiter secret is invalid.');
   }
 
-  const supabaseHostname = new URL(common.supabaseUrl).hostname;
-  if (runtimeProfile === 'local-synthetic-v1') {
-    if (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong') {
-      throw new Error('The local FEAT-003 profile cannot target a hosted project.');
-    }
-    return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };
-  }
-
-  if (runtimeProfile === 'staging-synthetic-v1') {
-    throw new Error('FEAT-003 hosted staging is disabled in this build.');
-  }
-
-  throw new Error('The FEAT-003 runtime profile is unsupported.');
+  return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };
 }
 
 export function readMemberInvitationRuntimeConfiguration(
@@ -228,8 +239,8 @@ export function readMemberInvitationRuntimeConfiguration(
 export function readMemberAdministrationRuntimeConfiguration(
   read: EdgeEnvironmentReader,
 ): MemberAdministrationRuntimeConfiguration {
-  const common = readCommonEdgeRuntimeConfiguration(read);
-  const runtimeProfile = required(read, 'FLYEYE_RUNTIME_PROFILE');
+  const runtimeProfile = readRuntimeProfile(read, 'member-administration');
+  const common = readCommonConfiguration(read);
   const limiterPolicyVersion = required(read, 'FEAT005_LIMITER_POLICY_VERSION');
   const dataClassification = required(read, 'FEAT005_DATA_CLASSIFICATION');
   const limiterSecret = required(read, 'FEAT005_LIMITER_HMAC_SECRET');
@@ -249,22 +260,14 @@ export function readMemberAdministrationRuntimeConfiguration(
     throw new Error('The FEAT-005 limiter secret is invalid.');
   }
 
-  const supabaseHostname = new URL(common.supabaseUrl).hostname;
-  if (
-    runtimeProfile !== 'local-synthetic-v1' ||
-    (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong')
-  ) {
-    throw new Error('The FEAT-005 runtime profile is unsupported.');
-  }
-
   return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };
 }
 
 export function readMemberMfaRuntimeConfiguration(
   read: EdgeEnvironmentReader,
 ): MemberMfaRuntimeConfiguration {
-  const common = readCommonEdgeRuntimeConfiguration(read);
-  const runtimeProfile = required(read, 'FLYEYE_RUNTIME_PROFILE');
+  const runtimeProfile = readRuntimeProfile(read, 'member-mfa');
+  const common = readCommonConfiguration(read);
   const limiterPolicyVersion = required(read, 'FEAT006_LIMITER_POLICY_VERSION');
   const dataClassification = required(read, 'FEAT006_DATA_CLASSIFICATION');
   const limiterSecret = required(read, 'FEAT006_LIMITER_HMAC_SECRET');
@@ -282,14 +285,6 @@ export function readMemberMfaRuntimeConfiguration(
     limiterSecret === common.supabaseServiceRoleKey
   ) {
     throw new Error('The FEAT-006 limiter secret is invalid.');
-  }
-
-  const supabaseHostname = new URL(common.supabaseUrl).hostname;
-  if (
-    runtimeProfile !== 'local-synthetic-v1' ||
-    (!loopbackHosts.has(supabaseHostname) && supabaseHostname !== 'kong')
-  ) {
-    throw new Error('The FEAT-006 runtime profile is unsupported.');
   }
 
   return { ...common, limiterSecret, limiterPolicyVersion, runtimeProfile };

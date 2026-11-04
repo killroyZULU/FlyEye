@@ -10,6 +10,7 @@ import { headers, json } from './responses.ts';
 import { checkRequestGuards } from './guards.ts';
 import { inventory } from './factors.ts';
 import { executeMfaAction } from './actions.ts';
+import { runtimeActionAllowed } from '../_shared/staging-runtime-policy.ts';
 
 export type {
   MemberMfaAction,
@@ -73,6 +74,31 @@ export function createMemberMfaHandler(dependencies: MemberMfaDependencies) {
     }
 
     const correlationId = makeCorrelationId();
+    if (!runtimeActionAllowed(dependencies.runtimeProfile, 'member-mfa', input.action)) {
+      try {
+        await dependencies.recordDenied({
+          actorUserId: actor.actorUserId,
+          eventName: 'member_mfa.denied',
+          correlationId,
+          reasonCode: 'runtime_action_denied',
+        });
+      } catch {
+        return json(origin, 500, {
+          error: {
+            code: 'member_mfa.audit_unavailable',
+            message: 'Authenticator setup could not be verified.',
+          },
+          correlationId,
+        });
+      }
+      return json(origin, 403, {
+        error: {
+          code: 'member_mfa.runtime_action_denied',
+          message: 'This request is not allowed.',
+        },
+        correlationId,
+      });
+    }
     const context = { dependencies, actor, origin, correlationId, nowSeconds };
     const denied = await checkRequestGuards(context, input);
     if (denied) return denied;

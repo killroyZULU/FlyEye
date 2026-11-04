@@ -4,11 +4,11 @@ import {
   authenticationEvidenceFromVerifiedToken,
   classifyCompleteFactorInventory,
 } from '../_shared/authentication-evidence.ts';
-import { readCommonEdgeRuntimeConfiguration } from '../_shared/edge-runtime-configuration.ts';
+import { readAuthBootstrapRuntimeConfiguration } from '../_shared/edge-runtime-configuration.ts';
 import { createAuthBootstrapHandler } from './handler.ts';
 
 const { supabaseUrl, supabasePublishableKey, supabaseServiceRoleKey, allowedOrigin } =
-  readCommonEdgeRuntimeConfiguration((name) => Deno.env.get(name));
+  readAuthBootstrapRuntimeConfiguration((name) => Deno.env.get(name));
 
 const publicClient = createClient(supabaseUrl, supabasePublishableKey, {
   auth: { persistSession: false, autoRefreshToken: false },
