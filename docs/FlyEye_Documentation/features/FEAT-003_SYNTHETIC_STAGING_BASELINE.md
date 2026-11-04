@@ -27,8 +27,8 @@ The [manifest](../../../config/feat-003-staging-environment.json) and
 [reviewed target](../../../config/feat-003-staging-target.mjs) supply the P3a
 repository binding; its [validator](../../../scripts/lib/feat-003-staging-manifest.mjs)
 checks identity, not deployment authorization. [Runtime configuration](../../../supabase/functions/_shared/edge-runtime-configuration.ts)
-rejects hosted onboarding/member-administration/MFA profiles. The staging issuer
-remains dormant under [HS-01–06](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md#decisions).
+rejects hosted onboarding/member-administration/MFA profiles. The separate
+[P3b issuer](#p3b-cli-only-grant-issuance) does not activate those profiles.
 
 | Surface                 | Bounded adaptation before activation                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -193,6 +193,62 @@ Verify identity metadata read-only before implementation. A missing identifier,
 pooler requirement or necessary runtime/issuer change stops for a bounded decision.
 Database connectivity, hosted no-send behavior and STG acceptance remain later
 evidence. Retain prior evidence only under the QA input-equivalence rule.
+
+### P3b CLI-only grant issuance
+
+P3b permits a repository-only executable issuer under the
+[HS-05 transition](FEAT-003_HOSTED_SYNTHETIC_HARDENING.md#feat-003-hs-05-cli-only-staging-issuance).
+It reuses P1/P3a and existing tables; it installs no RPC, role, schema or runtime
+escape hatch. Issuance creates a pending grant, not an account, membership, role
+assignment or MFA bypass. Hosted execution requires the separate P4 decision.
+
+The [CLI](../../../scripts/issue-feat-003-staging-grant.mjs) accepts only absolute
+`--package-dir` and `--psql` paths. The directory holds `package.json`,
+`review.json` and the five P1 byte artifacts under `artifacts/`, named exactly by
+their inventory keys. Metadata files are bounded to 64 KiB, artifacts to 16 MiB
+each and the reviewed PostgreSQL 17 executable to 64 MiB. Keep the package outside
+the clean checkout on trusted local storage, without network mounts or redirected
+parent directories. Explicit UNC/device paths are rejected before filesystem reads;
+the operator remains responsible for local filesystem/mount provenance.
+The configuration artifact additionally binds
+`stagingGrantToolSha256` and `stagingGrant`: distinct UUIDv4 `organizationId`,
+`eligibleUserId`, `grantId`, `sourceInstanceId`, `issuanceCorrelationId`, and
+`transactionSha256` for the exact version-controlled SQL bytes. Changes require
+new artifact/package review; hashes and typed references do not authenticate
+approval or establish trusted provenance.
+
+Before operator callbacks, credential entry, network or child execution, reject
+invalid manifest/package/review/revision/bytes/request. Then verify an interactive
+terminal, reviewed executable digest, clean matching checkout, PostgreSQL 17 and
+typed deployment approval reference. The trusted operator host must provide the
+reviewed client and dependencies; no executable is downloaded by the CLI.
+The native non-echo password prompt receives manual input only after these gates.
+Do not pass credentials in arguments, environment, package files or output.
+Inherited connection/credential/startup variables are excluded; the direct host,
+port, database/user and verified TLS are fixed. A pooler, unsupported client,
+unavailable terminal or connectivity change requires a separate decision.
+
+The [transaction](../../../scripts/sql/feat-003-staging-grant.sql) locks the school
+before checking one active school, a confirmed/nondeleted/nonbanned eligible
+Auth user, no membership, no active administrator and no live pending grant.
+It commits exactly one constrained grant/audit pair or rolls back both, preserving
+the existing server-issued 30-minute grant expiry. Concurrent issuance serializes;
+replay rejects without granting authority. Fixed output reports confirmed issuance
+or uncertain outcome. Any transport/error/ambiguous acknowledgement stops for
+reconciliation without retry; a failed command does not prove rollback.
+
+| ID       | Acceptance                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3B-AC01 | Reuse exact-target preflight before all operator capabilities; bind reviewed SQL, tool and request bytes.                                   |
+| P3B-AC02 | Reject invalid file/terminal/tool/checkout/confirmation inputs; pin the connection and keep credentials/raw output private.                 |
+| P3B-AC03 | Atomically create one pending staging-provenance grant/audit pair, with null human attribution and no membership/role changes.              |
+| P3B-AC04 | Deny ineligible/cross-school/application-role requests, duplicates and races; prove grant/audit failure rollback and owned-fixture cleanup. |
+| P3B-AC05 | Return only fixed status; stop on uncertain outcome without retry or claimed rollback.                                                      |
+| P3B-AC06 | Independent review and applicable full CI pass; preserve hosted runtime rejection and stop at a reviewed green PR.                          |
+
+Offline tests and the attested disposable-CI transaction fixture supply repository
+evidence. No hosted credentials, connectivity, prompt, deployment or STG acceptance
+can be inferred from them. Existing local stacks are not reset for this slice.
 
 ### Execution gates
 

@@ -27,8 +27,10 @@ configuration must never be reused as hosted evidence.
 [P3a](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3a-exact-target-repository-binding)
 is the separately reviewed repository target transition anticipated by HS-01.
 It replaces the initial disabled/target-free repository gate with exact P2
-identity checks. HS-02–06's issuer, local runtime and hosted execution boundaries
-remain unchanged; the original acceptance evidence below describes PR #8.
+identity checks. [P3b](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance)
+transitions HS-05 to a guarded CLI. HS-02–04 and HS-06 retain their provenance,
+local runtime and cleanup boundaries. The acceptance evidence below describes
+the original PR #8, not the later transitions.
 
 ### FEAT-003-HS-01: Hosted staging is disabled by default
 
@@ -88,21 +90,17 @@ Any future threshold, proxy/network dimension, retention, alert, override, or
 production change requires a separate reviewed migration and representative
 evidence. No environment may silently select a wider or unrecorded profile.
 
-### FEAT-003-HS-05: Staging issuance remains dormant
+### FEAT-003-HS-05: CLI-only staging issuance
 
-This hardening slice adds only the constrained staging provenance vocabulary.
-It does not add an executable SQL, CLI, RPC, Edge Function, browser, Data API,
-or generally deployable staging issuer. An environment variable that merely
-claims `staging` cannot distinguish a staging target from production and is not
-sufficient authority.
-
-After an exact provider and project reference are selected, a separate reviewed
-activation may add a CLI-only staging issuer that validates the enabled
-version-controlled project allowlist before obtaining credentials or starting
-network, provider, database, or child-process work. That later issuer must use a
-version-controlled transaction, keep database credentials out of arguments and
-output, prove one atomic constrained grant/audit pair, and emit only fixed
-sanitized status. No application-accessible issuance route is permitted.
+Only the [P3b contract](FEAT-003_SYNTHETIC_STAGING_BASELINE.md#p3b-cli-only-grant-issuance)
+permits executable issuance against the reviewed P2 identity. Exact manifest,
+package, revision, byte and approval-reference validation must precede credentials,
+network or child-process work. An environment variable claiming `staging` or a
+syntactically valid project reference is insufficient. Use a version-controlled
+atomic constrained grant/audit transaction and fixed sanitized output. No browser,
+RPC, Edge Function, Data API or other application issuance route is permitted.
+Repository implementation does not authorize hosted execution, role activation,
+account setup or deployment; those remain separately gated under P4.
 
 ### FEAT-003-HS-06: Cleanup and evidence remain conservative
 
