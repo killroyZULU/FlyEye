@@ -205,6 +205,7 @@ async function checkWidths(browser, mockSupabase, submitLogin) {
 async function checkStates(browser, mockSupabase, submitLogin) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const state = { count: 1, next: true };
+  let releaseReconnect;
   try {
     await start(page, mockSupabase, submitLogin, state);
     await page.getByText('DEMO-1', { exact: true }).waitFor();
@@ -254,13 +255,41 @@ async function checkStates(browser, mockSupabase, submitLogin) {
     assert.equal(await root.getByRole('button', { name: 'Add aircraft' }).isDisabled(), true);
     assert.equal(await root.getByRole('button', { name: 'Reactivate record' }).isDisabled(), true);
     await layout(page);
-    await page.context().setOffline(false);
+    const requestsBeforeReconnect = state.requests.length;
+    state.gate = new Promise((resolve) => {
+      releaseReconnect = resolve;
+    });
+    // The alert clears when reloading starts, not when its response has rendered.
+    const [reconnected] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/functions/v1/aircraft-registry' &&
+          response.request().method() === 'POST',
+      ),
+      (async () => {
+        await page.context().setOffline(false);
+        await page.getByRole('alert').waitFor({ state: 'hidden' });
+        await page.getByText('Loading aircraft registry…').waitFor();
+        assert.equal(
+          await root.getByRole('button', { name: 'Search', exact: true }).isDisabled(),
+          true,
+        );
+        state.gate = undefined;
+        releaseReconnect();
+      })(),
+    ]);
+    assert.equal(reconnected.status(), 200);
+    assert.equal(await reconnected.finished(), null);
+    await page.getByText('Loading aircraft registry…').waitFor({ state: 'hidden' });
+    assert.equal(await root.getByRole('button', { name: 'Search', exact: true }).isEnabled(), true);
+    assert.equal(state.requests.length, requestsBeforeReconnect + 1);
     await page.getByRole('alert').waitFor({ state: 'hidden' });
     state.error = 'unauthorized';
     await search.press('Enter');
     await page.locator(rootSelector).waitFor({ state: 'hidden' });
     assert.equal(await page.getByText('DEMO-1', { exact: true }).count(), 0);
   } finally {
+    releaseReconnect?.();
     await page.close();
   }
   for (const count of [0, 1]) {
