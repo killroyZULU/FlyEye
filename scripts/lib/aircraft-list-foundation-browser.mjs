@@ -192,7 +192,7 @@ async function checkWidths(browser, mockSupabase, submitLogin) {
         await page
           .locator('#aircraft-editor-heading')
           .evaluate((e) => getComputedStyle(e).fontFamily),
-        /Georgia/,
+        /Archivo/,
       );
       await page.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.locator('.aircraft-list li').nth(24).waitFor();
