@@ -54,7 +54,7 @@ function isFactorRequest(input, method, apiUrl) {
   }
 }
 
-function isPasswordLogin(input, method, apiUrl) {
+export function isPasswordLogin(input, method, apiUrl) {
   try {
     const base = new URL(apiUrl);
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);

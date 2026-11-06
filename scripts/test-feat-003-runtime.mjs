@@ -17,6 +17,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagnostics.mjs';
+import { createChurnPasswordObserver } from './lib/churn-password-observer.mjs';
 import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
 import { verifyStagingIssuer } from './lib/staging-issuer-fixture.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
@@ -91,6 +92,7 @@ let edgeProcess;
 let temporaryDirectory;
 let cleanupRequired = false;
 let cleanupComplete = false;
+let passwordObserver;
 
 function resolveSupabaseBinary() {
   const require = createRequire(realpathSync(cliPath));
@@ -141,15 +143,19 @@ function boundedFetch(input, init = {}, timeoutMs = requestTimeoutMs) {
       signal: init.signal ?? AbortSignal.timeout(timeoutMs),
     });
   if (churnMode && diagnosticsEnabled)
-    return withPasswordLoginTransportDiagnostics(operation, {
-      input,
-      method: init.method ?? input?.method,
-      apiUrl,
-      report: (detail) =>
-        process.stdout.write(
-          fixtureDiagnostic('FEAT-003', 'password-transport', 'failed', detail) + '\n',
-        ),
-    });
+    return passwordObserver.observe(
+      () =>
+        withPasswordLoginTransportDiagnostics(operation, {
+          input,
+          method: init.method ?? input?.method,
+          apiUrl,
+          report: (detail) =>
+            process.stdout.write(
+              fixtureDiagnostic('FEAT-003', 'password-transport', 'failed', detail) + '\n',
+            ),
+        }),
+      { input, method: init.method ?? input?.method },
+    );
   if (!challengeMode || !diagnosticsEnabled) return operation();
   return withFactorTransportDiagnostics(operation, {
     input,
@@ -1294,6 +1300,13 @@ const providerEvidence = providerMode
 
 try {
   enterStage('auth-reset-initial', 'local Auth initial scenario reset');
+  passwordObserver = createChurnPasswordObserver({
+    apiUrl,
+    projectId,
+    enabled: diagnosticsEnabled,
+    mode: churnMode ? (churnProbe ? 'churn-cleanup-probe' : 'factor-churn') : undefined,
+    report: reportDiagnostic,
+  });
   await restartLocalAuth();
 
   if (currentMode) {
@@ -1773,6 +1786,7 @@ try {
     process.exitCode = 1;
   }
 } finally {
+  passwordObserver?.dispose();
   try {
     await diagnostics.run('fixture-cleanup', () =>
       runOnboardingCleanup(diagnostics, [

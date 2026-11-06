@@ -193,10 +193,12 @@ enforces cleanup. Source assertions alone do not prove execution.
 [runOnboardingChurnCases](../../../scripts/lib/onboarding-churn-cases.mjs) runs
 `--factor-churn`/`--churn-cleanup-probe`, reusing completion/bootstrap assertions
 and [assertStaleTransition](../../../scripts/lib/onboarding-stale-evidence.mjs).
-Execution results: #162.
 [Worker readiness](../../../scripts/lib/onboarding-worker-readiness.mjs) requires
 the current synthetic request origin and exact handler response, accounting for Kong's CORS rewrite;
 it does not prove provider health.
+
+Diagnostics: [tests](../../../scripts/lib/churn-password-observer.test.mjs),
+[loopback](../../../scripts/check-churn-password-observer.mjs).
 
 ### Verified-factor browser evidence map
 

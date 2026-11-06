@@ -162,6 +162,7 @@ const stages = new Map([
       'churn-setup',
       'churn-password',
       'password-transport',
+      'password-connection',
       'churn-start',
       'churn-enroll',
       'churn-verify',
@@ -437,6 +438,22 @@ export function fixtureDiagnostic(feature, stage, event, detail) {
       ...[...httpStatuses].map((status) => `http-${status}`),
     ].includes(detail);
   const validEvent =
+    (feature === 'FEAT-003' &&
+      stage === 'password-connection' &&
+      event === 'response' &&
+      [
+        'password-socket-new',
+        'password-socket-reused',
+        'password-socket-unknown',
+        'password-dispatch-observed',
+        'password-dispatch-unknown',
+        'password-response-headers-observed',
+        'password-response-headers-unknown',
+        'password-idle-unknown',
+        'password-idle-under-second',
+        'password-idle-under-five-seconds',
+        'password-idle-five-seconds-or-more',
+      ].includes(detail)) ||
     (feature === 'FEAT-003' &&
       stage === 'bootstrap-response' &&
       event === 'response' &&
