@@ -38,7 +38,7 @@ const responseCategory = (status) =>
       : 'http-other';
 
 // Passive listeners; error evidence is read only after a failed browser scenario.
-export function observeOnboardingLogin(page, report, apiUrl) {
+export function observeOnboardingLogin(page, report, apiUrl, cliDiagnostics) {
   const apiOrigin = new URL(apiUrl).origin;
   let active = false;
   let requests = new WeakMap();
@@ -77,6 +77,7 @@ export function observeOnboardingLogin(page, report, apiUrl) {
   page.on('requestfinished', finished);
   return {
     begin() {
+      cliDiagnostics?.begin();
       bootstrapResponse = undefined;
       since = new Date().toISOString();
       diagnosed = false;
@@ -98,7 +99,7 @@ export function observeOnboardingLogin(page, report, apiUrl) {
     },
     finish() {
       if (!active) return;
-      const snapshot = { response: bootstrapResponse, since };
+      const snapshot = { response: bootstrapResponse, since, cliDetails: cliDiagnostics?.finish() };
       active = false;
       requests = new WeakMap();
       for (const [stage, value] of observations) {
@@ -117,6 +118,7 @@ export function observeOnboardingLogin(page, report, apiUrl) {
       return snapshot;
     },
     dispose() {
+      cliDiagnostics?.finish();
       active = false;
       observations = undefined;
       bootstrapResponse = undefined;

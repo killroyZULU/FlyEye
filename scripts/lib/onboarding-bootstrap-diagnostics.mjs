@@ -11,31 +11,62 @@ const applicationCodes = new Map([
   ['auth.access_context_unavailable', 'bootstrap-access-context-unavailable'],
 ]);
 
+// These describe received headers, not which component generated the response.
+function headerDetails(response) {
+  try {
+    const headers = response.headers();
+    const server = /^kong\/[0-9.]+$/.test(headers.server ?? '')
+      ? 'kong-response'
+      : 'bootstrap-server-unknown';
+    const type = headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+    const content =
+      type === 'application/json'
+        ? 'bootstrap-content-json'
+        : type === 'text/html'
+          ? 'bootstrap-content-html'
+          : type
+            ? 'bootstrap-content-other'
+            : 'bootstrap-content-missing';
+    return [server, content];
+  } catch {
+    return ['bootstrap-headers-unavailable'];
+  }
+}
+
 // Read only an already received error response. No new request or retry.
-async function responseDetails(response) {
-  if (!response) return ['bootstrap-response-missing'];
+async function bodyDetails(response) {
   let timer;
+  const expired = Symbol('diagnostic read expired');
   try {
     const body = await Promise.race([
       response.body(),
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Diagnostic read expired.')), 1000);
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(expired), 1000);
       }),
     ]);
+    if (body === expired) return ['bootstrap-body-read-expired'];
     // Playwright returns a complete buffer; bound parsing, not browser buffering.
     if (body.byteLength > 8192) return ['bootstrap-response-oversize'];
-    const payload = JSON.parse(body.toString('utf8'));
+    let payload;
+    try {
+      payload = JSON.parse(body.toString('utf8'));
+    } catch {
+      return ['bootstrap-body-invalid-json'];
+    }
     const application = applicationCodes.get(payload?.error?.code);
     if (application) return [application];
-    return gatewayResponseDetails(
-      { headers: { get: (name) => response.headers()[name] } },
-      payload,
-    );
+    return gatewayResponseDetails({ headers: { get: () => undefined } }, payload);
   } catch {
-    return ['bootstrap-response-unreadable'];
+    return ['bootstrap-body-read-rejected'];
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function responseDetails(response) {
+  if (!response) return ['bootstrap-response-missing'];
+  const headers = headerDetails(response);
+  return [...(await bodyDetails(response)), ...headers];
 }
 
 export async function reportBootstrapFailure({
@@ -46,6 +77,7 @@ export async function reportBootstrapFailure({
   ci = process.env.CI,
   githubActions = process.env.GITHUB_ACTIONS,
   collect = collectGatewayDiagnostics,
+  cliDetails = ['diagnostic-unavailable'],
 }) {
   if (ci !== 'true' || githubActions !== 'true') return;
   const emit = (stage, detail) => {
@@ -57,6 +89,7 @@ export async function reportBootstrapFailure({
     }
   };
   for (const detail of await responseDetails(response)) emit('bootstrap-response', detail);
+  for (const detail of cliDetails) emit('bootstrap-cli-log', detail);
   let evidence;
   try {
     evidence = collect({ projectId, since, ci, githubActions });

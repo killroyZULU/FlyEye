@@ -18,6 +18,7 @@ import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { createFixtureDiagnostics, fixtureDiagnostic } from './lib/fixture-diagnostics.mjs';
 import { createChurnPasswordObserver } from './lib/churn-password-observer.mjs';
+import { createBootstrapCliDiagnostics } from './lib/onboarding-cli-diagnostics.mjs';
 import { runOnboardingCleanup } from './lib/onboarding-runtime-cleanup.mjs';
 import { verifyStagingIssuer } from './lib/staging-issuer-fixture.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
@@ -81,6 +82,11 @@ const readinessProbeTimeoutMs = 2_000;
 const shutdownTimeoutMs = 5_000;
 const diagnosticsEnabled = process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1';
 const diagnostics = createFixtureDiagnostics('FEAT-003');
+const bootstrapCliDiagnostics = createBootstrapCliDiagnostics({
+  enabled: staleMode && diagnosticsEnabled,
+  ci: process.env.CI,
+  githubActions: process.env.GITHUB_ACTIONS,
+});
 const linkedMarkers = [
   path.resolve('supabase', '.temp', 'project-ref'),
   path.resolve('supabase', '.temp', 'pooler-url'),
@@ -1368,9 +1374,11 @@ try {
   const suppressedOutput = [];
   edgeProcess.stdout.on('data', (chunk) => {
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
+    bootstrapCliDiagnostics.observe(chunk);
   });
   edgeProcess.stderr.on('data', (chunk) => {
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
+    bootstrapCliDiagnostics.observe(chunk);
   });
   await waitForEdgeRuntime();
 
@@ -1422,6 +1430,7 @@ try {
   if (staleMode || challengeMode || uncertaintyMode) {
     await (staleBrowser ?? challengeBrowser ?? uncertaintyBrowser).run({
       projectId,
+      bootstrapCliDiagnostics,
       users: uncertaintyMode ? providerUsers.slice(uncertaintyServerCases.length) : providerUsers,
       organizationId: organizations.a,
       sourceInstanceId,

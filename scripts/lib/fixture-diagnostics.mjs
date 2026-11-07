@@ -138,6 +138,7 @@ const stages = new Map([
       'stale-network-password',
       'stale-network-bootstrap',
       'bootstrap-response',
+      'bootstrap-cli-log',
       'stale-network-status',
       'stale-network-start',
       'stale-api-cancel',
@@ -394,6 +395,15 @@ const bootstrapDetails = new Set([
   'bootstrap-response-missing',
   'bootstrap-response-unreadable',
   'bootstrap-response-oversize',
+  'bootstrap-body-read-expired',
+  'bootstrap-body-read-rejected',
+  'bootstrap-body-invalid-json',
+  'bootstrap-headers-unavailable',
+  'bootstrap-server-unknown',
+  'bootstrap-content-json',
+  'bootstrap-content-html',
+  'bootstrap-content-other',
+  'bootstrap-content-missing',
 ]);
 const responseDetails = new Set([
   'provider-panic',
@@ -438,6 +448,12 @@ export function fixtureDiagnostic(feature, stage, event, detail) {
       ...[...httpStatuses].map((status) => `http-${status}`),
     ].includes(detail);
   const validEvent =
+    (feature === 'FEAT-003' &&
+      stage === 'bootstrap-cli-log' &&
+      event === 'response' &&
+      ['cli-window-truncated', 'cli-output-observed', 'cli-output-not-observed'].includes(
+        detail,
+      )) ||
     (feature === 'FEAT-003' &&
       stage === 'password-connection' &&
       event === 'response' &&
