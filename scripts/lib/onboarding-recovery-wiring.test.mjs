@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { EventEmitter } from 'node:events';
 import { Worker } from 'node:worker_threads';
 import { createClient } from '@supabase/supabase-js';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAdminOnboardingHandler } from '../../supabase/functions/organization-admin-onboarding/handler.ts';
 import { waitForOnboardingWorker } from './onboarding-worker-readiness.mjs';
 import {
@@ -12,6 +12,10 @@ import {
   withPasswordLoginTransportDiagnostics,
 } from './provider-transport-diagnostics.mjs';
 import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
+import { createChurnPasswordObserver } from './churn-password-observer.mjs';
+
+const observerDisposals = [];
+afterEach(() => observerDisposals.splice(0).forEach((dispose) => dispose()));
 
 // Run the actual fixture functions without importing its database/service lifecycle.
 const source = readFileSync('scripts/test-feat-003-runtime.mjs', 'utf8');
@@ -26,7 +30,7 @@ const build = new Function(
   `const { apiUrl, origin, publishableKey, serviceRoleKey, edgeProcess, fetch,
     challengeMode, uncertaintyMode, currentMode, churnMode, providerMode, providerProbe, providerStateMode,
     diagnosticsEnabled, fixtureConnectionOptions, withFactorTransportDiagnostics,
-    withPasswordLoginTransportDiagnostics, fixtureDiagnostic, process,
+    withPasswordLoginTransportDiagnostics, passwordObserver, fixtureDiagnostic, process,
     waitForOnboardingWorker, setTimeout } = context;
    const requestTimeoutMs = 30000, readinessProbeTimeoutMs = 2000;
    ${extract('function boundedFetch(', 'function waitForChildExit(')}
@@ -68,6 +72,19 @@ function wiring(overrides = {}) {
     },
     ...overrides,
   };
+  context.passwordObserver = createChurnPasswordObserver({
+    apiUrl: context.apiUrl,
+    projectId: 'synthetic_characterization',
+    mode: 'factor-churn',
+    enabled: context.churnMode && context.diagnosticsEnabled,
+    ci: 'true',
+    githubActions: 'true',
+    report: (stage, event, detail) =>
+      lines.push(fixtureDiagnostic('FEAT-003', stage, event, detail)),
+    // This harness owns only ephemeral loopback servers, never provider containers.
+    collect: () => [],
+  });
+  observerDisposals.push(context.passwordObserver.dispose);
   return { ...build(context), lines, delay };
 }
 

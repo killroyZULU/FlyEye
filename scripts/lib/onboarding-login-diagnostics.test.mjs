@@ -4,19 +4,21 @@ import { reportBootstrapFailure } from './onboarding-bootstrap-diagnostics.mjs';
 import { observeOnboardingLogin } from './onboarding-login-diagnostics.mjs';
 import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
 import { runtimeDiagnosticLines } from './runtime-diagnostics.mjs';
+import { createBootstrapCliDiagnostics } from './onboarding-cli-diagnostics.mjs';
 
 vi.mock('./onboarding-bootstrap-diagnostics.mjs', () => ({ reportBootstrapFailure: vi.fn() }));
 beforeEach(() => {
   vi.mocked(reportBootstrapFailure).mockReset();
 });
 
-function harness() {
+function harness(cliDiagnostics) {
   const page = new EventEmitter();
   const lines = [];
   const observer = observeOnboardingLogin(
     page,
     (...args) => lines.push(fixtureDiagnostic('FEAT-003', ...args)),
     'http://127.0.0.1:54321',
+    cliDiagnostics,
   );
   return { page, lines, observer };
 }
@@ -41,6 +43,36 @@ const response = (request, status) => ({
   }),
 });
 describe('passive stale-onboarding login diagnostics', () => {
+  it('wires the real CLI window to failure only, then clears it on success and disposal', async () => {
+    const cli = createBootstrapCliDiagnostics({ enabled: true, ci: 'true', githubActions: 'true' });
+    const { observer } = harness(cli);
+    cli.observe(Buffer.from('panic: outside window'));
+    observer.begin();
+    cli.observe(Buffer.from('InvalidWorkerCreation synthetic-private'));
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cliDetails: ['cli-output-observed', 'worker-boot-error'],
+      }),
+    );
+    cli.observe(Buffer.from('panic: after failure'));
+    observer.finish();
+    observer.begin();
+    cli.observe(Buffer.from('InvalidWorkerResponse private success'));
+    observer.finish();
+    expect(reportBootstrapFailure).toHaveBeenCalledTimes(1);
+    observer.begin();
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        cliDetails: ['cli-output-not-observed', 'no-recognized-log-signature'],
+      }),
+    );
+    observer.begin();
+    cli.observe(Buffer.from('panic: discarded'));
+    observer.dispose();
+    expect(cli.finish()).toEqual(['diagnostic-unavailable']);
+  });
   it('captures only the first bootstrap server error and freezes observations before diagnostics', async () => {
     const { page, lines, observer } = harness();
     observer.begin();
