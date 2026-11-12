@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "6d4c19870ed213ba7f682f117d0345c8a40bfa94",
+  "cliVersion": "2.109.1",
+  "compilerVersion": "go1.25.11",
+  "compilerArchiveSha256": "b7401f1b41517428e537493316256fb7cf03c66a130a0103ab07f3a2152e2112",
+  "sourceArchiveSha256": "8cac81470d00f822e1ccfcafa369fd8774c9027ed6006842ec4aeb849aeb0643",
+  "compilerExeSha256": "3b77c1465d6f5da47950c572bc8b79d912ca4e4ffe4ae29dbd9f42180b571206",
+  "binarySha256": "788fe3330b9e5ae0d696d04b2345cea89e72cb1509673572419dfb0a041d32cd",
+  "sources": {
+    "guard.go": "4da24f6329fcd232e587cb7390eed0ca29bdda597526320a511770e95db43408",
+    "adapter.go": "ad93089fa3ea81cb2e1f17a0e262849dbe8091f4f676a224a31de8ca7fd2e65e",
+    "guard_test.go": "49767296ac5f660fa10801a4df39183bf5f238d914a64f7e63951630c8a82775",
+    "adapter_test.go": "556224d35467f65a051883c2cb80f6e93cae11720c3c1e01bccf99a1d519109d",
+    "build.ps1": "cce117305df8f78668c3b15b4fd1bc026766e99bb9031d49157d8a3a997b0c8d"
+  }
+}

@@ -36,6 +36,36 @@ afterEach(() => {
   vi.resetModules();
 });
 
+describe('no-send required matrix reporting', () => {
+  it.each([0, 1])(
+    'retains full fixture invocation and original exit gate for status %i',
+    async (status) => {
+      mocks.fixture = 'test-staging-no-send-runtime.mjs';
+      mocks.spawnSync.mockReturnValue({
+        status,
+        stdout: '{"noSendBehavior":{"stage":"cleanup","passed":true}}\nprivate-canary',
+        stderr: 'private-canary',
+      });
+      mocks.exit.mockImplementation(() => {
+        throw new Error('test-exit');
+      });
+      if (status) await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      else await import('../run-runtime-matrix.mjs');
+      expect(mocks.spawnSync).toHaveBeenCalledTimes(1);
+      const [, args, options] = mocks.spawnSync.mock.calls[0];
+      expect(args).toHaveLength(1);
+      expect(args[0]).toMatch(/test-staging-no-send-runtime\.mjs$/);
+      expect(options.timeout).toBe(15 * 60 * 1000);
+      expect(options.stdio).toEqual(['ignore', 'pipe', 'ignore']);
+      expect(options.encoding).toBe('utf8');
+      const output = [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join('');
+      expect(output).toContain('No-send runtime: stage=cleanup result=passed.');
+      expect(output).not.toContain('private-canary');
+      expect(mocks.exit).toHaveBeenCalledTimes(status ? 1 : 0);
+    },
+  );
+});
+
 describe('SEC-033 readiness diagnostics', () => {
   const privateText = 'synthetic-private-url-token-email';
   const output = () => [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join('');
