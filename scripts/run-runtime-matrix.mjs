@@ -165,6 +165,7 @@ for (const fixture of fixtures) {
   }
 
   const hasDiagnostics =
+    fixture === 'test-staging-no-send-runtime.mjs' ||
     fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-recovery-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||

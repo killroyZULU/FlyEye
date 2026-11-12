@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "policy": "no-send-v1",
+  "signupEnabled": false,
+  "emailPasswordEnabled": true,
+  "totpEnrollEnabled": true,
+  "totpVerifyEnabled": true,
+  "emailHookEnabled": true,
+  "emailHookUri": "pg-functions://postgres/staging_private/reject_email",
+  "securityNotificationsEnabled": false,
+  "externalProvidersEnabled": false,
+  "smsEnabled": false,
+  "customSmtpEnabled": false
+}

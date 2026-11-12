@@ -163,6 +163,11 @@ jobs:
           cp supabase/functions/.env.example supabase/functions/.env
           node --input-type=module -e "import { appendFileSync } from 'node:fs'; import { randomBytes } from 'node:crypto'; appendFileSync('supabase/functions/.env', '\nFEAT003_LIMITER_HMAC_SECRET=' + randomBytes(32).toString('hex') + '\n');"
 
+      - name: Prepare pinned Linux no-send test CLI
+        # Fails before acquisition when the independently reviewed Linux lock is pending.
+        # The script has a 10-minute total budget; the existing 50-minute job cap remains.
+        run: node scripts/no-send-cli/build-linux.mjs --ci
+
       - name: Start local Supabase
         run: |
           if ! pnpm db:start > /dev/null 2>&1; then
