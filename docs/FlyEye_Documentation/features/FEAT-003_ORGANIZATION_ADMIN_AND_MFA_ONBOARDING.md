@@ -417,4 +417,6 @@ the parent specification's size budget.
 
 Stable test families and exact results are maintained in [FEAT-003 Traceability](FEAT-003_TRACEABILITY.md). Current committed runtime fixtures use one synthetic school; rollback-only SQL tests retain adversarial cross-school coverage under ADR-0006.
 
+Local diagnostics follow the [stale-factors target contract](../10_DEVSECOPS_GUIDE.md#disposable-local-stale-factors-observation).
+
 Local values and fixtures are not hosted or production evidence. Before a hosted run, real-data pilot, or production claim, resolve the exact provider/project, region/plan/cost, origin, credentials, trusted network source, thresholds/capacity, monitoring/alerts/retention/ownership, issuance authority, cleanup/recovery, notifications/support, factor recovery/replacement, incident process, accessibility evidence, and any risk-triggered qualified review.

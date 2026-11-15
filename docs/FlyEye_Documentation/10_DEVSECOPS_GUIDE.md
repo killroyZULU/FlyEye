@@ -125,6 +125,81 @@ owned by the task and verify fixture cleanup even after failure. Use reviewed
 fixed-stage diagnostics, not raw provider output. FEAT-001-specific Auth/TOTP
 controls and assertions remain in [local security testing](features/FEAT-001_LOCAL_SECURITY_TESTING.md).
 
+### Disposable local stale-factors observation
+
+The [local target guard](../../scripts/lib/local-stale-target.mjs) permits only
+`--stale-factors --local-stale-target <absolute-receipt-path>` with diagnostics
+enabled and without CI impersonation. Other provider modes retain their CI gate.
+Apply [database safety](#local-setup-and-database-safety).
+Preparation, execution and resource teardown require their applicable owner scope;
+the receipt records operator attestation, not independent proof of authorization.
+
+Use a fresh source workspace directly under the system temporary directory,
+named `flyeye-stale-<32 lowercase hexadecimal characters>`. The
+[preparation helper](../../scripts/lib/local-stale-preparation.mjs) reuses the
+unchanged verified Linux startup artifact only for its exact
+`flyeye-nosend-p3d1` project, `flyeye-nosend-p3d1-isolated` network and fixed ports.
+Reject existing profile resources before creation and acquire the exclusive
+`flyeye-stale-profile.lock`; never adopt an occupied stack. Fresh immutable IDs,
+creation times and the unique workspace establish each run's ownership.
+
+The [workspace copier](../../scripts/lib/local-stale-workspace.mjs) requires the
+reviewed source digest, copies application/fixture/template inputs and all
+migrations, and excludes environment files, Git/history and retained artifacts.
+Dependencies are copied privately (maximum 1 GiB), without installation or builds.
+Only the project, profile addresses and disabled seeding differ from the original
+configuration; Auth/MFA rates, templates and Edge policy remain intact. Startup
+applies the copied migrations and must yield exactly DB/Auth/Kong/mail/REST with
+loopback bindings and non-relaying Mailpit. The existing fixture uses the standard
+pinned CLI for its Edge worker with the explicit owned network and no inspector.
+The patched CLI override belongs only to the startup child.
+
+`local-stale-target.json` in that workspace contains only: `version: 1`,
+`purpose: "one-local-stale-factors-observation"`, canonical `root`, `projectId`,
+`approvedAt` (UTC whole seconds, before resource creation), `expiresAt` (at most
+one hour later), `configSha256`, local Docker `daemonId`, full `networkId`,
+`containers` mapping `db/auth/kong/inbucket/rest` to full IDs, integer `ports`
+mapping `api/database/mail`, and owned named `volumes`. Label the network
+`flyeye.fixture.owner=<workspace-basename>` and set its default host binding to
+`127.0.0.1`. The receipt must match the preparation lease.
+The guard checks actual identities, freshness, sharing, loopback bindings, mail
+isolation and empty Auth/organization/Storage data before reading Supabase status
+credentials or starting fixture operations. Inspection output stays suppressed.
+Only Kong may bind the four reviewed recovery, invite, magic-link and
+password-change notification template files read/write. The
+[template guard](../../scripts/lib/local-stale-template-mounts.mjs) requires exact
+private-workspace sources and container destinations, pinned content hashes,
+regular single-link files with no symlink components, private ownership and no
+other container attachment. Extra mounts, aliases, unknown inspection shapes,
+sharing and changed content fail closed. Other writable bind mounts remain denied.
+Attachment checks inspect only IDs and mount metadata for all containers,
+including stopped containers, and compare exact sources. At most 100 containers
+and 100 mounts per container are accepted; missing, duplicate, malformed or
+changing inventories fail closed. A source-path `volume` filter is not evidence
+of bind-source exclusivity.
+Inventory source syntax accepts canonical POSIX paths and fully qualified Windows
+drive paths independently of the runner OS, without rewriting sources. Relative,
+UNC, device and ambiguous forms fail closed; protected template mappings retain
+their exact private-workspace checks.
+This exception changes neither the CLI artifact nor template contents.
+
+An exclusive `local-stale-target.consumed` marker prevents reuse, including after
+failed resource preflight; do not remove it to retry. Preserve sanitized evidence
+and perform separately authorized owned-resource teardown. The preparation helper
+attempts teardown on settled failures, verifies existing resources and source/
+artifact integrity, and removes only proven owned resources. The resource
+comparison ignores mount-array ordering, preserving every field and duplicate.
+Startup failures return only bounded exit/signal/error codes and fixed output
+categories; missing, unreadable, oversized or ambiguous evidence cannot establish
+a cause. Command output and error messages are never returned. The observation
+callback must settle all child processes and return `{exitCode, childrenSettled:true}`,
+including nonzero exits. Startup timeout, callback rejection or missing settlement
+retains the workspace/lease and reports uncertain cleanup for a separate recovery
+decision. Preparation and callback execution require Linux x64 with pinned Node;
+imports and synthetic tests do not authorize either. Local failure output
+adds only the bounded bootstrap trace; provider logs remain CI-only. Fixture
+requests, assertions, timeouts and cleanup retain their existing contract.
+
 ### Gate implementation and diagnostics
 
 Application tests enforce repository-level statement, branch, function, and

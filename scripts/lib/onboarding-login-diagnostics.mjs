@@ -38,7 +38,7 @@ const responseCategory = (status) =>
       : 'http-other';
 
 // Passive listeners; error evidence is read only after a failed browser scenario.
-export function observeOnboardingLogin(page, report, apiUrl) {
+export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTarget) {
   const apiOrigin = new URL(apiUrl).origin;
   let active = false;
   let requests = new WeakMap();
@@ -50,6 +50,13 @@ export function observeOnboardingLogin(page, report, apiUrl) {
     if (!active) return;
     const stage = requestStage(request, apiOrigin);
     if (!stage) return;
+    if (stage === stages[1]) {
+      try {
+        trace?.request(request);
+      } catch {
+        /* Observation must not affect the request. */
+      }
+    }
     requests.set(request, stage);
     observations.get(stage).pending++;
     observations.get(stage).seen = true;
@@ -77,6 +84,11 @@ export function observeOnboardingLogin(page, report, apiUrl) {
   page.on('requestfinished', finished);
   return {
     begin() {
+      try {
+        trace?.begin();
+      } catch {
+        /* Missing trace remains unknown. */
+      }
       bootstrapResponse = undefined;
       since = new Date().toISOString();
       diagnosed = false;
@@ -91,7 +103,7 @@ export function observeOnboardingLogin(page, report, apiUrl) {
       diagnosed = true;
       const snapshot = this.finish();
       try {
-        await reportBootstrapFailure({ ...snapshot, projectId, report });
+        await reportBootstrapFailure({ ...snapshot, projectId, report, localStaleTarget });
       } catch {
         // Diagnostics must preserve the original failure and cleanup.
       }
@@ -99,6 +111,14 @@ export function observeOnboardingLogin(page, report, apiUrl) {
     finish() {
       if (!active) return;
       const snapshot = { response: bootstrapResponse, since };
+      if (trace) {
+        snapshot.traceDetail = 'bootstrap-trace-unknown';
+        try {
+          snapshot.traceDetail = trace.finish();
+        } catch {
+          /* Keep unknown. */
+        }
+      }
       active = false;
       requests = new WeakMap();
       for (const [stage, value] of observations) {
@@ -117,6 +137,11 @@ export function observeOnboardingLogin(page, report, apiUrl) {
       return snapshot;
     },
     dispose() {
+      try {
+        trace?.finish();
+      } catch {
+        /* No diagnostic failure can prevent disposal. */
+      }
       active = false;
       observations = undefined;
       bootstrapResponse = undefined;

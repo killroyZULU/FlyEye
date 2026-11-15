@@ -1,4 +1,5 @@
 import { fixtureDiagnostic } from './fixture-diagnostics.mjs';
+import { isLocalStaleTarget } from './local-stale-target.mjs';
 import {
   collectGatewayDiagnostics,
   gatewayResponseDetails,
@@ -43,11 +44,14 @@ export async function reportBootstrapFailure({
   since,
   projectId,
   report,
+  traceDetail,
+  localStaleTarget,
   ci = process.env.CI,
   githubActions = process.env.GITHUB_ACTIONS,
   collect = collectGatewayDiagnostics,
 }) {
-  if (ci !== 'true' || githubActions !== 'true') return;
+  const inCi = ci === 'true' && githubActions === 'true';
+  if (!inCi && !isLocalStaleTarget(localStaleTarget, projectId)) return;
   const emit = (stage, detail) => {
     try {
       fixtureDiagnostic('FEAT-003', stage, 'response', detail);
@@ -56,6 +60,10 @@ export async function reportBootstrapFailure({
       // Never replace the original failure or prevent cleanup.
     }
   };
+  if (traceDetail !== undefined || !inCi)
+    emit('bootstrap-trace', traceDetail ?? 'bootstrap-trace-unknown');
+  // Local approval covers only the private fixture trace, not provider-log collection.
+  if (!inCi) return;
   for (const detail of await responseDetails(response)) emit('bootstrap-response', detail);
   let evidence;
   try {

@@ -11,6 +11,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 
@@ -22,6 +23,15 @@ import { verifyStagingIssuer } from './lib/staging-issuer-fixture.mjs';
 import { onboardingProviderEvidence } from './lib/onboarding-provider-evidence.mjs';
 import { runOnboardingProviderCases } from './lib/onboarding-provider-cases.mjs';
 import { onboardingStaleBrowser } from './lib/onboarding-stale-browser.mjs';
+import { prepareBootstrapTrace } from './lib/bootstrap-trace.mjs';
+import { localStalePreflightDiagnostics } from './lib/local-stale-preflight-diagnostics.mjs';
+import {
+  localStaleRequest,
+  localStaleContainer,
+  localStaleNetworkArgs,
+  verifyLocalStaleTarget,
+  verifyLocalStaleEndpoints,
+} from './lib/local-stale-target.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
 import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
 import {
@@ -65,14 +75,21 @@ const providerMode =
 const staleBrowser = staleMode ? onboardingStaleBrowser() : undefined;
 const challengeBrowser = challengeMode ? onboardingChallengeBrowser() : undefined;
 const providerFinished = Symbol('selected provider cases finished');
-if (providerMode && (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')) {
-  throw new Error('Onboarding provider cases require disposable GitHub Actions services.');
-}
+const preflight = localStalePreflightDiagnostics({
+  enabled:
+    process.argv.includes('--local-stale-target') && process.env.FLYEYE_RUNTIME_DIAGNOSTICS === '1',
+});
+preflight('local-preflight-arguments', 'enter');
+const localStaleReceipt = localStaleRequest(process.argv.slice(2), providerMode);
+preflight('local-preflight-arguments', 'passed');
+let localStaleTarget;
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 let origin = 'http://127.0.0.1:5173';
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
+preflight('local-preflight-cli-resolution', 'enter');
 const cliBinaryPath = resolveSupabaseBinary();
+preflight('local-preflight-cli-resolution', 'passed');
 const configPath = path.resolve('supabase', 'config.toml');
 const commandTimeoutMs = 30_000;
 const requestTimeoutMs = 30_000;
@@ -89,6 +106,7 @@ const linkedMarkers = [
 let stage = 'same-stack attestation';
 let edgeProcess;
 let temporaryDirectory;
+let bootstrapTrace;
 let cleanupRequired = false;
 let cleanupComplete = false;
 
@@ -533,7 +551,9 @@ async function waitForEdgeRuntime() {
 }
 
 async function restartLocalAuth() {
-  const authContainer = `supabase_auth_${projectId}`;
+  const authContainer = localStaleTarget
+    ? localStaleContainer(localStaleTarget, projectId, 'auth')
+    : `supabase_auth_${projectId}`;
   const restart = spawnSync('docker', ['restart', authContainer], {
     encoding: 'utf8',
     timeout: commandTimeoutMs,
@@ -1156,6 +1176,7 @@ async function cleanup() {
   await runOnboardingCleanup(diagnostics, steps);
 }
 
+preflight('local-preflight-configuration', 'enter');
 for (const marker of linkedMarkers) {
   if (existsSync(marker)) throw new Error('A linked or ambiguous Supabase marker is present.');
 }
@@ -1163,8 +1184,24 @@ for (const marker of linkedMarkers) {
 const config = readFileSync(configPath, 'utf8');
 const projectId = /^project_id\s*=\s*"([a-z0-9_-]+)"\s*$/m.exec(config)?.[1];
 if (!projectId) throw new Error('Local Supabase project identity is unavailable.');
+preflight('local-preflight-configuration', 'passed');
 
+if (localStaleReceipt) {
+  preflight('local-preflight-target', 'enter');
+  localStaleTarget = verifyLocalStaleTarget({
+    receiptPath: localStaleReceipt,
+    root: process.cwd(),
+    scriptRoot: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
+    config,
+    projectId,
+  });
+  preflight('local-preflight-target', 'passed');
+}
+preflight('local-preflight-status', 'enter');
 const local = localStatus();
+preflight('local-preflight-status', 'passed');
+preflight('local-preflight-endpoints', 'enter');
+if (localStaleTarget) verifyLocalStaleEndpoints(localStaleTarget, projectId, local);
 const apiUrl = local.API_URL;
 const databaseUrl = local.DB_URL;
 const publishableKey = local.PUBLISHABLE_KEY ?? local.ANON_KEY;
@@ -1175,13 +1212,18 @@ if (![apiUrl, databaseUrl, publishableKey, serviceRoleKey].every((value) => valu
 
 const api = assertLoopbackUrl(apiUrl, 'Local API');
 const database = assertLoopbackUrl(databaseUrl, 'Local database');
-const databaseContainer = `supabase_db_${projectId}`;
+preflight('local-preflight-endpoints', 'passed');
+preflight('local-preflight-database-container', 'enter');
+const databaseContainer = localStaleTarget
+  ? localStaleContainer(localStaleTarget, projectId, 'db')
+  : `supabase_db_${projectId}`;
 const inspected = inspectDatabaseContainer(databaseContainer);
-assert.equal(inspected.Name, `/${databaseContainer}`);
+assert.equal(inspected.Name, `/supabase_db_${projectId}`);
 assert.equal(inspected.Config.Labels?.['com.supabase.cli.project'], projectId);
 const boundDatabasePort = inspected.HostConfig.PortBindings?.['5432/tcp']?.[0]?.HostPort;
 assert.equal(String(boundDatabasePort), database.port);
 assert.ok(api.port);
+preflight('local-preflight-database-container', 'passed');
 
 // P3b uses only this attested disposable CI stack; no hosted transport is invoked.
 if (
@@ -1192,6 +1234,7 @@ if (
   await verifyStagingIssuer(psql);
 }
 
+preflight('local-preflight-limiter-baseline', 'enter');
 const baselineLimiterState = psql(
   `
     select limiter_key_hash || ':' || action
@@ -1215,13 +1258,17 @@ const baselineLimiterEvents = psql(
   .split(/\r?\n/)
   .filter(Boolean);
 
+preflight('local-preflight-limiter-baseline', 'passed');
+preflight('local-preflight-non-loopback-guard', 'enter');
 const nonLoopbackGuard = spawnSync(
   process.execPath,
   [process.argv[1], '--verify-non-loopback-guard'],
   { encoding: 'utf8', timeout: commandTimeoutMs, windowsHide: true },
 );
 assert.equal(nonLoopbackGuard.status, 0);
+preflight('local-preflight-non-loopback-guard', 'passed');
 
+preflight('local-preflight-context', 'enter');
 const runId = randomBytes(6).toString('hex');
 const password = `Synthetic-${randomBytes(18).toString('base64url')}!`;
 const sourceInstanceId = randomUUID();
@@ -1292,6 +1339,8 @@ const providerEvidence = providerMode
     })
   : undefined;
 
+preflight('local-preflight-context', 'passed');
+
 try {
   enterStage('auth-reset-initial', 'local Auth initial scenario reset');
   await restartLocalAuth();
@@ -1336,15 +1385,35 @@ try {
 
   enterStage('edge-runtime-startup', 'ephemeral Edge secret startup');
   temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'flyeye-feat003-'));
+  if (staleMode && diagnosticsEnabled) {
+    bootstrapTrace = prepareBootstrapTrace({
+      directory: temporaryDirectory,
+      root: process.cwd(),
+      apiUrl,
+      origin,
+    });
+  }
   const environmentPath = path.join(temporaryDirectory, 'edge.env');
   writeFileSync(
     environmentPath,
     `FEAT003_LIMITER_HMAC_SECRET=${limiterSecret}\nALLOWED_ORIGIN=${origin}\nFLYEYE_RUNTIME_PROFILE=local-synthetic-v1\nFEAT003_LIMITER_POLICY_VERSION=subject-action-v1\nFEAT003_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_POLICY_VERSION=invitation-subject-scope-v1\nFEAT004_DATA_CLASSIFICATION=synthetic-only\nFEAT004_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT004_INVITATION_REDIRECT_URL=${origin}/auth/invitation\nFEAT005_LIMITER_POLICY_VERSION=member-administration-subject-scope-v1\nFEAT005_DATA_CLASSIFICATION=synthetic-only\nFEAT005_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\nFEAT006_LIMITER_POLICY_VERSION=member-mfa-subject-action-v1\nFEAT006_DATA_CLASSIFICATION=synthetic-only\nFEAT006_LIMITER_HMAC_SECRET=${randomBytes(32).toString('hex')}\n`,
     { encoding: 'utf8', flag: 'wx', mode: 0o600 },
   );
+  if (bootstrapTrace) {
+    writeFileSync(environmentPath, bootstrapTrace.environment, { flag: 'a', mode: 0o600 });
+  }
   edgeProcess = spawn(
     cliBinaryPath,
-    ['functions', 'serve', '--env-file', environmentPath, '--log-level', 'error'],
+    [
+      'functions',
+      'serve',
+      '--env-file',
+      environmentPath,
+      '--log-level',
+      'error',
+      ...(bootstrapTrace?.args ?? []),
+      ...(localStaleTarget ? localStaleNetworkArgs(localStaleTarget, projectId) : []),
+    ],
     {
       cwd: process.cwd(),
       detached: process.platform !== 'win32',
@@ -1354,9 +1423,11 @@ try {
   );
   const suppressedOutput = [];
   edgeProcess.stdout.on('data', (chunk) => {
+    bootstrapTrace?.capture.capture(chunk, 'stdout');
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
   });
   edgeProcess.stderr.on('data', (chunk) => {
+    bootstrapTrace?.capture.capture(chunk, 'stderr');
     if (suppressedOutput.length < 32) suppressedOutput.push(chunk.byteLength);
   });
   await waitForEdgeRuntime();
@@ -1408,6 +1479,8 @@ try {
   }
   if (staleMode || challengeMode || uncertaintyMode) {
     await (staleBrowser ?? challengeBrowser ?? uncertaintyBrowser).run({
+      bootstrapTrace: bootstrapTrace?.capture,
+      localStaleTarget,
       projectId,
       users: uncertaintyMode ? providerUsers.slice(uncertaintyServerCases.length) : providerUsers,
       organizationId: organizations.a,
@@ -1801,6 +1874,7 @@ try {
         [
           'cleanup-temporary-files',
           async () => {
+            bootstrapTrace?.capture.dispose();
             if (temporaryDirectory) {
               rmSync(temporaryDirectory, { recursive: true, force: true });
               assert.equal(existsSync(temporaryDirectory), false);
