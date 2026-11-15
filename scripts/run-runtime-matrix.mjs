@@ -4,6 +4,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { runtimeDiagnosticLines } from './lib/runtime-diagnostics.mjs';
+import { matrixOptions, runtimePlan } from './lib/runtime-matrix-plan.mjs';
 
 const scriptsDirectory = path.resolve('scripts');
 const cliPath = path.resolve('node_modules', 'supabase', 'dist', 'supabase.js');
@@ -121,19 +122,29 @@ async function ensureTemplateRuntimeReady() {
   await restartLocalRuntime();
 }
 
-if (fixtures.length === 0) {
-  process.stderr.write('Runtime matrix failed: no approved runtime fixtures were discovered.\n');
+let options;
+let plan;
+try {
+  options = matrixOptions(process.argv.slice(2));
+  plan = runtimePlan(fixtures, {
+    provider: process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true',
+    partition: options.partition,
+  });
+} catch {
+  process.stderr.write('Runtime matrix failed: invalid or incomplete selection.\n');
   process.exit(1);
 }
-
-if (process.argv.includes('--list')) {
-  for (const fixture of fixtures) process.stdout.write(`${fixture}\n`);
+const selectedFixtures = fixtures.filter((fixture) =>
+  plan.some((item) => item.fixture === fixture),
+);
+if (options.list) {
+  for (const fixture of selectedFixtures) process.stdout.write(fixture + '\n');
   process.exit(0);
 }
 
-for (const fixture of fixtures) {
+for (const fixture of selectedFixtures) {
   readinessFixture = readinessFixtures.get(fixture) ?? 'unknown';
-  readinessMode = 0;
+  readinessMode = plan.find((scenario) => scenario.fixture === fixture).modeIndex;
   if (
     fixture === 'test-edge-runtime.mjs' ||
     fixture === 'test-feat-003-runtime.mjs' ||
@@ -182,32 +193,10 @@ for (const fixture of fixtures) {
     invitationFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
   const onboardingProvider =
     onboardingFixture && process.env.CI === 'true' && process.env.GITHUB_ACTIONS === 'true';
-  const modes = onboardingProvider
-    ? [
-        ['--current-factor-cleanup-probe'],
-        ['--current-factor'],
-        ['--uncertainty-cleanup-probe'],
-        ['--provider-uncertainty'],
-        ['--churn-cleanup-probe'],
-        ['--factor-churn'],
-        [],
-        ['--provider-cleanup-probe'],
-        ['--provider-state'],
-        ['--stale-cleanup-probe'],
-        ['--stale-factors'],
-        ['--challenge-cleanup-probe'],
-        ['--verified-challenge'],
-      ]
-    : invitationProvider
-      ? [['--recipient-cleanup-probe'], []]
-      : memberMfa
-        ? [[], ['--browser', '--cleanup-probe'], ['--browser'], ['--browser', '--resume']]
-        : priority.has(fixture)
-          ? [['--cleanup-probe'], []]
-          : [[]];
-  for (const [modeIndex, mode] of modes.entries()) {
+  const modes = plan.filter((scenario) => scenario.fixture === fixture);
+  for (const [selectedIndex, { modeIndex, args: mode }] of modes.entries()) {
     readinessMode = modeIndex;
-    if ((onboardingProvider || invitationProvider) && modeIndex > 0) {
+    if ((onboardingProvider || invitationProvider) && selectedIndex > 0) {
       // The preceding mode must pass its cleanup gate before replacing disposable workers.
       try {
         await restartLocalRuntime();
@@ -263,10 +252,10 @@ for (const fixture of fixtures) {
       `Runtime matrix passed: ${fixture}${mode.length ? (memberMfa || onboardingProvider ? ` (${mode.map((flag) => flag.slice(2)).join(' ')})` : ' (cleanup probe)') : ''}.\n`,
     );
   }
-  if (fixture !== fixtures.at(-1)) {
+  if (fixture !== selectedFixtures.at(-1)) {
     // Local Edge workers can keep answering preflight briefly after their process exits.
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
 }
 
-process.stdout.write(`Runtime matrix passed: ${fixtures.length} fixture(s).\n`);
+process.stdout.write(`Runtime matrix passed: ${selectedFixtures.length} fixture(s).\n`);

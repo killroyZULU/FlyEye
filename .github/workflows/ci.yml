@@ -133,6 +133,9 @@ jobs:
     # The retained matrix takes about 31 minutes; SEC-026 adds real TOTP windows and lock schedules.
     timeout-minutes: 50
 
+    outputs:
+      teardown: ${{ steps.teardown.outcome }}
+
     steps:
       - name: Check out repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -176,6 +179,7 @@ jobs:
           fi
 
       - name: Reset local database from version-controlled migrations
+        id: reset
         run: pnpm db:reset
 
       - name: Run SQL and RLS tests
@@ -242,17 +246,95 @@ jobs:
           node scripts/test-aircraft-document-limiter.mjs
 
       - name: Run sanitized local runtime matrix
-        run: pnpm test:runtime
+        run: pnpm test:runtime --partition=core
 
       - name: Lint local database
+        if: ${{ !cancelled() && steps.reset.outcome == 'success' }}
         run: pnpm exec supabase db lint --local --level warning --fail-on warning
 
       - name: Verify generated database types are current
+        if: ${{ !cancelled() && steps.reset.outcome == 'success' }}
         run: pnpm db:types:check
 
       - name: Stop local Supabase
         if: always()
-        continue-on-error: true
+        id: teardown
+        run: pnpm exec supabase stop --no-backup
+
+  stale:
+    name: Stale-factors security
+    needs: classify
+    if: ${{ !cancelled() && (needs.classify.result != 'success' || needs.classify.outputs.route != 'prose') }}
+    runs-on: ubuntu-latest
+    # Independent disposable runner; original startup/fixture and job limits remain.
+    timeout-minutes: 50
+
+    outputs:
+      teardown: ${{ steps.teardown.outcome }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Configure synthetic local Edge Function origin
+        run: |
+          cp supabase/functions/.env.example supabase/functions/.env
+          node --input-type=module -e "import { appendFileSync } from 'node:fs'; import { randomBytes } from 'node:crypto'; appendFileSync('supabase/functions/.env', '\nFEAT003_LIMITER_HMAC_SECRET=' + randomBytes(32).toString('hex') + '\n');"
+
+      - name: Start local Supabase
+        run: |
+          if ! pnpm db:start > /dev/null 2>&1; then
+            echo "Local Supabase failed to start; credential-bearing startup output was suppressed."
+            exit 1
+          fi
+
+      - name: Reset local database from version-controlled migrations
+        id: reset
+        run: pnpm db:reset
+
+      - name: Verify migration types before runtime
+        run: |
+          if ! pnpm db:types:check; then
+            pnpm db:types
+            git diff -- src/lib/database.types.ts
+            exit 1
+          fi
+
+      - name: Run sanitized local runtime matrix
+        run: pnpm test:runtime --partition=stale
+
+      - name: Lint local database
+        if: ${{ !cancelled() && steps.reset.outcome == 'success' }}
+        run: pnpm exec supabase db lint --local --level warning --fail-on warning
+
+      - name: Verify generated database types are current
+        if: ${{ !cancelled() && steps.reset.outcome == 'success' }}
+        run: pnpm db:types:check
+
+      - name: Stop local Supabase
+        if: always()
+        id: teardown
         run: pnpm exec supabase stop --no-backup
 
   prose:
@@ -308,6 +390,7 @@ jobs:
       - classify
       - application
       - database
+      - stale
       - prose
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -327,5 +410,8 @@ jobs:
           CI_ROUTE: ${{ needs.classify.outputs.route }}
           APPLICATION_RESULT: ${{ needs.application.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
+          STALE_RESULT: ${{ needs.stale.result }}
+          DATABASE_TEARDOWN: ${{ needs.database.outputs.teardown }}
+          STALE_TEARDOWN: ${{ needs.stale.outputs.teardown }}
           PROSE_RESULT: ${{ needs.prose.result }}
         run: node scripts/classify-ci-change.mjs --gate

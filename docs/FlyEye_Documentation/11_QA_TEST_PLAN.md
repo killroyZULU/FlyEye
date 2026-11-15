@@ -96,7 +96,7 @@ is not a formatting pass.
 | Tooling, dependencies, build, CI or test configuration                                           | Focused tool/regression checks and the application or database groups whose inputs or execution changed; both when shared | Exercise affected fixtures, configuration and environment behavior; review the gate itself rather than relying only on the tool's own success                  |
 
 For every row, **the full PR CI route must pass on the final head**, including
-Application quality, Local Supabase security and Required quality gate, except
+Application quality, Local Supabase security, Stale-factors security and Required quality gate, except
 for the strictly eligible [non-normative prose route](#non-normative-prose-ci).
 Post-merge CI remains full on the merge commit. Local applicability does not
 permit additional CI skips, a reused PR status or weaker coverage/security thresholds.

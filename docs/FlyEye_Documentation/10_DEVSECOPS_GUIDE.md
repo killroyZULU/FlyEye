@@ -64,14 +64,56 @@ otherwise run full. Missing objects, malformed identities or classifier failure
 block the aggregate and never grant prose eligibility. Changed classifier/workflow
 code is itself subject to full verification and independent review.
 
-Keep `Application quality`, `Local Supabase security` and `Required quality gate`
-names stable. Preserve the full jobs' commands and parallel execution. Full jobs
-run unless successful classification explicitly selects prose; the prose job
-requires affirmative eligibility. The aggregate uses `always()` and all job
-dependencies: full requires classification/application/database success and prose
-unselected; prose requires classification/prose success and both full jobs
-unselected. Unknown routes, failures, missing outputs, cancellations and unexpected
-skips cannot pass. Summaries identify route, compared SHAs and unexecuted groups.
+Keep `Application quality`, `Local Supabase security`, `Stale-factors security`
+and `Required quality gate` names stable. Preserve mandatory commands and parallel
+execution. Full jobs run unless successful classification explicitly selects
+prose; the prose job requires affirmative eligibility. The aggregate uses
+`always()` and all job dependencies: full requires classification, application,
+core database and stale-job success, both successful teardown outputs and prose
+unselected. Prose requires classification/prose success, all three full jobs
+unselected and no teardown outputs. Unknown routes, failures, missing outputs,
+cancellations and unexpected skips cannot pass. Summaries identify route,
+compared SHAs and unexecuted groups.
+
+#### Mandatory runtime partitions
+
+The [canonical inventory](../../scripts/lib/runtime-matrix-plan.mjs) feeds the
+unchanged unpartitioned `pnpm test:runtime` route and two fixed GitHub CI selections:
+`--partition=core` and `--partition=stale`. No arbitrary fixture exclusions are
+supported. Reject invalid, duplicate, empty, overlapping or incomplete selections
+before starting child processes. Every discovered fixture remains mandatory;
+[inventory tests](../../scripts/lib/runtime-matrix-plan.test.mjs) prove the disjoint
+union, while [runner tests](../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+retain invocation, cleanup-gated restart, diagnostic identity and timeout checks.
+
+Core retains all modes except FEAT-003 `--stale-cleanup-probe` and
+`--stale-factors`. Those run together, in that order with their existing restart,
+on a separate fresh runner. Both use the same checkout, pinned dependencies,
+Chromium, synthetic Edge configuration, Auth policy and complete migrations.
+SQL/RLS, A010/H002 and no-send artifact preparation remain in core. Each environment
+requires pre-runtime types, final database lint/types and unconditional blocking
+teardown; final checks still run after a runtime failure if migration reset passed.
+Fixture cleanup and provider-residue assertions remain unchanged. The
+[workflow contract](../../scripts/lib/runtime-ci-isolation.test.mjs) and
+[aggregate tests](../../scripts/lib/ci-gates.test.mjs) cover required-job and
+teardown failure propagation. Cancellation or unproved cleanup never establishes
+successful verification.
+
+This changes accumulated-state evidence: the stale pair no longer inherits earlier
+modes' database/Deno-cache activity, and later modes no longer inherit the pair's
+activity. The [stale acceptance contract](features/FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#stale-unverified-factor-entry-and-cancellation)
+requires isolated journeys and within-journey factor/cancellation state, not that
+cross-mode history. Preserve those assertions and foreign-state/residue checks.
+Isolation neither identifies nor fixes historical bootstrap 503s. A stale failure
+no longer suppresses core; another core failure can still prevent no-send execution.
+
+CI adds one Ubuntu runner, frozen installation, browser/service startup, migration
+reset and final database checks; no new package/provider is introduced. Each
+existing 50-minute database-job ceiling is retained, adding up to 50 allocated
+runner-minutes per full attempt (actual added duration is unmeasured). Parallel
+execution may reduce critical-path time but does not guarantee it. Runtime and
+cost evidence require the first authorized full CI observation; synthetic unit
+checks do not establish successful execution of the new topology.
 
 Recheck actual branch protection/rulesets before publication and integration;
 never change settings as part of routing. A skipped check is not test evidence.
