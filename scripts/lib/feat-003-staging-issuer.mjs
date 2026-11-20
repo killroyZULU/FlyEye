@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { feat003StagingTarget } from '../../config/feat-003-staging-target.mjs';
-import { validateFeat003StagingPreflight } from './feat-003-staging-preflight.mjs';
+import { reviewedStagingConfigurationBytes } from './feat-003-staging-preflight.mjs';
 
 const fields = [
   'organizationId',
@@ -16,20 +16,16 @@ const reject = () => {
   throw new Error('FEAT-003 staging issuance rejected.');
 };
 
-export function prepareStagingGrant(input, transactionText) {
+export function readStagingGrantConfiguration(input, transactionText) {
   try {
-    validateFeat003StagingPreflight(
+    const bytes = reviewedStagingConfigurationBytes(
       input.manifestText,
       input.packageText,
       input.reviewText,
       input.artifacts,
       input.checkoutRevision,
     );
-    const configuration = JSON.parse(
-      new TextDecoder('utf-8', { fatal: true }).decode(
-        Map.prototype.get.call(input.artifacts, 'configuration'),
-      ),
-    );
+    const configuration = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     const request = configuration.stagingGrant;
     if (
       !request ||
@@ -46,6 +42,16 @@ export function prepareStagingGrant(input, transactionText) {
       !/^[a-f0-9]{64}$/.test(configuration.stagingGrantToolSha256)
     )
       reject();
+    return configuration;
+  } catch {
+    reject();
+  }
+}
+
+export function prepareStagingGrant(input, transactionText) {
+  try {
+    const configuration = readStagingGrantConfiguration(input, transactionText);
+    const request = configuration.stagingGrant;
     const variables = fields
       .map((key, index) => `set local flyeye.issuer_${settings[index]} = '${request[key]}';`)
       .join('\n');

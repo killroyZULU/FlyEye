@@ -1,4 +1,5 @@
 import type { RuntimeProfile } from '../_shared/staging-runtime-policy.ts';
+import type { RetainedInstructorPolicy } from '../_shared/retained-instructor-policy.ts';
 import { z } from 'zod';
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
 
@@ -234,6 +235,10 @@ export class MemberAdministrationAuditWriteError extends Error {
 export type MemberAdministrationDependencies = {
   allowedOrigin: string;
   runtimeProfile: RuntimeProfile;
+  retainedInstructor?: {
+    policy: RetainedInstructorPolicy;
+    consume: (actor: VerifiedAuthenticationEvidence, correlationId: string) => Promise<unknown>;
+  };
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
   resolveLimitScope: (input: {
     actorUserId: string;

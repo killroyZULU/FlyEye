@@ -247,9 +247,8 @@ reconciliation without retry; a failed command does not prove rollback.
 | P3B-AC05 | Return only fixed status; stop on uncertain outcome without retry or claimed rollback.                                                      |
 | P3B-AC06 | Independent review and applicable full CI pass; preserve hosted runtime rejection and stop at a reviewed green PR.                          |
 
-Offline tests and the attested disposable-CI transaction fixture supply repository
-evidence. No hosted credentials, connectivity, prompt, deployment or STG acceptance
-can be inferred from them. Existing local stacks are not reset for this slice.
+P3b evidence comes from offline tests and attested disposable CI. Preserve existing local stacks.
+Hosted execution and STG acceptance require P4.
 
 ### P3c exact-target runtime guards
 
@@ -269,15 +268,12 @@ Missing or conflicting settings stop startup with fixed errors.
 | member-mfa                    | status, start, bind_factor, complete, cancel | member-mfa-subject-action-v1 / FEAT006           |
 | member-administration         | get_profile only                             | member-administration-subject-scope-v1 / FEAT005 |
 
-Each prefix requires `_DATA_CLASSIFICATION=synthetic-only` and
-`_LIMITER_POLICY_VERSION` as above. Existing HMAC length/key-separation rules
-remain for FEAT003/005/006; bootstrap retains its database limiter without a new
-HMAC secret. The versioned server action policy denies unlisted actions before
-business commands. Authenticated denials retain mandatory audit and fail closed
-on audit failure. Existing JWT, current-factor, assurance, recent-password,
-permission, organization, idempotency and atomic-audit checks remain authoritative.
-A runtime profile never grants user authority. Local actions remain unchanged;
-other functions remain unavailable under the staging profile.
+Each prefix requires `_DATA_CLASSIFICATION=synthetic-only` and its listed
+`_LIMITER_POLICY_VERSION`. Preserve FEAT003/005/006 HMAC length/key separation and
+bootstrap's database limiter. Deny unlisted actions before business commands.
+Authenticated denials require audit and fail closed on audit failure. Preserve JWT,
+current-factor, assurance, recent-password, permission, organization, idempotency and
+atomic-audit checks. The profile grants no user authority. Local actions remain unchanged.
 
 | ID       | Acceptance                                                                                                                                                                                     |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -288,14 +284,18 @@ other functions remain unavailable under the staging profile.
 | P3C-AC05 | Update HS-03 and canonical traceability; no schema, package, account-lifecycle, credential-loading, browser packaging or deployment change.                                                    |
 | P3C-AC06 | Applicable verification, separate review and full final-head CI pass; stop at a reviewed green PR.                                                                                             |
 
-Runtime acceptance establishes configuration consistency, not independent provider
-attestation or deployment approval. P4 still binds reviewed revision/artifacts,
-settings and approvals. No-send/account lifecycle and browser packaging remain
-separate P3 work; absence of email functions does not disable provider Auth mail.
-Stop for a scope decision if a migration, new dependency or hosted operation is
-needed. Local tests cannot establish STG acceptance.
+Runtime checks establish configuration consistency. P4 requires independent provider evidence,
+reviewed revisions, artifacts, settings and approvals. Escalate new migrations, dependencies or hosted operations.
 
 ### Execution gates
+
+[Generate](../../../scripts/lib/feat-003-staging-browser-package.mjs) public settings with no callbacks for sign-in/My Profile.
+[Build](../../../scripts/lib/feat-003-staging-browser-build.mjs) from the independent selection.
+[Reconcile](../../../scripts/lib/feat-003-staging-account-package.mjs) the private journal against reviewed grant SQL, issuance provenance and same-school inventory.
+Both non-Admin slots start as Students. Commit each membership, role and private
+[fixture receipt](../../../supabase/migrations/20261120035141_feat_003_retained_membership_receipts.sql) atomically.
+Reconcile uncertain writes by exact receipt and independent readback. Preserve disposable journals.
+The [one-time Instructor assignment](../17_PRODUCT_AND_GOVERNANCE_DECISIONS.md#hosting-and-environments) requires an approved policy digest, exact inventory, MFA and atomic consumption. Verify Auth no-send independently.
 
 | Gate                                  | Deliverable and acceptance                                                                                                                                                                                                                      | Dependency and stop                                                                                                                                                                                                                                                                                     |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

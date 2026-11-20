@@ -132,6 +132,7 @@ function validateArtifacts(artifacts, contents) {
   // Native slot checks reject proxies and avoid supplied accessors/method overrides.
   requireCondition(mapSize.call(contents) === artifactNames.length);
   const seen = new Set();
+  let configuration;
   for (const artifact of artifacts) {
     exactFields(artifact, ['name', 'sha256']);
     requireCondition(artifactNames.includes(artifact.name) && !seen.has(artifact.name));
@@ -144,13 +145,15 @@ function validateArtifacts(artifacts, contents) {
     const snapshot = new Uint8Array(length);
     copyBytes.call(snapshot, bytes);
     requireCondition(sha256(snapshot) === artifact.sha256);
+    if (artifact.name === 'configuration') configuration = snapshot;
   }
+  return configuration;
 }
 
 /** Offline consistency only. The separate review record is not an authenticated approval.
  * No paths, credentials, callbacks or execution capabilities are accepted here.
  */
-export function validateFeat003StagingPreflight(
+export function reviewedStagingConfigurationBytes(
   manifestText,
   packageText,
   reviewText,
@@ -162,10 +165,26 @@ export function validateFeat003StagingPreflight(
     const run = parse(packageText);
     validatePackage(run, manifest, manifestText, checkoutRevision);
     validateReview(parse(reviewText), run, packageText, manifest);
-    validateArtifacts(run.artifacts, artifactContents);
-    return Object.freeze({ status: 'consistent', executionAuthorized: false });
+    return validateArtifacts(run.artifacts, artifactContents);
   } catch {
     // Never echo input, JSON parser details, target identities or artifact contents.
     throw new Error('FEAT-003 staging preflight rejected.');
   }
+}
+
+export function validateFeat003StagingPreflight(
+  manifestText,
+  packageText,
+  reviewText,
+  artifactContents,
+  checkoutRevision,
+) {
+  reviewedStagingConfigurationBytes(
+    manifestText,
+    packageText,
+    reviewText,
+    artifactContents,
+    checkoutRevision,
+  );
+  return Object.freeze({ status: 'consistent', executionAuthorized: false });
 }
