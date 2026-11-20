@@ -1,8 +1,11 @@
 // @vitest-environment node
-import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { fixture, hash, sql, tool } from './staging-package-test-data.mjs';
 import { describe, expect, it, vi } from 'vitest';
 import { feat003StagingTarget } from '../../config/feat-003-staging-target.mjs';
+import { generateStagingBrowserConfiguration } from './feat-003-staging-browser-package.mjs';
+import { reconcilePackagedStagingAccounts } from './feat-003-staging-account-package.mjs';
+import { completed, fixture as emptyLedger } from './staging-account-test-data.mjs';
 import {
   prepareStagingGrant,
   stagingGrantCommand,
@@ -10,72 +13,7 @@ import {
 } from './feat-003-staging-issuer.mjs';
 import { executeStagingGrant } from './feat-003-staging-issuer-command.mjs';
 
-const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const sql = readFileSync(new URL('../sql/feat-003-staging-grant.sql', import.meta.url), 'utf8');
-const manifestText = readFileSync(
-  new URL('../../config/feat-003-staging-environment.json', import.meta.url),
-  'utf8',
-);
-const tool = Buffer.from('Synthetic tool bytes; never an executable.');
 const rejection = 'FEAT-003 staging issuance rejected.';
-
-function fixture() {
-  const configuration = {
-    stagingGrant: {
-      ...Object.fromEntries(
-        [
-          'organizationId',
-          'eligibleUserId',
-          'grantId',
-          'sourceInstanceId',
-          'issuanceCorrelationId',
-        ].map((key) => [key, randomUUID()]),
-      ),
-      transactionSha256: hash(sql),
-    },
-    stagingGrantToolSha256: hash(tool),
-  };
-  const artifacts = new Map(
-    ['configuration', 'edge', 'frontend', 'lockfile', 'migrations'].map((key) => [
-      key,
-      Buffer.from(key === 'configuration' ? JSON.stringify(configuration) : `Synthetic ${key}`),
-    ]),
-  );
-  const run = {
-    schemaVersion: 1,
-    environment: 'staging',
-    dataClassification: 'synthetic-only',
-    target: { ...feat003StagingTarget },
-    sourceRevision: 'a'.repeat(40),
-    manifestSha256: hash(manifestText),
-    artifacts: [],
-    operations: [
-      'migrations',
-      'configuration',
-      'functions',
-      'fixtures',
-      'frontend',
-      'checkpoint',
-      'redeployment',
-    ],
-    approvals: { creation: 'synthetic-creation', deployment: 'synthetic-deployment' },
-  };
-  const input = { manifestText, artifacts, checkoutRevision: run.sourceRevision };
-  const rebind = () => {
-    artifacts.set('configuration', Buffer.from(JSON.stringify(configuration)));
-    run.artifacts = [...artifacts].map(([name, bytes]) => ({ name, sha256: hash(bytes) }));
-    input.packageText = JSON.stringify(run);
-    input.reviewText = JSON.stringify({
-      schemaVersion: 1,
-      target: run.target,
-      sourceRevision: run.sourceRevision,
-      packageSha256: hash(input.packageText),
-      approvals: run.approvals,
-    });
-  };
-  rebind();
-  return { input, configuration, run, rebind };
-}
 function operator() {
   return {
     isInteractive: vi.fn(() => true),
@@ -88,6 +26,115 @@ function operator() {
 }
 
 describe('P3b staging issuer', () => {
+  it('reconciles the three retained identities only with their reviewed package and public browser selection', () => {
+    const { configuration, input, rebind } = fixture();
+    const accounts = completed();
+    const selection = {
+      publishableKey: 'sb_publishable_synthetic-development-key',
+      callbackPaths: [],
+    };
+    configuration.browser = JSON.parse(generateStagingBrowserConfiguration(selection));
+    const admin = accounts.ledger.slots.find((slot) => slot.role === 'admin');
+    Object.assign(configuration.stagingGrant, {
+      organizationId: accounts.ledger.schoolId,
+      eligibleUserId: admin.authId,
+      grantId: admin.grantId,
+      sourceInstanceId: accounts.view.slots[2].grant.issuanceAttemptId,
+      issuanceCorrelationId: accounts.view.slots[2].grant.provenance.correlationId,
+    });
+    rebind();
+    const check = (selected = selection) =>
+      reconcilePackagedStagingAccounts(
+        input,
+        selected,
+        JSON.stringify(accounts.ledger),
+        JSON.stringify(accounts.view),
+        sql,
+      );
+    expect(check()).toEqual({
+      decision: 'plan',
+      slots: {
+        student_pilot: { decision: 'already-complete' },
+        instructor_pilot: { decision: 'already-complete' },
+        admin: { decision: 'already-complete' },
+      },
+    });
+    const fresh = emptyLedger();
+    expect(
+      reconcilePackagedStagingAccounts(
+        input,
+        selection,
+        JSON.stringify(fresh.ledger),
+        JSON.stringify(fresh.view),
+        sql,
+      ).slots.admin,
+    ).toEqual({
+      decision: 'create',
+      step: 'record-intent-before-auth',
+      plannedAuthId: admin.authId,
+    });
+    const coercion = vi.fn(() => {
+      throw new Error('Unsafe byte conversion');
+    });
+    Object.defineProperty(input.artifacts.get('configuration'), 'valueOf', { value: coercion });
+    expect(check().decision).toBe('plan');
+    expect(coercion).not.toHaveBeenCalled();
+    const rejection = { decision: 'stop', reason: 'package-conflict' };
+    // A validly rehashed package cannot reserve another fixture's Auth ID for the first Admin.
+    fresh.ledger.slots[0] = accounts.ledger.slots[0];
+    fresh.view.slots[0] = accounts.view.slots[0];
+    for (const id of [fresh.ledger.slots[0].authId, fresh.ledger.slots[0].operationId]) {
+      configuration.stagingGrant.eligibleUserId = id;
+      rebind();
+      expect(
+        reconcilePackagedStagingAccounts(
+          input,
+          selection,
+          JSON.stringify(fresh.ledger),
+          JSON.stringify(fresh.view),
+          sql,
+        ),
+      ).toEqual(rejection);
+    }
+    configuration.stagingGrant.eligibleUserId = admin.authId;
+    rebind();
+    expect(check({ ...selection, callbackPaths: ['/auth/recovery'] })).toEqual(rejection);
+    for (const field of [
+      'organizationId',
+      'eligibleUserId',
+      'grantId',
+      'sourceInstanceId',
+      'issuanceCorrelationId',
+      'transactionSha256',
+    ]) {
+      const original = configuration.stagingGrant[field];
+      configuration.stagingGrant[field] = randomUUID();
+      rebind();
+      expect(check()).toEqual(rejection);
+      configuration.stagingGrant[field] = original;
+    }
+    delete configuration.stagingGrantToolSha256;
+    rebind();
+    expect(check()).toEqual(rejection);
+    configuration.stagingGrantToolSha256 = hash(tool);
+    rebind();
+    input.artifacts.set('configuration', Buffer.from('{}'));
+    expect(check()).toEqual(rejection);
+  });
+  it('binds generated browser settings alongside grant metadata in the reviewed P1 artifact', () => {
+    const { configuration, input, rebind } = fixture();
+    const publishableKey = 'sb_publishable_synthetic-development-key';
+    configuration.browser = JSON.parse(
+      generateStagingBrowserConfiguration({ publishableKey, callbackPaths: [] }),
+    );
+    rebind();
+    expect(() => prepareStagingGrant(input, sql)).not.toThrow();
+    input.artifacts.set(
+      'configuration',
+      Buffer.from(JSON.stringify({ ...configuration, browser: {} })),
+    );
+    expect(() => prepareStagingGrant(input, sql)).toThrow(rejection);
+  });
   it('runs exactly once only after complete review, tool, checkout and owner gates', async () => {
     const { input } = fixture();
     const op = operator();

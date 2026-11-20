@@ -2110,6 +2110,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      consume_retained_instructor_assignment: {
+        Args: {
+          p_actor_user_id: string;
+          p_authorization_id: string;
+          p_candidate_id: string;
+          p_correlation_id: string;
+          p_expires_at: string;
+          p_key_hash: string;
+          p_membership_id: string;
+          p_package_sha256: string;
+          p_school_id: string;
+          p_session_id: string;
+        };
+        Returns: Json;
+      };
       finalize_member_invitation_delivery: {
         Args: {
           p_actor_user_id: string;

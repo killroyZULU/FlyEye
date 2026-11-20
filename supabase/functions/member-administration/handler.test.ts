@@ -814,6 +814,15 @@ describe('FEAT-005 member administration handler', () => {
         request({ action: 'get_profile', membershipId: MEMBERSHIP_ID }),
       );
       expect(response.status).toBe(404);
+      expect(deps.recordDenied).toHaveBeenCalledExactlyOnceWith({
+        actorUserId: USER_ID,
+        organizationId: null,
+        membershipId: MEMBERSHIP_ID,
+        eventName: 'member_administration.denied',
+        reasonCode: 'not_found',
+        correlationId: CORRELATION_ID,
+      });
+      expect(await payload(response)).not.toHaveProperty('profile');
       expect(getProfile).not.toHaveBeenCalled();
     },
   );

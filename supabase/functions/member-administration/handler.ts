@@ -11,6 +11,7 @@ import { executeAdministrationAction } from './actions.ts';
 import { runtimeActionAllowed } from '../_shared/staging-runtime-policy.ts';
 import { auditFailure } from './audit.ts';
 import { failure } from './responses.ts';
+import { consumeRetainedAssignment } from './retained-assignment.ts';
 
 export {
   MemberAdministrationAuditWriteError,
@@ -100,6 +101,18 @@ export function createMemberAdministrationHandler(
     const context = { dependencies, actor, origin, correlationId };
     const limited = await checkLimit(context, parsed.data);
     if (limited) return limited;
+    if (
+      dependencies.runtimeProfile === 'staging-synthetic-v1' &&
+      parsed.data.action === 'assign_role' &&
+      dependencies.retainedInstructor
+    ) {
+      return await consumeRetainedAssignment(
+        context,
+        parsed.data,
+        dependencies.retainedInstructor,
+        nowSeconds,
+      );
+    }
     if (
       !runtimeActionAllowed(
         dependencies.runtimeProfile,
