@@ -34,6 +34,8 @@ export function onboardingStaleBrowser() {
         reportDiagnostic,
         cleanupProbe,
         projectId,
+        bootstrapTrace,
+        localStaleTarget,
       } = context;
       browser = await chromium.launch({ headless: true });
       for (const index of cleanupProbe ? [1] : [0, 1]) {
@@ -73,7 +75,13 @@ export function onboardingStaleBrowser() {
         page.setDefaultTimeout(15_000);
         const counts = { enroll: 0, challenge: 0, verify: 0, remove: 0, complete: 0 };
         const records = [];
-        const loginDiagnostics = observeOnboardingLogin(page, reportDiagnostic, apiUrl);
+        const loginDiagnostics = observeOnboardingLogin(
+          page,
+          reportDiagnostic,
+          apiUrl,
+          bootstrapTrace,
+          localStaleTarget,
+        );
         let routeFailed = false;
         let leaked = false;
         let secret;

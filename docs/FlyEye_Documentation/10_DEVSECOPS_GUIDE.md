@@ -64,14 +64,56 @@ otherwise run full. Missing objects, malformed identities or classifier failure
 block the aggregate and never grant prose eligibility. Changed classifier/workflow
 code is itself subject to full verification and independent review.
 
-Keep `Application quality`, `Local Supabase security` and `Required quality gate`
-names stable. Preserve the full jobs' commands and parallel execution. Full jobs
-run unless successful classification explicitly selects prose; the prose job
-requires affirmative eligibility. The aggregate uses `always()` and all job
-dependencies: full requires classification/application/database success and prose
-unselected; prose requires classification/prose success and both full jobs
-unselected. Unknown routes, failures, missing outputs, cancellations and unexpected
-skips cannot pass. Summaries identify route, compared SHAs and unexecuted groups.
+Keep `Application quality`, `Local Supabase security`, `Stale-factors security`
+and `Required quality gate` names stable. Preserve mandatory commands and parallel
+execution. Full jobs run unless successful classification explicitly selects
+prose; the prose job requires affirmative eligibility. The aggregate uses
+`always()` and all job dependencies: full requires classification, application,
+core database and stale-job success, both successful teardown outputs and prose
+unselected. Prose requires classification/prose success, all three full jobs
+unselected and no teardown outputs. Unknown routes, failures, missing outputs,
+cancellations and unexpected skips cannot pass. Summaries identify route,
+compared SHAs and unexecuted groups.
+
+#### Mandatory runtime partitions
+
+The [canonical inventory](../../scripts/lib/runtime-matrix-plan.mjs) feeds the
+unchanged unpartitioned `pnpm test:runtime` route and two fixed GitHub CI selections:
+`--partition=core` and `--partition=stale`. No arbitrary fixture exclusions are
+supported. Reject invalid, duplicate, empty, overlapping or incomplete selections
+before starting child processes. Every discovered fixture remains mandatory;
+[inventory tests](../../scripts/lib/runtime-matrix-plan.test.mjs) prove the disjoint
+union, while [runner tests](../../scripts/lib/runtime-matrix-diagnostics.test.mjs)
+retain invocation, cleanup-gated restart, diagnostic identity and timeout checks.
+
+Core retains all modes except FEAT-003 `--stale-cleanup-probe` and
+`--stale-factors`. Those run together, in that order with their existing restart,
+on a separate fresh runner. Both use the same checkout, pinned dependencies,
+Chromium, synthetic Edge configuration, Auth policy and complete migrations.
+SQL/RLS, A010/H002 and no-send artifact preparation remain in core. Each environment
+requires pre-runtime types, final database lint/types and unconditional blocking
+teardown; final checks still run after a runtime failure if migration reset passed.
+Fixture cleanup and provider-residue assertions remain unchanged. The
+[workflow contract](../../scripts/lib/runtime-ci-isolation.test.mjs) and
+[aggregate tests](../../scripts/lib/ci-gates.test.mjs) cover required-job and
+teardown failure propagation. Cancellation or unproved cleanup never establishes
+successful verification.
+
+This changes accumulated-state evidence: the stale pair no longer inherits earlier
+modes' database/Deno-cache activity, and later modes no longer inherit the pair's
+activity. The [stale acceptance contract](features/FEAT-003_ORGANIZATION_ADMIN_AND_MFA_ONBOARDING.md#stale-unverified-factor-entry-and-cancellation)
+requires isolated journeys and within-journey factor/cancellation state, not that
+cross-mode history. Preserve those assertions and foreign-state/residue checks.
+Isolation neither identifies nor fixes historical bootstrap 503s. A stale failure
+no longer suppresses core; another core failure can still prevent no-send execution.
+
+CI adds one Ubuntu runner, frozen installation, browser/service startup, migration
+reset and final database checks; no new package/provider is introduced. Each
+existing 50-minute database-job ceiling is retained, adding up to 50 allocated
+runner-minutes per full attempt (actual added duration is unmeasured). Parallel
+execution may reduce critical-path time but does not guarantee it. Runtime and
+cost evidence require the first authorized full CI observation; synthetic unit
+checks do not establish successful execution of the new topology.
 
 Recheck actual branch protection/rulesets before publication and integration;
 never change settings as part of routing. A skipped check is not test evidence.
@@ -124,6 +166,81 @@ read-only. `pnpm db:types:check` compares generated types;
 owned by the task and verify fixture cleanup even after failure. Use reviewed
 fixed-stage diagnostics, not raw provider output. FEAT-001-specific Auth/TOTP
 controls and assertions remain in [local security testing](features/FEAT-001_LOCAL_SECURITY_TESTING.md).
+
+### Disposable local stale-factors observation
+
+The [local target guard](../../scripts/lib/local-stale-target.mjs) permits only
+`--stale-factors --local-stale-target <absolute-receipt-path>` with diagnostics
+enabled and without CI impersonation. Other provider modes retain their CI gate.
+Apply [database safety](#local-setup-and-database-safety).
+Preparation, execution and resource teardown require their applicable owner scope;
+the receipt records operator attestation, not independent proof of authorization.
+
+Use a fresh source workspace directly under the system temporary directory,
+named `flyeye-stale-<32 lowercase hexadecimal characters>`. The
+[preparation helper](../../scripts/lib/local-stale-preparation.mjs) reuses the
+unchanged verified Linux startup artifact only for its exact
+`flyeye-nosend-p3d1` project, `flyeye-nosend-p3d1-isolated` network and fixed ports.
+Reject existing profile resources before creation and acquire the exclusive
+`flyeye-stale-profile.lock`; never adopt an occupied stack. Fresh immutable IDs,
+creation times and the unique workspace establish each run's ownership.
+
+The [workspace copier](../../scripts/lib/local-stale-workspace.mjs) requires the
+reviewed source digest, copies application/fixture/template inputs and all
+migrations, and excludes environment files, Git/history and retained artifacts.
+Dependencies are copied privately (maximum 1 GiB), without installation or builds.
+Only the project, profile addresses and disabled seeding differ from the original
+configuration; Auth/MFA rates, templates and Edge policy remain intact. Startup
+applies the copied migrations and must yield exactly DB/Auth/Kong/mail/REST with
+loopback bindings and non-relaying Mailpit. The existing fixture uses the standard
+pinned CLI for its Edge worker with the explicit owned network and no inspector.
+The patched CLI override belongs only to the startup child.
+
+`local-stale-target.json` in that workspace contains only: `version: 1`,
+`purpose: "one-local-stale-factors-observation"`, canonical `root`, `projectId`,
+`approvedAt` (UTC whole seconds, before resource creation), `expiresAt` (at most
+one hour later), `configSha256`, local Docker `daemonId`, full `networkId`,
+`containers` mapping `db/auth/kong/inbucket/rest` to full IDs, integer `ports`
+mapping `api/database/mail`, and owned named `volumes`. Label the network
+`flyeye.fixture.owner=<workspace-basename>` and set its default host binding to
+`127.0.0.1`. The receipt must match the preparation lease.
+The guard checks actual identities, freshness, sharing, loopback bindings, mail
+isolation and empty Auth/organization/Storage data before reading Supabase status
+credentials or starting fixture operations. Inspection output stays suppressed.
+Only Kong may bind the four reviewed recovery, invite, magic-link and
+password-change notification template files read/write. The
+[template guard](../../scripts/lib/local-stale-template-mounts.mjs) requires exact
+private-workspace sources and container destinations, pinned content hashes,
+regular single-link files with no symlink components, private ownership and no
+other container attachment. Extra mounts, aliases, unknown inspection shapes,
+sharing and changed content fail closed. Other writable bind mounts remain denied.
+Attachment checks inspect only IDs and mount metadata for all containers,
+including stopped containers, and compare exact sources. At most 100 containers
+and 100 mounts per container are accepted; missing, duplicate, malformed or
+changing inventories fail closed. A source-path `volume` filter is not evidence
+of bind-source exclusivity.
+Inventory source syntax accepts canonical POSIX paths and fully qualified Windows
+drive paths independently of the runner OS, without rewriting sources. Relative,
+UNC, device and ambiguous forms fail closed; protected template mappings retain
+their exact private-workspace checks.
+This exception changes neither the CLI artifact nor template contents.
+
+An exclusive `local-stale-target.consumed` marker prevents reuse, including after
+failed resource preflight; do not remove it to retry. Preserve sanitized evidence
+and perform separately authorized owned-resource teardown. The preparation helper
+attempts teardown on settled failures, verifies existing resources and source/
+artifact integrity, and removes only proven owned resources. The resource
+comparison ignores mount-array ordering, preserving every field and duplicate.
+Startup failures return only bounded exit/signal/error codes and fixed output
+categories; missing, unreadable, oversized or ambiguous evidence cannot establish
+a cause. Command output and error messages are never returned. The observation
+callback must settle all child processes and return `{exitCode, childrenSettled:true}`,
+including nonzero exits. Startup timeout, callback rejection or missing settlement
+retains the workspace/lease and reports uncertain cleanup for a separate recovery
+decision. Preparation and callback execution require Linux x64 with pinned Node;
+imports and synthetic tests do not authorize either. Local failure output
+adds only the bounded bootstrap trace; provider logs remain CI-only. Fixture
+requests, assertions, timeouts and cleanup retain their existing contract.
 
 ### Gate implementation and diagnostics
 

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateStagingNoSend } from './lib/feat-003-staging-no-send.mjs';
 
 import {
   requireFeat003ReviewedStagingManifest,
@@ -18,6 +19,10 @@ const edgeEnvironmentExamplePath = path.resolve(
 );
 
 try {
+  validateStagingNoSend(
+    await readFile(manifestPath, 'utf8'),
+    await readFile(path.resolve(repositoryRoot, 'config/feat-003-staging-auth.json'), 'utf8'),
+  );
   requireFeat003ReviewedStagingManifest(JSON.parse(await readFile(manifestPath, 'utf8')));
   validateFeat003RepositoryConfiguration(
     await readFile(supabaseConfigPath, 'utf8'),

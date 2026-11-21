@@ -354,6 +354,19 @@ email. If the provider cannot guarantee this boundary, stop before fixture
 activation for an explicit decision. Provider-account security messages are
 separate from application test delivery.
 
+CLI derivatives ([Windows](../../../scripts/no-send-cli/build.ps1),
+[Linux x64](../../../scripts/no-send-cli/build-linux.mjs)) pin source/compiler and
+[reviewed platform hashes](../../../scripts/lib/no-send-cli-artifact.mjs) before
+Docker. Guards permit five services with exact loopback/network/ports and
+temporary Auth/Storage/Realtime schema jobs with pinned images/commands, the owned
+database, no published ports or extra Docker options. Lifecycle, cleanup and
+post-start checks remain unchanged; process-scoped overrides cannot replace the
+installed CLI or configure hosted targets. Linux candidates cannot activate
+fixtures; CI rejects pending hashes before acquisition and compares rebuilds
+against independently reviewed locks. Builds do not prove
+startup, fallback, unmodified-CLI compatibility, Linux reproducibility or hosted
+readiness. Full runtime/cleanup gates require separately approved execution.
+
 ## First checkpoint acceptance
 
 Use the existing [profile contract](FEAT-005_USER_MANAGEMENT_AND_BASIC_PROFILES.md#roles-and-authority).

@@ -1,4 +1,5 @@
 import { fixtureDiagnosticLines } from './fixture-diagnostics.mjs';
+import { noSendCiDiagnosticLines } from './no-send-ci-diagnostics.mjs';
 
 const feat006Stages = new Set([
   'fixture-setup',
@@ -86,6 +87,7 @@ export function feat006Diagnostic(stage, event, detail) {
 }
 
 export function runtimeDiagnosticLines(fixture, output) {
+  if (fixture === 'test-staging-no-send-runtime.mjs') return noSendCiDiagnosticLines(output);
   const feature = {
     'test-edge-runtime.mjs': 'FEAT-001',
     'test-recovery-runtime.mjs': 'FEAT-002',

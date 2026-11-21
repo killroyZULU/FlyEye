@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "platform": "linux-x64",
+  "upstreamCommit": "6d4c19870ed213ba7f682f117d0345c8a40bfa94",
+  "cliVersion": "2.109.1",
+  "compilerVersion": "go1.25.11",
+  "compilerArchiveSha256": "34f14304e856893f4ba30c2cacfe93906e9de7915c5f6aaaf3a81cdccd7ba30b",
+  "sourceArchiveSha256": "8cac81470d00f822e1ccfcafa369fd8774c9027ed6006842ec4aeb849aeb0643",
+  "compilerExeSha256": "e2ceecdc8170a43e196e4410030c8c6f9530bafa0efa71f6e8ad1a71ba3998e4",
+  "binarySha256": "18d27fa6679dc7e0a01b98b948bb74aa5ba12e41f512feddd41c0813467ebcc7",
+  "sources": {
+    "guard.go": "4da24f6329fcd232e587cb7390eed0ca29bdda597526320a511770e95db43408",
+    "adapter.go": "ad93089fa3ea81cb2e1f17a0e262849dbe8091f4f676a224a31de8ca7fd2e65e",
+    "guard_test.go": "49767296ac5f660fa10801a4df39183bf5f238d914a64f7e63951630c8a82775",
+    "adapter_test.go": "556224d35467f65a051883c2cb80f6e93cae11720c3c1e01bccf99a1d519109d",
+    "build-linux.mjs": "5bf0c8ccbf5be870d3e13792f8022265041d6ddd7e74b896c58606ae760fb647",
+    "linux-build-contract.mjs": "0f5085461bd8432984b2560adfa06628765467fbe6f776d76d8c946d8721d8bd",
+    "cleanup-linux.mjs": "8ae8ae15ee640bfd71f4486c4974e85db8e435aa5c546f5b11afa4eccd7b5d5c"
+  }
+}

@@ -299,28 +299,94 @@ describe('conservative non-normative prose classification', () => {
 });
 
 describe('aggregate route truth table and workflow wiring', () => {
-  it('accepts exactly the two complete selected-route outcomes', () => {
+  it('retains the exhaustive job-result truth table including the new mandatory partition', () => {
     const results = ['success', 'failure', 'cancelled', 'skipped', undefined];
     for (const route of ['full', 'prose', '', undefined]) {
       for (const classification of results)
         for (const application of results)
           for (const database of results)
-            for (const prose of results) {
-              const expected =
-                classification === 'success' &&
-                ((route === 'full' &&
-                  application === 'success' &&
-                  database === 'success' &&
-                  prose === 'skipped') ||
-                  (route === 'prose' &&
-                    application === 'skipped' &&
-                    database === 'skipped' &&
-                    prose === 'success'));
-              expect(qualityGate({ route, classification, application, database, prose })).toBe(
-                expected,
-              );
-            }
+            for (const stale of results)
+              for (const prose of results) {
+                const expected =
+                  classification === 'success' &&
+                  ((route === 'full' &&
+                    application === 'success' &&
+                    database === 'success' &&
+                    stale === 'success' &&
+                    prose === 'skipped') ||
+                    (route === 'prose' &&
+                      application === 'skipped' &&
+                      database === 'skipped' &&
+                      stale === 'skipped' &&
+                      prose === 'success'));
+                expect(
+                  qualityGate({
+                    route,
+                    classification,
+                    application,
+                    database,
+                    stale,
+                    prose,
+                    databaseTeardown: route === 'full' ? 'success' : '',
+                    staleTeardown: route === 'full' ? 'success' : '',
+                  }),
+                ).toBe(expected);
+              }
     }
+  });
+
+  it('accepts exactly the complete selected-route outcomes and rejects every missing or bad job', () => {
+    const full = {
+      classification: 'success',
+      route: 'full',
+      application: 'success',
+      database: 'success',
+      stale: 'success',
+      prose: 'skipped',
+      databaseTeardown: 'success',
+      staleTeardown: 'success',
+    };
+    const prose = {
+      classification: 'success',
+      route: 'prose',
+      application: 'skipped',
+      database: 'skipped',
+      stale: 'skipped',
+      prose: 'success',
+      databaseTeardown: '',
+      staleTeardown: '',
+    };
+    for (const state of [full, prose]) {
+      expect(qualityGate(state)).toBe(true);
+      for (const key of ['classification', 'application', 'database', 'stale', 'prose']) {
+        for (const value of [
+          'success',
+          'failure',
+          'cancelled',
+          'skipped',
+          '',
+          undefined,
+          'unknown',
+        ]) {
+          expect(qualityGate({ ...state, [key]: value })).toBe(value === state[key]);
+        }
+      }
+      for (const route of ['', undefined, 'unknown'])
+        expect(qualityGate({ ...state, route })).toBe(false);
+    }
+    for (const key of ['databaseTeardown', 'staleTeardown']) {
+      for (const value of ['failure', 'cancelled', 'skipped', '', undefined, 'unknown'])
+        expect(qualityGate({ ...full, [key]: value })).toBe(false);
+      for (const value of ['success', 'failure', 'cancelled', 'skipped'])
+        expect(qualityGate({ ...prose, [key]: value })).toBe(false);
+    }
+    // Neither aggregate success nor one successful partition can hide a failed teardown.
+    expect(qualityGate({ ...full, databaseTeardown: 'failure', staleTeardown: 'success' })).toBe(
+      false,
+    );
+    expect(qualityGate({ ...full, staleTeardown: 'failure', databaseTeardown: 'success' })).toBe(
+      false,
+    );
   });
 
   it('uses the tested gate in the real CLI and rejects missing results', () => {
@@ -336,6 +402,9 @@ describe('aggregate route truth table and workflow wiring', () => {
         CI_ROUTE: route,
         APPLICATION_RESULT: application,
         DATABASE_RESULT: database,
+        STALE_RESULT: database,
+        DATABASE_TEARDOWN: route === 'full' ? 'success' : '',
+        STALE_TEARDOWN: route === 'full' ? 'success' : '',
         PROSE_RESULT: prose,
       };
       expect(
@@ -355,20 +424,25 @@ describe('aggregate route truth table and workflow wiring', () => {
       'on:\n  pull_request:\n  push:\n    branches:\n      - main\n  workflow_dispatch:',
     );
     expect(workflow).not.toMatch(/paths(?:-ignore)?:|pull_request_target:/u);
-    for (const name of ['Application quality', 'Local Supabase security', 'Required quality gate'])
+    for (const name of [
+      'Application quality',
+      'Local Supabase security',
+      'Stale-factors security',
+      'Required quality gate',
+    ])
       expect(workflow).toContain(`name: ${name}`);
     expect(
       workflow.match(
         /if: \$\{\{ !cancelled\(\) && \(needs.classify.result != 'success' \|\| needs.classify.outputs.route != 'prose'\) \}\}/gu,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(workflow).toContain(
       "if: ${{ needs.classify.result == 'success' && needs.classify.outputs.route == 'prose' }}",
     );
     expect(workflow).toContain('run: node scripts/classify-ci-change.mjs');
     const gate = workflow.split('\n  quality-gate:')[1];
     expect(gate).toContain(
-      'if: always()\n    needs:\n      - classify\n      - application\n      - database\n      - prose',
+      'if: always()\n    needs:\n      - classify\n      - application\n      - database\n      - stale\n      - prose',
     );
     expect(gate).toContain('run: node scripts/classify-ci-change.mjs --gate');
     for (const source of [
@@ -376,6 +450,9 @@ describe('aggregate route truth table and workflow wiring', () => {
       'classify.outputs.route',
       'application.result',
       'database.result',
+      'stale.result',
+      'database.outputs.teardown',
+      'stale.outputs.teardown',
       'prose.result',
     ])
       expect(gate).toContain(`\u0024{{ needs.${source} }}`);

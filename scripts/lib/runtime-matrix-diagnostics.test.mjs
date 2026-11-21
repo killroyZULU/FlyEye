@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   fixture: 'test-feat-006b-runtime.mjs',
+  argv: [],
   spawnSync: vi.fn(),
   stdout: vi.fn(),
   stderr: vi.fn(),
@@ -20,7 +21,7 @@ vi.mock('node:process', async (original) => {
   return {
     default: {
       ...actual.default,
-      argv: [],
+      argv: mocks.argv,
       stdout: { write: mocks.stdout },
       stderr: { write: mocks.stderr },
       exit: mocks.exit,
@@ -32,8 +33,39 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   mocks.fixture = 'test-feat-006b-runtime.mjs';
+  mocks.argv.length = 0;
   vi.resetAllMocks();
   vi.resetModules();
+});
+
+describe('no-send required matrix reporting', () => {
+  it.each([0, 1])(
+    'retains full fixture invocation and original exit gate for status %i',
+    async (status) => {
+      mocks.fixture = 'test-staging-no-send-runtime.mjs';
+      mocks.spawnSync.mockReturnValue({
+        status,
+        stdout: '{"noSendBehavior":{"stage":"cleanup","passed":true}}\nprivate-canary',
+        stderr: 'private-canary',
+      });
+      mocks.exit.mockImplementation(() => {
+        throw new Error('test-exit');
+      });
+      if (status) await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      else await import('../run-runtime-matrix.mjs');
+      expect(mocks.spawnSync).toHaveBeenCalledTimes(1);
+      const [, args, options] = mocks.spawnSync.mock.calls[0];
+      expect(args).toHaveLength(1);
+      expect(args[0]).toMatch(/test-staging-no-send-runtime\.mjs$/);
+      expect(options.timeout).toBe(15 * 60 * 1000);
+      expect(options.stdio).toEqual(['ignore', 'pipe', 'ignore']);
+      expect(options.encoding).toBe('utf8');
+      const output = [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join('');
+      expect(output).toContain('No-send runtime: stage=cleanup result=passed.');
+      expect(output).not.toContain('private-canary');
+      expect(mocks.exit).toHaveBeenCalledTimes(status ? 1 : 0);
+    },
+  );
 });
 
 describe('SEC-033 readiness diagnostics', () => {
@@ -448,4 +480,110 @@ it('fails closed when an Auth fixture exits zero without explicit cleanup eviden
   expect(
     mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture)),
   ).toHaveLength(1);
+});
+
+describe('mandatory isolated stale execution', () => {
+  function prepare(partition) {
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
+    mocks.fixture = 'test-feat-003-runtime.mjs';
+    mocks.argv.push('node', 'runner', '--partition=' + partition);
+    mocks.exit.mockImplementation(() => {
+      throw new Error('test-exit');
+    });
+    mocks.spawnSync.mockReturnValue({
+      status: 0,
+      stdout: 'FEAT-003 runtime diagnostic: stage=fixture-cleanup event=passed.',
+    });
+  }
+  const children = () =>
+    mocks.spawnSync.mock.calls.filter(([, args]) => args[0].endsWith(mocks.fixture));
+
+  it('executes only the stale pair with the original restart, ordinals, timeout and privacy boundary', async () => {
+    prepare('stale');
+    await import('../run-runtime-matrix.mjs');
+    expect(children().map(([, args]) => args.slice(1))).toEqual([
+      ['--stale-cleanup-probe'],
+      ['--stale-factors'],
+    ]);
+    expect(
+      mocks.spawnSync.mock.calls.map(([command, args]) =>
+        command === 'docker' ? 'template' : (args[1] ?? 'fixture'),
+      ),
+    ).toEqual([
+      'stop',
+      'start',
+      'template',
+      '--stale-cleanup-probe',
+      'stop',
+      'start',
+      'template',
+      '--stale-factors',
+    ]);
+    for (const [, , options] of children()) {
+      expect(options.timeout).toBe(1_500_000);
+      expect(options.stdio).toEqual(['ignore', 'pipe', 'ignore']);
+      expect(options.env.FLYEYE_RUNTIME_DIAGNOSTICS).toBe('1');
+    }
+    expect(mocks.stdout.mock.calls.flat().join('')).toContain('mode=9 phase=start');
+    expect(mocks.stdout.mock.calls.flat().join('')).toContain('mode=10 phase=start');
+  });
+
+  it.each([0, 1])(
+    'cannot restart or run stale-factors after an unproved probe (exit %i)',
+    async (status) => {
+      prepare('stale');
+      mocks.spawnSync.mockImplementation((_cmd, args) => ({
+        status: args.includes('--stale-cleanup-probe') ? status : 0,
+        stdout: 'private-provider-text',
+      }));
+      await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      expect(children()).toHaveLength(1);
+      expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(1);
+      expect(
+        [...mocks.stdout.mock.calls, ...mocks.stderr.mock.calls].flat().join(''),
+      ).not.toContain('private-provider-text');
+    },
+  );
+
+  it('runs every remaining onboarding mode in original order, with a restart before challenge cleanup', async () => {
+    prepare('core');
+    await import('../run-runtime-matrix.mjs');
+    expect(children().map(([, args]) => args.slice(1))).toEqual([
+      ['--current-factor-cleanup-probe'],
+      ['--current-factor'],
+      ['--uncertainty-cleanup-probe'],
+      ['--provider-uncertainty'],
+      ['--churn-cleanup-probe'],
+      ['--factor-churn'],
+      [],
+      ['--provider-cleanup-probe'],
+      ['--provider-state'],
+      ['--challenge-cleanup-probe'],
+      ['--verified-challenge'],
+    ]);
+    expect(mocks.spawnSync.mock.calls.filter(([, args]) => args[1] === 'stop')).toHaveLength(11);
+    expect(mocks.stdout.mock.calls.flat().join('')).toContain('mode=11 phase=start');
+  });
+
+  it.each(['', 'unknown', 'stale,core'])(
+    'fails invalid selection before any child process: %s',
+    async (selection) => {
+      prepare(selection);
+      await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+      expect(mocks.spawnSync).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects overlapping selections and an empty stale inventory before any child process', async () => {
+    prepare('stale');
+    mocks.argv.push('--partition=core');
+    await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+    expect(mocks.spawnSync).not.toHaveBeenCalled();
+    mocks.argv.pop();
+    mocks.fixture = 'test-edge-runtime.mjs';
+    vi.resetModules();
+    await expect(import('../run-runtime-matrix.mjs')).rejects.toThrow('test-exit');
+    expect(mocks.spawnSync).not.toHaveBeenCalled();
+  });
 });

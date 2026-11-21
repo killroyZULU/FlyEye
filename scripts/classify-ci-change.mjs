@@ -103,12 +103,35 @@ export function classifyRepository({ eventName, base, head, checkout, cwd = proc
   );
 }
 
-export function qualityGate({ classification, route, application, database, prose }) {
+export function qualityGate({
+  classification,
+  route,
+  application,
+  database,
+  stale,
+  prose,
+  databaseTeardown,
+  staleTeardown,
+}) {
   if (classification !== 'success') return false;
   if (route === 'full')
-    return application === 'success' && database === 'success' && prose === 'skipped';
+    return (
+      application === 'success' &&
+      database === 'success' &&
+      stale === 'success' &&
+      databaseTeardown === 'success' &&
+      staleTeardown === 'success' &&
+      prose === 'skipped'
+    );
   if (route === 'prose')
-    return prose === 'success' && application === 'skipped' && database === 'skipped';
+    return (
+      prose === 'success' &&
+      application === 'skipped' &&
+      database === 'skipped' &&
+      stale === 'skipped' &&
+      !databaseTeardown &&
+      !staleTeardown
+    );
   return false;
 }
 
@@ -119,13 +142,16 @@ function main() {
       route: process.env.CI_ROUTE,
       application: process.env.APPLICATION_RESULT,
       database: process.env.DATABASE_RESULT,
+      stale: process.env.STALE_RESULT,
+      databaseTeardown: process.env.DATABASE_TEARDOWN,
+      staleTeardown: process.env.STALE_TEARDOWN,
       prose: process.env.PROSE_RESULT,
     };
     if (!qualityGate(state)) throw new Error('Required verification did not complete');
     const message =
       state.route === 'full'
-        ? 'Full application and database verification passed.'
-        : 'Prose checks passed. Application/database groups were not executed under the prose route.';
+        ? 'Full application, core and stale verification and teardown passed.'
+        : 'Prose checks passed. Application/core/stale groups were not executed under the prose route.';
     console.log(message);
     if (process.env.GITHUB_STEP_SUMMARY)
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${message}\n`);
