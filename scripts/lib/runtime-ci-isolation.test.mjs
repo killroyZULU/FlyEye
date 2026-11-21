@@ -59,7 +59,7 @@ describe('fresh mandatory stale runner contract', () => {
       expect(step('stale', title)).toBe(expected);
     }
     expect(workflow).toContain('NODE_VERSION: 24.14.0');
-    expect(workflow).toContain('PNPM_VERSION: 11.9.0');
+    expect(workflow).toContain('PNPM_VERSION: 11.28.10');
     expect(step('stale', 'Install frozen dependencies')).toContain(
       'pnpm install --frozen-lockfile',
     );
