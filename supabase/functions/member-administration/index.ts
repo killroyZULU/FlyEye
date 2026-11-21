@@ -14,6 +14,7 @@ import {
   MemberAdministrationAuditWriteError,
 } from './handler.ts';
 import { createMemberCursorCodec } from './cursor.ts';
+import { credentialParameters } from './credential-parameters.ts';
 
 const configuration = readMemberAdministrationRuntimeConfiguration((name) => Deno.env.get(name));
 const publicClient = createClient(configuration.supabaseUrl, configuration.supabasePublishableKey, {
@@ -77,6 +78,8 @@ Deno.serve(
   createMemberAdministrationHandler({
     allowedOrigin: configuration.allowedOrigin,
     runtimeProfile: configuration.runtimeProfile,
+    credentialWorkspace: (data, actor, correlationId) =>
+      rpc('credential_workspace', credentialParameters(data, actor, correlationId)),
     authenticate: async (accessToken) => {
       const { data, error } = await publicClient.auth.getUser(accessToken);
       if (error || !data.user) throw new Error('Authentication failed.');

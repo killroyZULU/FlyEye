@@ -23,7 +23,10 @@ export type MfaAssurance = {
   nextLevel: 'aal1' | 'aal2' | null;
 };
 
+import type { CredentialRequest, CredentialResult } from '../../credentials';
+
 export interface AuthGateway {
+  credentialWorkspace(request: CredentialRequest): Promise<CredentialResult>;
   hasSession(): Promise<boolean>;
   signIn(request: LoginRequest): Promise<void>;
   requestPasswordRecovery(email: string, captchaToken?: string): Promise<void>;

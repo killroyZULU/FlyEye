@@ -1,4 +1,7 @@
-import { passwordAuthenticationIsRecent } from '../_shared/authentication-evidence.ts';
+import {
+  passwordAuthenticationIsPresent,
+  passwordAuthenticationIsRecent,
+} from '../_shared/authentication-evidence.ts';
 import type {
   AdministrationContext,
   MemberAdministrationRequest,
@@ -22,11 +25,20 @@ export async function checkLimit(
 ): Promise<Response | null> {
   const { dependencies, actor, origin, correlationId } = context;
   const hints = requestHints(data);
+  // Share the existing subject/school budget with the corresponding member operation.
+  const action =
+    data.action === 'my_credentials'
+      ? 'get_profile'
+      : data.action === 'personnel_credentials'
+        ? 'list'
+        : data.action === 'set_credential_applicability'
+          ? 'update_profile'
+          : data.action;
   let scopeId: string;
   try {
     scopeId = await dependencies.resolveLimitScope({
       actorUserId: actor.actorUserId,
-      action: data.action,
+      action,
       ...hints,
     });
   } catch {
@@ -37,7 +49,7 @@ export async function checkLimit(
   try {
     limit = await dependencies.consumeLimit({
       actorSubjectId: actor.actorSubjectId,
-      action: data.action,
+      action,
       scopeId,
       correlationId,
     });
@@ -85,7 +97,11 @@ export async function checkAssurance(
 ): Promise<Response | null> {
   const { dependencies, actor, origin, correlationId } = context;
   let profileAssurance: 'aal1' | 'aal2' | 'denied' = 'denied';
-  if (data.action === 'get_profile' || data.action === 'update_profile') {
+  if (
+    data.action === 'get_profile' ||
+    data.action === 'update_profile' ||
+    data.action === 'my_credentials'
+  ) {
     try {
       profileAssurance = await dependencies.resolveProfileAssurance({
         actorUserId: actor.actorUserId,
@@ -105,10 +121,17 @@ export async function checkAssurance(
   }
 
   const assuranceInvalid =
-    (requiresAal2(data.action) || profileAssurance === 'aal2') &&
+    (requiresAal2(data.action) ||
+      data.action === 'personnel_credentials' ||
+      data.action === 'set_credential_applicability' ||
+      profileAssurance === 'aal2') &&
     (actor.assuranceLevel !== 'aal2' || actor.totpAuthenticatedAt === null);
   const passwordInvalid =
-    requiresFreshPassword(data.action) && !passwordAuthenticationIsRecent(actor, nowSeconds());
+    (requiresFreshPassword(data.action) && !passwordAuthenticationIsRecent(actor, nowSeconds())) ||
+    (['my_credentials', 'personnel_credentials', 'set_credential_applicability'].includes(
+      data.action,
+    ) &&
+      !passwordAuthenticationIsPresent(actor, nowSeconds()));
   if (assuranceInvalid || passwordInvalid) {
     const reason = assuranceInvalid
       ? 'authentication_assurance_required'

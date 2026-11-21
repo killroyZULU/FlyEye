@@ -4,7 +4,7 @@ import type { AuthGateway, MfaAssurance } from './auth-gateway-contract';
 import { AuthGatewayError, asGatewayError, responseStatus } from './auth-gateway-errors';
 import { PasswordRecoveryGateway } from './password-recovery-gateway';
 import { MemberInvitationGateway } from './member-invitation-gateway';
-import { MemberAdministrationGateway } from './member-administration-gateway';
+
 import { AdminOnboardingGateway } from './admin-onboarding-gateway';
 import { MemberMfaGateway } from './member-mfa-gateway';
 
@@ -35,6 +35,7 @@ import type { MemberMfaComplete, MemberMfaStart, MemberMfaStatus } from '../memb
 
 export { AuthGatewayError, type AuthGatewayErrorCode } from './auth-gateway-errors';
 
+import type { CredentialRequest } from '../../credentials';
 export type { AuthGateway, MfaAssurance } from './auth-gateway-contract';
 
 function supportedAssuranceLevel(level: string | null): 'aal1' | 'aal2' | null {
@@ -46,7 +47,6 @@ export class SupabaseAuthGateway implements AuthGateway {
   private readonly adminOnboarding: AdminOnboardingGateway;
   private readonly passwordRecovery: PasswordRecoveryGateway;
   private readonly memberInvitations: MemberInvitationGateway;
-  private readonly memberAdministration: MemberAdministrationGateway;
 
   constructor(
     private readonly client: SupabaseClient<Database>,
@@ -56,7 +56,6 @@ export class SupabaseAuthGateway implements AuthGateway {
     this.adminOnboarding = new AdminOnboardingGateway(client);
     this.passwordRecovery = new PasswordRecoveryGateway(client.auth, recoveryOrigin);
     this.memberInvitations = new MemberInvitationGateway(client);
-    this.memberAdministration = new MemberAdministrationGateway(client);
   }
 
   async hasSession(): Promise<boolean> {
@@ -254,33 +253,45 @@ export class SupabaseAuthGateway implements AuthGateway {
     return this.memberInvitations.acceptMemberInvitation(request);
   }
 
-  loadOrganizationMembers(request: {
+  private async memberAdministration() {
+    const { MemberAdministrationGateway } = await import('./member-administration-gateway');
+    return new MemberAdministrationGateway(this.client);
+  }
+
+  async credentialWorkspace(request: CredentialRequest) {
+    return (await this.memberAdministration()).credentialWorkspace(request);
+  }
+
+  async loadOrganizationMembers(request: {
     organizationId: string;
     status?: MemberStatus;
     search?: string;
     cursor?: string;
   }): Promise<MemberList> {
-    return this.memberAdministration.loadOrganizationMembers(request);
+    return (await this.memberAdministration()).loadOrganizationMembers(request);
   }
 
-  loadOrganizationMember(organizationId: string, membershipId: string): Promise<MemberDetail> {
-    return this.memberAdministration.loadOrganizationMember(organizationId, membershipId);
+  async loadOrganizationMember(
+    organizationId: string,
+    membershipId: string,
+  ): Promise<MemberDetail> {
+    return (await this.memberAdministration()).loadOrganizationMember(organizationId, membershipId);
   }
 
-  loadMyMemberProfile(membershipId: string): Promise<MemberProfile> {
-    return this.memberAdministration.loadMyMemberProfile(membershipId);
+  async loadMyMemberProfile(membershipId: string): Promise<MemberProfile> {
+    return (await this.memberAdministration()).loadMyMemberProfile(membershipId);
   }
 
-  updateMyMemberProfile(request: {
+  async updateMyMemberProfile(request: {
     membershipId: string;
     displayName: string;
     contactNumber: string;
     expectedVersion: number;
   }): Promise<MemberProfile> {
-    return this.memberAdministration.updateMyMemberProfile(request);
+    return (await this.memberAdministration()).updateMyMemberProfile(request);
   }
 
-  changeOrganizationMemberStatus(request: {
+  async changeOrganizationMemberStatus(request: {
     organizationId: string;
     membershipId: string;
     action: MemberStatusAction;
@@ -288,10 +299,10 @@ export class SupabaseAuthGateway implements AuthGateway {
     expectedVersion: number;
     idempotencyKey: string;
   }): Promise<MemberStatusResult> {
-    return this.memberAdministration.changeOrganizationMemberStatus(request);
+    return (await this.memberAdministration()).changeOrganizationMemberStatus(request);
   }
 
-  changeOrganizationMemberRole(request: {
+  async changeOrganizationMemberRole(request: {
     organizationId: string;
     membershipId: string;
     roleCode: string;
@@ -299,7 +310,7 @@ export class SupabaseAuthGateway implements AuthGateway {
     expectedVersion: number;
     idempotencyKey: string;
   }): Promise<MemberRoleResult> {
-    return this.memberAdministration.changeOrganizationMemberRole(request);
+    return (await this.memberAdministration()).changeOrganizationMemberRole(request);
   }
 
   async getMfaAssurance(): Promise<MfaAssurance> {

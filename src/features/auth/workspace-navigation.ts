@@ -1,7 +1,15 @@
 import type { AccessMembership } from '../../lib/access-context';
 
 export type WorkspaceView =
-  'home' | 'aircraft' | 'documents' | 'invitations' | 'members' | 'profile' | 'security';
+  | 'home'
+  | 'aircraft'
+  | 'documents'
+  | 'invitations'
+  | 'members'
+  | 'profile'
+  | 'security'
+  | 'myCredentials'
+  | 'personnelCredentials';
 
 export type WorkspaceNavigationItem = {
   view: WorkspaceView;
@@ -40,6 +48,19 @@ export function workspaceNavigation(
       description: 'View configured aircraft document status and permitted records.',
     });
   }
+
+  if (membership.permissions.includes('credential.own.read'))
+    items.push({
+      view: 'myCredentials',
+      label: 'My Credentials',
+      description: 'View your personal credential requirements.',
+    });
+  if (membership.permissions.includes('credential.school.read'))
+    items.push({
+      view: 'personnelCredentials',
+      label: 'Personnel Credentials',
+      description: 'View credential requirements for school personnel.',
+    });
 
   if (membership.permissions.includes('membership.invitation.manage')) {
     items.push({
