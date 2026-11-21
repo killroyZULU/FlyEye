@@ -57,6 +57,7 @@ export function assertProviderCompletion(before, after, result, context) {
       membership_id: member.id,
       display_name: null,
       contact_number: null,
+      credential_applicability: null,
       version: 1,
       created_at: member.created_at,
       updated_at: member.created_at,
