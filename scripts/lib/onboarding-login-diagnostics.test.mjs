@@ -41,6 +41,38 @@ const response = (request, status) => ({
   }),
 });
 describe('passive stale-onboarding login diagnostics', () => {
+  it('retains the first exact bootstrap 403, even while pending, independently of a 5xx', async () => {
+    const { page, observer } = harness();
+    observer.begin();
+    for (const req of [
+      request(),
+      { ...request('/functions/v1/auth-bootstrap?'), method: () => 'GET' },
+      { ...request(), url: () => 'http://localhost:54321/functions/v1/auth-bootstrap' },
+    ]) {
+      page.emit('request', req);
+      page.emit('response', response(req, 403));
+    }
+    const observe = (status) => {
+      const req = request('/functions/v1/auth-bootstrap?');
+      page.emit('request', req);
+      const res = response(req, status);
+      page.emit('response', res);
+      return res;
+    };
+    const forbiddenResponse = observe(403);
+    observe(403);
+    const serverError = observe(503);
+    await observer.diagnoseFailure('synthetic_ci');
+    expect(reportBootstrapFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ forbiddenResponse, response: serverError }),
+    );
+    observer.begin();
+    observe(200);
+    expect(observer.finish()).toMatchObject({ forbiddenResponse: undefined, response: undefined });
+    expect(reportBootstrapFailure).toHaveBeenCalledTimes(1);
+    observer.dispose();
+  });
+
   it('captures only the first bootstrap server error and freezes observations before diagnostics', async () => {
     const { page, lines, observer } = harness();
     observer.begin();
