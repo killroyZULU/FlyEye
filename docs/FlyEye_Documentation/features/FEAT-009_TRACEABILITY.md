@@ -3,16 +3,13 @@
 ## Evidence boundary
 
 The [contract](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md) preserves source v0.1 IDs.
-All feature execution below is **pending**: no credential implementation, hosted
-run, real delivery or real-document safety is demonstrated by S0 documentation.
-Future results must identify commit, test locator, environment, migration,
-synthetic fixture, expected/actual result, artifacts and review under
+The [local S1 evidence](#s1-local-applicability-and-access) covers metadata and access.
+The full AC criteria and hosted acceptance remain open. Record later evidence under
 [QA evidence policy](../11_QA_TEST_PLAN.md#9-test-evidence).
 
 ## Acceptance and planned evidence
 
-These rows define AC01–AC14; planned assertions have no executable locators yet.
-Add actual test links when implemented, retaining original result targets.
+These rows track complete criteria. Partial slice results appear below.
 
 | Criterion | Contract mapping                                                                                                                                                                                                                          | Slice and required assertions                                                                                                                                                    | Result  |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
@@ -30,6 +27,15 @@ Add actual test links when implemented, retaining original result targets.
 | AC12      | [CR14](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr14-scheduled-reminders), [CR15](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr15-late-approval-and-renewal)                                                                                  | S4: Manila 31/30/16/15/1/0/expired boundaries, midnight/device zone, no-expiry, late/expired approval, outage/new-recipient catch-up, overlap dedupe, renewal cancellation       | Pending |
 | AC13      | [CR16](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr16-review-notifications), [CR17](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr17-delivery-outcome)                                                                                          | S3/S4: eligible approvers/owner, both synthetic channels, failure/uncertainty/retry exhaustion, no rollback or lost in-app event, revoked recipient suppression                  | Pending |
 | AC14      | [CR19](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr19-private-evidence), [CR22](FEAT-009_PERSONAL_CREDENTIAL_TRACKER.md#cr22-approved-record-boundary)                                                                                      | S2/S5: current authorization for direct/file-link fetch, safe email, stable historical approved reference, pending exclusion; no speculative flight integration                  | Pending |
+
+## S1 local applicability and access
+
+Local branch `feat/FEAT-009-applicability-access`, based on `1728064`, exercises
+CR01, CR04 and the S1 parts of CR12, CR13 and CR21 (AC01, AC08 and AC11).
+
+- [Rollback-only SQL](../../../supabase/tests/feat_009_credential_access_test.sql) exercised the [migration](../../../supabase/migrations/20261121000100_feat_009_credential_access.sql) in isolated PostgreSQL 17 with two synthetic schools. Owner, Admin, HoT and CFI reads, applicability changes, current authority checks and audit rollback passed. Other-owner, cross-school, ordinary-role and stale-write cases were denied.
+- [Protected handler](../../../supabase/functions/member-administration/handler.test.ts) and [credential panels](../../../src/features/credentials/CredentialPanel.test.tsx) cover the request boundary, category differences, unassigned members and permission-filtered controls.
+- Local browser demo: run `pnpm test:e2e`. The [credential-owner and credential-personnel journeys](../../../scripts/run-e2e.mjs) sign in with synthetic responses and open the two empty views on desktop and mobile. SQL authorization is verified separately. On a migrated local school, an Admin uses **Personnel Credentials** to set applicability; the same member opens **My Credentials** to see the resulting requirements.
 
 ## Shared session verification plan
 

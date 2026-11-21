@@ -59,6 +59,7 @@ function context(
 
 function gateway(overrides: Partial<AuthGateway> = {}): AuthGateway {
   return {
+    credentialWorkspace: vi.fn(),
     hasSession: vi.fn().mockResolvedValue(false),
     signIn: vi.fn().mockResolvedValue(undefined),
     requestPasswordRecovery: vi.fn().mockResolvedValue(undefined),

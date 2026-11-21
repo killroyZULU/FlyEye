@@ -79,6 +79,7 @@ function dependencies(
   return {
     allowedOrigin: ORIGIN,
     runtimeProfile: 'local-synthetic-v1',
+    credentialWorkspace: vi.fn(),
     authenticate: vi.fn().mockResolvedValue(actor),
     resolveLimitScope: vi.fn().mockResolvedValue(ORGANIZATION_ID),
     resolveProfileAssurance: vi.fn().mockResolvedValue('aal1'),
@@ -190,6 +191,69 @@ async function payload(response: Response) {
 }
 
 describe('member administration handler compatibility', () => {
+  const credentialRead = {
+    action: 'my_credentials',
+    organizationId: ORGANIZATION_ID,
+    membershipId: MEMBERSHIP_ID,
+  };
+  it('binds a credential result to the authenticated actor, school and requested owner', async () => {
+    const result = {
+      decision: 'credential_workspace',
+      organizationId: ORGANIZATION_ID,
+      correlationId: CORRELATION_ID,
+      hasMore: false,
+      members: [
+        { membershipId: MEMBERSHIP_ID, displayName: null, applicability: 'both', version: 2 },
+      ],
+    };
+    const deps = dependencies({
+      credentialWorkspace: vi
+        .fn()
+        .mockResolvedValueOnce(result)
+        .mockResolvedValueOnce({ ...result, organizationId: USER_ID })
+        .mockResolvedValueOnce({
+          ...result,
+          members: [{ ...result.members[0], membershipId: USER_ID }],
+        }),
+    });
+    const invoke = () => createMemberAdministrationHandler(deps)(request(credentialRead));
+    expect((await invoke()).status).toBe(200);
+    expect(deps.credentialWorkspace).toHaveBeenCalledWith(credentialRead, actor, CORRELATION_ID);
+    expect((await invoke()).ok).toBe(false);
+    expect((await invoke()).ok).toBe(false);
+  });
+  it.each([
+    { ...credentialRead, actorUserId: USER_ID },
+    { ...credentialRead, permissions: ['credential.school.read'] },
+    {
+      action: 'set_credential_applicability',
+      organizationId: ORGANIZATION_ID,
+      membershipId: MEMBERSHIP_ID,
+      applicability: 'admin',
+      expectedVersion: 1,
+    },
+  ])('rejects forged credential input before invoking the database', async (body) => {
+    const deps = dependencies();
+    expect((await createMemberAdministrationHandler(deps)(request(body))).status).toBe(422);
+    expect(deps.credentialWorkspace).not.toHaveBeenCalled();
+  });
+  it('denies staging credential actions and non-password owner sessions', async () => {
+    for (const deps of [
+      dependencies({ runtimeProfile: 'staging-synthetic-v1' }),
+      dependencies({
+        authenticate: vi.fn().mockResolvedValue({
+          ...actor,
+          authenticationMethods: ['otp'],
+          passwordAuthenticatedAt: null,
+        }),
+      }),
+    ]) {
+      expect((await createMemberAdministrationHandler(deps)(request(credentialRead))).ok).toBe(
+        false,
+      );
+      expect(deps.credentialWorkspace).not.toHaveBeenCalled();
+    }
+  });
   const roleRequest = {
     action: 'assign_role',
     organizationId: ORGANIZATION_ID,

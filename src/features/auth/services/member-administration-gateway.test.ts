@@ -119,6 +119,28 @@ function dispatch(gateway: SupabaseAuthGateway, operation: Operation) {
 }
 
 describe('member administration gateway compatibility', () => {
+  it('loads the exact credential profile and rejects a response for a different owner or school', async () => {
+    const { gateway, invoke } = fixture();
+    const request = { action: 'my_credentials' as const, organizationId, membershipId };
+    const member = { membershipId, displayName: null, applicability: 'both', version: 1 };
+    const result = {
+      decision: 'credential_workspace',
+      organizationId,
+      correlationId,
+      members: [member],
+      hasMore: false,
+    };
+    invoke
+      .mockResolvedValueOnce({ data: result })
+      .mockResolvedValueOnce({ data: { ...result, organizationId: correlationId } })
+      .mockResolvedValueOnce({
+        data: { ...result, members: [{ ...member, membershipId: correlationId }] },
+      });
+    await expect(gateway.credentialWorkspace(request)).resolves.toEqual(result);
+    expect(invoke).toHaveBeenCalledWith('member-administration', { body: request });
+    await expect(gateway.credentialWorkspace(request)).rejects.toThrow('could not be verified');
+    await expect(gateway.credentialWorkspace(request)).rejects.toThrow('could not be verified');
+  });
   it('does not invoke providers during construction', () => {
     const { invoke, auth } = fixture();
     expect(invoke).not.toHaveBeenCalled();

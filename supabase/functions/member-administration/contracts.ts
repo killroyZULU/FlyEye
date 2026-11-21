@@ -2,6 +2,8 @@ import type { RuntimeProfile } from '../_shared/staging-runtime-policy.ts';
 import { z } from 'zod';
 import type { VerifiedAuthenticationEvidence } from '../_shared/authentication-evidence.ts';
 
+import { credentialRequests, type CredentialRequest } from '../_shared/credential-workspace.ts';
+
 export const MAX_REQUEST_BYTES = 8192;
 const idempotencyKeySchema = z.string().regex(/^[0-9a-f]{32,128}$/);
 const memberStatusSchema = z.enum(['active', 'suspended', 'revoked']);
@@ -32,6 +34,7 @@ const contactNumberSchema = z
   .refine((value) => value === '' || /^[0-9 +().-]+$/.test(value));
 
 export const requestSchema = z.discriminatedUnion('action', [
+  ...credentialRequests,
   z
     .object({
       action: z.literal('list'),
@@ -232,6 +235,11 @@ export class MemberAdministrationAuditWriteError extends Error {
 }
 
 export type MemberAdministrationDependencies = {
+  credentialWorkspace: (
+    data: CredentialRequest,
+    actor: VerifiedAuthenticationEvidence,
+    correlationId: string,
+  ) => Promise<unknown>;
   allowedOrigin: string;
   runtimeProfile: RuntimeProfile;
   authenticate: (accessToken: string) => Promise<VerifiedAuthenticationEvidence>;
