@@ -13,7 +13,7 @@ const applicationCodes = new Map([
 ]);
 
 // Read only an already received error response. No new request or retry.
-async function responseDetails(response) {
+async function responseDetails(response, forbidden = false) {
   if (!response) return ['bootstrap-response-missing'];
   let timer;
   try {
@@ -24,8 +24,19 @@ async function responseDetails(response) {
       }),
     ]);
     // Playwright returns a complete buffer; bound parsing, not browser buffering.
-    if (body.byteLength > 8192) return ['bootstrap-response-oversize'];
+    if (body.byteLength > 8192)
+      return [forbidden ? 'bootstrap-403-other-unreadable' : 'bootstrap-response-oversize'];
     const payload = JSON.parse(body.toString('utf8'));
+    if (forbidden) {
+      switch (payload?.error?.code) {
+        case 'auth.origin_denied':
+          return ['bootstrap-403-origin-denied'];
+        case 'auth.authentication_method_not_allowed':
+          return ['bootstrap-403-authentication-method-not-allowed'];
+        default:
+          return ['bootstrap-403-other-unreadable'];
+      }
+    }
     const application = applicationCodes.get(payload?.error?.code);
     if (application) return [application];
     return gatewayResponseDetails(
@@ -33,7 +44,7 @@ async function responseDetails(response) {
       payload,
     );
   } catch {
-    return ['bootstrap-response-unreadable'];
+    return [forbidden ? 'bootstrap-403-other-unreadable' : 'bootstrap-response-unreadable'];
   } finally {
     clearTimeout(timer);
   }
@@ -41,6 +52,7 @@ async function responseDetails(response) {
 
 export async function reportBootstrapFailure({
   response,
+  forbiddenResponse,
   since,
   projectId,
   report,
@@ -64,7 +76,11 @@ export async function reportBootstrapFailure({
     emit('bootstrap-trace', traceDetail ?? 'bootstrap-trace-unknown');
   // Local approval covers only the private fixture trace, not provider-log collection.
   if (!inCi) return;
-  for (const detail of await responseDetails(response)) emit('bootstrap-response', detail);
+  if (forbiddenResponse)
+    for (const detail of await responseDetails(forbiddenResponse, true))
+      emit('bootstrap-response', detail);
+  if (response || !forbiddenResponse)
+    for (const detail of await responseDetails(response)) emit('bootstrap-response', detail);
   let evidence;
   try {
     evidence = collect({ projectId, since, ci, githubActions });
