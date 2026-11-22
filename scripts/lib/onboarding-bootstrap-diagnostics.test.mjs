@@ -33,6 +33,59 @@ afterEach(() => vi.useRealTimers());
 
 describe('bounded bootstrap failure evidence', () => {
   it.each([
+    [response({ error: { code: 'auth.origin_denied', message: secret } }), 'origin-denied'],
+    [
+      response({ error: { code: 'auth.authentication_method_not_allowed' }, token: secret }),
+      'authentication-method-not-allowed',
+    ],
+    [response({ error: { code: secret }, message: 'auth.origin_denied' }), 'other-unreadable'],
+    [response({ code: 'BOOT_ERROR' }), 'other-unreadable'],
+    [{ body: async () => Buffer.alloc(8193) }, 'other-unreadable'],
+    [{ body: async () => Buffer.from(secret) }, 'other-unreadable'],
+    [{ body: async () => Promise.reject(new Error(secret)) }, 'other-unreadable'],
+  ])('emits one sanitized category for a forbidden response', async (forbiddenResponse, suffix) => {
+    const h = harness({ forbiddenResponse });
+    await h.run();
+    const expected = fixtureDiagnostic(
+      'FEAT-003',
+      'bootstrap-response',
+      'response',
+      `bootstrap-403-${suffix}`,
+    );
+    expect(h.lines.filter((line) => line.includes('stage=bootstrap-response '))).toEqual([
+      expected,
+    ]);
+    expect(runtimeDiagnosticLines('test-feat-003-runtime.mjs', h.lines.join('\n'))).toEqual(
+      h.lines,
+    );
+    expect(h.lines.join('\n')).not.toContain(secret);
+  });
+
+  it('bounds a pending forbidden response and ignores a late rejection', async () => {
+    vi.useFakeTimers();
+    let rejectBody;
+    const h = harness({
+      forbiddenResponse: {
+        body: () =>
+          new Promise((_, reject) => {
+            rejectBody = reject;
+          }),
+      },
+    });
+    const pending = h.run();
+    await vi.advanceTimersByTimeAsync(999);
+    expect(h.lines).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    const before = [...h.lines];
+    expect(before[0]).toContain('detail=bootstrap-403-other-unreadable.');
+    rejectBody(new Error(secret));
+    await Promise.resolve();
+    expect(h.lines).toEqual(before);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([
     ['auth.limiter_unavailable', 'bootstrap-limiter-unavailable'],
     ['auth.factor_inventory_unavailable', 'bootstrap-factor-inventory-unavailable'],
     ['auth.audit_unavailable', 'bootstrap-audit-unavailable'],

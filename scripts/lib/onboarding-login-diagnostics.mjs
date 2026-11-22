@@ -44,6 +44,7 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
   let requests = new WeakMap();
   let observations;
   let bootstrapResponse;
+  let forbiddenResponse;
   let since;
   let diagnosed = false;
   function request(request) {
@@ -75,6 +76,8 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
     if (stage) observations.get(stage).outcomes.add(responseCategory(value.status()));
     if (stage === stages[1] && value.status() >= 500 && value.status() < 600 && !bootstrapResponse)
       bootstrapResponse = value;
+    if (stage === stages[1] && value.status() === 403 && !forbiddenResponse)
+      forbiddenResponse = value;
   };
   const failed = (request) => settled(request, 'transport-failed');
   const finished = (request) => settled(request, 'request-finished');
@@ -90,6 +93,7 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
         /* Missing trace remains unknown. */
       }
       bootstrapResponse = undefined;
+      forbiddenResponse = undefined;
       since = new Date().toISOString();
       diagnosed = false;
       requests = new WeakMap();
@@ -110,7 +114,7 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
     },
     finish() {
       if (!active) return;
-      const snapshot = { response: bootstrapResponse, since };
+      const snapshot = { response: bootstrapResponse, forbiddenResponse, since };
       if (trace) {
         snapshot.traceDetail = 'bootstrap-trace-unknown';
         try {
@@ -134,6 +138,7 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
       }
       observations = undefined;
       bootstrapResponse = undefined;
+      forbiddenResponse = undefined;
       return snapshot;
     },
     dispose() {
@@ -145,6 +150,7 @@ export function observeOnboardingLogin(page, report, apiUrl, trace, localStaleTa
       active = false;
       observations = undefined;
       bootstrapResponse = undefined;
+      forbiddenResponse = undefined;
       requests = new WeakMap();
       page.off('request', request);
       page.off('response', response);

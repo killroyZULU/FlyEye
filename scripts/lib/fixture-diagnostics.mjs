@@ -508,6 +508,9 @@ const failureDetails = new Set([
   ...[...httpStatuses].map((status) => `http-${status}`),
 ]);
 const bootstrapDetails = new Set([
+  'bootstrap-403-origin-denied',
+  'bootstrap-403-authentication-method-not-allowed',
+  'bootstrap-403-other-unreadable',
   'bootstrap-limiter-unavailable',
   'bootstrap-factor-inventory-unavailable',
   'bootstrap-audit-unavailable',
