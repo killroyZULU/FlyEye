@@ -1,0 +1,170 @@
+@import './foundation-tokens.css';
+@import './foundation-fonts.css';
+
+/* The registry list, lifecycle dialogs and document forms do not opt in. */
+.member-workspace.aircraft-editor-foundation {
+  width: min(100%, 56rem);
+  gap: var(--space-3);
+  color: var(--color-slate-700);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.625;
+}
+
+.aircraft-editor-foundation .workspace-heading h2 {
+  margin: var(--space-inline) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--color-slate-800);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2.5rem;
+}
+
+.aircraft-editor-foundation .eyebrow {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.aircraft-editor-foundation .member-form {
+  width: min(100%, 36rem);
+  gap: var(--space-3);
+}
+
+.aircraft-editor-foundation .field-group {
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.aircraft-editor-foundation .field-group label {
+  color: var(--color-slate-800);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.aircraft-editor-foundation .field-group input {
+  width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-slate-500);
+  border-radius: var(--radius-control);
+  background: var(--color-white);
+  color: var(--color-slate-800);
+  font: inherit;
+  line-height: 1.5;
+  caret-color: var(--color-navy-700);
+  box-shadow: none;
+}
+
+.aircraft-editor-foundation .field-guidance,
+.aircraft-editor-foundation .field-error {
+  color: var(--color-slate-700);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.aircraft-editor-foundation .field-error {
+  color: var(--color-danger-text);
+}
+
+.aircraft-editor-foundation input[aria-invalid='true'] {
+  border-color: var(--color-danger-text);
+}
+
+.aircraft-editor-foundation :is(.primary-button, .text-button) {
+  min-height: 3rem;
+  padding: 0.75rem var(--space-2);
+  border: 1px solid var(--color-navy-700);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+.aircraft-editor-foundation .button-row {
+  gap: var(--space-2);
+}
+
+.aircraft-editor-foundation .button-row .primary-button {
+  flex: 0 1 auto;
+}
+
+.aircraft-editor-foundation .primary-button {
+  background: var(--color-navy-700);
+  color: var(--color-white);
+}
+
+.aircraft-editor-foundation .primary-button:is(:hover, :active):not(:disabled) {
+  background: var(--color-navy-800);
+}
+
+.aircraft-editor-foundation .text-button {
+  border-color: var(--color-slate-500);
+  background: var(--color-white);
+  color: var(--color-navy-700);
+}
+
+.aircraft-editor-foundation .text-button:is(:hover, :active):not(:disabled) {
+  background: var(--color-slate-50);
+}
+
+.aircraft-editor-foundation :is(input, button, a, h2, .validation-summary):focus-visible {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.aircraft-editor-foundation :is(.notice, .validation-summary) {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.aircraft-editor-foundation .notice--warning {
+  color: #854d0e;
+  background: #fffbeb;
+}
+
+.aircraft-editor-foundation .validation-summary {
+  color: var(--color-danger-text);
+  background: #fef2f2;
+}
+
+.aircraft-editor-foundation .validation-summary a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.aircraft-editor-foundation :is(input, button):disabled {
+  opacity: 1;
+}
+
+.aircraft-editor-foundation input:disabled {
+  background: var(--color-slate-50);
+}
+
+.aircraft-editor-foundation ::selection {
+  color: var(--color-navy-700);
+  background: var(--color-teal-50);
+}
+
+@media (max-width: 640px) {
+  .member-workspace.aircraft-editor-foundation {
+    padding-inline: 6px;
+  }
+
+  .aircraft-editor-foundation .workspace-heading h2 {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+  }
+}

@@ -263,6 +263,15 @@ persistence remain outside this presentation slice.
 - `FEAT-007A-VIS-04`: Styles stay within the list; retain synthetic before/after
   evidence and apply [bounded verification](../DESIGN.md#11-adoption-and-verification).
 
+### Registry editor visual foundation
+
+- `FEAT-007A-EDIT-01`: Both modes/maximum-length values meet [responsive checks](../DESIGN.md#53-spacing-and-layout).
+- `FEAT-007A-EDIT-02`: Labels, linked errors, focus/pending feedback meet [form/accessibility rules](../07_UI_UX_GUIDELINES.md#5-form-behavior).
+- `FEAT-007A-EDIT-03`: Preserve repeated/interrupted submission, conflict, offline/retry, save/cancel and denial.
+- `FEAT-007A-EDIT-04`: Isolate styling; retain [bounded verification](../DESIGN.md#11-adoption-and-verification).
+
+[#196](https://github.com/killroyZULU/FlyEye/issues/196): editor-only presentation; existing behavior unchanged.
+
 ## Audit and observability
 
 Successful mutations emit `aircraft_record.created`,
