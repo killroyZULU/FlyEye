@@ -1212,13 +1212,6 @@ if (![apiUrl, databaseUrl, publishableKey, serviceRoleKey].every((value) => valu
 }
 
 const api = assertLoopbackUrl(apiUrl, 'Local API');
-const passwordBoundary =
-  churnMode &&
-  diagnosticsEnabled &&
-  process.env.CI === 'true' &&
-  process.env.GITHUB_ACTIONS === 'true'
-    ? churnPasswordBoundary(apiUrl)
-    : undefined;
 const database = assertLoopbackUrl(databaseUrl, 'Local database');
 preflight('local-preflight-endpoints', 'passed');
 preflight('local-preflight-database-container', 'enter');
@@ -1348,6 +1341,14 @@ const providerEvidence = providerMode
   : undefined;
 
 preflight('local-preflight-context', 'passed');
+
+const passwordBoundary =
+  churnMode &&
+  diagnosticsEnabled &&
+  process.env.CI === 'true' &&
+  process.env.GITHUB_ACTIONS === 'true'
+    ? churnPasswordBoundary(apiUrl)
+    : undefined;
 
 try {
   enterStage('auth-reset-initial', 'local Auth initial scenario reset');
