@@ -1576,6 +1576,7 @@ export type Database = {
           contact_number: string | null;
           created_at: string;
           created_by: string | null;
+          credential_applicability: string | null;
           display_name: string | null;
           id: string;
           membership_id: string;
@@ -1588,6 +1589,7 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string;
           created_by?: string | null;
+          credential_applicability?: string | null;
           display_name?: string | null;
           id?: string;
           membership_id: string;
@@ -1600,6 +1602,7 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string;
           created_by?: string | null;
+          credential_applicability?: string | null;
           display_name?: string | null;
           id?: string;
           membership_id?: string;
@@ -2107,6 +2110,30 @@ export type Database = {
           p_action: string;
           p_correlation_id: string;
           p_limiter_key_hash: string;
+        };
+        Returns: Json;
+      };
+      credential_session_is_current: {
+        Args: {
+          p_actor: string;
+          p_factor: string;
+          p_privileged: boolean;
+          p_session: string;
+        };
+        Returns: boolean;
+      };
+      credential_workspace: {
+        Args: {
+          p_action: string;
+          p_actor: string;
+          p_after: string;
+          p_applicability: string;
+          p_correlation: string;
+          p_member: string;
+          p_school: string;
+          p_session: string;
+          p_totp: boolean;
+          p_version: number;
         };
         Returns: Json;
       };

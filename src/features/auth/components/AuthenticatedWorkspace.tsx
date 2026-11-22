@@ -13,6 +13,7 @@ import type { AuthSession } from '../useAuthSession';
 import { workspaceNavigation } from '../workspace-navigation';
 import { AuthenticatedShell } from './AuthenticatedShell';
 import { WorkspaceDashboard } from './WorkspaceDashboard';
+import { CredentialPanel } from '../../credentials';
 import '../../../styles/security-foundation.css';
 
 const MemberAdministrationPanel = lazy(() =>
@@ -67,6 +68,22 @@ export function AuthenticatedWorkspace({
       onSignOut={() => void handleSignOut()}
     >
       <DeferredScreen key={workspaceView} onLeave={() => setWorkspaceView('home')}>
+        {workspaceView === 'myCredentials' || workspaceView === 'personnelCredentials' ? (
+          navigation.some((item) => item.view === workspaceView) ? (
+            <CredentialPanel
+              key={[
+                activeMembership.organizationId,
+                activeMembership.membershipId,
+                activeMembership.permissions.join(','),
+              ].join(':')}
+              gateway={gateway}
+              membership={activeMembership}
+              personnel={workspaceView === 'personnelCredentials'}
+            />
+          ) : (
+            <p role="alert">You do not have access to this credential view.</p>
+          )
+        ) : null}
         {workspaceView === 'invitations' ? (
           <MemberInvitationsPanel
             gateway={gateway}

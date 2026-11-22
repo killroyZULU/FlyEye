@@ -17,6 +17,7 @@ import {
 } from '../../members';
 import { AuthGatewayError } from './auth-gateway-errors';
 import { edgeErrorDetails } from './edge-error-details';
+import type { CredentialRequest } from '../../credentials';
 
 type AdministrationClient = Pick<SupabaseClient<Database>, 'functions'>;
 
@@ -94,6 +95,17 @@ export class MemberAdministrationGateway {
           'Member administration is temporarily unavailable.',
         );
     }
+  }
+
+  async credentialWorkspace(request: CredentialRequest) {
+    const { credentialResult, matchesCredentialRequest } = await import('../../credentials');
+    const parsed = credentialResult.safeParse(await this.invokeMemberAdministration(request));
+    if (!parsed.success || !matchesCredentialRequest(parsed.data, request))
+      throw new AuthGatewayError(
+        'member_administration_unavailable',
+        'The credential workspace could not be verified.',
+      );
+    return parsed.data;
   }
 
   async loadOrganizationMembers(request: {

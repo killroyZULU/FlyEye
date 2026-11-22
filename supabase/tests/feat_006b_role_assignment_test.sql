@@ -11,10 +11,10 @@ select is(
   'Role reasons share one server-controlled mapping'
 );
 select is(
-  (select count(*)::integer from public.roles
+  (select array_agg(code order by code) from public.roles
    where is_active and is_membership_assignable and workspace_permission_code is not null),
-  3,
-  'The three approved roles are active assignable permission bundles'
+  array['admin','chief_flight_instructor','head_of_training','instructor_pilot','student_pilot'],
+  'Only the five approved role bundles are assignable'
 );
 select is(
   (select required_assurance_level from public.roles where code = 'admin'),
@@ -209,15 +209,15 @@ select is(
   'An unapproved role code is rejected'
 );
 select is(
-  jsonb_array_length(
+  (select array_agg(option->>'code' order by option->>'code') from jsonb_array_elements(
     public.get_organization_member(
       'b1000000-0000-4000-8000-000000000001',
       'b2000000-0000-4000-8000-000000000001',
       'b3000000-0000-4000-8000-000000000002',
       'b4000000-0000-4000-8000-000000000009'
     )->'member'->'roleOptions'
-  ),
-  2,
+  ) option),
+  array['admin','chief_flight_instructor','head_of_training','instructor_pilot'],
   'Member detail exposes only other active assignable roles'
 );
 select is(

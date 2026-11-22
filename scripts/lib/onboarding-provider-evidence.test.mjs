@@ -193,6 +193,7 @@ function fixture() {
         membership_id: uuid(6),
         display_name: null,
         contact_number: null,
+        credential_applicability: null,
         version: 1,
         created_at: timestamp,
         updated_at: timestamp,
@@ -304,6 +305,12 @@ describe('R3 exact provider completion evidence', () => {
       'role',
       (value) => {
         value.after.roles[0].role_id = uuid(99);
+      },
+    ],
+    [
+      'applicability set during onboarding',
+      (value) => {
+        value.after.profiles[0].credential_applicability = 'instructor';
       },
     ],
     [

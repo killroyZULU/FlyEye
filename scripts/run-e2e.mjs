@@ -279,6 +279,27 @@ async function mockSupabase(page, options = {}) {
         },
         correlationId,
       },
+      my_credentials: {
+        decision: 'credential_workspace',
+        organizationId,
+        correlationId,
+        hasMore: false,
+        members: [
+          {
+            membershipId: ownMembershipId,
+            displayName: 'Synthetic Student',
+            applicability: 'both',
+            version: 1,
+          },
+        ],
+      },
+      personnel_credentials: {
+        decision: 'credential_workspace',
+        organizationId,
+        correlationId,
+        hasMore: false,
+        members: [],
+      },
       get_profile: { decision: 'found', profile: ownProfile, correlationId },
       update_profile: { decision: 'updated', profile: ownProfile, correlationId },
       suspend: {
@@ -662,6 +683,19 @@ async function runScenario(browser, viewport, scenario) {
       );
       assert.equal(await page.getByText(/does not change your role/i).count(), 1);
       assert.equal(await page.getByRole('button', { name: 'Begin secure setup' }).count(), 1);
+    } else if (scenario.name === 'credential-owner' || scenario.name === 'credential-personnel') {
+      const owner = scenario.name === 'credential-owner';
+      const title = owner ? 'My Credentials' : 'Personnel Credentials';
+      const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+      await nav.getByRole('button', { name: title, exact: true }).click();
+      await page.getByRole('heading', { name: title, exact: true }).waitFor();
+      if (owner) {
+        await page.getByText('No credentials on record.').waitFor();
+        assert.equal(await nav.getByRole('button', { name: 'Personnel Credentials' }).count(), 0);
+        await page.getByText('Ground instructor license (GI) — optional').waitFor();
+      } else {
+        await page.getByText('No personnel credentials on record.').waitFor();
+      }
     } else if (scenario.name === 'members') {
       await page.getByRole('heading', { name: 'Administration dashboard' }).waitFor();
       await page.getByRole('button', { name: 'People', exact: true }).click();
@@ -735,7 +769,31 @@ async function runScenario(browser, viewport, scenario) {
   }
 }
 
+function credentialContext(base, permissions) {
+  return {
+    ...base,
+    memberships: base.memberships.map((member) => ({
+      ...member,
+      permissions: [...member.permissions, ...permissions],
+    })),
+  };
+}
 const scenarios = [
+  {
+    name: 'credential-owner',
+    options: { context: credentialContext(studentContext, ['credential.own.read']) },
+  },
+  {
+    name: 'credential-personnel',
+    options: {
+      admin: true,
+      context: credentialContext(adminContext, [
+        'credential.own.read',
+        'credential.school.read',
+        'credential.applicability.manage',
+      ]),
+    },
+  },
   { name: 'student', options: {} },
   { name: 'invalid', options: { invalid: true } },
   { name: 'empty', options: { empty: true } },
