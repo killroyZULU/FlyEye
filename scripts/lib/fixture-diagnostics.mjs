@@ -540,6 +540,19 @@ const responseDetails = new Set([
 ]);
 
 export function fixtureDiagnostic(feature, stage, event, detail) {
+  if (
+    feature === 'FEAT-003' &&
+    [
+      'churn-client-dispatch',
+      'churn-client-headers',
+      'churn-gateway-receipt',
+      'churn-auth-completion',
+    ].includes(stage)
+  ) {
+    if (event !== 'response' || !['observed', 'unknown'].includes(detail))
+      throw new Error('Unsupported fixture diagnostic.');
+    return `${feature} runtime diagnostic: stage=${stage} event=response detail=${detail}.`;
+  }
   const staleObservation =
     feature === 'FEAT-003' &&
     [

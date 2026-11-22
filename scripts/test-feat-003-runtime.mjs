@@ -33,6 +33,7 @@ import {
   verifyLocalStaleEndpoints,
 } from './lib/local-stale-target.mjs';
 import { onboardingChallengeBrowser } from './lib/onboarding-challenge-browser.mjs';
+import { churnPasswordBoundary } from './lib/churn-password-boundary.mjs';
 import { churnCases, runOnboardingChurnCases } from './lib/onboarding-churn-cases.mjs';
 import {
   currentFactorCases,
@@ -398,10 +399,10 @@ function browserClient() {
 async function signIn(user) {
   if (churnMode) enterStage('churn-password', 'provider password sign-in');
   const client = browserClient();
-  const { data, error } = await client.auth.signInWithPassword({
-    email: user.email,
-    password,
-  });
+  const login = () => client.auth.signInWithPassword({ email: user.email, password });
+  const { data, error } = passwordBoundary
+    ? await passwordBoundary.observe(user.id, login)
+    : await login();
   if (error || !data.session) {
     if (providerMode && error) diagnostics.fail(error);
     throw new Error('Synthetic password sign-in failed.');
@@ -1211,6 +1212,13 @@ if (![apiUrl, databaseUrl, publishableKey, serviceRoleKey].every((value) => valu
 }
 
 const api = assertLoopbackUrl(apiUrl, 'Local API');
+const passwordBoundary =
+  churnMode &&
+  diagnosticsEnabled &&
+  process.env.CI === 'true' &&
+  process.env.GITHUB_ACTIONS === 'true'
+    ? churnPasswordBoundary(apiUrl)
+    : undefined;
 const database = assertLoopbackUrl(databaseUrl, 'Local database');
 preflight('local-preflight-endpoints', 'passed');
 preflight('local-preflight-database-container', 'enter');
@@ -1846,6 +1854,21 @@ try {
     process.exitCode = 1;
   }
 } finally {
+  try {
+    passwordBoundary?.report(
+      (userId) =>
+        psql(
+          `select count(*) from auth.sessions s where s.user_id=:'churn_user'::uuid
+          and exists (select 1 from auth.mfa_amr_claims a
+            where a.session_id=s.id and a.authentication_method='password')`,
+          { churn_user: userId },
+          true,
+        ),
+      reportDiagnostic,
+    );
+  } catch {
+    /* Observation cannot override the fixture result or cleanup. */
+  }
   try {
     await diagnostics.run('fixture-cleanup', () =>
       runOnboardingCleanup(diagnostics, [
