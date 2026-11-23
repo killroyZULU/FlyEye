@@ -45,6 +45,10 @@ CR01, CR04 and the S1 parts of CR12, CR13 and CR21 (AC01, AC08 and AC11).
 
 The [focused replacement proof](../../../scripts/fixtures/credential-replacement-proof.mjs) exercises AC04/05/08/09/10/11 for one synthetic mother-license PNG. It covers browser submission and lost-acknowledgement reconciliation, the exact predecessor and audit pair, retained evidence, stale and competing commands, and audit rollback. Other file types, reviewer decisions and hosted acceptance require separate evidence.
 
+## S2 ELP submission
+
+The [ELP checkpoint](../../../scripts/fixtures/credential-elp-proof.mjs) exercises AC03/04/05 for a synthetic owner submitting a dated Level 6 record alongside a pending mother license. It covers fresh metadata readback, same-key changed-level conflict and private evidence access. The [migration assertions](../../../scripts/fixtures/credential-elp-migration.sql) cover category-specific fields, allowed levels and explicit no-expiry storage. ELP withdrawal/replacement, optional completeness declarations and approved expiry warnings require separate evidence.
+
 ## Shared session verification plan
 
 The [selected policy](../08_SECURITY_REQUIREMENTS.md#selected-session-policy)

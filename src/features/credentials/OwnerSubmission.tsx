@@ -19,9 +19,11 @@ export function OwnerSubmission(props: Props) {
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
   const [level, setLevel] = useState<string | null>(null);
+  const [category, setCategory] = useState<'mother_license' | 'elp'>('mother_license');
   const [operation, setOperation] = useState<{
     id: string;
     expectedPendingId?: string;
+    category: 'mother_license' | 'elp';
     check: boolean;
   }>();
   const generation = useRef(0);
@@ -92,15 +94,25 @@ export function OwnerSubmission(props: Props) {
     setMessage('');
     reload((n) => n + 1);
   }
-  const pendingId = page?.versions.find((v) => v.state === 'pending')?.id;
+  const { rows, pendingId, canSubmit, withdrawId } = categoryView(page, category, level);
   return (
-    <section aria-label="Mother license submissions">
+    <section aria-label="Owner credential submissions">
+      <CategorySelect
+        category={category}
+        disabled={busy || !!operation?.check}
+        onChange={(value) => {
+          setCategory(value);
+          refresh();
+        }}
+      />
       {message && <p role="status">{message}</p>}
-      {!page && <button onClick={refresh}>Refresh submissions</button>}
+      <button onClick={refresh} disabled={busy}>
+        Refresh submissions
+      </button>
       <OwnerWithdrawal
         key={membershipId + organizationId}
         busy={busy}
-        pendingId={level === 'aal2' ? pendingId : undefined}
+        pendingId={withdrawId}
         execute={(action, id, key) => gateway.withdrawal(scope, action, id, key)}
         act={act}
         current={(gen) => generation.current === gen}
@@ -118,6 +130,7 @@ export function OwnerSubmission(props: Props) {
                 scope,
                 operation.id,
                 operation.expectedPendingId,
+                operation.category,
               );
               if (gen !== generation.current) return;
               setOperation(
@@ -135,28 +148,18 @@ export function OwnerSubmission(props: Props) {
           {operation.expectedPendingId ? 'Check replacement outcome' : 'Check submission outcome'}
         </button>
       )}
-      {page?.versions.map((v) => (
-        <div key={v.id}>
-          <p>
-            {v.state === 'pending' ? 'Pending' : 'Current approved'} — {v.licenseType}{' '}
-            {v.licenseNumber} · {v.issueDate} · {v.expiryDate ?? 'No expiry'}
-          </p>
-          {level === 'aal2' && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void act(async (gen) => {
-                  const result = await gateway.evidence(scope, v.id);
-                  if (gen === generation.current)
-                    setPreview({ url: URL.createObjectURL(result.blob), until: result.until });
-                })
-              }
-            >
-              View {v.state} evidence
-            </button>
-          )}
-        </div>
-      ))}
+      <OwnerVersions
+        rows={rows}
+        canPreview={level === 'aal2'}
+        busy={busy}
+        onView={(id) =>
+          void act(async (gen) => {
+            const result = await gateway.evidence(scope, id);
+            if (gen === generation.current)
+              setPreview({ url: URL.createObjectURL(result.blob), until: result.until });
+          })
+        }
+      />
       {preview && <img alt="Submitted synthetic supporting evidence" src={preview.url} />}
       {page && level !== 'aal2' && (
         <form
@@ -178,18 +181,21 @@ export function OwnerSubmission(props: Props) {
           <p>Enroll an authenticator in account security first if needed.</p>
         </form>
       )}
-      {page && level === 'aal2' && !operation?.check && (
+      {canSubmit && !operation?.check && (
         <OwnerLicenseForm
-          key={pendingId ?? 'initial'}
+          key={category + (pendingId ?? 'initial')}
+          elp={category === 'elp'}
           busy={busy}
           replacing={!!pendingId}
           onSubmit={(fields, file) =>
             void act(async (gen) => {
               const id =
-                operation && operation.expectedPendingId === pendingId
+                operation &&
+                operation.category === category &&
+                operation.expectedPendingId === pendingId
                   ? operation.id
                   : crypto.randomUUID();
-              setOperation({ id, expectedPendingId: pendingId, check: true });
+              setOperation({ id, expectedPendingId: pendingId, category, check: true });
               await gateway.submit(scope, fields, file, id, pendingId);
               if (gen === generation.current) {
                 setOperation(undefined);
@@ -204,6 +210,71 @@ export function OwnerSubmission(props: Props) {
   );
 }
 
+type Category = 'mother_license' | 'elp';
+function categoryView(
+  page: Awaited<ReturnType<OwnerGateway['status']>> | undefined,
+  category: Category,
+  level: string | null,
+) {
+  const rows = page?.versions.filter((v) => v.category === category);
+  const pendingId = rows?.find((v) => v.state === 'pending')?.id;
+  const authorized = !!page && level === 'aal2';
+  return {
+    rows,
+    pendingId,
+    canSubmit: authorized && !(category === 'elp' && pendingId),
+    withdrawId: authorized && category === 'mother_license' ? pendingId : undefined,
+  };
+}
+function CategorySelect({
+  category,
+  disabled,
+  onChange,
+}: {
+  category: Category;
+  disabled: boolean;
+  onChange: (value: Category) => void;
+}) {
+  return (
+    <label>
+      Credential category{' '}
+      <select
+        value={category}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value === 'elp' ? 'elp' : 'mother_license')}
+      >
+        <option value="mother_license">Mother license</option>
+        <option value="elp">English Language Proficiency (ELP)</option>
+      </select>
+    </label>
+  );
+}
+function OwnerVersions({
+  rows,
+  canPreview,
+  busy,
+  onView,
+}: {
+  rows: Awaited<ReturnType<OwnerGateway['status']>>['versions'] | undefined;
+  canPreview: boolean;
+  busy: boolean;
+  onView: (id: string) => void;
+}) {
+  return rows?.map((v) => (
+    <div key={v.id}>
+      <p>
+        {v.state === 'pending' ? 'Pending' : 'Current approved'} —{' '}
+        {v.category === 'elp' ? `ELP Level ${v.elpLevel}` : `${v.licenseType} ${v.licenseNumber}`} ·{' '}
+        {v.issueDate} · {v.expiryDate ?? 'No expiry'}
+      </p>
+      {canPreview && (
+        <button disabled={busy} onClick={() => onView(v.id)}>
+          View {v.state} evidence
+        </button>
+      )}
+    </div>
+  ));
+}
 function usePreviewCleanup(url: string | undefined) {
   useEffect(
     () => () => {

@@ -4,21 +4,38 @@ import type { Database } from '../../lib/database.types';
 
 export const syntheticSample =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPQzlwPAAIGAUQpAeg+AAAAAElFTkSuQmCC';
+const version = z.object({
+  id: z.uuid(),
+  state: z.enum(['pending', 'approved']),
+  issueDate: z.iso.date(),
+  expiryDate: z.iso.date().nullable(),
+});
 const versions = z.object({
   versions: z
     .array(
-      z.object({
-        id: z.uuid(),
-        state: z.enum(['pending', 'approved']),
-        licenseType: z.string(),
-        licenseNumber: z.string(),
-        issueDate: z.iso.date(),
-        expiryDate: z.iso.date().nullable(),
-      }),
+      z
+        .discriminatedUnion('category', [
+          version.extend({
+            category: z.literal('mother_license'),
+            licenseType: z.string(),
+            licenseNumber: z.string(),
+          }),
+          version.extend({
+            category: z.literal('elp'),
+            elpLevel: z.number().int().min(1).max(6),
+            noExpiry: z.boolean(),
+          }),
+        ])
+        .refine((row) => row.category !== 'elp' || row.noExpiry === (row.expiryDate === null)),
     )
-    .max(2),
+    .max(4),
   validUntil: z.iso.datetime({ offset: true }),
 });
+export type CredentialFields = {
+  issueDate: string;
+  expiryDate: string | null;
+  noExpiry: boolean;
+} & ({ licenseType: string; licenseNumber: string } | { category: 'elp'; elpLevel: number });
 type Scope = { organizationId: string; membershipId: string };
 export type OwnerGateway = ReturnType<typeof createOwnerGateway>;
 export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'functions'>) {
@@ -60,13 +77,7 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
     },
     async submit(
       scope: Scope,
-      fields: {
-        licenseType: string;
-        licenseNumber: string;
-        issueDate: string;
-        expiryDate: string | null;
-        noExpiry: boolean;
-      },
+      fields: CredentialFields,
       file: File,
       operationId: string,
       expectedPendingId?: string,
@@ -84,10 +95,16 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
       });
       return z.object({ state: z.literal('pending'), id: z.uuid() }).parse(result.data);
     },
-    async reconcile(scope: Scope, operationId: string, expectedPendingId?: string) {
+    async reconcile(
+      scope: Scope,
+      operationId: string,
+      expectedPendingId?: string,
+      category?: 'elp' | 'mother_license',
+    ) {
       const result = await invoke({
         ...scope,
         action: 'reconcile',
+        category: category === 'elp' ? 'elp' : undefined,
         operationId,
         expectedPendingId,
       });

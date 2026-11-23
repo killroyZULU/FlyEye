@@ -6,6 +6,7 @@ const scope = { organizationId: crypto.randomUUID(), membershipId: crypto.random
 const approved = {
   id: crypto.randomUUID(),
   state: 'approved',
+  category: 'mother_license',
   licenseType: 'SPL',
   licenseNumber: 'A',
   issueDate: '2024-01-01',

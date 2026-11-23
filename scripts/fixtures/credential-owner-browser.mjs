@@ -63,6 +63,7 @@ export async function proveOwnerBrowser({
   session,
   login,
   replacementProof,
+  proveElp,
   bundle,
   mark,
 }) {
@@ -218,6 +219,10 @@ export async function proveOwnerBrowser({
     if (login) mark('pending-render');
     await page.getByText(/Pending — PPL 001-SYN/).waitFor();
     await page.getByText(/Current approved — SPL previous/).waitFor();
+    if (proveElp) {
+      await proveElp(page);
+      return;
+    }
     if (replacementProof) {
       await replacementProof.run(page);
       return;

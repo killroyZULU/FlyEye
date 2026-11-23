@@ -20,6 +20,12 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'elp-migration',
+  'elp-owner-submit',
+  'elp-refresh',
+  'elp-replay',
+  'elp-preview',
+  'elp-invariants-passed',
   'replacement-browser',
   'replacement-readback',
   'replacement-history',

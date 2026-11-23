@@ -175,6 +175,70 @@ describe('local owner command boundary', () => {
     expect(await result.response.json()).toEqual({ state: 'pending', id: actor });
     expect(result.calls).toHaveLength(3);
   });
+  const elp = {
+    action: 'submit',
+    category: 'elp',
+    organizationId: actor,
+    membershipId: session,
+    operationId: session,
+    elpLevel: 6,
+    issueDate: '2020-01-15',
+    expiryDate: '2023-06-30',
+    noExpiry: false,
+    filename: form.filename,
+    mime: form.mime,
+    file: form.file,
+  };
+  it.each([
+    ...[1, 2, 3, 4, 5, 6].map((level) => ({
+      name: 'dated level ' + level,
+      patch: { elpLevel: level },
+      expected: 200,
+    })),
+    { name: 'explicit no expiry', patch: { noExpiry: true, expiryDate: null }, expected: 200 },
+    ...[0, 7, 1.5, '6', null, undefined].map((level) => ({
+      name: 'invalid level ' + String(level),
+      patch: { elpLevel: level },
+      expected: 400,
+    })),
+    { name: 'blank date without choice', patch: { expiryDate: null }, expected: 400 },
+    { name: 'no choice provided', patch: { expiryDate: null, noExpiry: undefined }, expected: 400 },
+    {
+      name: 'future issue',
+      patch: { issueDate: '2099-01-01', expiryDate: null, noExpiry: true },
+      expected: 400,
+    },
+    { name: 'expiry before issue', patch: { expiryDate: '2019-01-01' }, expected: 400 },
+    { name: 'both expiry choices', patch: { noExpiry: true }, expected: 400 },
+    { name: 'irrelevant license field', patch: { licenseNumber: 'SYN' }, expected: 400 },
+    { name: 'missing evidence', patch: { file: undefined }, expected: 400 },
+  ])('ELP $name', async ({ patch, expected }) => {
+    const result = await scenario({ ...elp, ...patch }, true, {
+      replayed: true,
+      id: actor,
+      state: 'pending',
+    });
+    expect(result.response.status).toBe(expected);
+    expect(result.calls.some((p) => p.endsWith('credential_owner_submission'))).toBe(
+      expected === 200,
+    );
+    expect(result.calls.some((p) => p.startsWith('/storage/'))).toBe(false);
+  });
+  it('uses Manila midnight for the ELP issue date cutoff', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const cmd = { ...elp, issueDate: '2026-01-02', expiryDate: null, noExpiry: true };
+      vi.setSystemTime(new Date('2026-01-01T15:59:59Z'));
+      expect((await scenario(cmd, true)).response.status).toBe(400);
+      vi.setSystemTime(new Date('2026-01-01T16:00:00Z'));
+      expect(
+        (await scenario(cmd, true, { replayed: true, id: actor, state: 'pending' })).response
+          .status,
+      ).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('records a scope denial before returning it', async () => {
     const { response, calls } = await scenario(form, true, null);
     expect(response.status).toBe(403);

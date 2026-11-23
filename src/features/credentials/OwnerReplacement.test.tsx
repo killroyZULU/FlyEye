@@ -8,6 +8,7 @@ it('reconciles a missing replacement acknowledgement against the original pendin
   const old = {
     id: crypto.randomUUID(),
     state: 'pending' as const,
+    category: 'mother_license' as const,
     licenseType: 'PPL',
     licenseNumber: 'OLD',
     issueDate: '2025-01-01',
@@ -50,12 +51,12 @@ it('reconciles a missing replacement acknowledgement against the original pendin
   await waitFor(() => expect(gateway.submit).toHaveBeenCalledTimes(1));
   const args = gateway.submit.mock.calls[0]!;
   expect(args[0]).toEqual(scope);
-  expect(args[1].licenseNumber).toBe('NEW');
+  expect('licenseNumber' in args[1] && args[1].licenseNumber).toBe('NEW');
   expect(args[4]).toBe(old.id);
   await screen.findByText('Acknowledgement unavailable.');
   fireEvent.click(screen.getByRole('button', { name: 'Check replacement outcome' }));
   expect(await screen.findByText('Replacement confirmed.')).toBeVisible();
   expect(await screen.findByText(/Pending — PPL NEW/)).toBeVisible();
-  expect(gateway.reconcile.mock.calls).toEqual([[scope, args[3], old.id]]);
+  expect(gateway.reconcile.mock.calls).toEqual([[scope, args[3], old.id, 'mother_license']]);
   expect(gateway.submit).toHaveBeenCalledTimes(1);
 });

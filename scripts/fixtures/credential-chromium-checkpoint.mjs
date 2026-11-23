@@ -100,6 +100,7 @@ export async function observePasswordPost(page, apiOrigin, mark, click) {
 }
 export async function checkpoint({
   replacement = false,
+  elp = false,
   auth,
   email,
   password,
@@ -264,7 +265,28 @@ export async function checkpoint({
       bundle,
       mark,
       replacementProof,
+      proveElp: elp
+        ? (page) =>
+            import('./credential-elp-proof.mjs').then(({ proveElp }) =>
+              proveElp({
+                page,
+                sql,
+                school,
+                member,
+                actor,
+                mark,
+                origin,
+                invoke,
+                apiUrl: status.API_URL,
+              }),
+            )
+        : undefined,
     });
+    if (elp) {
+      assert.equal(approved(), initial);
+      mark('elp-invariants-passed');
+      return;
+    }
     if (replacement) {
       assert.equal(approved(), initial);
       mark('replacement-invariants-passed');

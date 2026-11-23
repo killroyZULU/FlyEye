@@ -32,7 +32,10 @@ const license = scope
     file: z.literal(syntheticPng),
   })
   .strict();
-const input = z.discriminatedUnion('action', [
+const elp = license
+  .omit({ licenseType: true, licenseNumber: true })
+  .extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
+const input = z.union([
   scope.extend({ action: z.literal('status') }).strict(),
   scope
     .extend({ action: z.literal('withdraw'), versionId: z.uuid(), operationId: z.uuid() })
@@ -44,11 +47,13 @@ const input = z.discriminatedUnion('action', [
   scope
     .extend({
       action: z.literal('reconcile'),
+      category: z.literal('elp').optional(),
       operationId: z.uuid(),
       expectedPendingId: z.uuid().optional(),
     })
     .strict(),
   license.extend({ action: z.literal('submit') }),
+  elp.extend({ action: z.literal('submit') }),
   license.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
 ]);
 export function passwordActor(token: string, userId: string) {
@@ -66,7 +71,7 @@ export function passwordActor(token: string, userId: string) {
     p_mfa: evidence.assuranceLevel === 'aal2' && evidence.totpAuthenticatedAt !== null,
   };
 }
-function validDates(data: z.infer<typeof license>) {
+function validDates(data: Pick<z.infer<typeof license>, 'issueDate' | 'expiryDate' | 'noExpiry'>) {
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Manila',
     year: 'numeric',
@@ -234,8 +239,9 @@ export function credentialOwnerHandler(config: Config) {
         const details = {
           ...(data.action === 'replace' ? { expectedPendingId: data.expectedPendingId } : {}),
           operationId: data.operationId,
-          licenseType: data.licenseType,
-          licenseNumber: data.licenseNumber,
+          ...('elpLevel' in data
+            ? { category: data.category, elpLevel: data.elpLevel }
+            : { licenseType: data.licenseType, licenseNumber: data.licenseNumber }),
           issueDate: data.issueDate,
           expiryDate: data.expiryDate,
           noExpiry: data.noExpiry,
@@ -292,6 +298,7 @@ export function credentialOwnerHandler(config: Config) {
         }
         if (data.action === 'reconcile') {
           const result = await call('reconcile', null, {
+            category: data.category,
             operationId: data.operationId,
             expectedPendingId: data.expectedPendingId,
           });
