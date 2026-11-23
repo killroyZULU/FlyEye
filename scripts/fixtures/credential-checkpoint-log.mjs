@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
+import { passwordPolicyMarkers } from './credential-password-devtools.mjs';
 
 const transportMarkers = new Map([
   ['net::ERR_CONNECTION_REFUSED', 'password-transport-connection-refused'],
@@ -22,7 +23,7 @@ const stages = new Set([
   'password-devtools-unknown',
   'password-devtools-preflight-rejection',
   'password-devtools-response-cors-rejection',
-  'password-devtools-other-browser-block',
+  ...passwordPolicyMarkers,
   ...transportMarkers.values(),
   'password-transport-unknown',
   'browser-preflight',

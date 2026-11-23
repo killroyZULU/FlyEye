@@ -23,34 +23,42 @@ const response = new Set([
   'WildcardOriginNotAllowed',
   'InvalidAllowCredentials',
 ]);
-const otherCorsBlock = new Set([
-  'DisallowedByMode',
-  'CorsDisabledScheme',
-  'InsecureLocalNetwork',
-  'InvalidLocalNetworkAccess',
-  'LocalNetworkAccessPermissionDenied',
-  'RedirectContainsCredentials',
-  'NoCorsRedirectModeNotFollow',
+const corsPolicy = new Map([
+  ['DisallowedByMode', 'password-devtools-cors-disallowed-by-mode'],
+  ['CorsDisabledScheme', 'password-devtools-cors-disabled-scheme'],
+  ['InsecureLocalNetwork', 'password-devtools-insecure-local-network'],
+  ['InvalidLocalNetworkAccess', 'password-devtools-invalid-local-network-access'],
+  [
+    'LocalNetworkAccessPermissionDenied',
+    'password-devtools-local-network-access-permission-denied',
+  ],
+  ['RedirectContainsCredentials', 'password-devtools-redirect-contains-credentials'],
+  ['NoCorsRedirectModeNotFollow', 'password-devtools-no-cors-redirect-mode-not-follow'],
 ]);
-const browserBlock = new Set([
-  'csp',
-  'mixed-content',
-  'origin',
-  'inspector',
-  'integrity',
-  'subresource-filter',
-  'content-type',
-  'corp-not-same-origin',
-  'corp-not-same-site',
+const blockedPolicy = new Map([
+  ['csp', 'password-devtools-csp'],
+  ['mixed-content', 'password-devtools-mixed-content'],
+  ['origin', 'password-devtools-origin'],
+  ['inspector', 'password-devtools-inspector'],
+  ['integrity', 'password-devtools-integrity'],
+  ['subresource-filter', 'password-devtools-subresource-filter'],
+  ['content-type', 'password-devtools-content-type'],
+  ['corp-not-same-origin', 'password-devtools-corp-not-same-origin'],
+  ['corp-not-same-site', 'password-devtools-corp-not-same-site'],
+]);
+export const passwordPolicyMarkers = Object.freeze([
+  ...corsPolicy.values(),
+  ...blockedPolicy.values(),
 ]);
 
 function category(event) {
   const cors = event.corsErrorStatus?.corsError;
   if (preflight.has(cors)) return 'password-devtools-preflight-rejection';
   if (response.has(cors)) return 'password-devtools-response-cors-rejection';
-  if (otherCorsBlock.has(cors) || browserBlock.has(event.blockedReason))
-    return 'password-devtools-other-browser-block';
-  return unknown;
+  const corsMarker = corsPolicy.get(cors);
+  const blockedMarker = blockedPolicy.get(event.blockedReason);
+  if (corsMarker && blockedMarker) return unknown;
+  return corsMarker ?? blockedMarker ?? unknown;
 }
 
 // Keep only an ephemeral protocol ID and a fixed verdict. Never retain event payloads.
