@@ -19,6 +19,10 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'password-devtools-unknown',
+  'password-devtools-preflight-rejection',
+  'password-devtools-response-cors-rejection',
+  'password-devtools-other-browser-block',
   ...transportMarkers.values(),
   'password-transport-unknown',
   'browser-preflight',

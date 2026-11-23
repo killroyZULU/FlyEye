@@ -6,6 +6,7 @@ import { credentialOwnerHandler } from '../../supabase/functions/credential-owne
 import { currentTotp } from '../lib/no-send-runtime-client.mjs';
 import { proveOwnerBrowser } from './credential-owner-browser.mjs';
 import { passwordTransportMarker, requireStatus } from './credential-checkpoint-log.mjs';
+import { observeDevToolsFailure } from './credential-password-devtools.mjs';
 import { withProofStorage } from './credential-proof-storage.mjs';
 import { syntheticSample } from '../../src/features/credentials/owner-gateway.ts';
 
@@ -22,12 +23,18 @@ export function authorizedMetadata(result, school, member) {
 // Correlate by Playwright Request identity. Observe only the checkpoint's first password POST.
 export async function observePasswordPost(page, apiOrigin, mark, click) {
   const endpoint = apiOrigin + '/auth/v1/token?grant_type=password';
+  const devTools = await observeDevToolsFailure(page, endpoint);
+  let multiplePosts = false;
   let first,
     headers,
     transportFailed = false,
     active = true;
   const dispatch = (req) => {
-    if (!first && req.method() === 'POST' && req.url() === endpoint) {
+    if (req.method() === 'POST' && req.url() === endpoint) {
+      if (first) {
+        multiplePosts = true;
+        return;
+      }
       first = req;
       mark('password-request-dispatched');
     }
@@ -87,6 +94,8 @@ export async function observePasswordPost(page, apiOrigin, mark, click) {
     active = false;
     page.off('request', dispatch);
     page.off('requestfailed', failed);
+    if (transportFailed) mark(multiplePosts ? 'password-devtools-unknown' : devTools.result());
+    await devTools.close();
   }
 }
 export async function checkpoint({

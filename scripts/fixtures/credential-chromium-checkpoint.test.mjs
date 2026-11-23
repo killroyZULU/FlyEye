@@ -42,6 +42,95 @@ function observation() {
 }
 describe('password checkpoint attribution', () => {
   it.each([
+    ['PreflightAllowOriginMismatch', undefined, 'single', 'preflight-rejection'],
+    ['MissingAllowOriginHeader', undefined, 'single', 'response-cors-rejection'],
+    [undefined, 'mixed-content', 'single', 'other-browser-block'],
+    ['LocalNetworkAccessPermissionDenied', undefined, 'single', 'other-browser-block'],
+    [undefined, undefined, 'single', 'unknown'],
+    ['MissingAllowOriginHeader\nprivate detail', 'private detail', 'single', 'unknown'],
+    ['MissingAllowOriginHeader', undefined, 'wrong-id', 'unknown'],
+    ['MissingAllowOriginHeader', undefined, 'redirect', 'unknown'],
+    ['MissingAllowOriginHeader', undefined, 'duplicate-cdp', 'unknown'],
+    ['MissingAllowOriginHeader', undefined, 'duplicate-page', 'unknown'],
+    ['MissingAllowOriginHeader', undefined, 'enable-failed', 'unknown'],
+  ])(
+    'keeps DevTools attribution private and exact for case %#',
+    async (corsError, blockedReason, mode, expected) => {
+      const probe = observation();
+      const cdp = new EventEmitter();
+      let detached = false;
+      const commands = [];
+      probe.page.context = () => ({ newCDPSession: async () => cdp });
+      cdp.send = async (name, options) => {
+        commands.push([name, options]);
+        if (mode === 'enable-failed') throw new Error('private detail');
+      };
+      cdp.detach = async () => {
+        detached = true;
+      };
+      function issued(id, method, url) {
+        cdp.emit('Network.requestWillBeSent', {
+          requestId: id,
+          request: {
+            method,
+            url,
+            get postData() {
+              throw new Error('unexpected body read');
+            },
+            get headers() {
+              throw new Error('unexpected header read');
+            },
+          },
+        });
+      }
+      await expect(
+        probe.run(async () => {
+          const first = request();
+          probe.page.emit('request', first);
+          issued('private-preflight', 'OPTIONS', passwordUrl);
+          issued('private-auth', 'POST', passwordUrl);
+          issued('private-unrelated', 'POST', passwordUrl + '&extra');
+          if (mode === 'duplicate-cdp') issued('second', 'POST', passwordUrl);
+          if (mode === 'duplicate-page') probe.page.emit('request', request());
+          if (mode === 'redirect') issued('private-auth', 'GET', origin + '/redirected');
+          const unrelated = {
+            get corsErrorStatus() {
+              throw new Error('unrelated details read');
+            },
+          };
+          cdp.emit(
+            'Network.loadingFailed',
+            Object.assign(Object.create(unrelated), { requestId: 'private-preflight' }),
+          );
+          cdp.emit('Network.loadingFailed', {
+            requestId: mode === 'wrong-id' ? 'private-unrelated' : 'private-auth',
+            corsErrorStatus: {
+              corsError,
+              get failedParameter() {
+                throw new Error('unexpected detail read');
+              },
+            },
+            blockedReason,
+            get errorText() {
+              throw new Error('unexpected detail read');
+            },
+          });
+          probe.page.emit('requestfailed', first);
+          probe.timeout();
+        }),
+      ).rejects.toMatchObject({ name: 'TimeoutError' });
+      expect(probe.markers.filter((m) => m.startsWith('password-devtools-'))).toEqual([
+        'password-devtools-' + expected,
+      ]);
+      expect(commands).toEqual([['Network.enable', { maxPostDataSize: 0 }]]);
+      expect(cdp.eventNames()).toEqual([]);
+      expect(detached).toBe(true);
+      expect(
+        publicLine('Checkpoint: password-devtools-' + expected + ' private detail'),
+      ).toBeNull();
+    },
+  );
+  it.each([
     ['net::ERR_CONNECTION_REFUSED', 'connection-refused'],
     ['net::ERR_CONNECTION_RESET', 'connection-reset'],
     ['net::ERR_CONNECTION_CLOSED', 'connection-closed'],
