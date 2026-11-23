@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.created && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == 'c1fafac972b5cf1181b6e1a02e5e2a381a2a63e9' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -24,6 +24,9 @@ jobs:
       - name: Record fresh runner baseline
         id: baseline
         run: node scripts/fixtures/credential-runner-inventory.mjs before
+      - name: Acquire pinned local Storage image
+        timeout-minutes: 4
+        run: node scripts/fixtures/credential-checkpoint-pull.mjs
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
         with:
           version: 11.28.10
@@ -36,9 +39,7 @@ jobs:
           pnpm exec playwright install --with-deps chromium >/dev/null 2>&1
       - name: Prepare pinned runner-local stack
         timeout-minutes: 14
-        run: |
-          node scripts/no-send-cli/build-linux.mjs --ci
-          docker pull public.ecr.aws/supabase/storage-api:v1.62.5 >/dev/null 2>&1
+        run: node scripts/no-send-cli/build-linux.mjs --ci
       - name: Verify synthetic owner in Chromium
         timeout-minutes: 10
         shell: bash

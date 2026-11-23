@@ -1,8 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { authorizedMetadata } from './credential-chromium-checkpoint.mjs';
 import { publicLine, requireStatus } from './credential-checkpoint-log.mjs';
+import { storagePullResult } from './credential-checkpoint-pull.mjs';
 
 describe('focused hosted checkpoint', () => {
+  it('retains only a fixed Storage pull outcome including unknown', () => {
+    for (const [message, category] of [
+      ['no space left on device', 'disk-full'],
+      ['TOOMANYREQUESTS', 'rate-limited'],
+      ['manifest unknown', 'manifest-unavailable'],
+      ['unauthorized', 'registry-denial'],
+      ['TLS handshake timeout', 'connection-error'],
+      ['unrecognized', 'unknown'],
+    ]) {
+      expect(storagePullResult({ status: 1, stderr: 'private fixture detail ' + message })).toBe(
+        category,
+      );
+    }
+    expect(storagePullResult({ status: null, signal: 'SIGTERM', stderr: 'sensitive' })).toBe(
+      'process-error',
+    );
+    expect(storagePullResult({ status: 0, stderr: 'sensitive' })).toBe('passed');
+  });
   it('reports bounded HTTP failure categories without response bodies', () => {
     expect(() => requireStatus(403, 200)).toThrow(
       expect.objectContaining({ code: 'CHECKPOINT_4XX' }),

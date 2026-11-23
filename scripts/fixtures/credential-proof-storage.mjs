@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const project = 'flyeye-nosend-p3d1';
 const image = 'public.ecr.aws/supabase/storage-api:v1.62.5';
+export { image as proofStorageImage };
 const docker = (args, env = {}) =>
   execFileSync('docker', args, {
     encoding: 'utf8',
