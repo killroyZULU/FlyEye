@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 /* global document, getComputedStyle, requestAnimationFrame -- Browser-evaluated callbacks. */
 import assert from 'node:assert/strict';
 
@@ -78,7 +79,7 @@ async function focus(locator) {
 
 export async function checkProfileFoundation(browser, mockSupabase, submitLogin) {
   const start = async (page) => {
-    await page.goto('http://127.0.0.1:4173');
+    await page.goto(browserOrigin);
     await submitLogin(page);
     await page
       .getByRole('navigation')

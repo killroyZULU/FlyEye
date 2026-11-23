@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
+import { browserOrigin, browserPort } from './lib/e2e-target.mjs';
 import { chromium } from '@playwright/test';
 import { checkMemberMfaVerification } from './lib/member-mfa-verification-browser.mjs';
 import { startProductionBrowserServer } from './lib/production-browser-server.mjs';
@@ -31,7 +32,7 @@ const viteProcess =
   production?.child ??
   spawn(
     process.execPath,
-    ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4173'],
+    ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', browserPort, '--strictPort'],
     {
       env: projectEnvironment,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -117,7 +118,7 @@ async function waitForServer() {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
       if (viteProcess.exitCode !== null || viteProcess.signalCode !== null) break;
-      const response = await fetch('http://127.0.0.1:4173');
+      const response = await fetch(browserOrigin, { redirect: 'error' });
       if (response.ok && (!production || (await response.text()) === production.expectedIndex))
         return;
     } catch {
@@ -531,10 +532,10 @@ async function runScenario(browser, viewport, scenario) {
     await mockSupabase(page, scenario.options);
     await page.goto(
       scenario.name === 'recovery'
-        ? 'http://127.0.0.1:4173/auth/forgot-password'
+        ? `${browserOrigin}/auth/forgot-password`
         : scenario.name === 'invitation'
-          ? `http://127.0.0.1:4173/auth/invitation?invitation=40000000-0000-4000-8000-000000000001&version=2#access_token=${encodeURIComponent(accessToken)}&refresh_token=synthetic-invitation-refresh-token&expires_in=3600&token_type=bearer&type=invite`
-          : 'http://127.0.0.1:4173',
+          ? `${browserOrigin}/auth/invitation?invitation=40000000-0000-4000-8000-000000000001&version=2#access_token=${encodeURIComponent(accessToken)}&refresh_token=synthetic-invitation-refresh-token&expires_in=3600&token_type=bearer&type=invite`
+          : browserOrigin,
     );
 
     if (scenario.name === 'viewport') {
@@ -554,7 +555,7 @@ async function runScenario(browser, viewport, scenario) {
 
     if (scenario.name === 'recovery') {
       await checkUnverifiedRecoveryNavigation(page);
-      await page.goto('http://127.0.0.1:4173/auth/forgot-password');
+      await page.goto(`${browserOrigin}/auth/forgot-password`);
       await page.getByLabel('Email address').fill('student@example.test');
       await page.getByRole('button', { name: 'Send recovery instructions' }).click();
       const acknowledgementHeading = page.getByRole('heading', {
@@ -568,7 +569,7 @@ async function runScenario(browser, viewport, scenario) {
         true,
       );
       await page.goto(
-        'http://127.0.0.1:4173/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890',
+        `${browserOrigin}/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890`,
       );
       const confirmationHeading = page.getByRole('heading', {
         name: 'Continue password recovery?',
@@ -867,6 +868,8 @@ try {
   } finally {
     await browser.close();
   }
+  assert.equal(viteProcess.exitCode, null, 'Candidate server exited during E2E.');
+  assert.equal(viteProcess.signalCode, null, 'Candidate server stopped during E2E.');
   process.stdout.write(
     `${selectedScenarios.length * viewports.length} Playwright E2E scenarios passed.\n`,
   );

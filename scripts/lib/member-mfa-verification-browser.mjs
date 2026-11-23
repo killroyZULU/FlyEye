@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 import assert from 'node:assert/strict';
 
 const operationId = '40000000-0000-4000-8000-000000000002';
@@ -84,7 +85,7 @@ export async function checkMemberMfaVerification(browser, mockSupabase, submitLo
           await page.getByLabel('Verification code').fill('123456');
           await page.getByRole('button', { name: 'Verify authenticator' }).click();
         };
-        await page.goto('http://127.0.0.1:4173');
+        await page.goto(browserOrigin);
         await enter();
         const blocked = page.getByRole('heading', { name: 'Authenticator setup is blocked' });
         await blocked.waitFor();

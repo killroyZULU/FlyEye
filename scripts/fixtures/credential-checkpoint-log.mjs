@@ -20,6 +20,14 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'withdrawal-setup',
+  'withdrawal-authorization',
+  'withdrawal-audit-rollback',
+  'withdrawal-commit',
+  'withdrawal-retention',
+  'withdrawal-stale-replay',
+  'withdrawal-session-expiry',
+  'withdrawal-invariants-passed',
   'png-setup',
   'owner-school-authorization',
   'totp-enroll-and-step-up',

@@ -23,7 +23,8 @@ const docker = (...args) =>
   execFileSync('docker', args, { encoding: 'utf8', timeout: 15000 }).trim();
 const browserCheckpoint = process.argv.includes('--chromium-checkpoint');
 const onePng = process.argv.includes('--one-png-proof');
-const focused = browserCheckpoint || onePng;
+const withdrawal = process.argv.includes('--withdrawal-proof');
+const focused = browserCheckpoint || onePng || withdrawal;
 if (focused) {
   assert.equal(process.argv.length, 3);
   assert.equal(process.platform, 'linux');
@@ -219,10 +220,12 @@ async function run() {
     't',
   );
   passed('TOTP binds the same session, original password window and verified factor');
-  if (onePng) {
-    stage = 'png-setup';
+  if (onePng || withdrawal) {
+    stage = withdrawal ? 'withdrawal-setup' : 'png-setup';
     const { proveSubmission } = await import('./credential-submission-proof.mjs');
-    const { proveOnePng } = await import('./credential-one-png-proof.mjs');
+    const focusedProof = withdrawal
+      ? (await import('./credential-withdrawal-proof.mjs')).proveWithdrawal
+      : (await import('./credential-one-png-proof.mjs')).proveOnePng;
     await proveSubmission({
       ownership,
       mark,
@@ -234,7 +237,7 @@ async function run() {
       sid,
       aal1: signed.access_token,
       aal2: elevated.access_token,
-      onePngProof: proveOnePng,
+      focusedProof,
     });
     mark('empty-sink');
     await sink();

@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 /* global document, getComputedStyle -- Used only inside browser-evaluated callbacks. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -74,7 +75,7 @@ function assertLayout(result, width) {
 }
 
 export async function checkSignInFoundation(browser, mockSupabase, options = {}) {
-  const baseUrl = options.baseUrl ?? 'http://127.0.0.1:4173';
+  const baseUrl = options.baseUrl ?? browserOrigin;
   const evidence = options.evidenceDirectory;
   if (evidence) await fs.mkdir(evidence, { recursive: true });
   const capture = async (page, name) => {

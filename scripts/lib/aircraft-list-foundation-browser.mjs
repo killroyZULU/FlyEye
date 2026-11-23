@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 /* global document, getComputedStyle -- Browser-evaluated checks. */
 import assert from 'node:assert/strict';
 
@@ -141,7 +142,7 @@ async function focused(locator) {
 async function start(page, mockSupabase, submitLogin, state) {
   await mockSupabase(page, { admin: true });
   await mockRegistry(page, state);
-  await page.goto('http://127.0.0.1:4173');
+  await page.goto(browserOrigin);
   await submitLogin(page);
   await page.getByRole('navigation').getByRole('button', { name: 'Aircraft', exact: true }).click();
   await page.getByRole('heading', { name: 'Aircraft registry', exact: true }).waitFor();

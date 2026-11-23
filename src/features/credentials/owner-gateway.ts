@@ -36,6 +36,26 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
     async status(scope: Scope) {
       return versions.parse((await invoke({ ...scope, action: 'status' })).data);
     },
+    async withdrawal(
+      scope: Scope,
+      action: 'withdraw' | 'withdraw_outcome',
+      versionId: string,
+      operationId: string,
+    ) {
+      const result = await client.functions.invoke('credential-owner', {
+        body: { ...scope, action, versionId, operationId },
+      });
+      if (result.error) {
+        if (result.response?.status === 409) return 'conflict' as const;
+        throw new Error('Withdrawal could not be confirmed. Check its outcome.');
+      }
+      const response = z
+        .object({ id: z.literal(versionId), state: z.enum(['withdrawn', 'unconfirmed']) })
+        .parse(result.data);
+      if (action === 'withdraw' && response.state !== 'withdrawn')
+        throw new Error('Check the withdrawal outcome.');
+      return response.state;
+    },
     async submit(
       scope: Scope,
       fields: {
@@ -67,6 +87,7 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
         .discriminatedUnion('state', [
           z.object({ state: z.literal('unconfirmed') }),
           z.object({ state: z.literal('pending'), id: z.uuid() }),
+          z.object({ state: z.literal('withdrawn'), id: z.uuid() }),
         ])
         .parse(result.data);
     },

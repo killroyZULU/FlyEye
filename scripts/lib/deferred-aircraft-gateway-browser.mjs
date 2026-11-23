@@ -1,6 +1,6 @@
+import { browserOrigin as origin } from './e2e-target.mjs';
 import assert from 'node:assert/strict';
 
-const origin = 'http://127.0.0.1:4173';
 const targets = [
   {
     module: 'registry',

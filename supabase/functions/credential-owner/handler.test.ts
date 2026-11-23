@@ -125,6 +125,32 @@ describe('local owner command boundary', () => {
     );
     expect(calls.some((path) => path.startsWith('/storage/'))).toBe(false);
   });
+  it.each([
+    ['withdraw', { id: actor, state: 'withdrawn' }, 200],
+    ['withdraw_outcome', { id: actor, state: 'unconfirmed' }, 200],
+    ['withdraw', { conflict: true }, 409],
+    ['withdraw', null, 403],
+    ['withdraw', { id: session, state: 'withdrawn' }, 503],
+    ['withdraw', { id: actor, state: 'unconfirmed' }, 503],
+  ] as const)(
+    'binds %s to the exact version and protected outcome',
+    async (action, readback, status) => {
+      const { response, calls } = await scenario(
+        {
+          organizationId: actor,
+          membershipId: session,
+          action,
+          operationId: session,
+          versionId: actor,
+        },
+        true,
+        readback,
+      );
+      expect(response.status).toBe(status);
+      expect(calls.some((p) => p.startsWith('/storage/'))).toBe(false);
+      if (status === 200) expect(await response.json()).toEqual(readback);
+    },
+  );
   it('records a scope denial before returning it', async () => {
     const { response, calls } = await scenario(form, true, null);
     expect(response.status).toBe(403);

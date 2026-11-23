@@ -37,6 +37,10 @@ CR01, CR04 and the S1 parts of CR12, CR13 and CR21 (AC01, AC08 and AC11).
 - [Protected handler](../../../supabase/functions/member-administration/handler.test.ts) and [credential panels](../../../src/features/credentials/CredentialPanel.test.tsx) cover the request boundary, category differences, unassigned members and permission-filtered controls.
 - Local browser demo: run `pnpm test:e2e`. The [credential-owner and credential-personnel journeys](../../../scripts/run-e2e.mjs) sign in with synthetic responses and open the two empty views on desktop and mobile. SQL authorization is verified separately. On a migrated local school, an Admin uses **Personnel Credentials** to set applicability; the same member opens **My Credentials** to see the resulting requirements.
 
+## S2 owner withdrawal
+
+[The browser submission](https://github.com/killroyZULU/FlyEye/actions/runs/45126459036) and [one-PNG reconciliation](https://github.com/killroyZULU/FlyEye/actions/runs/45127941772) cover the initial synthetic mother-license path. The [withdrawal proof](../../../scripts/fixtures/credential-withdrawal-proof.mjs) covers the owner transition, retained approval and evidence, atomic audit, replay and stale-target denial for AC05, AC08, AC09 and AC10. The [owner-view tests](../../../src/features/credentials/OwnerWithdrawal.test.tsx) cover the AC11 withdrawal action and result. Replacement, broader category/file support and hosted verification remain open. Reviewer races and full history remain later-slice checks.
+
 ## Shared session verification plan
 
 The [selected policy](../08_SECURITY_REQUIREMENTS.md#selected-session-policy)

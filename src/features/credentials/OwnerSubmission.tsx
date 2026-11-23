@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { OwnerWithdrawal } from './OwnerWithdrawal';
 import { syntheticSample, type OwnerGateway } from './owner-gateway';
 
 type Props = {
@@ -8,15 +9,11 @@ type Props = {
   getAssurance: () => Promise<{ currentLevel: string | null; nextLevel: string | null }>;
   verifyTotp: (code: string) => Promise<void>;
 };
-export function OwnerSubmission({
-  gateway,
-  organizationId,
-  membershipId,
-  getAssurance,
-  verifyTotp,
-}: Props) {
+export function OwnerSubmission(props: Props) {
+  const { gateway, organizationId, membershipId, getAssurance, verifyTotp } = props;
   const [page, setPage] = useState<Awaited<ReturnType<OwnerGateway['status']>>>();
   const [preview, setPreview] = useState<{ url: string; until: string }>();
+  usePreviewCleanup(preview?.url);
   const [tick, reload] = useState(0),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
@@ -63,12 +60,6 @@ export function OwnerSubmission({
       document.removeEventListener('visibilitychange', hidden);
     };
   }, [gateway, organizationId, membershipId, tick, getAssurance]);
-  useEffect(
-    () => () => {
-      if (preview) URL.revokeObjectURL(preview.url);
-    },
-    [preview],
-  );
   useEffect(() => {
     if (!page) return;
     const timer = setTimeout(
@@ -105,6 +96,20 @@ export function OwnerSubmission({
     <section aria-label="Mother license submissions">
       {message && <p role="status">{message}</p>}
       {!page && <button onClick={refresh}>Refresh submissions</button>}
+      <OwnerWithdrawal
+        key={membershipId + organizationId}
+        busy={busy}
+        pendingId={
+          level === 'aal2' ? page?.versions.find((v) => v.state === 'pending')?.id : undefined
+        }
+        execute={(action, id, key) => gateway.withdrawal(scope, action, id, key)}
+        act={act}
+        current={(gen) => generation.current === gen}
+        onResult={(text) => {
+          refresh();
+          setMessage(text);
+        }}
+      />
       {operation && (
         <button
           disabled={busy}
@@ -112,16 +117,9 @@ export function OwnerSubmission({
             void act(async (gen) => {
               const outcome = await gateway.reconcile(scope, operation);
               if (gen !== generation.current) return;
-              if (outcome.state === 'pending') {
-                setOperation(null);
-                refresh();
-                setMessage('Submission confirmed.');
-              } else {
-                refresh();
-                setMessage(
-                  'No committed submission was found. Re-select the file to retry this operation.',
-                );
-              }
+              if (outcome.state !== 'unconfirmed') setOperation(null);
+              refresh();
+              setMessage(submissionOutcomeMessage(outcome.state));
             })
           }
         >
@@ -208,6 +206,20 @@ export function OwnerSubmission({
   );
 }
 
+function usePreviewCleanup(url: string | undefined) {
+  useEffect(
+    () => () => {
+      if (url) URL.revokeObjectURL(url);
+    },
+    [url],
+  );
+}
+
+function submissionOutcomeMessage(state: 'unconfirmed' | 'withdrawn' | 'pending') {
+  if (state === 'unconfirmed')
+    return 'No committed submission was found. Re-select the file to retry this operation.';
+  return state === 'withdrawn' ? 'Submission was withdrawn.' : 'Submission confirmed.';
+}
 function textField(form: FormData, key: string) {
   const value = form.get(key);
   return typeof value === 'string' ? value : '';

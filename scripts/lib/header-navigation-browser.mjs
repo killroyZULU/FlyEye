@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 /* global document, getComputedStyle -- Used only inside browser-evaluated callbacks. */
 import assert from 'node:assert/strict';
 
@@ -91,7 +92,7 @@ async function focusedAndReachable(locator) {
 export async function checkHeaderNavigation(browser, mockSupabase, submitLogin, contexts) {
   const start = async (page, context) => {
     await mockSupabase(page, { context });
-    await page.goto('http://127.0.0.1:4173');
+    await page.goto(browserOrigin);
     await submitLogin(page);
     await page.getByRole('navigation', { name: 'Primary navigation' }).waitFor();
     await page.evaluate(() => document.fonts.ready);

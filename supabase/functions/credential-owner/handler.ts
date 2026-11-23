@@ -12,6 +12,12 @@ const scope = z.object({ organizationId: z.uuid(), membershipId: z.uuid() });
 const day = z.iso.date();
 const input = z.discriminatedUnion('action', [
   scope.extend({ action: z.literal('status') }).strict(),
+  scope
+    .extend({ action: z.literal('withdraw'), versionId: z.uuid(), operationId: z.uuid() })
+    .strict(),
+  scope
+    .extend({ action: z.literal('withdraw_outcome'), versionId: z.uuid(), operationId: z.uuid() })
+    .strict(),
   scope.extend({ action: z.literal('evidence'), versionId: z.uuid() }).strict(),
   scope.extend({ action: z.literal('reconcile'), operationId: z.uuid() }).strict(),
   scope
@@ -255,8 +261,21 @@ export function credentialOwnerHandler(config: Config) {
           return result ? reply(200, result) : await denied();
         }
         if (!actor.p_mfa) return await denied();
+        if (data.action === 'withdraw' || data.action === 'withdraw_outcome') {
+          const result = await call(data.action, data.versionId, { operationId: data.operationId });
+          if (!result) return await denied();
+          if (result.conflict) return reply(409);
+          if (
+            result.id !== data.versionId ||
+            (result.state !== 'withdrawn' &&
+              !(data.action === 'withdraw_outcome' && result.state === 'unconfirmed'))
+          )
+            return reply(503);
+          return reply(200, { id: result.id, state: result.state });
+        }
         if (data.action === 'reconcile') {
           const result = await call('reconcile', null, { operationId: data.operationId });
+          if (result?.conflict) return reply(409);
           return result ? reply(200, result) : await denied();
         }
         return data.action === 'evidence' ? await serveEvidence(data) : await submitLicense(data);

@@ -1,3 +1,4 @@
+import { browserOrigin } from './e2e-target.mjs';
 /* global document, getComputedStyle -- Browser-evaluated checks. */
 import assert from 'node:assert/strict';
 
@@ -155,7 +156,7 @@ export async function checkSecurityFoundation(browser, mockSupabase, submitLogin
     await page.route('http://127.0.0.1:55321/**', (route) => route.abort());
     await mockSupabase(page);
     await mockSecurity(page, state);
-    await page.goto('http://127.0.0.1:4173');
+    await page.goto(browserOrigin);
     const response = page.waitForResponse('**/auth/v1/token?grant_type=password');
     await submitLogin(page);
     state.session = await (await response).json();
@@ -324,7 +325,7 @@ export async function checkSecurityFoundation(browser, mockSupabase, submitLogin
   const legacy = await browser.newPage();
   try {
     await mockSupabase(legacy, { privilegedMissingMfa: true });
-    await legacy.goto('http://127.0.0.1:4173');
+    await legacy.goto(browserOrigin);
     await submitLogin(legacy);
     await legacy.getByRole('button', { name: 'Begin secure setup' }).waitFor();
     assert.equal(await legacy.locator('.security-foundation').count(), 0);

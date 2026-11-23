@@ -1,6 +1,5 @@
+import { browserOrigin as origin } from './e2e-target.mjs';
 import assert from 'node:assert/strict';
-
-const origin = 'http://127.0.0.1:4173';
 
 export async function checkDeferredScreens(browser, manifest, mockSupabase, submitLogin) {
   const fileFor = (name) => {

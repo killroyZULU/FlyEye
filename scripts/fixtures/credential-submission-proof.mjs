@@ -19,7 +19,7 @@ export async function proveSubmission({
   aal1,
   aal2,
   session,
-  onePngProof,
+  focusedProof,
 }) {
   const origin = 'http://127.0.0.1:58329';
   const invoke = credentialOwnerHandler({
@@ -96,8 +96,8 @@ export async function proveSubmission({
         sql(`select to_jsonb(v)::text from credential_private.versions v where id='${prior}'`);
       const original = priorRow();
       assert.ok(original);
-      if (onePngProof) {
-        await onePngProof({
+      if (focusedProof) {
+        await focusedProof({
           request,
           submit,
           sql,
@@ -254,7 +254,7 @@ export async function proveSubmission({
       );
     });
   } catch (error) {
-    if (onePngProof) throw error; // Preserve the exact sanitized stage from the focused proof.
+    if (focusedProof) throw error; // Preserve the exact sanitized stage from the focused proof.
     mark(
       'failure-' +
         step +

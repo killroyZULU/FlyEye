@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { browserPort } from './e2e-target.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -32,7 +34,10 @@ export async function startProductionBrowserServer(environment) {
     });
     if (budget.status !== 0) throw new Error('Synthetic production bundle budget failed.');
     process.stdout.write(budget.stdout);
-    const expectedIndex = await fs.readFile(path.join(resolvedDirectory, 'index.html'), 'utf8');
+    // Two builds of the same tree can have identical assets. Bind readiness to this temporary build.
+    const indexPath = path.join(resolvedDirectory, 'index.html');
+    await fs.appendFile(indexPath, '\n<!-- E2E build ' + randomUUID() + ' -->\n');
+    const expectedIndex = await fs.readFile(indexPath, 'utf8');
     const manifest = JSON.parse(
       await fs.readFile(path.join(resolvedDirectory, '.vite/manifest.json'), 'utf8'),
     );
@@ -46,7 +51,7 @@ export async function startProductionBrowserServer(environment) {
         '--host',
         '127.0.0.1',
         '--port',
-        '4173',
+        browserPort,
         '--strictPort',
       ],
       {

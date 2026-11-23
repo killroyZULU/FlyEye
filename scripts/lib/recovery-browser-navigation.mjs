@@ -1,7 +1,7 @@
+import { browserOrigin } from './e2e-target.mjs';
 import assert from 'node:assert/strict';
 
-const recoveryUrl =
-  'http://127.0.0.1:4173/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890';
+const recoveryUrl = `${browserOrigin}/auth/recovery?token_hash=synthetic-recovery-token-hash-1234567890`;
 
 async function assertUnavailable(page) {
   await page.getByRole('heading', { name: 'This link cannot be used' }).waitFor();
