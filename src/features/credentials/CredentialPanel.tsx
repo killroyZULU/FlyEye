@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { OwnerSubmission } from './OwnerSubmission';
+import type { OwnerGateway } from './owner-gateway';
 import type { AccessMembership } from '../../lib/access-context';
 import type { CredentialRequest, CredentialResult } from './workspace';
 
-type Gateway = { credentialWorkspace(request: CredentialRequest): Promise<CredentialResult> };
+type Gateway = {
+  credentialWorkspace(request: CredentialRequest): Promise<CredentialResult>;
+  credentialOwner?: OwnerGateway;
+  getMfaAssurance?(): Promise<{ currentLevel: string | null; nextLevel: string | null }>;
+  verifyTotp?(code: string): Promise<void>;
+};
 type Member = CredentialResult['members'][number];
 const choices = {
   trainee: 'Trainee',
@@ -10,14 +17,14 @@ const choices = {
   both: 'Trainee and instructor',
 } as const;
 
-function Requirements({ member }: { member: Member }) {
+function Requirements({ member, showEmpty }: { member: Member; showEmpty: boolean }) {
   if (!member.applicability)
     return <p>Your administrator has not set your credential applicability yet.</p>;
   const instructor = member.applicability !== 'trainee';
   return (
     <>
       <p>{choices[member.applicability]}</p>
-      <p>No credentials on record.</p>
+      {showEmpty && <p>No credentials on record.</p>}
       <ul>
         <li>Mother license — required</li>
         <li>Medical certificate — required</li>
@@ -88,6 +95,8 @@ export function CredentialPanel({
   personnel: boolean;
 }) {
   const { organizationId, membershipId } = membership;
+  const getAssurance = useCallback(() => gateway.getMfaAssurance!(), [gateway]);
+  const verifyTotp = useCallback((code: string) => gateway.verifyTotp!(code), [gateway]);
   const [page, setPage] = useState<CredentialResult>();
   const [after, setAfter] = useState<string>();
   const [revision, refresh] = useState(0);
@@ -152,7 +161,21 @@ export function CredentialPanel({
       ) : !page ? (
         <p role="status">Loading credentials…</p>
       ) : !personnel && page.members[0] ? (
-        <Requirements member={page.members[0]} />
+        <>
+          <Requirements member={page.members[0]} showEmpty={!gateway.credentialOwner} />
+          {page.members[0].applicability &&
+            gateway.credentialOwner &&
+            gateway.getMfaAssurance &&
+            gateway.verifyTotp && (
+              <OwnerSubmission
+                gateway={gateway.credentialOwner}
+                organizationId={organizationId}
+                membershipId={membershipId}
+                getAssurance={getAssurance}
+                verifyTotp={verifyTotp}
+              />
+            )}
+        </>
       ) : (
         <>
           <p>No personnel credentials on record.</p>

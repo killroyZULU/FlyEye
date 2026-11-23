@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.app.json",
+  "include": [
+    "credential-owner-browser-entry.tsx",
+    "credential-chromium-entry.tsx",
+    "../../src/vite-env.d.ts"
+  ]
+}

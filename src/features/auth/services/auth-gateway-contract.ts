@@ -26,6 +26,7 @@ export type MfaAssurance = {
 import type { CredentialRequest, CredentialResult } from '../../credentials';
 
 export interface AuthGateway {
+  readonly credentialOwner?: import('../../credentials').OwnerGateway;
   credentialWorkspace(request: CredentialRequest): Promise<CredentialResult>;
   hasSession(): Promise<boolean>;
   signIn(request: LoginRequest): Promise<void>;

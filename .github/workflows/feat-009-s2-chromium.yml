@@ -1,0 +1,51 @@
+name: FEAT-009 synthetic Chromium checkpoint
+on:
+  push:
+    branches: [feat/FEAT-009-s2-chromium-checkpoint]
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.created && !github.event.deleted && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.14.0
+          package-manager-cache: false
+      - name: Record fresh runner baseline
+        id: baseline
+        run: node scripts/fixtures/credential-runner-inventory.mjs before
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+        with:
+          version: 11.28.10
+          run_install: false
+          cache: false
+      - name: Prepare frozen fixture dependencies
+        timeout-minutes: 7
+        run: |
+          pnpm install --frozen-lockfile >/dev/null 2>&1
+          pnpm exec playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Prepare pinned runner-local stack
+        timeout-minutes: 14
+        run: |
+          node scripts/no-send-cli/build-linux.mjs --ci
+          docker pull public.ecr.aws/supabase/storage-api:v1.62.5 >/dev/null 2>&1
+      - name: Verify synthetic owner in Chromium
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -o pipefail
+          env -i PATH="$PATH" HOME="$HOME" CI=true RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUPABASE_TELEMETRY_DISABLED=1 \
+            node scripts/fixtures/credential-session-proof.mjs --chromium-checkpoint 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
+      - name: Compare final runner inventory
+        if: always() && steps.baseline.outcome == 'success'
+        run: node scripts/fixtures/credential-runner-inventory.mjs after

@@ -2113,6 +2113,24 @@ export type Database = {
         };
         Returns: Json;
       };
+      credential_owner_submission: {
+        Args: {
+          p_action: string;
+          p_actor: string;
+          p_details: Json;
+          p_member: string;
+          p_mfa: boolean;
+          p_school: string;
+          p_session: string;
+          p_token_exp: number;
+          p_version: string;
+        };
+        Returns: Json;
+      };
+      credential_request_guard: {
+        Args: { p_action: string; p_actor: string; p_denial: boolean };
+        Returns: boolean;
+      };
       credential_session_is_current: {
         Args: {
           p_actor: string;

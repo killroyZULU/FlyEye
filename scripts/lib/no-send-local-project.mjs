@@ -177,7 +177,7 @@ enabled = false
 `;
 }
 
-export function localNoSendProject() {
+export function localNoSendProject(ownership) {
   if (realpathSync(process.cwd()) !== realpathSync(repositoryRoot)) {
     throw new Error('Disposable no-send working directory rejected.');
   }
@@ -201,9 +201,10 @@ export function localNoSendProject() {
     if (!ownsNetwork) {
       // Internal networks did not publish the DB host port on the verified engine.
       // Email containment instead uses the owned, non-relaying local SMTP sink.
-      command('docker', [
+      const created = command('docker', [
         'network',
         'create',
+        ...(ownership?.networkLabel ?? []),
         '--driver',
         'bridge',
         '--opt',
@@ -211,6 +212,7 @@ export function localNoSendProject() {
         network,
       ]);
       ownsNetwork = true;
+      ownership?.networkCreated(created);
     }
     started = true; // partial startup must also be cleaned up
     cliCommand([
@@ -223,6 +225,7 @@ export function localNoSendProject() {
       'studio,meta,realtime,storage-api,imgproxy,edge-runtime,analytics,vector',
     ]);
     verifyLocalMailBoundary();
+    ownership?.capture();
     process.stdout.write(
       'No-send compatibility: loopback bindings and local SMTP containment passed.\n',
     );
@@ -252,7 +255,7 @@ export function localNoSendProject() {
         [
           'exec',
           '-i',
-          `supabase_db_${id}`,
+          ownership?.db ?? `supabase_db_${id}`,
           'psql',
           '-X',
           '-U',
@@ -279,8 +282,10 @@ export function localNoSendProject() {
       return values.some((value) => value && logs.includes(value));
     },
     close() {
-      if (started) cliCommand(['stop', '--no-backup', '--project-id', id, '--workdir', root]);
-      if (ownsNetwork) command('docker', ['network', 'rm', network]);
+      if (ownership && ownsNetwork) ownership.close();
+      if (!ownership && started)
+        cliCommand(['stop', '--no-backup', '--project-id', id, '--workdir', root]);
+      if (!ownership && ownsNetwork) command('docker', ['network', 'rm', network]);
       assert.ok(!command('docker', ['ps', '-a', '--format', '{{.Names}}']).includes(id));
       assert.ok(!command('docker', ['volume', 'ls', '--format', '{{.Name}}']).includes(id));
       assert.equal(digest(readFileSync('supabase/config.toml')), original);

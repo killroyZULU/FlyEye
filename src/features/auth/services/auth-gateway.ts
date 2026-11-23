@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createOwnerGateway } from '../../credentials';
 
 import type { AuthGateway, MfaAssurance } from './auth-gateway-contract';
 import { AuthGatewayError, asGatewayError, responseStatus } from './auth-gateway-errors';
@@ -43,6 +44,7 @@ function supportedAssuranceLevel(level: string | null): 'aal1' | 'aal2' | null {
 }
 
 export class SupabaseAuthGateway implements AuthGateway {
+  readonly credentialOwner?: import('../../credentials').OwnerGateway;
   private readonly memberMfa: MemberMfaGateway;
   private readonly adminOnboarding: AdminOnboardingGateway;
   private readonly passwordRecovery: PasswordRecoveryGateway;
@@ -52,6 +54,12 @@ export class SupabaseAuthGateway implements AuthGateway {
     private readonly client: SupabaseClient<Database>,
     recoveryOrigin = () => window.location.origin,
   ) {
+    if (
+      import.meta.env.DEV &&
+      /^http:\/\/(?:localhost|127\.0\.0\.1):\d+$/.test(import.meta.env.VITE_SUPABASE_URL ?? '')
+    ) {
+      this.credentialOwner = createOwnerGateway(client);
+    }
     this.memberMfa = new MemberMfaGateway(client);
     this.adminOnboarding = new AdminOnboardingGateway(client);
     this.passwordRecovery = new PasswordRecoveryGateway(client.auth, recoveryOrigin);
