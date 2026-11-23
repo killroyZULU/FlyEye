@@ -16,6 +16,21 @@ const stages = new Set([
   'launch-browser',
   'mount-panel',
   'browser-password',
+  'password-check-status',
+  'password-ended-with-transport-failure',
+  'password-fill-email',
+  'password-fill-password',
+  'password-click-start',
+  'password-click-complete',
+  'password-click-failed',
+  'password-request-dispatched',
+  'password-headers-2xx',
+  'password-headers-4xx',
+  'password-headers-5xx',
+  'password-headers-other',
+  'password-transport-failed-before-headers',
+  'password-timeout-before-headers',
+  'password-timeout-before-dispatch',
   'password-owner-identity',
   'browser-password-passed',
   'browser-totp',
@@ -45,7 +60,7 @@ export function requireStatus(actual, expected) {
   }
 }
 export function publicLine(line) {
-  const marker = /^Checkpoint: ([a-z-]+)$/.exec(line);
+  const marker = /^Checkpoint: ([a-z0-9-]+)$/.exec(line);
   if (marker && stages.has(marker[1])) return line;
   const failure =
     /^Session proof stopped at ([a-z0-9-]+) \((assertion|operation|timeout|http-4xx|http-5xx|unexpected-status)\)\.$/.exec(

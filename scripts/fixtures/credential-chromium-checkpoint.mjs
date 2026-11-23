@@ -19,6 +19,75 @@ export function authorizedMetadata(result, school, member) {
     result.members[0].applicability === 'trainee'
   );
 }
+// Correlate by Playwright Request identity. Observe only the checkpoint's first password POST.
+export async function observePasswordPost(page, apiOrigin, mark, click) {
+  const endpoint = apiOrigin + '/auth/v1/token?grant_type=password';
+  let first,
+    headers,
+    transportFailed = false,
+    active = true;
+  const dispatch = (req) => {
+    if (!first && req.method() === 'POST' && req.url() === endpoint) {
+      first = req;
+      mark('password-request-dispatched');
+    }
+  };
+  const failed = (req) => {
+    if (first && req === first && !headers && !transportFailed) {
+      transportFailed = true;
+      mark('password-transport-failed-before-headers');
+    }
+  };
+  page.on('request', dispatch);
+  page.on('requestfailed', failed);
+  try {
+    const wait = page
+      .waitForResponse((response) => {
+        if (!active || !first || response.request() !== first) return false;
+        headers = true;
+        const status = response.status();
+        mark(
+          status >= 200 && status < 300
+            ? 'password-headers-2xx'
+            : status >= 400 && status < 500
+              ? 'password-headers-4xx'
+              : status >= 500 && status < 600
+                ? 'password-headers-5xx'
+                : 'password-headers-other',
+        );
+        return true;
+      })
+      .catch((error) => {
+        if (active && error?.name === 'TimeoutError')
+          mark(
+            transportFailed
+              ? 'password-ended-with-transport-failure'
+              : first
+                ? 'password-timeout-before-headers'
+                : 'password-timeout-before-dispatch',
+          );
+        throw error;
+      });
+    mark('password-click-start');
+    const [response] = await Promise.all([
+      wait,
+      click().then(
+        () => {
+          if (active) mark('password-click-complete');
+        },
+        (error) => {
+          if (active) mark('password-click-failed');
+          throw error;
+        },
+      ),
+    ]);
+    return response;
+  } finally {
+    active = false;
+    page.off('request', dispatch);
+    page.off('requestfailed', failed);
+  }
+}
 export async function checkpoint({
   auth,
   email,
@@ -111,16 +180,15 @@ export async function checkpoint({
     assert.ok(initial);
     async function login(page) {
       mark('browser-password');
-      await page.getByLabel('Email address').fill(email);
-      await page.getByLabel('Password', { exact: true }).fill(password);
-      const [signed] = await Promise.all([
-        page.waitForResponse(
-          (r) =>
-            r.request().method() === 'POST' &&
-            r.url() === status.API_URL + '/auth/v1/token?grant_type=password',
-        ),
-        page.getByRole('button', { name: 'Sign in securely' }).click(),
-      ]);
+      const mail = page.getByLabel('Email address');
+      const pass = page.getByLabel('Password', { exact: true });
+      const signIn = page.getByRole('button', { name: 'Sign in securely' });
+      mark('password-fill-email');
+      await mail.fill(email);
+      mark('password-fill-password');
+      await pass.fill(password);
+      const signed = await observePasswordPost(page, status.API_URL, mark, () => signIn.click());
+      mark('password-check-status');
       requireStatus(signed.status(), 200);
       mark('password-owner-identity');
       assert.ok((await signed.json()).user?.id === actor);
