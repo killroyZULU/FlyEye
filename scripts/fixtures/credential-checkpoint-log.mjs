@@ -39,6 +39,8 @@ const stages = new Set([
   'load-metadata-handler',
   'launch-browser',
   'mount-panel',
+  'bind-loopback-page',
+  'loopback-page-served',
   'browser-password',
   'password-check-status',
   'password-ended-with-transport-failure',
@@ -84,6 +86,11 @@ export function requireStatus(actual, expected) {
   }
 }
 export function publicLine(line) {
+  if (
+    line === 'Checkpoint page listener shutdown verified.' ||
+    line === 'Checkpoint page listener shutdown failed.'
+  )
+    return line;
   const marker = /^Checkpoint: ([a-z0-9-]+)$/.exec(line);
   if (marker && stages.has(marker[1])) return line;
   const failure =

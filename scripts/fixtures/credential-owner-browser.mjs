@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mountFailure } from './credential-mount-result.mjs';
 import { requireStatus } from './credential-checkpoint-log.mjs';
+import { openCheckpointPage } from './credential-checkpoint-page.mjs';
 import { randomBytes } from 'node:crypto';
 import { chromium } from '@playwright/test';
 import { build } from 'vite';
@@ -92,13 +93,22 @@ export async function proveOwnerBrowser({
   assert.equal(typeof metadata, 'function');
   mark('launch-browser');
   const browser = await chromium.launch(browserOptions);
+  let checkpointPage;
   try {
+    if (login) {
+      mark('bind-loopback-page');
+      checkpointPage = await openCheckpointPage(origin);
+    }
     const page = await browser.newPage({ serviceWorkers: 'block' });
     const seen = [];
     let operation;
     await page.route('**/*', async (route) => {
       const req = route.request(),
         url = new URL(req.url());
+      if (checkpointPage && url.origin === origin)
+        return req.method() === 'GET' && req.url() === origin + '/'
+          ? route.continue()
+          : route.abort();
       if (url.origin === origin && url.pathname === '/')
         return route.fulfill({
           contentType: 'text/html',
@@ -137,7 +147,11 @@ export async function proveOwnerBrowser({
         body: Buffer.from(await result.arrayBuffer()),
       });
     });
-    await page.goto(origin);
+    const documentResponse = await page.goto(origin);
+    if (checkpointPage) {
+      checkpointPage.verifyNavigation(documentResponse);
+      mark('loopback-page-served');
+    }
     await page.addScriptTag({ content: bundle });
     mark('mount-panel');
     if (login) {
@@ -207,6 +221,22 @@ export async function proveOwnerBrowser({
     );
     return operation;
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } finally {
+      if (checkpointPage) {
+        let verified = false;
+        try {
+          await checkpointPage.close();
+          verified = true;
+        } finally {
+          console.log(
+            verified
+              ? 'Checkpoint page listener shutdown verified.'
+              : 'Checkpoint page listener shutdown failed.',
+          );
+        }
+      }
+    }
   }
 }
