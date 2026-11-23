@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '10a8b1d329db64adc3b5636ca9f66cad5af69590' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '63ba2151404545ede9f4f537f1e0b679da332286' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -36,17 +36,16 @@ jobs:
         timeout-minutes: 7
         run: |
           pnpm install --frozen-lockfile >/dev/null 2>&1
-          pnpm exec playwright install --with-deps chromium >/dev/null 2>&1
       - name: Prepare pinned runner-local stack
         timeout-minutes: 14
         run: node scripts/no-send-cli/build-linux.mjs --ci
-      - name: Verify synthetic owner in Chromium
+      - name: Verify one-PNG reconciliation and denial
         timeout-minutes: 10
         shell: bash
         run: |
           set -o pipefail
           env -i PATH="$PATH" HOME="$HOME" CI=true RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUPABASE_TELEMETRY_DISABLED=1 \
-            node scripts/fixtures/credential-session-proof.mjs --chromium-checkpoint 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
+            node scripts/fixtures/credential-session-proof.mjs --one-png-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
       - name: Compare final runner inventory
         if: always() && steps.baseline.outcome == 'success'
         run: node scripts/fixtures/credential-runner-inventory.mjs after

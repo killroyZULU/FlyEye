@@ -21,8 +21,11 @@ const uuid = (value) => {
 };
 const docker = (...args) =>
   execFileSync('docker', args, { encoding: 'utf8', timeout: 15000 }).trim();
-const focused = process.argv.includes('--chromium-checkpoint');
+const browserCheckpoint = process.argv.includes('--chromium-checkpoint');
+const onePng = process.argv.includes('--one-png-proof');
+const focused = browserCheckpoint || onePng;
 if (focused) {
+  assert.equal(process.argv.length, 3);
   assert.equal(process.platform, 'linux');
   assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
   assert.equal(process.env.GITHUB_REPOSITORY, 'killroyZULU/FlyEye');
@@ -51,7 +54,8 @@ let project;
 let before;
 async function run() {
   stage = 'browser-preflight';
-  if (focused || process.argv.includes('--submission')) bundle = await prepareBrowser(focused);
+  if (browserCheckpoint || process.argv.includes('--submission'))
+    bundle = await prepareBrowser(browserCheckpoint);
   stage = 'inventory';
   const ctx = process.platform === 'win32' ? 'desktop-linux' : 'default';
   assert.equal(docker('context', 'show'), ctx);
@@ -135,7 +139,7 @@ async function run() {
     insert into public.membership_roles(organization_id,membership_id,role_id)
       select '${school}','${member}',id from public.roles where code='student_pilot';
     commit;`);
-  if (focused) {
+  if (browserCheckpoint) {
     const { checkpoint } = await import('./credential-chromium-checkpoint.mjs');
     await checkpoint({
       auth,
@@ -215,6 +219,29 @@ async function run() {
     't',
   );
   passed('TOTP binds the same session, original password window and verified factor');
+  if (onePng) {
+    stage = 'png-setup';
+    const { proveSubmission } = await import('./credential-submission-proof.mjs');
+    const { proveOnePng } = await import('./credential-one-png-proof.mjs');
+    await proveSubmission({
+      ownership,
+      mark,
+      status,
+      sql,
+      school,
+      member,
+      actor,
+      sid,
+      aal1: signed.access_token,
+      aal2: elevated.access_token,
+      onePngProof: proveOnePng,
+    });
+    mark('empty-sink');
+    await sink();
+    receipt.record.submissionWorkers = 'settled';
+    receipt.record.test = 'passed';
+    return;
+  }
   stage = 'refresh-and-distinct-sign-in';
   const refreshed = await auth('POST', '/token?grant_type=refresh_token', {
     refresh_token: elevated.refresh_token,

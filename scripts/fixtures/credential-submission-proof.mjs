@@ -19,6 +19,7 @@ export async function proveSubmission({
   aal1,
   aal2,
   session,
+  onePngProof,
 }) {
   const origin = 'http://127.0.0.1:58329';
   const invoke = credentialOwnerHandler({
@@ -94,6 +95,24 @@ export async function proveSubmission({
       const priorRow = () =>
         sql(`select to_jsonb(v)::text from credential_private.versions v where id='${prior}'`);
       const original = priorRow();
+      assert.ok(original);
+      if (onePngProof) {
+        await onePngProof({
+          request,
+          submit,
+          sql,
+          mark,
+          priorRow,
+          original,
+          school,
+          member,
+          actor,
+          sid,
+          aal1,
+          aal2,
+        });
+        return;
+      }
       step = 'validation-and-denials';
       assert.equal((await request(aal1, submit)).status, 403);
       assert.equal((await request(aal2, { ...submit, organizationId: randomUUID() })).status, 403);
@@ -235,6 +254,7 @@ export async function proveSubmission({
       );
     });
   } catch (error) {
+    if (onePngProof) throw error; // Preserve the exact sanitized stage from the focused proof.
     mark(
       'failure-' +
         step +

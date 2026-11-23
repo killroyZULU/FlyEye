@@ -20,6 +20,18 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'png-setup',
+  'owner-school-authorization',
+  'totp-enroll-and-step-up',
+  'step-up-original-session-and-password-origin',
+  'png-lost-response',
+  'png-replay-and-conflict',
+  'png-evidence-control',
+  'png-evidence-denied',
+  'png-evidence-audit-failure',
+  'png-idle-expiry',
+  'png-absolute-expiry',
+  'png-invariants-passed',
   'password-devtools-unknown',
   'password-devtools-preflight-rejection',
   'password-devtools-response-cors-rejection',
