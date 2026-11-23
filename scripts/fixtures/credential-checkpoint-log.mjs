@@ -1,7 +1,26 @@
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
 
+const transportMarkers = new Map([
+  ['net::ERR_CONNECTION_REFUSED', 'password-transport-connection-refused'],
+  ['net::ERR_CONNECTION_RESET', 'password-transport-connection-reset'],
+  ['net::ERR_CONNECTION_CLOSED', 'password-transport-connection-closed'],
+  ['net::ERR_CONNECTION_TIMED_OUT', 'password-transport-connection-timeout'],
+  ['net::ERR_BLOCKED_BY_CLIENT', 'password-transport-blocked-by-client'],
+  ['net::ERR_ABORTED', 'password-transport-aborted'],
+  ['net::ERR_FAILED', 'password-transport-generic-failure'],
+]);
+export function passwordTransportMarker(request) {
+  try {
+    return transportMarkers.get(request.failure()?.errorText) ?? 'password-transport-unknown';
+  } catch {
+    return 'password-transport-unknown';
+  }
+}
+
 const stages = new Set([
+  ...transportMarkers.values(),
+  'password-transport-unknown',
   'browser-preflight',
   'inventory',
   'isolated-startup',

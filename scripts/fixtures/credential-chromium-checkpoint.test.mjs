@@ -42,6 +42,55 @@ function observation() {
 }
 describe('password checkpoint attribution', () => {
   it.each([
+    ['net::ERR_CONNECTION_REFUSED', 'connection-refused'],
+    ['net::ERR_CONNECTION_RESET', 'connection-reset'],
+    ['net::ERR_CONNECTION_CLOSED', 'connection-closed'],
+    ['net::ERR_CONNECTION_TIMED_OUT', 'connection-timeout'],
+    ['net::ERR_BLOCKED_BY_CLIENT', 'blocked-by-client'],
+    ['net::ERR_ABORTED', 'aborted'],
+    ['net::ERR_FAILED', 'generic-failure'],
+    ['net::ERR_CONNECTION_REFUSED private detail', 'unknown'],
+    ['net::ERR_FAILED\nCheckpoint: password-headers-2xx', 'unknown'],
+    [null, 'unknown'],
+    [undefined, 'unknown'],
+  ])('emits only a fixed category for case %#', async (raw, category) => {
+    const probe = observation();
+    let reads = 0,
+      unrelatedReads = 0;
+    const first = {
+      ...request(),
+      failure: () => {
+        reads++;
+        if (raw === undefined) throw new Error('private detail');
+        return raw === null ? null : { errorText: raw };
+      },
+    };
+    const other = {
+      ...request(),
+      failure: () => {
+        unrelatedReads++;
+        return { errorText: raw };
+      },
+    };
+    await expect(
+      probe.run(async () => {
+        probe.page.emit('request', first);
+        probe.page.emit('request', other);
+        probe.page.emit('requestfailed', other);
+        probe.page.emit('requestfailed', first);
+        probe.page.emit('requestfailed', first);
+        probe.timeout();
+      }),
+    ).rejects.toMatchObject({ name: 'TimeoutError' });
+    expect(reads).toBe(1);
+    expect(unrelatedReads).toBe(0);
+    expect(probe.markers.filter((m) => m.startsWith('password-transport-'))).toEqual([
+      'password-transport-failed-before-headers',
+      'password-transport-' + category,
+    ]);
+    expect(publicLine('Checkpoint: password-transport-' + raw)).toBeNull();
+  });
+  it.each([
     [200, '2xx'],
     [403, '4xx'],
     [503, '5xx'],

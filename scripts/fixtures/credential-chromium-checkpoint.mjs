@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { credentialOwnerHandler } from '../../supabase/functions/credential-owner/handler.ts';
 import { currentTotp } from '../lib/no-send-runtime-client.mjs';
 import { proveOwnerBrowser } from './credential-owner-browser.mjs';
-import { requireStatus } from './credential-checkpoint-log.mjs';
+import { passwordTransportMarker, requireStatus } from './credential-checkpoint-log.mjs';
 import { withProofStorage } from './credential-proof-storage.mjs';
 import { syntheticSample } from '../../src/features/credentials/owner-gateway.ts';
 
@@ -36,6 +36,7 @@ export async function observePasswordPost(page, apiOrigin, mark, click) {
     if (first && req === first && !headers && !transportFailed) {
       transportFailed = true;
       mark('password-transport-failed-before-headers');
+      mark(passwordTransportMarker(req));
     }
   };
   page.on('request', dispatch);
