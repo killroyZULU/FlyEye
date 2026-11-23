@@ -39,7 +39,11 @@ CR01, CR04 and the S1 parts of CR12, CR13 and CR21 (AC01, AC08 and AC11).
 
 ## S2 owner withdrawal
 
-[The browser submission](https://github.com/killroyZULU/FlyEye/actions/runs/45126459036) and [one-PNG reconciliation](https://github.com/killroyZULU/FlyEye/actions/runs/45127941772) cover the initial synthetic mother-license path. The [withdrawal proof](../../../scripts/fixtures/credential-withdrawal-proof.mjs) covers the owner transition, retained approval and evidence, atomic audit, replay and stale-target denial for AC05, AC08, AC09 and AC10. The [owner-view tests](../../../src/features/credentials/OwnerWithdrawal.test.tsx) cover the AC11 withdrawal action and result. Replacement, broader category/file support and hosted verification remain open. Reviewer races and full history remain later-slice checks.
+[The browser submission](https://github.com/killroyZULU/FlyEye/actions/runs/45126459036) and [one-PNG reconciliation](https://github.com/killroyZULU/FlyEye/actions/runs/45127941772) cover the initial synthetic mother-license path. The [withdrawal proof](../../../scripts/fixtures/credential-withdrawal-proof.mjs) covers the owner transition, retained approval and evidence, atomic audit, replay and stale-target denial for AC05, AC08, AC09 and AC10. The [owner-view tests](../../../src/features/credentials/OwnerWithdrawal.test.tsx) cover the AC11 withdrawal action and result. [Withdrawal checkpoint](https://github.com/killroyZULU/FlyEye/actions/runs/45135108155) passed on the runner-local stack. Broader category/file support and hosted verification remain open. Reviewer races and full history remain later-slice checks.
+
+## S2 owner replacement
+
+The [focused replacement proof](../../../scripts/fixtures/credential-replacement-proof.mjs) exercises AC04/05/08/09/10/11 for one synthetic mother-license PNG. It covers browser submission and lost-acknowledgement reconciliation, the exact predecessor and audit pair, retained evidence, stale and competing commands, and audit rollback. Other file types, reviewer decisions and hosted acceptance require separate evidence.
 
 ## Shared session verification plan
 

@@ -20,6 +20,13 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'replacement-browser',
+  'replacement-readback',
+  'replacement-history',
+  'replacement-replay',
+  'replacement-race',
+  'replacement-audit-rollback',
+  'replacement-invariants-passed',
   'withdrawal-setup',
   'withdrawal-authorization',
   'withdrawal-audit-rollback',

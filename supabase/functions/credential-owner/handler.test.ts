@@ -151,6 +151,30 @@ describe('local owner command boundary', () => {
       if (status === 200) expect(await response.json()).toEqual(readback);
     },
   );
+  it.each([
+    [{ action: 'replace' }, 400],
+    [{ action: 'replace', expectedPendingId: 'invalid' }, 400],
+    [{ action: 'submit', expectedPendingId: session }, 400],
+    [{ action: 'replace', expectedPendingId: session, file: 'invalid' }, 400],
+    [{ action: 'replace', expectedPendingId: session }, 409],
+  ] as const)(
+    'requires an exact replacement target and validated PNG before upload',
+    async (patch, status) => {
+      const result = await scenario({ ...form, ...patch }, true, { conflict: true });
+      expect(result.response.status).toBe(status);
+      expect(result.calls.some((path) => path.startsWith('/storage/'))).toBe(false);
+    },
+  );
+  it('replays a confirmed replacement without uploading again', async () => {
+    const result = await scenario(
+      { ...form, action: 'replace', expectedPendingId: session },
+      true,
+      { replayed: true, state: 'pending', id: actor },
+    );
+    expect(result.response.status).toBe(200);
+    expect(await result.response.json()).toEqual({ state: 'pending', id: actor });
+    expect(result.calls).toHaveLength(3);
+  });
   it('records a scope denial before returning it', async () => {
     const { response, calls } = await scenario(form, true, null);
     expect(response.status).toBe(403);

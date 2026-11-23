@@ -10,6 +10,28 @@ const syntheticPng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPQzlwPAAIGAUQpAeg+AAAAAElFTkSuQmCC';
 const scope = z.object({ organizationId: z.uuid(), membershipId: z.uuid() });
 const day = z.iso.date();
+const license = scope
+  .extend({
+    operationId: z.uuid(),
+    licenseType: z.enum(['SPL', 'PPL', 'CPL', 'ATPL']),
+    licenseNumber: z
+      .string()
+      .regex(/^[^\p{Cc}]+$/u)
+      .trim()
+      .min(1)
+      .max(80),
+    issueDate: day,
+    expiryDate: day.nullable(),
+    noExpiry: z.boolean(),
+    filename: z
+      .string()
+      .min(5)
+      .max(128)
+      .regex(/\.png$/i),
+    mime: z.literal('image/png'),
+    file: z.literal(syntheticPng),
+  })
+  .strict();
 const input = z.discriminatedUnion('action', [
   scope.extend({ action: z.literal('status') }).strict(),
   scope
@@ -19,30 +41,15 @@ const input = z.discriminatedUnion('action', [
     .extend({ action: z.literal('withdraw_outcome'), versionId: z.uuid(), operationId: z.uuid() })
     .strict(),
   scope.extend({ action: z.literal('evidence'), versionId: z.uuid() }).strict(),
-  scope.extend({ action: z.literal('reconcile'), operationId: z.uuid() }).strict(),
   scope
     .extend({
-      action: z.literal('submit'),
+      action: z.literal('reconcile'),
       operationId: z.uuid(),
-      licenseType: z.enum(['SPL', 'PPL', 'CPL', 'ATPL']),
-      licenseNumber: z
-        .string()
-        .regex(/^[^\p{Cc}]+$/u)
-        .trim()
-        .min(1)
-        .max(80),
-      issueDate: day,
-      expiryDate: day.nullable(),
-      noExpiry: z.boolean(),
-      filename: z
-        .string()
-        .min(5)
-        .max(128)
-        .regex(/\.png$/i),
-      mime: z.literal('image/png'),
-      file: z.literal(syntheticPng),
+      expectedPendingId: z.uuid().optional(),
     })
     .strict(),
+  license.extend({ action: z.literal('submit') }),
+  license.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
 ]);
 export function passwordActor(token: string, userId: string) {
   const evidence = authenticationEvidenceFromVerifiedToken(token, userId);
@@ -58,6 +65,19 @@ export function passwordActor(token: string, userId: string) {
     p_token_exp: expiration,
     p_mfa: evidence.assuranceLevel === 'aal2' && evidence.totpAuthenticatedAt !== null,
   };
+}
+function validDates(data: z.infer<typeof license>) {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  return (
+    data.issueDate <= today &&
+    data.noExpiry === (data.expiryDate === null) &&
+    (data.expiryDate === null || data.expiryDate >= data.issueDate)
+  );
 }
 async function sha256(bytes: Uint8Array<ArrayBuffer>) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) =>
@@ -93,6 +113,7 @@ const resultSchema = z
     key: z.string().optional(),
     id: z.uuid().optional(),
     state: z.string().optional(),
+    rolledBack: z.boolean().optional(),
     replayed: z.boolean().optional(),
     conflict: z.boolean().optional(),
     digest: z.string().optional(),
@@ -204,22 +225,14 @@ export function credentialOwnerHandler(config: Config) {
           },
         });
       }
-      async function submitLicense(data: Extract<z.infer<typeof input>, { action: 'submit' }>) {
-        const today = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'Asia/Manila',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }).format(new Date());
-        if (
-          data.issueDate > today ||
-          data.noExpiry !== (data.expiryDate === null) ||
-          (data.expiryDate && data.expiryDate < data.issueDate)
-        )
-          return reply(400);
+      async function submitLicense(
+        data: Extract<z.infer<typeof input>, { action: 'submit' | 'replace' }>,
+      ) {
+        if (!validDates(data)) return reply(400);
         const id = crypto.randomUUID();
         const bytes = Uint8Array.from(atob(data.file), (c) => c.charCodeAt(0));
         const details = {
+          ...(data.action === 'replace' ? { expectedPendingId: data.expectedPendingId } : {}),
           operationId: data.operationId,
           licenseType: data.licenseType,
           licenseNumber: data.licenseNumber,
@@ -245,6 +258,10 @@ export function credentialOwnerHandler(config: Config) {
           return await denied();
         }
         const result = await call('commit', id, details);
+        if (result?.rolledBack) {
+          await store.remove([ready.key]);
+          return reply(503);
+        }
         if (result?.replayed) {
           await store.remove([ready.key]);
           return reply(200, { id: result.id, state: result.state });
@@ -274,7 +291,10 @@ export function credentialOwnerHandler(config: Config) {
           return reply(200, { id: result.id, state: result.state });
         }
         if (data.action === 'reconcile') {
-          const result = await call('reconcile', null, { operationId: data.operationId });
+          const result = await call('reconcile', null, {
+            operationId: data.operationId,
+            expectedPendingId: data.expectedPendingId,
+          });
           if (result?.conflict) return reply(409);
           return result ? reply(200, result) : await denied();
         }

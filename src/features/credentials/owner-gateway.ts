@@ -27,7 +27,9 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
     if (result.error)
       throw new Error(
         result.response?.status === 409
-          ? 'A pending submission already exists. Refresh to see it.'
+          ? body.action === 'replace'
+            ? 'The pending version changed or the request conflicted. Refresh before replacing it.'
+            : 'A pending submission already exists. Refresh to see it.'
           : 'The request could not be confirmed. Check your session and refresh My Credentials.',
       );
     return result;
@@ -67,13 +69,14 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
       },
       file: File,
       operationId: string,
+      expectedPendingId?: string,
     ) {
       if (file.size !== 69) throw new Error('Choose the provided synthetic PNG.');
       const bytes = new Uint8Array(await file.arrayBuffer());
       const result = await invoke({
         ...scope,
         ...fields,
-        action: 'submit',
+        ...(expectedPendingId ? { action: 'replace', expectedPendingId } : { action: 'submit' }),
         operationId,
         filename: file.name,
         mime: file.type,
@@ -81,8 +84,13 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
       });
       return z.object({ state: z.literal('pending'), id: z.uuid() }).parse(result.data);
     },
-    async reconcile(scope: Scope, operationId: string) {
-      const result = await invoke({ ...scope, action: 'reconcile', operationId });
+    async reconcile(scope: Scope, operationId: string, expectedPendingId?: string) {
+      const result = await invoke({
+        ...scope,
+        action: 'reconcile',
+        operationId,
+        expectedPendingId,
+      });
       return z
         .discriminatedUnion('state', [
           z.object({ state: z.literal('unconfirmed') }),

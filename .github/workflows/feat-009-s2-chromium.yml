@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == 'a94fa0c5dd272285d214eb761d8c7f1aeb927700' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '008b40f4301181aec6294fc882464c4d76926f15' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -36,16 +36,17 @@ jobs:
         timeout-minutes: 7
         run: |
           pnpm install --frozen-lockfile >/dev/null 2>&1
+          pnpm exec playwright install --with-deps chromium >/dev/null 2>&1
       - name: Prepare pinned runner-local stack
         timeout-minutes: 14
         run: node scripts/no-send-cli/build-linux.mjs --ci
-      - name: Verify synthetic owner withdrawal
+      - name: Verify synthetic owner replacement in Chromium
         timeout-minutes: 10
         shell: bash
         run: |
           set -o pipefail
           env -i PATH="$PATH" HOME="$HOME" CI=true RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUPABASE_TELEMETRY_DISABLED=1 \
-            node scripts/fixtures/credential-session-proof.mjs --withdrawal-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
+            node scripts/fixtures/credential-session-proof.mjs --replacement-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
       - name: Compare final runner inventory
         if: always() && steps.baseline.outcome == 'success'
         run: node scripts/fixtures/credential-runner-inventory.mjs after

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { OwnerWithdrawal } from './OwnerWithdrawal';
-import { syntheticSample, type OwnerGateway } from './owner-gateway';
+import type { OwnerGateway } from './owner-gateway';
+import { OwnerLicenseForm } from './OwnerLicenseForm';
 
 type Props = {
   gateway: OwnerGateway;
@@ -17,18 +18,18 @@ export function OwnerSubmission(props: Props) {
   const [tick, reload] = useState(0),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
-  const [level, setLevel] = useState<string | null>(null),
-    [noExpiry, setNoExpiry] = useState(false);
-  const [operation, setOperation] = useState<string | null>(null);
-  const generation = useRef(0),
-    form = useRef<HTMLFormElement>(null);
+  const [level, setLevel] = useState<string | null>(null);
+  const [operation, setOperation] = useState<{
+    id: string;
+    expectedPendingId?: string;
+    check: boolean;
+  }>();
+  const generation = useRef(0);
   const scope = { organizationId, membershipId };
   function clear() {
     generation.current++;
     setPage(undefined);
     setPreview(undefined);
-    form.current?.reset();
-    setNoExpiry(false);
     setBusy(false);
     setLevel(null);
   }
@@ -91,7 +92,7 @@ export function OwnerSubmission(props: Props) {
     setMessage('');
     reload((n) => n + 1);
   }
-  const pending = page?.versions.some((v) => v.state === 'pending');
+  const pendingId = page?.versions.find((v) => v.state === 'pending')?.id;
   return (
     <section aria-label="Mother license submissions">
       {message && <p role="status">{message}</p>}
@@ -99,9 +100,7 @@ export function OwnerSubmission(props: Props) {
       <OwnerWithdrawal
         key={membershipId + organizationId}
         busy={busy}
-        pendingId={
-          level === 'aal2' ? page?.versions.find((v) => v.state === 'pending')?.id : undefined
-        }
+        pendingId={level === 'aal2' ? pendingId : undefined}
         execute={(action, id, key) => gateway.withdrawal(scope, action, id, key)}
         act={act}
         current={(gen) => generation.current === gen}
@@ -110,20 +109,30 @@ export function OwnerSubmission(props: Props) {
           setMessage(text);
         }}
       />
-      {operation && (
+      {operation?.check && (
         <button
           disabled={busy}
           onClick={() =>
             void act(async (gen) => {
-              const outcome = await gateway.reconcile(scope, operation);
+              const outcome = await gateway.reconcile(
+                scope,
+                operation.id,
+                operation.expectedPendingId,
+              );
               if (gen !== generation.current) return;
-              if (outcome.state !== 'unconfirmed') setOperation(null);
+              setOperation(
+                outcome.state === 'unconfirmed' ? { ...operation, check: false } : undefined,
+              );
               refresh();
-              setMessage(submissionOutcomeMessage(outcome.state));
+              setMessage(
+                outcome.state === 'pending' && operation.expectedPendingId
+                  ? 'Replacement confirmed.'
+                  : submissionOutcomeMessage(outcome.state),
+              );
             })
           }
         >
-          Check submission outcome
+          {operation.expectedPendingId ? 'Check replacement outcome' : 'Check submission outcome'}
         </button>
       )}
       {page?.versions.map((v) => (
@@ -169,38 +178,27 @@ export function OwnerSubmission(props: Props) {
           <p>Enroll an authenticator in account security first if needed.</p>
         </form>
       )}
-      {page && level === 'aal2' && !pending && (
-        <form
-          ref={form}
-          onSubmit={(e) => {
-            e.preventDefault();
-            const data = new FormData(e.currentTarget);
-            const file = data.get('file');
-            if (!(file instanceof File)) return;
+      {page && level === 'aal2' && !operation?.check && (
+        <OwnerLicenseForm
+          key={pendingId ?? 'initial'}
+          busy={busy}
+          replacing={!!pendingId}
+          onSubmit={(fields, file) =>
             void act(async (gen) => {
-              const key = operation ?? crypto.randomUUID();
-              setOperation(key);
-              await gateway.submit(
-                scope,
-                {
-                  licenseType: textField(data, 'type'),
-                  licenseNumber: textField(data, 'number'),
-                  issueDate: textField(data, 'issued'),
-                  expiryDate: noExpiry ? null : textField(data, 'expires'),
-                  noExpiry,
-                },
-                file,
-                key,
-              );
+              const id =
+                operation && operation.expectedPendingId === pendingId
+                  ? operation.id
+                  : crypto.randomUUID();
+              setOperation({ id, expectedPendingId: pendingId, check: true });
+              await gateway.submit(scope, fields, file, id, pendingId);
               if (gen === generation.current) {
-                setOperation(null);
+                setOperation(undefined);
                 refresh();
+                if (pendingId) setMessage('Pending version replaced.');
               }
-            });
-          }}
-        >
-          <LicenseFields busy={busy} noExpiry={noExpiry} setNoExpiry={setNoExpiry} />
-        </form>
+            })
+          }
+        />
       )}
     </section>
   );
@@ -223,49 +221,4 @@ function submissionOutcomeMessage(state: 'unconfirmed' | 'withdrawn' | 'pending'
 function textField(form: FormData, key: string) {
   const value = form.get(key);
   return typeof value === 'string' ? value : '';
-}
-function LicenseFields({
-  busy,
-  noExpiry,
-  setNoExpiry,
-}: {
-  busy: boolean;
-  noExpiry: boolean;
-  setNoExpiry: (v: boolean) => void;
-}) {
-  return (
-    <fieldset disabled={busy}>
-      <legend>Submit a mother license</legend>
-      <label>
-        License type{' '}
-        <select name="type">
-          {['SPL', 'PPL', 'CPL', 'ATPL'].map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        License number <input name="number" required maxLength={80} />
-      </label>
-      <label>
-        Issue date <input name="issued" type="date" required />
-      </label>
-      <label>
-        <input type="checkbox" checked={noExpiry} onChange={(e) => setNoExpiry(e.target.checked)} />{' '}
-        No expiry
-      </label>
-      {!noExpiry && (
-        <label>
-          Expiry date <input name="expires" type="date" required />
-        </label>
-      )}
-      <a download="synthetic.png" href={'data:image/png;base64,' + syntheticSample}>
-        Download synthetic sample
-      </a>
-      <label>
-        Synthetic supporting PNG <input name="file" type="file" accept="image/png" required />
-      </label>
-      <button>Submit for review</button>
-    </fieldset>
-  );
 }

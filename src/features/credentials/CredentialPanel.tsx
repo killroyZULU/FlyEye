@@ -168,6 +168,7 @@ export function CredentialPanel({
             gateway.getMfaAssurance &&
             gateway.verifyTotp && (
               <OwnerSubmission
+                key={organizationId + membershipId}
                 gateway={gateway.credentialOwner}
                 organizationId={organizationId}
                 membershipId={membershipId}

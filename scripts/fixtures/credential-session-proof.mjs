@@ -21,7 +21,8 @@ const uuid = (value) => {
 };
 const docker = (...args) =>
   execFileSync('docker', args, { encoding: 'utf8', timeout: 15000 }).trim();
-const browserCheckpoint = process.argv.includes('--chromium-checkpoint');
+const replacement = process.argv.includes('--replacement-proof');
+const browserCheckpoint = replacement || process.argv.includes('--chromium-checkpoint');
 const onePng = process.argv.includes('--one-png-proof');
 const withdrawal = process.argv.includes('--withdrawal-proof');
 const focused = browserCheckpoint || onePng || withdrawal;
@@ -143,6 +144,7 @@ async function run() {
   if (browserCheckpoint) {
     const { checkpoint } = await import('./credential-chromium-checkpoint.mjs');
     await checkpoint({
+      replacement,
       auth,
       email,
       password,

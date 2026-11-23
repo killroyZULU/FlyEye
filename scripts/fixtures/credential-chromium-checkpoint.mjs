@@ -99,6 +99,7 @@ export async function observePasswordPost(page, apiOrigin, mark, click) {
   }
 }
 export async function checkpoint({
+  replacement = false,
   auth,
   email,
   password,
@@ -186,6 +187,10 @@ export async function checkpoint({
       sql(
         `select to_jsonb(v)::text from credential_private.versions v where id='${prior}' and state='approved'`,
       );
+    if (replacement)
+      sql(
+        `update credential_private.versions set no_expiry=false,expires_on='2028-12-31' where id='${prior}'`,
+      );
     const initial = approved();
     assert.ok(initial);
     async function login(page) {
@@ -237,7 +242,34 @@ export async function checkpoint({
       assert.ok(authorizedMetadata(await response.json(), school, member));
       mark('first-owner-metadata-passed');
     }
-    await proveOwnerBrowser({ status, school, member, origin, invoke, login, bundle, mark });
+    const replacementProof = replacement
+      ? (await import('./credential-replacement-proof.mjs')).replacementProof({
+          apiUrl: status.API_URL,
+          invoke,
+          origin,
+          sql,
+          school,
+          member,
+          actor,
+          mark,
+        })
+      : undefined;
+    await proveOwnerBrowser({
+      status,
+      school,
+      member,
+      origin,
+      invoke,
+      login,
+      bundle,
+      mark,
+      replacementProof,
+    });
+    if (replacement) {
+      assert.equal(approved(), initial);
+      mark('replacement-invariants-passed');
+      return;
+    }
     mark('single-pending-version');
     assert.equal(
       sql("select count(*) from credential_private.versions where state='pending'"),

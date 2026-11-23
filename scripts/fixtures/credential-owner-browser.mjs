@@ -62,6 +62,7 @@ export async function proveOwnerBrowser({
   invoke,
   session,
   login,
+  replacementProof,
   bundle,
   mark,
 }) {
@@ -124,13 +125,24 @@ export async function proveOwnerBrowser({
       )
         return route.abort();
       const handler = url.pathname.endsWith('/credential-owner') ? invoke : metadata;
-      const result = await handler(
-        new Request(req.url(), {
-          method: req.method(),
-          headers: await req.allHeaders(),
-          body: req.postDataBuffer() ?? undefined,
-        }),
-      );
+      const request = new Request(req.url(), {
+        method: req.method(),
+        headers: await req.allHeaders(),
+        body: req.postDataBuffer() ?? undefined,
+      });
+      const result = await handler(request);
+      if (
+        replacementProof &&
+        handler === invoke &&
+        req.method() === 'POST' &&
+        replacementProof.dropAcknowledgement(req.postDataJSON(), request, result)
+      ) {
+        return route.fulfill({
+          status: 503,
+          headers: Object.fromEntries(result.headers),
+          body: 'null',
+        });
+      }
       seen.push(result.status);
       mark((handler === invoke ? 'owner' : 'metadata') + '-http-' + result.status);
       if (!login && handler === invoke && result.status === 201 && !operation) {
@@ -206,6 +218,10 @@ export async function proveOwnerBrowser({
     if (login) mark('pending-render');
     await page.getByText(/Pending — PPL 001-SYN/).waitFor();
     await page.getByText(/Current approved — SPL previous/).waitFor();
+    if (replacementProof) {
+      await replacementProof.run(page);
+      return;
+    }
     mark('preview');
     await clickOwnerAction('evidence', 'View pending evidence', 200);
     if (login) mark('private-image-render');
