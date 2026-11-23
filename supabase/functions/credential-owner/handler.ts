@@ -35,14 +35,13 @@ const license = scope
 const elp = license
   .omit({ licenseType: true, licenseNumber: true })
   .extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
+const withdrawal = scope
+  .extend({ category: z.literal('elp').optional(), versionId: z.uuid(), operationId: z.uuid() })
+  .strict();
 const input = z.union([
   scope.extend({ action: z.literal('status') }).strict(),
-  scope
-    .extend({ action: z.literal('withdraw'), versionId: z.uuid(), operationId: z.uuid() })
-    .strict(),
-  scope
-    .extend({ action: z.literal('withdraw_outcome'), versionId: z.uuid(), operationId: z.uuid() })
-    .strict(),
+  withdrawal.extend({ action: z.literal('withdraw') }),
+  withdrawal.extend({ action: z.literal('withdraw_outcome') }),
   scope.extend({ action: z.literal('evidence'), versionId: z.uuid() }).strict(),
   scope
     .extend({
@@ -54,6 +53,7 @@ const input = z.union([
     .strict(),
   license.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('submit') }),
+  elp.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
   license.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
 ]);
 export function passwordActor(token: string, userId: string) {
@@ -285,7 +285,10 @@ export function credentialOwnerHandler(config: Config) {
         }
         if (!actor.p_mfa) return await denied();
         if (data.action === 'withdraw' || data.action === 'withdraw_outcome') {
-          const result = await call(data.action, data.versionId, { operationId: data.operationId });
+          const result = await call(data.action, data.versionId, {
+            operationId: data.operationId,
+            category: data.category,
+          });
           if (!result) return await denied();
           if (result.conflict) return reply(409);
           if (

@@ -50,7 +50,9 @@ export function OwnerLicenseForm({
       <fieldset disabled={busy}>
         <legend>
           {elp
-            ? 'Submit English Language Proficiency'
+            ? replacing
+              ? 'Replace pending English Language Proficiency'
+              : 'Submit English Language Proficiency'
             : replacing
               ? 'Replace pending mother license'
               : 'Submit a mother license'}
@@ -116,7 +118,9 @@ export function OwnerLicenseForm({
         </label>
         <button>
           {elp
-            ? 'Submit ELP for review'
+            ? replacing
+              ? 'Replace pending ELP version'
+              : 'Submit ELP for review'
             : replacing
               ? 'Replace pending version'
               : 'Submit for review'}

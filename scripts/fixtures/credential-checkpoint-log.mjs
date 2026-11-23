@@ -20,6 +20,12 @@ export function passwordTransportMarker(request) {
 }
 
 const stages = new Set([
+  'elp-lifecycle-setup',
+  'elp-lifecycle-denials',
+  'elp-lifecycle-rollback',
+  'elp-lifecycle-replace',
+  'elp-lifecycle-withdraw',
+  'elp-lifecycle-retention',
   'elp-migration',
   'elp-owner-submit',
   'elp-refresh',

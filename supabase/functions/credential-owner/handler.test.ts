@@ -224,6 +224,21 @@ describe('local owner command boundary', () => {
     );
     expect(result.calls.some((p) => p.startsWith('/storage/'))).toBe(false);
   });
+  it.each([
+    [{ expectedPendingId: session }, 200],
+    [{}, 400],
+    [{ expectedPendingId: session, elpLevel: 7 }, 400],
+    [{ expectedPendingId: session, expiryDate: null }, 400],
+    [{ expectedPendingId: session, licenseType: 'PPL' }, 400],
+  ] as const)('validates ELP replacement before any upload', async (patch, status) => {
+    const result = await scenario({ ...elp, action: 'replace', ...patch }, true, {
+      replayed: true,
+      id: actor,
+      state: 'pending',
+    });
+    expect(result.response.status).toBe(status);
+    expect(result.calls.some((p) => p.startsWith('/storage/'))).toBe(false);
+  });
   it('uses Manila midnight for the ELP issue date cutoff', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

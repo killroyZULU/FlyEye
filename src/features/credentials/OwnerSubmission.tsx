@@ -113,7 +113,8 @@ export function OwnerSubmission(props: Props) {
         key={membershipId + organizationId}
         busy={busy}
         pendingId={withdrawId}
-        execute={(action, id, key) => gateway.withdrawal(scope, action, id, key)}
+        category={category}
+        execute={gateway.withdrawal.bind(gateway, scope)}
         act={act}
         current={(gen) => generation.current === gen}
         onResult={(text) => {
@@ -222,8 +223,8 @@ function categoryView(
   return {
     rows,
     pendingId,
-    canSubmit: authorized && !(category === 'elp' && pendingId),
-    withdrawId: authorized && category === 'mother_license' ? pendingId : undefined,
+    canSubmit: authorized,
+    withdrawId: authorized ? pendingId : undefined,
   };
 }
 function CategorySelect({

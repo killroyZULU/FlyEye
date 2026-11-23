@@ -60,9 +60,10 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
       action: 'withdraw' | 'withdraw_outcome',
       versionId: string,
       operationId: string,
+      category?: 'elp' | 'mother_license',
     ) {
       const result = await client.functions.invoke('credential-owner', {
-        body: { ...scope, action, versionId, operationId },
+        body: { ...scope, action, versionId, operationId, ...(category === 'elp' && { category }) },
       });
       if (result.error) {
         if (result.response?.status === 409) return 'conflict' as const;

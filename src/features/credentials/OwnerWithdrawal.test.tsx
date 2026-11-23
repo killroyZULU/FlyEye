@@ -48,6 +48,7 @@ describe('My Credentials withdrawal', () => {
       'withdraw',
       pending.id,
       expect.any(String),
+      'mother_license',
     );
     expect(screen.queryByText(/Pending —/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Withdraw pending submission' })).toBeNull();
@@ -61,8 +62,42 @@ describe('My Credentials withdrawal', () => {
     expect(await screen.findByText('Submission withdrawn.')).toBeVisible();
     const key = gateway.withdrawal.mock.calls[0]?.[3];
     expect(gateway.withdrawal.mock.calls).toEqual([
-      [scope, 'withdraw', pending.id, key],
-      [scope, 'withdraw_outcome', pending.id, key],
+      [scope, 'withdraw', pending.id, key, 'mother_license'],
+      [scope, 'withdraw_outcome', pending.id, key, 'mother_license'],
+    ]);
+  });
+  it('checks an ambiguous ELP withdrawal against the original ELP target after switching categories', async () => {
+    const gateway = setup();
+    const elp = {
+      id: crypto.randomUUID(),
+      category: 'elp',
+      state: 'pending',
+      elpLevel: 4,
+      issueDate: '2020-01-02',
+      expiryDate: null,
+      noExpiry: true,
+    };
+    gateway.status.mockResolvedValue({
+      versions: [pending, elp],
+      validUntil: new Date(Date.now() + 60000).toISOString(),
+    });
+    await screen.findByText(/Pending — PPL|Pending — SPL/);
+    fireEvent.change(screen.getByLabelText('Credential category'), { target: { value: 'elp' } });
+    await screen.findByText(/Pending — ELP Level 4/);
+    expect(screen.getByRole('button', { name: 'Replace pending ELP version' })).toBeVisible();
+    gateway.withdrawal.mockRejectedValueOnce(Error('Unknown outcome.'));
+    fireEvent.click(screen.getByRole('button', { name: 'Withdraw pending submission' }));
+    await screen.findByText('Unknown outcome.');
+    fireEvent.change(screen.getByLabelText('Credential category'), {
+      target: { value: 'mother_license' },
+    });
+    await screen.findByText(/Pending — SPL/);
+    fireEvent.click(screen.getByRole('button', { name: 'Check withdrawal outcome (ELP)' }));
+    await screen.findByText('ELP — Submission withdrawn.');
+    const key = gateway.withdrawal.mock.calls[0]?.[3];
+    expect(gateway.withdrawal.mock.calls).toEqual([
+      [scope, 'withdraw', elp.id, key, 'elp'],
+      [scope, 'withdraw_outcome', elp.id, key, 'elp'],
     ]);
   });
   it('shows the refreshed list after a stale conflict', async () => {

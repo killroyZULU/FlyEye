@@ -101,6 +101,7 @@ export async function observePasswordPost(page, apiOrigin, mark, click) {
 export async function checkpoint({
   replacement = false,
   elp = false,
+  elpLifecycle = false,
   auth,
   email,
   password,
@@ -184,6 +185,19 @@ export async function checkpoint({
     assert.ok(!error);
     sql(`insert into credential_private.versions(id,organization_id,membership_id,category,state,license_type,license_number,issued_on,no_expiry,object_key,submitted_by,operation_id,evidence_sha256)
       values('${prior}','${school}','${member}','mother_license','approved','SPL','previous','2024-01-01',true,'${key}','${actor}',gen_random_uuid(),'b75368e414a64c223ffb18fef090a45ff203704613e11bdb922757ac5b00ee06')`);
+    if (elpLifecycle) {
+      const id = randomUUID(),
+        elpKey = school + '/' + member + '/' + id + '.png';
+      const upload = await service.storage
+        .from('credential-synthetic')
+        .upload(elpKey, Buffer.from(syntheticSample, 'base64'), {
+          contentType: 'image/png',
+          upsert: false,
+        });
+      assert.ok(!upload.error);
+      sql(`insert into credential_private.versions(id,organization_id,membership_id,category,state,issued_on,expires_on,no_expiry,elp_level,object_key,submitted_by,operation_id,evidence_sha256)
+        select '${id}',organization_id,membership_id,'elp','approved','2020-01-01','2023-12-31',false,4,'${elpKey}',submitted_by,gen_random_uuid(),evidence_sha256 from credential_private.versions where id='${prior}'`);
+    }
     const approved = () =>
       sql(
         `select to_jsonb(v)::text from credential_private.versions v where id='${prior}' and state='approved'`,
@@ -267,7 +281,10 @@ export async function checkpoint({
       replacementProof,
       proveElp: elp
         ? (page) =>
-            import('./credential-elp-proof.mjs').then(({ proveElp }) =>
+            (elpLifecycle
+              ? import('./credential-elp-lifecycle-proof.mjs')
+              : import('./credential-elp-proof.mjs')
+            ).then(({ proveElp }) =>
               proveElp({
                 page,
                 sql,

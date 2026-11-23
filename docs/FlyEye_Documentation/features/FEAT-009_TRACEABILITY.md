@@ -47,7 +47,7 @@ The [focused replacement proof](../../../scripts/fixtures/credential-replacement
 
 ## S2 ELP submission
 
-The [ELP checkpoint](../../../scripts/fixtures/credential-elp-proof.mjs) exercises AC03/04/05 for a synthetic owner submitting a dated Level 6 record alongside a pending mother license. It covers fresh metadata readback, same-key changed-level conflict and private evidence access. The [migration assertions](../../../scripts/fixtures/credential-elp-migration.sql) cover category-specific fields, allowed levels and explicit no-expiry storage. ELP withdrawal/replacement, optional completeness declarations and approved expiry warnings require separate evidence.
+The [ELP checkpoint](../../../scripts/fixtures/credential-elp-proof.mjs) exercises AC03/04/05 for a synthetic owner submitting a dated Level 6 record alongside a pending mother license. It covers fresh metadata readback, same-key changed-level conflict and private evidence access. The [migration assertions](../../../scripts/fixtures/credential-elp-migration.sql) cover category-specific fields, allowed levels and explicit no-expiry storage. The [ELP lifecycle checkpoint](../../../scripts/fixtures/credential-elp-lifecycle-proof.mjs) covers exact-target withdrawal and replacement, attributable events, private historical evidence, replay, audit rollback and preservation of both categories’ approved records. Optional completeness declarations and approved expiry warnings require separate evidence.
 
 ## Shared session verification plan
 

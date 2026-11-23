@@ -22,7 +22,8 @@ const uuid = (value) => {
 const docker = (...args) =>
   execFileSync('docker', args, { encoding: 'utf8', timeout: 15000 }).trim();
 const replacement = process.argv.includes('--replacement-proof');
-const elp = process.argv.includes('--elp-proof');
+const elpLifecycle = process.argv.includes('--elp-lifecycle-proof');
+const elp = elpLifecycle || process.argv.includes('--elp-proof');
 const browserCheckpoint = elp || replacement || process.argv.includes('--chromium-checkpoint');
 const onePng = process.argv.includes('--one-png-proof');
 const withdrawal = process.argv.includes('--withdrawal-proof');
@@ -146,6 +147,7 @@ async function run() {
     const { checkpoint } = await import('./credential-chromium-checkpoint.mjs');
     await checkpoint({
       elp,
+      elpLifecycle,
       replacement,
       auth,
       email,
