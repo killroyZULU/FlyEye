@@ -39,6 +39,7 @@ const withdrawal = scope
   .extend({ category: z.literal('elp').optional(), versionId: z.uuid(), operationId: z.uuid() })
   .strict();
 const input = z.union([
+  scope.extend({ action: z.literal('declare_elp'), operationId: z.uuid() }).strict(),
   scope.extend({ action: z.literal('status') }).strict(),
   withdrawal.extend({ action: z.literal('withdraw') }),
   withdrawal.extend({ action: z.literal('withdraw_outcome') }),
@@ -278,12 +279,21 @@ export function credentialOwnerHandler(config: Config) {
         }
         return reply(201, result);
       }
+      async function declareElp(operationId: string) {
+        const result = await call('declare_elp', null, { operationId });
+        if (!result) return denied();
+        if (result.conflict) return reply(409);
+        return result.elpCompleteness === 'not_yet_obtained'
+          ? reply(200, { elpCompleteness: result.elpCompleteness })
+          : reply(503);
+      }
       const dispatch = async () => {
         if (data.action === 'status') {
           const result = await call('status', null);
           return result ? reply(200, result) : await denied();
         }
         if (!actor.p_mfa) return await denied();
+        if (data.action === 'declare_elp') return declareElp(data.operationId);
         if (data.action === 'withdraw' || data.action === 'withdraw_outcome') {
           const result = await call(data.action, data.versionId, {
             operationId: data.operationId,

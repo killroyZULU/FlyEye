@@ -11,6 +11,7 @@ const version = z.object({
   expiryDate: z.iso.date().nullable(),
 });
 const versions = z.object({
+  elpCompleteness: z.enum(['approved', 'pending', 'required', 'not_yet_obtained', 'undeclared']),
   versions: z
     .array(
       z
@@ -54,6 +55,13 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
   return {
     async status(scope: Scope) {
       return versions.parse((await invoke({ ...scope, action: 'status' })).data);
+    },
+    async declareElp(scope: Scope, operationId: string) {
+      const result = await client.functions.invoke('credential-owner', {
+        body: { ...scope, action: 'declare_elp', operationId },
+      });
+      if (result.error) throw new Error('Refresh My Credentials to check the current ELP status.');
+      z.object({ elpCompleteness: z.literal('not_yet_obtained') }).parse(result.data);
     },
     async withdrawal(
       scope: Scope,

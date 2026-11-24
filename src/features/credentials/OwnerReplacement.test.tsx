@@ -19,8 +19,8 @@ it('reconciles a missing replacement acknowledgement against the original pendin
   const gateway = {
     status: vi
       .fn<OwnerGateway['status']>()
-      .mockResolvedValueOnce({ versions: [old], validUntil })
-      .mockResolvedValue({ versions: [newer], validUntil }),
+      .mockResolvedValueOnce({ elpCompleteness: 'undeclared', versions: [old], validUntil })
+      .mockResolvedValue({ elpCompleteness: 'undeclared', versions: [newer], validUntil }),
     submit: vi
       .fn<OwnerGateway['submit']>()
       .mockRejectedValue(new Error('Acknowledgement unavailable.')),
@@ -28,6 +28,7 @@ it('reconciles a missing replacement acknowledgement against the original pendin
       .fn<OwnerGateway['reconcile']>()
       .mockResolvedValue({ id: newer.id, state: 'pending' }),
     withdrawal: vi.fn(),
+    declareElp: vi.fn(),
     evidence: vi.fn(),
   };
   render(

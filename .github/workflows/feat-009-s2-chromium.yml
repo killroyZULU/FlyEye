@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '51b5361db710b283a4acd75963d771a233f07657' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '20048e5d30452f0828631aa105bd2a37a7f11cc7' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -40,13 +40,13 @@ jobs:
       - name: Prepare pinned runner-local stack
         timeout-minutes: 14
         run: node scripts/no-send-cli/build-linux.mjs --ci
-      - name: Verify synthetic ELP withdrawal and replacement in Chromium
+      - name: Verify synthetic trainee ELP declaration and readback in Chromium
         timeout-minutes: 10
         shell: bash
         run: |
           set -o pipefail
           env -i PATH="$PATH" HOME="$HOME" CI=true RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUPABASE_TELEMETRY_DISABLED=1 \
-            node scripts/fixtures/credential-session-proof.mjs --elp-lifecycle-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
+            node scripts/fixtures/credential-session-proof.mjs --elp-declaration-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
       - name: Compare final runner inventory
         if: always() && steps.baseline.outcome == 'success'
         run: node scripts/fixtures/credential-runner-inventory.mjs after

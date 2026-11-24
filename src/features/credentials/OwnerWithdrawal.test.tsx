@@ -18,13 +18,18 @@ function setup(level = 'aal2') {
   const gateway = {
     status: vi
       .fn()
-      .mockResolvedValueOnce({ versions: [approved, pending], validUntil })
-      .mockResolvedValue({ versions: [approved], validUntil }),
+      .mockResolvedValueOnce({
+        elpCompleteness: 'undeclared',
+        versions: [approved, pending],
+        validUntil,
+      })
+      .mockResolvedValue({ elpCompleteness: 'undeclared', versions: [approved], validUntil }),
     withdrawal: vi
       .fn<import('./owner-gateway').OwnerGateway['withdrawal']>()
       .mockResolvedValue('withdrawn'),
     submit: vi.fn(),
     reconcile: vi.fn(),
+    declareElp: vi.fn(),
     evidence: vi.fn(),
   };
   render(

@@ -23,7 +23,8 @@ const docker = (...args) =>
   execFileSync('docker', args, { encoding: 'utf8', timeout: 15000 }).trim();
 const replacement = process.argv.includes('--replacement-proof');
 const elpLifecycle = process.argv.includes('--elp-lifecycle-proof');
-const elp = elpLifecycle || process.argv.includes('--elp-proof');
+const elpDeclaration = process.argv.includes('--elp-declaration-proof');
+const elp = elpDeclaration || elpLifecycle || process.argv.includes('--elp-proof');
 const browserCheckpoint = elp || replacement || process.argv.includes('--chromium-checkpoint');
 const onePng = process.argv.includes('--one-png-proof');
 const withdrawal = process.argv.includes('--withdrawal-proof');
@@ -148,6 +149,7 @@ async function run() {
     await checkpoint({
       elp,
       elpLifecycle,
+      elpDeclaration,
       replacement,
       auth,
       email,

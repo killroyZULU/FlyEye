@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { OwnerAssuranceForm } from './OwnerAssuranceForm';
+import { ElpDeclaration } from './ElpDeclaration';
 import { OwnerWithdrawal } from './OwnerWithdrawal';
 import type { OwnerGateway } from './owner-gateway';
 import { OwnerLicenseForm } from './OwnerLicenseForm';
@@ -89,9 +91,9 @@ export function OwnerSubmission(props: Props) {
       if (gen === generation.current) setBusy(false);
     }
   }
-  function refresh() {
+  function refresh(message = '') {
     clear();
-    setMessage('');
+    setMessage(message);
     reload((n) => n + 1);
   }
   const { rows, pendingId, canSubmit, withdrawId } = categoryView(page, category, level);
@@ -106,9 +108,22 @@ export function OwnerSubmission(props: Props) {
         }}
       />
       {message && <p role="status">{message}</p>}
-      <button onClick={refresh} disabled={busy}>
+      <button onClick={() => refresh()} disabled={busy}>
         Refresh submissions
       </button>
+      {category === 'elp' && page && (
+        <ElpDeclaration
+          state={page.elpCompleteness}
+          assured={level === 'aal2'}
+          busy={busy || !!operation?.check}
+          declare={() =>
+            void act(async (gen) => {
+              await gateway.declareElp(scope, crypto.randomUUID());
+              if (gen === generation.current) refresh();
+            })
+          }
+        />
+      )}
       <OwnerWithdrawal
         key={membershipId + organizationId}
         busy={busy}
@@ -117,10 +132,7 @@ export function OwnerSubmission(props: Props) {
         execute={gateway.withdrawal.bind(gateway, scope)}
         act={act}
         current={(gen) => generation.current === gen}
-        onResult={(text) => {
-          refresh();
-          setMessage(text);
-        }}
+        onResult={refresh}
       />
       {operation?.check && (
         <button
@@ -137,8 +149,7 @@ export function OwnerSubmission(props: Props) {
               setOperation(
                 outcome.state === 'unconfirmed' ? { ...operation, check: false } : undefined,
               );
-              refresh();
-              setMessage(
+              refresh(
                 outcome.state === 'pending' && operation.expectedPendingId
                   ? 'Replacement confirmed.'
                   : submissionOutcomeMessage(outcome.state),
@@ -163,24 +174,15 @@ export function OwnerSubmission(props: Props) {
       />
       {preview && <img alt="Submitted synthetic supporting evidence" src={preview.url} />}
       {page && level !== 'aal2' && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const code = textField(new FormData(e.currentTarget), 'code');
-            e.currentTarget.reset();
+        <OwnerAssuranceForm
+          busy={busy}
+          onVerify={(code) =>
             void act(async (gen) => {
               await verifyTotp(code);
               if (gen === generation.current) refresh();
-            });
-          }}
-        >
-          <label>
-            Authenticator code{' '}
-            <input name="code" autoComplete="one-time-code" pattern="[0-9]{6}" required />
-          </label>
-          <button disabled={busy}>Verify for evidence</button>
-          <p>Enroll an authenticator in account security first if needed.</p>
-        </form>
+            })
+          }
+        />
       )}
       {canSubmit && !operation?.check && (
         <OwnerLicenseForm
@@ -200,8 +202,7 @@ export function OwnerSubmission(props: Props) {
               await gateway.submit(scope, fields, file, id, pendingId);
               if (gen === generation.current) {
                 setOperation(undefined);
-                refresh();
-                if (pendingId) setMessage('Pending version replaced.');
+                refresh(pendingId ? 'Pending version replaced.' : '');
               }
             })
           }
@@ -289,8 +290,4 @@ function submissionOutcomeMessage(state: 'unconfirmed' | 'withdrawn' | 'pending'
   if (state === 'unconfirmed')
     return 'No committed submission was found. Re-select the file to retry this operation.';
   return state === 'withdrawn' ? 'Submission was withdrawn.' : 'Submission confirmed.';
-}
-function textField(form: FormData, key: string) {
-  const value = form.get(key);
-  return typeof value === 'string' ? value : '';
 }

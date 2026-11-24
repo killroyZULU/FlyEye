@@ -239,6 +239,34 @@ describe('local owner command boundary', () => {
     expect(result.response.status).toBe(status);
     expect(result.calls.some((p) => p.startsWith('/storage/'))).toBe(false);
   });
+  it.each([
+    [{}, { elpCompleteness: 'not_yet_obtained' }, 200],
+    [{}, null, 403],
+    [{}, { conflict: true }, 409],
+    [{}, { state: 'pending' }, 503],
+    [{ operationId: undefined }, null, 400],
+    [{ category: 'ntc' }, null, 400],
+    [{ file: form.file }, null, 400],
+    [{ applicability: 'trainee' }, null, 400],
+  ] as const)(
+    'keeps declaration separate from evidence and school-controlled applicability',
+    async (patch, receipt, status) => {
+      const { response, calls } = await scenario(
+        {
+          action: 'declare_elp',
+          organizationId: actor,
+          membershipId: session,
+          operationId: actor,
+          ...patch,
+        },
+        true,
+        receipt,
+      );
+      expect(response.status).toBe(status);
+      expect(calls.some((p) => p.startsWith('/storage/'))).toBe(false);
+      expect(calls.some((p) => p.endsWith('credential_owner_submission'))).toBe(status !== 400);
+    },
+  );
   it('uses Manila midnight for the ELP issue date cutoff', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
