@@ -312,6 +312,19 @@ describe('focused hosted checkpoint', () => {
     );
     expect(publicLine('Session proof stopped at preview (http-4xx private).')).toBeNull();
   });
+  it.each([
+    'ntc-preview-cache',
+    'ntc-preview-digest',
+    'ntc-preview-render',
+    'ntc-preview-scope-denial',
+    'ntc-preview-object-inventory',
+    'ntc-preview-access-event',
+  ])('reports only the fixed NTC preview stage %s', (stage) => {
+    const line = 'Session proof stopped at ' + stage + ' (assertion).';
+    expect(publicLine(line)).toBe(line);
+    expect(publicLine(line + ' synthetic-private-detail')).toBeNull();
+    expect(publicLine('Checkpoint: ' + stage + '-private-detail')).toBeNull();
+  });
   const member = { membershipId: 'owner', applicability: 'trainee' };
   const response = {
     decision: 'credential_workspace',

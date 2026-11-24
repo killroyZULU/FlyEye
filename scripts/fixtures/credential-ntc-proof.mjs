@@ -205,22 +205,28 @@ export async function proveNtc({
   assert.deepEqual(snapshot(), pending);
   mark('ntc-private-preview');
   const preview = await click('View pending evidence', 'evidence', 200);
+  mark('ntc-preview-cache');
   assert.match(preview.headers()['cache-control'], /private, no-store/);
+  mark('ntc-preview-digest');
   assert.equal(
     createHash('sha256')
       .update(await preview.body())
       .digest('hex'),
     digest,
   );
+  mark('ntc-preview-render');
   await page.waitForFunction(() => {
     const img = globalThis.document.querySelector(
       'img[alt="Submitted synthetic supporting evidence"]',
     );
     return img?.complete && img.naturalWidth === 1;
   });
+  mark('ntc-preview-scope-denial');
   await send({ action: 'evidence', versionId: id, membershipId: randomUUID() }, 403);
+  mark('ntc-preview-object-inventory');
   const served = snapshot();
   assert.deepEqual(served.objects, pending.objects);
+  mark('ntc-preview-access-event');
   assert.deepEqual(
     served.events
       .filter((e) => e.version_id === id && e.event === 'evidence_served')
