@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '3c4061a837fbcca9afd220ab4173d3beddd7e103' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == 'b6f20b7c8452a83f6f048393465b9122604bc06e' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:

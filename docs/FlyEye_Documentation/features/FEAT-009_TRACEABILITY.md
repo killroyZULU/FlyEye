@@ -51,7 +51,7 @@ The [ELP checkpoint](../../../scripts/fixtures/credential-elp-proof.mjs) exercis
 
 ## S2 NTC submission and completeness
 
-The [NTC checkpoint](../../../scripts/fixtures/credential-ntc-proof.mjs) exercises AC01/03/04/05/10 with a trainee declaration, refresh, dated PNG submission and private preview. It checks declaration denial and required-state readback under instructor and dual applicability, including rollback-only database submissions under each. It checks replay, approval and pending precedence, and preservation of mother-license and ELP versions. NTC withdrawal, replacement and hosted upload acceptance remain open.
+The 93 focused local checks passed on `b6f20b7`, including NTC form and handler validation. [Run 45306195316](https://github.com/killroyZULU/FlyEye/actions/runs/45306195316) stopped at the pinned Storage image pull (unknown category, exit 1). Final runner inventory matched baseline. The [NTC browser/database proof](../../../scripts/fixtures/credential-ntc-proof.mjs) did not execute. AC01/03/04/05/10 runtime evidence remains pending for declaration, submission, readback, private preview, applicability, replay and preservation of other categories. NTC withdrawal, replacement and hosted upload acceptance remain open.
 
 ## Shared session verification plan
 
