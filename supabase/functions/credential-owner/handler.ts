@@ -32,13 +32,14 @@ const license = scope
     file: z.literal(syntheticPng),
   })
   .strict();
-const elp = license
-  .omit({ licenseType: true, licenseNumber: true })
-  .extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
+const dated = license.omit({ licenseType: true, licenseNumber: true });
+const ntc = dated.extend({ category: z.literal('ntc') });
+const elp = dated.extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
 const withdrawal = scope
   .extend({ category: z.literal('elp').optional(), versionId: z.uuid(), operationId: z.uuid() })
   .strict();
 const input = z.union([
+  scope.extend({ action: z.literal('declare_ntc'), operationId: z.uuid() }).strict(),
   scope.extend({ action: z.literal('declare_elp'), operationId: z.uuid() }).strict(),
   scope.extend({ action: z.literal('status') }).strict(),
   withdrawal.extend({ action: z.literal('withdraw') }),
@@ -47,16 +48,24 @@ const input = z.union([
   scope
     .extend({
       action: z.literal('reconcile'),
-      category: z.literal('elp').optional(),
+      category: z.enum(['elp', 'ntc']).optional(),
       operationId: z.uuid(),
       expectedPendingId: z.uuid().optional(),
     })
     .strict(),
   license.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('submit') }),
+  ntc.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
   license.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
 ]);
+type Submission = Extract<z.infer<typeof input>, { action: 'submit' | 'replace' }>;
+function categoryFields(data: Submission) {
+  if ('licenseType' in data)
+    return { licenseType: data.licenseType, licenseNumber: data.licenseNumber };
+  if (data.category === 'elp') return { category: data.category, elpLevel: data.elpLevel };
+  return { category: data.category };
+}
 export function passwordActor(token: string, userId: string) {
   const evidence = authenticationEvidenceFromVerifiedToken(token, userId);
   if (!passwordAuthenticationIsPresent(evidence)) return null;
@@ -231,18 +240,14 @@ export function credentialOwnerHandler(config: Config) {
           },
         });
       }
-      async function submitLicense(
-        data: Extract<z.infer<typeof input>, { action: 'submit' | 'replace' }>,
-      ) {
+      async function submitLicense(data: Submission) {
         if (!validDates(data)) return reply(400);
         const id = crypto.randomUUID();
         const bytes = Uint8Array.from(atob(data.file), (c) => c.charCodeAt(0));
         const details = {
           ...(data.action === 'replace' ? { expectedPendingId: data.expectedPendingId } : {}),
           operationId: data.operationId,
-          ...('elpLevel' in data
-            ? { category: data.category, elpLevel: data.elpLevel }
-            : { licenseType: data.licenseType, licenseNumber: data.licenseNumber }),
+          ...categoryFields(data),
           issueDate: data.issueDate,
           expiryDate: data.expiryDate,
           noExpiry: data.noExpiry,
@@ -279,13 +284,12 @@ export function credentialOwnerHandler(config: Config) {
         }
         return reply(201, result);
       }
-      async function declareElp(operationId: string) {
-        const result = await call('declare_elp', null, { operationId });
+      async function declare(action: 'declare_elp' | 'declare_ntc', operationId: string) {
+        const key = action === 'declare_ntc' ? 'ntcCompleteness' : 'elpCompleteness';
+        const result = await call(action, null, { operationId });
         if (!result) return denied();
         if (result.conflict) return reply(409);
-        return result.elpCompleteness === 'not_yet_obtained'
-          ? reply(200, { elpCompleteness: result.elpCompleteness })
-          : reply(503);
+        return result[key] === 'not_yet_obtained' ? reply(200, { [key]: result[key] }) : reply(503);
       }
       const dispatch = async () => {
         if (data.action === 'status') {
@@ -293,7 +297,8 @@ export function credentialOwnerHandler(config: Config) {
           return result ? reply(200, result) : await denied();
         }
         if (!actor.p_mfa) return await denied();
-        if (data.action === 'declare_elp') return declareElp(data.operationId);
+        if (data.action === 'declare_elp' || data.action === 'declare_ntc')
+          return declare(data.action, data.operationId);
         if (data.action === 'withdraw' || data.action === 'withdraw_outcome') {
           const result = await call(data.action, data.versionId, {
             operationId: data.operationId,

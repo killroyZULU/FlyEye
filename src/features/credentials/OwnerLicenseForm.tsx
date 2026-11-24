@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { syntheticSample, type OwnerGateway } from './owner-gateway';
+import { syntheticSample, type Category, type OwnerGateway } from './owner-gateway';
 
 function textField(form: FormData, key: string) {
   const value = form.get(key);
@@ -7,12 +7,12 @@ function textField(form: FormData, key: string) {
 }
 export function OwnerLicenseForm({
   busy,
-  elp,
+  category,
   replacing,
   onSubmit,
 }: {
   busy: boolean;
-  elp: boolean;
+  category: Category;
   replacing: boolean;
   onSubmit: (fields: Parameters<OwnerGateway['submit']>[1], file: File) => void;
 }) {
@@ -33,12 +33,14 @@ export function OwnerLicenseForm({
         if (file instanceof File)
           onSubmit(
             {
-              ...(elp
+              ...(category === 'elp'
                 ? { category: 'elp' as const, elpLevel: Number(textField(data, 'level')) }
-                : {
-                    licenseType: textField(data, 'type'),
-                    licenseNumber: textField(data, 'number'),
-                  }),
+                : category === 'ntc'
+                  ? { category: 'ntc' as const }
+                  : {
+                      licenseType: textField(data, 'type'),
+                      licenseNumber: textField(data, 'number'),
+                    }),
               issueDate: textField(data, 'issued'),
               expiryDate: noExpiry ? null : textField(data, 'expires'),
               noExpiry,
@@ -49,15 +51,17 @@ export function OwnerLicenseForm({
     >
       <fieldset disabled={busy}>
         <legend>
-          {elp
-            ? replacing
-              ? 'Replace pending English Language Proficiency'
-              : 'Submit English Language Proficiency'
-            : replacing
-              ? 'Replace pending mother license'
-              : 'Submit a mother license'}
+          {category === 'ntc'
+            ? 'Submit NTC radio license'
+            : category === 'elp'
+              ? replacing
+                ? 'Replace pending English Language Proficiency'
+                : 'Submit English Language Proficiency'
+              : replacing
+                ? 'Replace pending mother license'
+                : 'Submit a mother license'}
         </legend>
-        {elp ? (
+        {category === 'elp' ? (
           <label>
             ELP level{' '}
             <select name="level" required defaultValue="">
@@ -72,19 +76,21 @@ export function OwnerLicenseForm({
             </select>
           </label>
         ) : (
-          <>
-            <label>
-              License type{' '}
-              <select name="type">
-                {['SPL', 'PPL', 'CPL', 'ATPL'].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              License number <input name="number" required maxLength={80} />
-            </label>
-          </>
+          category === 'mother_license' && (
+            <>
+              <label>
+                License type{' '}
+                <select name="type">
+                  {['SPL', 'PPL', 'CPL', 'ATPL'].map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                License number <input name="number" required maxLength={80} />
+              </label>
+            </>
+          )
         )}
         <label>
           Issue date{' '}
@@ -117,13 +123,15 @@ export function OwnerLicenseForm({
           Synthetic supporting PNG <input name="file" type="file" accept="image/png" required />
         </label>
         <button>
-          {elp
-            ? replacing
-              ? 'Replace pending ELP version'
-              : 'Submit ELP for review'
-            : replacing
-              ? 'Replace pending version'
-              : 'Submit for review'}
+          {category === 'ntc'
+            ? 'Submit NTC for review'
+            : category === 'elp'
+              ? replacing
+                ? 'Replace pending ELP version'
+                : 'Submit ELP for review'
+              : replacing
+                ? 'Replace pending version'
+                : 'Submit for review'}
         </button>
       </fieldset>
     </form>

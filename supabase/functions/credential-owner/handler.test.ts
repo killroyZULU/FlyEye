@@ -267,6 +267,31 @@ describe('local owner command boundary', () => {
       expect(calls.some((p) => p.endsWith('credential_owner_submission'))).toBe(status !== 400);
     },
   );
+  it.each([
+    [{}, 200],
+    [{ noExpiry: true, expiryDate: null }, 200],
+    [{ elpLevel: 4 }, 400],
+    [{ licenseNumber: '001' }, 400],
+    [{ licenseType: 'PPL' }, 400],
+    [{ issueDate: '2099-01-01' }, 400],
+    [{ issueDate: '2020-02-30' }, 400],
+    [{ expiryDate: '2019-01-01' }, 400],
+    [{ noExpiry: true }, 400],
+    [{ expiryDate: null }, 400],
+    [{ noExpiry: undefined }, 400],
+    [{ file: undefined }, 400],
+    [{ action: 'replace', expectedPendingId: session }, 400],
+  ] as const)('checks the NTC submission contract before storage', async (patch, status) => {
+    const ntc = { ...elp, category: 'ntc', elpLevel: undefined, ...patch };
+    const { response, calls } = await scenario(ntc, true, {
+      replayed: true,
+      id: actor,
+      state: 'pending',
+    });
+    expect(response.status).toBe(status);
+    expect(calls.some((p) => p.endsWith('credential_owner_submission'))).toBe(status === 200);
+    expect(calls.some((p) => p.startsWith('/storage/'))).toBe(false);
+  });
   it('uses Manila midnight for the ELP issue date cutoff', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

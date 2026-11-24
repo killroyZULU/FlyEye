@@ -1,3 +1,4 @@
+import { proveForeignDeclarationDenied } from './credential-declaration-scope.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { syntheticSample } from '../../src/features/credentials/owner-gateway.ts';
@@ -21,7 +22,7 @@ export async function proveElp({
     'versions',(select jsonb_agg(to_jsonb(v) order by id) from credential_private.versions v),
     'events',(select jsonb_agg(to_jsonb(e) order by id) from credential_private.events e),
     'objects',(select jsonb_agg(jsonb_build_array(id,name,metadata) order by id) from storage.objects where bucket_id='credential-synthetic'),
-    'declarations',(select coalesce(jsonb_agg(to_jsonb(d)),'[]'::jsonb) from credential_private.elp_declarations d))::text`),
+    'declarations',(select coalesce(jsonb_agg(to_jsonb(d)),'[]'::jsonb) from credential_private.declarations d))::text`),
     );
   const responseFor = (action) =>
     page.waitForResponse(
@@ -88,28 +89,7 @@ export async function proveElp({
     await send(patch, 403);
   const session = passwordActor(authorization.slice('Bearer '.length), actor)?.p_session;
   assert.match(session, /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
-  // Known eligible targets distinguish a real owner/school denial from a missing row.
-  sql(`begin;
-    set constraints organizations_single_school_deployment_key deferred;
-    do $proof$
-    declare second_school uuid:=gen_random_uuid(); org uuid; foreign_user uuid; foreign_member uuid; reply jsonb;
-    begin
-      insert into public.organizations(id,name) values(second_school,'Synthetic second school');
-      foreach org in array array['${school}'::uuid,second_school] loop
-        foreign_user:=gen_random_uuid(); foreign_member:=gen_random_uuid();
-        insert into auth.users(id) values(foreign_user);
-        insert into public.organization_memberships(id,organization_id,user_id) values(foreign_member,org,foreign_user);
-        insert into public.membership_roles(organization_id,membership_id,role_id)
-          select org,foreign_member,id from public.roles where code='student_pilot' and is_active;
-        if not found then raise exception 'missing fixture role'; end if;
-        update public.organization_member_profiles set credential_applicability='trainee' where membership_id=foreign_member and organization_id=org;
-        if not found then raise exception 'missing fixture profile'; end if;
-        reply:=public.credential_owner_submission('${actor}','${session}',true,org,extract(epoch from now())::bigint+60,
-          foreign_member,'declare_elp',null,jsonb_build_object('operationId',gen_random_uuid()));
-        if reply is not null or exists(select from credential_private.elp_declarations where membership_id=foreign_member)
-          then raise exception 'foreign declaration'; end if;
-      end loop;
-    end; $proof$; rollback;`);
+  proveForeignDeclarationDenied(sql, school, actor, session, 'declare_elp');
   // Exercise the database assurance and expired-token boundaries independently of the handler.
   for (const [mfa, exp] of [
     ['false', 'extract(epoch from now())::bigint+60'],
@@ -124,7 +104,7 @@ export async function proveElp({
   }
   assert.equal(
     sql(
-      "select has_table_privilege('authenticated','credential_private.elp_declarations','INSERT') or has_table_privilege('anon','credential_private.elp_declarations','SELECT')",
+      "select has_table_privilege('authenticated','credential_private.declarations','INSERT') or has_table_privilege('anon','credential_private.declarations','SELECT')",
     ),
     'f',
   );
@@ -133,14 +113,14 @@ export async function proveElp({
   sql(`create sequence credential_private.elp_declaration_proof_attempt;
     create function credential_private.fail_declaration() returns trigger language plpgsql as $$begin
       perform nextval('credential_private.elp_declaration_proof_attempt'); raise exception 'fixture'; end;$$;
-    create trigger fail_declaration before insert on credential_private.elp_declarations for each row execute function credential_private.fail_declaration()`);
+    create trigger fail_declaration before insert on credential_private.declarations for each row execute function credential_private.fail_declaration()`);
   await send({}, 503);
   assert.equal(
     sql('select is_called and last_value=1 from credential_private.elp_declaration_proof_attempt'),
     't',
   );
   assert.deepEqual(snapshot(), before);
-  sql('drop trigger fail_declaration on credential_private.elp_declarations');
+  sql('drop trigger fail_declaration on credential_private.declarations');
   mark('elp-declaration-readback');
   const declared = await click(declareButton, 'declare_elp', 200);
   const intent = declared.request().postDataJSON();

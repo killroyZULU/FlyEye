@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { OwnerAssuranceForm } from './OwnerAssuranceForm';
-import { ElpDeclaration } from './ElpDeclaration';
+import { CredentialDeclaration } from './CredentialDeclaration';
 import { OwnerWithdrawal } from './OwnerWithdrawal';
-import type { OwnerGateway } from './owner-gateway';
+import type { Category, OwnerGateway } from './owner-gateway';
 import { OwnerLicenseForm } from './OwnerLicenseForm';
 
 type Props = {
@@ -21,11 +21,11 @@ export function OwnerSubmission(props: Props) {
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false);
   const [level, setLevel] = useState<string | null>(null);
-  const [category, setCategory] = useState<'mother_license' | 'elp'>('mother_license');
+  const [category, setCategory] = useState<Category>('mother_license');
   const [operation, setOperation] = useState<{
     id: string;
     expectedPendingId?: string;
-    category: 'mother_license' | 'elp';
+    category: Category;
     check: boolean;
   }>();
   const generation = useRef(0);
@@ -111,14 +111,15 @@ export function OwnerSubmission(props: Props) {
       <button onClick={() => refresh()} disabled={busy}>
         Refresh submissions
       </button>
-      {category === 'elp' && page && (
-        <ElpDeclaration
-          state={page.elpCompleteness}
+      {category !== 'mother_license' && page && (
+        <CredentialDeclaration
+          category={category}
+          state={page[`${category}Completeness`]}
           assured={level === 'aal2'}
           busy={busy || !!operation?.check}
           declare={() =>
             void act(async (gen) => {
-              await gateway.declareElp(scope, crypto.randomUUID());
+              await gateway.declareNotObtained(scope, category, crypto.randomUUID());
               if (gen === generation.current) refresh();
             })
           }
@@ -187,7 +188,7 @@ export function OwnerSubmission(props: Props) {
       {canSubmit && !operation?.check && (
         <OwnerLicenseForm
           key={category + (pendingId ?? 'initial')}
-          elp={category === 'elp'}
+          category={category}
           busy={busy}
           replacing={!!pendingId}
           onSubmit={(fields, file) =>
@@ -212,7 +213,6 @@ export function OwnerSubmission(props: Props) {
   );
 }
 
-type Category = 'mother_license' | 'elp';
 function categoryView(
   page: Awaited<ReturnType<OwnerGateway['status']>> | undefined,
   category: Category,
@@ -224,8 +224,8 @@ function categoryView(
   return {
     rows,
     pendingId,
-    canSubmit: authorized,
-    withdrawId: authorized ? pendingId : undefined,
+    canSubmit: authorized && (category !== 'ntc' || !pendingId),
+    withdrawId: authorized && category !== 'ntc' ? pendingId : undefined,
   };
 }
 function CategorySelect({
@@ -243,9 +243,14 @@ function CategorySelect({
       <select
         value={category}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value === 'elp' ? 'elp' : 'mother_license')}
+        onChange={(e) =>
+          onChange(
+            e.target.value === 'ntc' ? 'ntc' : e.target.value === 'elp' ? 'elp' : 'mother_license',
+          )
+        }
       >
         <option value="mother_license">Mother license</option>
+        <option value="ntc">NTC radio license</option>
         <option value="elp">English Language Proficiency (ELP)</option>
       </select>
     </label>
@@ -266,8 +271,12 @@ function OwnerVersions({
     <div key={v.id}>
       <p>
         {v.state === 'pending' ? 'Pending' : 'Current approved'} —{' '}
-        {v.category === 'elp' ? `ELP Level ${v.elpLevel}` : `${v.licenseType} ${v.licenseNumber}`} ·{' '}
-        {v.issueDate} · {v.expiryDate ?? 'No expiry'}
+        {v.category === 'elp'
+          ? `ELP Level ${v.elpLevel}`
+          : v.category === 'ntc'
+            ? 'NTC radio license'
+            : `${v.licenseType} ${v.licenseNumber}`}{' '}
+        · {v.issueDate} · {v.expiryDate ?? 'No expiry'}
       </p>
       {canPreview && (
         <button disabled={busy} onClick={() => onView(v.id)}>

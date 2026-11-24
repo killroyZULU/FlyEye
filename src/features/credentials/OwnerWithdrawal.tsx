@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import type { OwnerGateway } from './owner-gateway';
+import type { Category, OwnerGateway } from './owner-gateway';
 
 type Command = OwnerGateway['withdrawal'];
-const categoryNames = { elp: 'ELP', mother_license: 'Mother license' };
+const categoryNames = { elp: 'ELP', ntc: 'NTC', mother_license: 'Mother license' };
 type Props = {
   pendingId: string | undefined;
   busy: boolean;
-  category: 'elp' | 'mother_license';
+  category: Category;
   execute: (
     action: Parameters<Command>[1],
     id: string,

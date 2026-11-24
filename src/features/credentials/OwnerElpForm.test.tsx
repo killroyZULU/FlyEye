@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { it, expect, vi } from 'vitest';
 import { OwnerLicenseForm } from './OwnerLicenseForm';
 it('requires a level and an explicit expiry choice independent of Level 6', () => {
-  render(<OwnerLicenseForm elp replacing={false} busy={false} onSubmit={vi.fn()} />);
+  render(<OwnerLicenseForm category="elp" replacing={false} busy={false} onSubmit={vi.fn()} />);
   expect(screen.queryByLabelText('License number')).toBeNull();
   const level = screen.getByLabelText('ELP level');
   expect(level).toBeInvalid();
