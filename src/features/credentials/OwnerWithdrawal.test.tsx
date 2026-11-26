@@ -77,6 +77,54 @@ describe('My Credentials withdrawal', () => {
       [scope, 'withdraw_outcome', pending.id, key, 'mother_license'],
     ]);
   });
+  it.each(['not_yet_obtained', 'approved'] as const)(
+    'withdraws the exact pending NTC and displays the refreshed %s state',
+    async (state) => {
+      const gateway = setup();
+      const ntc = {
+        id: crypto.randomUUID(),
+        category: 'ntc',
+        state: 'pending',
+        issueDate: '2020-02-01',
+        expiryDate: null,
+        noExpiry: true,
+      };
+      const current = {
+        ...ntc,
+        state: 'approved',
+        id: crypto.randomUUID(),
+        noExpiry: false,
+        expiryDate: '2021-01-01',
+      };
+      const remaining = state === 'approved' ? [current] : [];
+      const validUntil = new Date(Date.now() + 60000).toISOString();
+      gateway.status.mockResolvedValueOnce({
+        ntcCompleteness: state === 'approved' ? 'approved' : 'pending',
+        versions: [...remaining, ntc],
+        validUntil,
+      });
+      gateway.status.mockResolvedValue({ ntcCompleteness: state, versions: remaining, validUntil });
+      await screen.findByText(/Pending .*SPL/);
+      fireEvent.change(screen.getByLabelText('Credential category'), { target: { value: 'ntc' } });
+      await screen.findByRole('button', { name: 'Replace pending NTC version' });
+      fireEvent.click(screen.getByRole('button', { name: 'Withdraw pending submission' }));
+      await screen.findByRole('button', { name: 'Submit NTC for review' });
+      expect(gateway.withdrawal).toHaveBeenCalledExactlyOnceWith(
+        scope,
+        'withdraw',
+        ntc.id,
+        expect.any(String),
+        'ntc',
+      );
+      expect(screen.queryByText(/Pending .*NTC/)).toBeNull();
+      if (state === 'approved') {
+        expect(screen.getByText(/Current approved .*NTC.*2021-01-01/)).toBeVisible();
+        expect(screen.queryByText(/NTC .*Not yet obtained/)).toBeNull();
+      } else {
+        expect(screen.getByText(/NTC .*Not yet obtained/)).toBeVisible();
+      }
+    },
+  );
   it('checks an ambiguous ELP withdrawal against the original ELP target after switching categories', async () => {
     const gateway = setup();
     const elp = {

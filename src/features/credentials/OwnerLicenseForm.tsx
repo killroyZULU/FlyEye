@@ -52,7 +52,9 @@ export function OwnerLicenseForm({
       <fieldset disabled={busy}>
         <legend>
           {category === 'ntc'
-            ? 'Submit NTC radio license'
+            ? replacing
+              ? 'Replace pending NTC radio license'
+              : 'Submit NTC radio license'
             : category === 'elp'
               ? replacing
                 ? 'Replace pending English Language Proficiency'
@@ -124,7 +126,9 @@ export function OwnerLicenseForm({
         </label>
         <button>
           {category === 'ntc'
-            ? 'Submit NTC for review'
+            ? replacing
+              ? 'Replace pending NTC version'
+              : 'Submit NTC for review'
             : category === 'elp'
               ? replacing
                 ? 'Replace pending ELP version'

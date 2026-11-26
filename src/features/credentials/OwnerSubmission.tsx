@@ -224,8 +224,8 @@ function categoryView(
   return {
     rows,
     pendingId,
-    canSubmit: authorized && (category !== 'ntc' || !pendingId),
-    withdrawId: authorized && category !== 'ntc' ? pendingId : undefined,
+    canSubmit: authorized,
+    withdrawId: authorized ? pendingId : undefined,
   };
 }
 function CategorySelect({

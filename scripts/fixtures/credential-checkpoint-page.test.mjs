@@ -50,8 +50,12 @@ describe('runner-local checkpoint page', () => {
       expect(() =>
         listener.verifyNavigation({ ...navigation, url: () => origin + '/other' }),
       ).toThrow();
+      expect(() => listener.verifyNavigation(navigation, true)).toThrow();
       await visit('/');
       expect(() => listener.verifyNavigation(navigation)).toThrow();
+      listener.verifyNavigation(navigation, true);
+      await visit('/');
+      expect(() => listener.verifyNavigation(navigation, true)).toThrow();
     } finally {
       await listener.close();
     }

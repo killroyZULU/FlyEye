@@ -36,7 +36,11 @@ const dated = license.omit({ licenseType: true, licenseNumber: true });
 const ntc = dated.extend({ category: z.literal('ntc') });
 const elp = dated.extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
 const withdrawal = scope
-  .extend({ category: z.literal('elp').optional(), versionId: z.uuid(), operationId: z.uuid() })
+  .extend({
+    category: z.enum(['elp', 'ntc']).optional(),
+    versionId: z.uuid(),
+    operationId: z.uuid(),
+  })
   .strict();
 const input = z.union([
   scope.extend({ action: z.literal('declare_ntc'), operationId: z.uuid() }).strict(),
@@ -56,6 +60,7 @@ const input = z.union([
   license.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('submit') }),
   ntc.extend({ action: z.literal('submit') }),
+  ntc.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
   elp.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
   license.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
 ]);

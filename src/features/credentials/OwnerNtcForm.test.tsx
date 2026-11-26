@@ -14,6 +14,19 @@ it('requires an explicit expiry choice and synthetic evidence for NTC submission
   expect(screen.queryByLabelText('Expiry date')).toBeNull();
   expect(screen.getByLabelText('Synthetic supporting PNG')).toBeRequired();
 });
+it('submits NTC replacement dates without adding license or ELP fields', () => {
+  const submit = vi.fn();
+  render(<OwnerLicenseForm category="ntc" busy={false} replacing onSubmit={submit} />);
+  fireEvent.change(screen.getByLabelText('Issue date'), { target: { value: '2023-01-01' } });
+  fireEvent.change(screen.getByLabelText('Expiry date'), { target: { value: '2024-01-01' } });
+  const form = screen.getByRole('button', { name: 'Replace pending NTC version' }).closest('form');
+  if (!form) throw Error('Expected NTC replacement form');
+  fireEvent.submit(form);
+  expect(submit).toHaveBeenCalledExactlyOnceWith(
+    { category: 'ntc', issueDate: '2023-01-01', expiryDate: '2024-01-01', noExpiry: false },
+    expect.any(File),
+  );
+});
 it('offers the NTC declaration separately and renders the required state', () => {
   const declare = vi.fn();
   const props = { category: 'ntc' as const, busy: false, assured: true, declare };

@@ -26,10 +26,10 @@ export async function openCheckpointPage(origin) {
     server.listen({ host, port, exclusive: true }, resolve);
   });
   return {
-    verifyNavigation(response) {
+    verifyNavigation(response, reloaded = false) {
       assert.equal(response?.url(), origin + '/');
       assert.equal(response.status(), 200);
-      assert.equal(documents, 1);
+      assert.equal(documents, reloaded ? 2 : 1);
     },
     async close() {
       await new Promise((resolve, reject) => {

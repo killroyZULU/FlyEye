@@ -167,13 +167,15 @@ export async function proveOwnerBrowser({
     }
     await page.addScriptTag({ content: bundle });
     mark('mount-panel');
-    if (login) {
+    async function mountLogin() {
       await page.evaluate(
         (args) => globalThis.Proof.mount(...args),
         [status.API_URL, status.ANON_KEY, school, member],
       );
       await login(page, mark);
-    } else
+    }
+    if (login) await mountLogin();
+    else
       try {
         await page.evaluate(
           (args) => globalThis.Proof.mount(...args),
@@ -220,7 +222,12 @@ export async function proveOwnerBrowser({
     await page.getByText(/Pending — PPL 001-SYN/).waitFor();
     await page.getByText(/Current approved — SPL previous/).waitFor();
     if (categoryProof) {
-      await categoryProof(page);
+      await categoryProof(page, async () => {
+        checkpointPage.verifyNavigation(await page.reload(), true);
+        await page.addScriptTag({ content: bundle });
+        await mountLogin();
+        await page.getByRole('heading', { name: 'My Credentials' }).waitFor();
+      });
       return;
     }
     if (replacementProof) {

@@ -51,7 +51,9 @@ The [ELP checkpoint](../../../scripts/fixtures/credential-elp-proof.mjs) exercis
 
 ## S2 NTC submission and completeness
 
-The 93 focused local checks passed on `b6f20b7`, including NTC form and handler validation. [Run 45306195316](https://github.com/killroyZULU/FlyEye/actions/runs/45306195316) stopped at the pinned Storage image pull (unknown category, exit 1). Final runner inventory matched baseline. The [NTC browser/database proof](../../../scripts/fixtures/credential-ntc-proof.mjs) did not execute. AC01/03/04/05/10 runtime evidence remains pending for declaration, submission, readback, private preview, applicability, replay and preservation of other categories. NTC withdrawal, replacement and hosted upload acceptance remain open.
+[Run 45306195316](https://github.com/killroyZULU/FlyEye/actions/runs/45306195316) stopped at image acquisition. [Run 45782821860](https://github.com/killroyZULU/FlyEye/actions/runs/45782821860) passed the [NTC Chromium/database proof](../../../scripts/fixtures/credential-ntc-proof.mjs) at `96e2fb6`. For AC01/03/04/05/10 it verified trainee declaration, instructor/dual requirements, submission and refresh, replay, private PNG digest and rendering, scope denial, access audit, and preservation of approval, expiry and unrelated records. The email sink was empty and final inventory matched baseline.
+
+The local [rollback-only NTC transition test](../../../supabase/tests/feat_009_ntc_transitions_test.sql) passed on in-memory PostgreSQL 17.5 with synthetic Auth, Storage and membership fixtures. It exercised the migrated owner command for exact-target withdrawal, atomic replacement, replay and audit failure. Withdrawal restored a trainee's saved declaration when no approval remained. An existing approval retained its expiry and took precedence. Instructor and dual applicability still required NTC without an approval. The transition UI and handler have focused local coverage. Browser-to-database verification of these transitions and hosted upload acceptance remain open.
 
 ## Shared session verification plan
 

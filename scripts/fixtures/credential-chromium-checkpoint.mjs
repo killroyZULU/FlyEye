@@ -104,6 +104,7 @@ export async function checkpoint({
   elpLifecycle = false,
   elpDeclaration = false,
   ntc = false,
+  ntcLifecycle = false,
   auth,
   email,
   password,
@@ -287,8 +288,11 @@ export async function checkpoint({
       mark,
       replacementProof,
       categoryProof: ntc
-        ? (page) =>
-            import('./credential-ntc-proof.mjs').then(({ proveNtc }) =>
+        ? (page, reloadAndLogin) =>
+            (ntcLifecycle
+              ? import('./credential-ntc-lifecycle-proof.mjs')
+              : import('./credential-ntc-proof.mjs')
+            ).then(({ proveNtc }) =>
               proveNtc({
                 page,
                 school,
@@ -301,6 +305,8 @@ export async function checkpoint({
                 apiUrl: status.API_URL,
                 stageControlEvidence,
                 seedApprovedElp,
+                reloadAndLogin,
+                bucket: service.storage.from('credential-synthetic'),
               }),
             )
         : elp

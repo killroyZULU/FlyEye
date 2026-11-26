@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   chromium:
-    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '3af66f0c9787e11bee5d8d1c6acf6960ff736e7e' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
+    if: github.repository == 'killroyZULU/FlyEye' && github.event.before == '96e2fb636e2e907c52fb053381497422d7594daf' && !github.event.forced && !github.event.deleted && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -40,13 +40,13 @@ jobs:
       - name: Prepare pinned runner-local stack
         timeout-minutes: 14
         run: node scripts/no-send-cli/build-linux.mjs --ci
-      - name: Verify synthetic NTC submission, declaration and readback in Chromium
+      - name: Verify synthetic NTC withdrawal and competing replacements in Chromium
         timeout-minutes: 10
         shell: bash
         run: |
           set -o pipefail
           env -i PATH="$PATH" HOME="$HOME" CI=true RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" GITHUB_REF="$GITHUB_REF" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUPABASE_TELEMETRY_DISABLED=1 \
-            node scripts/fixtures/credential-session-proof.mjs --ntc-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
+            node scripts/fixtures/credential-session-proof.mjs --ntc-lifecycle-proof 2>&1 | node scripts/fixtures/credential-checkpoint-log.mjs
       - name: Compare final runner inventory
         if: always() && steps.baseline.outcome == 'success'
         run: node scripts/fixtures/credential-runner-inventory.mjs after
