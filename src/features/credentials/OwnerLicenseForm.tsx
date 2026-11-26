@@ -5,6 +5,24 @@ function textField(form: FormData, key: string) {
   const value = form.get(key);
   return typeof value === 'string' ? value : '';
 }
+function formLabels(category: Category, replacing: boolean) {
+  switch (category) {
+    case 'medical':
+      return ['Submit medical certificate', 'Submit medical certificate for review'];
+    case 'ntc':
+      return replacing
+        ? ['Replace pending NTC radio license', 'Replace pending NTC version']
+        : ['Submit NTC radio license', 'Submit NTC for review'];
+    case 'elp':
+      return replacing
+        ? ['Replace pending English Language Proficiency', 'Replace pending ELP version']
+        : ['Submit English Language Proficiency', 'Submit ELP for review'];
+    case 'mother_license':
+      return replacing
+        ? ['Replace pending mother license', 'Replace pending version']
+        : ['Submit a mother license', 'Submit for review'];
+  }
+}
 export function OwnerLicenseForm({
   busy,
   category,
@@ -16,6 +34,7 @@ export function OwnerLicenseForm({
   replacing: boolean;
   onSubmit: (fields: Parameters<OwnerGateway['submit']>[1], file: File) => void;
 }) {
+  const [legend, button] = formLabels(category, replacing);
   const [noExpiry, setNoExpiry] = useState(false);
   const [issued, setIssued] = useState('');
   const today = new Intl.DateTimeFormat('en-CA', {
@@ -35,8 +54,8 @@ export function OwnerLicenseForm({
             {
               ...(category === 'elp'
                 ? { category: 'elp' as const, elpLevel: Number(textField(data, 'level')) }
-                : category === 'ntc'
-                  ? { category: 'ntc' as const }
+                : category === 'ntc' || category === 'medical'
+                  ? { category }
                   : {
                       licenseType: textField(data, 'type'),
                       licenseNumber: textField(data, 'number'),
@@ -50,19 +69,7 @@ export function OwnerLicenseForm({
       }}
     >
       <fieldset disabled={busy}>
-        <legend>
-          {category === 'ntc'
-            ? replacing
-              ? 'Replace pending NTC radio license'
-              : 'Submit NTC radio license'
-            : category === 'elp'
-              ? replacing
-                ? 'Replace pending English Language Proficiency'
-                : 'Submit English Language Proficiency'
-              : replacing
-                ? 'Replace pending mother license'
-                : 'Submit a mother license'}
-        </legend>
+        <legend>{legend}</legend>
         {category === 'elp' ? (
           <label>
             ELP level{' '}
@@ -124,19 +131,7 @@ export function OwnerLicenseForm({
         <label>
           Synthetic supporting PNG <input name="file" type="file" accept="image/png" required />
         </label>
-        <button>
-          {category === 'ntc'
-            ? replacing
-              ? 'Replace pending NTC version'
-              : 'Submit NTC for review'
-            : category === 'elp'
-              ? replacing
-                ? 'Replace pending ELP version'
-                : 'Submit ELP for review'
-              : replacing
-                ? 'Replace pending version'
-                : 'Submit for review'}
-        </button>
+        <button>{button}</button>
       </fieldset>
     </form>
   );

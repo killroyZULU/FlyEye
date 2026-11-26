@@ -33,6 +33,7 @@ const license = scope
   })
   .strict();
 const dated = license.omit({ licenseType: true, licenseNumber: true });
+const medical = dated.extend({ category: z.literal('medical') });
 const ntc = dated.extend({ category: z.literal('ntc') });
 const elp = dated.extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
 const withdrawal = scope
@@ -52,11 +53,13 @@ const input = z.union([
   scope
     .extend({
       action: z.literal('reconcile'),
-      category: z.enum(['elp', 'ntc']).optional(),
+      category: z.enum(['elp', 'ntc', 'medical']).optional(),
       operationId: z.uuid(),
       expectedPendingId: z.uuid().optional(),
     })
-    .strict(),
+    .strict()
+    .refine((value) => value.category !== 'medical' || value.expectedPendingId === undefined),
+  medical.extend({ action: z.literal('submit') }),
   license.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('submit') }),
   ntc.extend({ action: z.literal('submit') }),

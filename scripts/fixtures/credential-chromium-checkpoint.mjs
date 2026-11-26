@@ -105,6 +105,7 @@ export async function checkpoint({
   elpDeclaration = false,
   ntc = false,
   ntcLifecycle = false,
+  medical = false,
   auth,
   email,
   password,
@@ -287,54 +288,77 @@ export async function checkpoint({
       bundle,
       mark,
       replacementProof,
-      categoryProof: ntc
+      categoryProof: medical
         ? (page, reloadAndLogin) =>
-            (ntcLifecycle
-              ? import('./credential-ntc-lifecycle-proof.mjs')
-              : import('./credential-ntc-proof.mjs')
-            ).then(({ proveNtc }) =>
-              proveNtc({
+            import('./credential-medical-proof.mjs').then(({ proveMedical }) =>
+              proveMedical({
                 page,
+                reloadAndLogin,
                 school,
                 member,
                 actor,
-                origin,
-                invoke,
                 sql,
                 mark,
-                apiUrl: status.API_URL,
                 stageControlEvidence,
-                seedApprovedElp,
-                reloadAndLogin,
-                bucket: service.storage.from('credential-synthetic'),
+                origin,
+                invoke,
+                apiUrl: status.API_URL,
               }),
             )
-        : elp
-          ? (page) =>
-              (elpDeclaration
-                ? import('./credential-elp-declaration-proof.mjs')
-                : elpLifecycle
-                  ? import('./credential-elp-lifecycle-proof.mjs')
-                  : import('./credential-elp-proof.mjs')
-              ).then(({ proveElp }) =>
-                proveElp({
+        : ntc
+          ? (page, reloadAndLogin) =>
+              (ntcLifecycle
+                ? import('./credential-ntc-lifecycle-proof.mjs')
+                : import('./credential-ntc-proof.mjs')
+              ).then(({ proveNtc }) =>
+                proveNtc({
                   page,
-                  sql,
                   school,
                   member,
                   actor,
-                  mark,
                   origin,
                   invoke,
+                  sql,
+                  mark,
                   apiUrl: status.API_URL,
+                  stageControlEvidence,
                   seedApprovedElp,
+                  reloadAndLogin,
+                  bucket: service.storage.from('credential-synthetic'),
                 }),
               )
-          : undefined,
+          : elp
+            ? (page) =>
+                (elpDeclaration
+                  ? import('./credential-elp-declaration-proof.mjs')
+                  : elpLifecycle
+                    ? import('./credential-elp-lifecycle-proof.mjs')
+                    : import('./credential-elp-proof.mjs')
+                ).then(({ proveElp }) =>
+                  proveElp({
+                    page,
+                    sql,
+                    school,
+                    member,
+                    actor,
+                    mark,
+                    origin,
+                    invoke,
+                    apiUrl: status.API_URL,
+                    seedApprovedElp,
+                  }),
+                )
+            : undefined,
     });
-    if (ntc || elp) {
+    if (medical || ntc || elp) {
       assert.equal(approved(), initial);
-      mark(ntc ? 'ntc-invariants-passed' : 'elp-invariants-passed');
+      mark(
+        medical
+          ? 'medical-invariants-passed'
+          : ntc
+            ? 'ntc-invariants-passed'
+            : 'elp-invariants-passed',
+      );
       return;
     }
     if (replacement) {

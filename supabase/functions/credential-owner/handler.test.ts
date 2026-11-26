@@ -329,6 +329,40 @@ describe('local owner command boundary', () => {
     expect(calls.some((p) => p.endsWith('credential_owner_submission'))).toBe(status === 200);
     expect(calls.some((p) => p.startsWith('/storage/'))).toBe(false);
   });
+  it.each([
+    [{}, 200],
+    [{ expiryDate: null, noExpiry: true }, 200],
+    [{ diagnosis: 'synthetic' }, 400],
+    [{ notes: 'synthetic' }, 400],
+    [{ licenseType: 'PPL' }, 400],
+    [{ elpLevel: 4 }, 400],
+    [{ issueDate: '2099-01-01' }, 400],
+    [{ issueDate: '2023-02-30' }, 400],
+    [{ expiryDate: '2019-01-01' }, 400],
+    [{ expiryDate: null }, 400],
+    [{ noExpiry: true }, 400],
+    [{ file: undefined }, 400],
+    [{ action: 'replace', expectedPendingId: session }, 400],
+  ] as const)('validates medical metadata before upload', async (patch, status) => {
+    const result = await scenario(
+      {
+        ...elp,
+        category: 'medical',
+        elpLevel: undefined,
+        issueDate: '2020-02-01',
+        expiryDate: '2023-11-30',
+        noExpiry: false,
+        ...patch,
+      },
+      true,
+      { replayed: true, id: actor, state: 'pending' },
+    );
+    expect(result.response.status).toBe(status);
+    expect(result.calls.some((path) => path.endsWith('credential_owner_submission'))).toBe(
+      status === 200,
+    );
+    expect(result.calls.some((path) => path.startsWith('/storage/'))).toBe(false);
+  });
   it('uses Manila midnight for the ELP issue date cutoff', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

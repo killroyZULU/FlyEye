@@ -1,4 +1,4 @@
-import type { OwnerGateway } from './owner-gateway';
+import type { Category, OwnerGateway } from './owner-gateway';
 
 export function CredentialDeclaration({
   category,
@@ -23,4 +23,34 @@ export function CredentialDeclaration({
       </button>
     );
   return null;
+}
+
+export function OwnerCompleteness({
+  page,
+  category,
+  assured,
+  busy,
+  onDeclare,
+}: {
+  page: Awaited<ReturnType<OwnerGateway['status']>> | undefined;
+  category: Category;
+  assured: boolean;
+  busy: boolean;
+  onDeclare: (category: 'elp' | 'ntc') => void;
+}) {
+  if (!page || category === 'mother_license') return null;
+  if (category === 'medical') {
+    return page.versions.some((v) => v.category === category && v.state === 'approved') ? null : (
+      <p>Medical certificate required — no approved certificate on file.</p>
+    );
+  }
+  return (
+    <CredentialDeclaration
+      category={category}
+      state={page[`${category}Completeness`]}
+      assured={assured}
+      busy={busy}
+      declare={() => onDeclare(category)}
+    />
+  );
 }

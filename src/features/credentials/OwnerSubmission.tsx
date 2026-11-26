@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { OwnerAssuranceForm } from './OwnerAssuranceForm';
-import { CredentialDeclaration } from './CredentialDeclaration';
+import { OwnerCompleteness } from './CredentialDeclaration';
 import { OwnerWithdrawal } from './OwnerWithdrawal';
 import type { Category, OwnerGateway } from './owner-gateway';
 import { OwnerLicenseForm } from './OwnerLicenseForm';
@@ -111,20 +111,18 @@ export function OwnerSubmission(props: Props) {
       <button onClick={() => refresh()} disabled={busy}>
         Refresh submissions
       </button>
-      {category !== 'mother_license' && page && (
-        <CredentialDeclaration
-          category={category}
-          state={page[`${category}Completeness`]}
-          assured={level === 'aal2'}
-          busy={busy || !!operation?.check}
-          declare={() =>
-            void act(async (gen) => {
-              await gateway.declareNotObtained(scope, category, crypto.randomUUID());
-              if (gen === generation.current) refresh();
-            })
-          }
-        />
-      )}
+      <OwnerCompleteness
+        page={page}
+        category={category}
+        assured={level === 'aal2'}
+        busy={busy || !!operation?.check}
+        onDeclare={(kind) =>
+          void act(async (gen) => {
+            await gateway.declareNotObtained(scope, kind, crypto.randomUUID());
+            if (gen === generation.current) refresh();
+          })
+        }
+      />
       <OwnerWithdrawal
         key={membershipId + organizationId}
         busy={busy}
@@ -224,8 +222,8 @@ function categoryView(
   return {
     rows,
     pendingId,
-    canSubmit: authorized,
-    withdrawId: authorized ? pendingId : undefined,
+    canSubmit: authorized && (category !== 'medical' || !pendingId),
+    withdrawId: authorized && category !== 'medical' ? pendingId : undefined,
   };
 }
 function CategorySelect({
@@ -245,11 +243,14 @@ function CategorySelect({
         disabled={disabled}
         onChange={(e) =>
           onChange(
-            e.target.value === 'ntc' ? 'ntc' : e.target.value === 'elp' ? 'elp' : 'mother_license',
+            e.target.value === 'ntc' || e.target.value === 'elp' || e.target.value === 'medical'
+              ? e.target.value
+              : 'mother_license',
           )
         }
       >
         <option value="mother_license">Mother license</option>
+        <option value="medical">Medical certificate</option>
         <option value="ntc">NTC radio license</option>
         <option value="elp">English Language Proficiency (ELP)</option>
       </select>
@@ -273,8 +274,10 @@ function OwnerVersions({
         {v.state === 'pending' ? 'Pending' : 'Current approved'} —{' '}
         {v.category === 'elp'
           ? `ELP Level ${v.elpLevel}`
-          : v.category === 'ntc'
-            ? 'NTC radio license'
+          : v.category === 'ntc' || v.category === 'medical'
+            ? v.category === 'ntc'
+              ? 'NTC radio license'
+              : 'Medical certificate'
             : `${v.licenseType} ${v.licenseNumber}`}{' '}
         · {v.issueDate} · {v.expiryDate ?? 'No expiry'}
       </p>

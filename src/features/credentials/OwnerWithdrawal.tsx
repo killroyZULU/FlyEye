@@ -2,7 +2,12 @@ import { useState } from 'react';
 import type { Category, OwnerGateway } from './owner-gateway';
 
 type Command = OwnerGateway['withdrawal'];
-const categoryNames = { elp: 'ELP', ntc: 'NTC', mother_license: 'Mother license' };
+const categoryNames = {
+  elp: 'ELP',
+  ntc: 'NTC',
+  medical: 'Medical certificate',
+  mother_license: 'Mother license',
+};
 type Props = {
   pendingId: string | undefined;
   busy: boolean;

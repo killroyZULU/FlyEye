@@ -24,11 +24,12 @@ const docker = (...args) =>
 const replacement = process.argv.includes('--replacement-proof');
 const elpLifecycle = process.argv.includes('--elp-lifecycle-proof');
 const elpDeclaration = process.argv.includes('--elp-declaration-proof');
+const medical = process.argv.includes('--medical-proof');
 const ntcLifecycle = process.argv.includes('--ntc-lifecycle-proof');
 const ntc = ntcLifecycle || process.argv.includes('--ntc-proof');
 const elp = elpDeclaration || elpLifecycle || process.argv.includes('--elp-proof');
 const browserCheckpoint =
-  ntc || elp || replacement || process.argv.includes('--chromium-checkpoint');
+  medical || ntc || elp || replacement || process.argv.includes('--chromium-checkpoint');
 const onePng = process.argv.includes('--one-png-proof');
 const withdrawal = process.argv.includes('--withdrawal-proof');
 const focused = browserCheckpoint || onePng || withdrawal;
@@ -155,6 +156,7 @@ async function run() {
       elpDeclaration,
       ntc,
       ntcLifecycle,
+      medical,
       replacement,
       auth,
       email,

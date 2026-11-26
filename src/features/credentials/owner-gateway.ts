@@ -24,6 +24,7 @@ const versions = z.object({
             licenseNumber: z.string(),
           }),
           version.extend({ category: z.literal('ntc'), noExpiry: z.boolean() }),
+          version.extend({ category: z.literal('medical'), noExpiry: z.boolean() }),
           version.extend({
             category: z.literal('elp'),
             elpLevel: z.number().int().min(1).max(6),
@@ -34,7 +35,7 @@ const versions = z.object({
           (row) => row.category === 'mother_license' || row.noExpiry === (row.expiryDate === null),
         ),
     )
-    .max(6),
+    .max(8),
   validUntil: z.iso.datetime({ offset: true }),
 });
 export type CredentialFields = {
@@ -44,9 +45,9 @@ export type CredentialFields = {
 } & (
   | { licenseType: string; licenseNumber: string }
   | { category: 'elp'; elpLevel: number }
-  | { category: 'ntc' }
+  | { category: 'ntc' | 'medical' }
 );
-export type Category = 'mother_license' | 'elp' | 'ntc';
+export type Category = 'mother_license' | 'elp' | 'ntc' | 'medical';
 type Scope = { organizationId: string; membershipId: string };
 export type OwnerGateway = ReturnType<typeof createOwnerGateway>;
 export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'functions'>) {
