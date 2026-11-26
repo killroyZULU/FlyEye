@@ -3,6 +3,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { passwordActor } from '../../supabase/functions/credential-owner/handler.ts';
 import { syntheticSample } from '../../src/features/credentials/owner-gateway.ts';
 import { proveForeignDeclarationDenied } from './credential-declaration-scope.mjs';
+import { matchesPreviewDigest } from './credential-preview-digest.mjs';
 
 export async function proveNtc({
   page,
@@ -204,16 +205,19 @@ export async function proveNtc({
   await send(intent, 409);
   assert.deepEqual(snapshot(), pending);
   mark('ntc-private-preview');
+  const image = page.locator('img[alt="Submitted synthetic supporting evidence"]');
+  assert.equal(await image.count(), 0);
   const preview = await click('View pending evidence', 'evidence', 200);
+  assert.deepEqual(preview.request().postDataJSON(), {
+    action: 'evidence',
+    organizationId: school,
+    membershipId: member,
+    versionId: id,
+  });
   mark('ntc-preview-cache');
   assert.match(preview.headers()['cache-control'], /private, no-store/);
   mark('ntc-preview-digest');
-  assert.equal(
-    createHash('sha256')
-      .update(await preview.body())
-      .digest('hex'),
-    digest,
-  );
+  assert.equal(await image.evaluate(matchesPreviewDigest, { size: png.length, digest }), true);
   mark('ntc-preview-render');
   await page.waitForFunction(() => {
     const img = globalThis.document.querySelector(
