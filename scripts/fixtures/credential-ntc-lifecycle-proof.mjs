@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { z } from 'zod';
 import { syntheticSample } from '../../src/features/credentials/owner-gateway.ts';
 import { raceReplacementCommits } from './credential-replacement-race.mjs';
+
+export function assertReplacementReceipt(receipt, expectedVersionId) {
+  const expected = z.strictObject({
+    state: z.literal('pending'),
+    id: z.literal(expectedVersionId),
+    validUntil: z.iso.datetime({ offset: true }),
+  });
+  assert.ok(expected.safeParse(receipt).success, 'Unexpected NTC replacement receipt');
+}
 
 export async function proveNtc({
   page,
@@ -130,7 +140,7 @@ export async function proveNtc({
   assert.deepEqual(raced.map((r) => r.response.status).sort(), [201, 409]);
   const winner = raced.find((r) => r.response.status === 201);
   const loser = raced.find((r) => r.response.status === 409);
-  assert.deepEqual(await winner.response.json(), { state: 'pending', id: winner.versionId });
+  assertReplacementReceipt(await winner.response.json(), winner.versionId);
   mark('ntc-winner-audit-storage');
   const won = snapshot();
   assert.deepEqual(won.objects, [...stable.objects, key(winner.versionId)].sort());
