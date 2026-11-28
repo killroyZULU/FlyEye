@@ -193,7 +193,7 @@ export async function proveOwnerBrowser({
     await page.getByLabel('License number').fill('001-SYN');
     await page.getByLabel('Issue date').fill('2025-01-01');
     await page.getByLabel('No expiry').check();
-    await page.getByLabel('Synthetic supporting PNG').setInputFiles({
+    await page.getByLabel('Supporting evidence (one PDF or one or two images)').setInputFiles({
       name: 'synthetic.png',
       mimeType: 'image/png',
       buffer: Buffer.from(syntheticSample, 'base64'),

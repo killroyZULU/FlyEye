@@ -39,6 +39,12 @@ export function OwnerCompleteness({
   onDeclare: (category: 'elp' | 'ntc') => void;
 }) {
   if (!page || category === 'mother_license') return null;
+  if (category === 'fi' || category === 'gi') {
+    if (!page.instructorApplicable) return <p>Not currently required</p>;
+    return page.versions.some((v) => v.category === category) ? null : (
+      <p>Optional — Not provided</p>
+    );
+  }
   if (category === 'medical') {
     return page.versions.some((v) => v.category === category && v.state === 'approved') ? null : (
       <p>Medical certificate required — no approved certificate on file.</p>

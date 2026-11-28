@@ -49,7 +49,7 @@ export function replacementProof({ invoke, origin, apiUrl, sql, school, member, 
       await page.getByLabel('License number').fill('002-REPLACEMENT');
       await page.getByLabel('Issue date').fill('2025-02-01');
       await page.getByLabel('No expiry').check();
-      await page.getByLabel('Synthetic supporting PNG').setInputFiles({
+      await page.getByLabel('Supporting evidence (one PDF or one or two images)').setInputFiles({
         name: 'sample.png',
         mimeType: 'image/png',
         buffer: Buffer.from(syntheticSample, 'base64'),

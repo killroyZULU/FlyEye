@@ -106,6 +106,7 @@ export async function checkpoint({
   ntc = false,
   ntcLifecycle = false,
   medical = false,
+  medicalLifecycle = false,
   auth,
   email,
   password,
@@ -290,8 +291,11 @@ export async function checkpoint({
       replacementProof,
       categoryProof: medical
         ? (page, reloadAndLogin) =>
-            import('./credential-medical-proof.mjs').then(({ proveMedical }) =>
-              proveMedical({
+            (medicalLifecycle
+              ? import('./credential-ntc-lifecycle-proof.mjs')
+              : import('./credential-medical-proof.mjs')
+            ).then(async ({ proveMedical }) => {
+              await proveMedical({
                 page,
                 reloadAndLogin,
                 school,
@@ -303,8 +307,25 @@ export async function checkpoint({
                 origin,
                 invoke,
                 apiUrl: status.API_URL,
-              }),
-            )
+                bucket: service.storage.from('credential-synthetic'),
+              });
+              if (medicalLifecycle) {
+                mark('instructor-evidence');
+                const { proveInstructorEvidence } =
+                  await import('./credential-instructor-evidence-proof.mjs');
+                await proveInstructorEvidence({
+                  page,
+                  reloadAndLogin,
+                  setApplicability(kind) {
+                    assert(['both', 'instructor', 'trainee'].includes(kind));
+                    sql(
+                      `update public.organization_member_profiles set credential_applicability='${kind}' where organization_id='${school}' and membership_id='${member}'`,
+                    );
+                  },
+                });
+                mark('instructor-evidence-passed');
+              }
+            })
         : ntc
           ? (page, reloadAndLogin) =>
               (ntcLifecycle

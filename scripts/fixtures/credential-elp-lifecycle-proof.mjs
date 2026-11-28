@@ -28,7 +28,7 @@ export async function proveElp({ page, sql, school, member, actor, mark, origin,
     await page.getByLabel('Issue date').fill('2020-02-01');
     if (expires) await page.getByLabel('Expiry date').fill(expires);
     else await page.getByLabel('No expiry').check();
-    await page.getByLabel('Synthetic supporting PNG').setInputFiles({
+    await page.getByLabel('Supporting evidence (one PDF or one or two images)').setInputFiles({
       name: 'synthetic.png',
       mimeType: 'image/png',
       buffer: Buffer.from(syntheticSample, 'base64'),

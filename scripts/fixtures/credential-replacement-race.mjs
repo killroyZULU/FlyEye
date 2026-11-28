@@ -21,7 +21,7 @@ export async function raceReplacementCommits({ apiUrl, command, request, assertP
           waiting.set(body.p_details.operationId, body.p_version);
           if (waiting.size === 2) {
             assert.equal(new Set(waiting.values()).size, 2);
-            assertPrepared([...waiting.values()]);
+            await assertPrepared([...waiting.values()]);
             gate.resolve();
           }
           await gate.promise;

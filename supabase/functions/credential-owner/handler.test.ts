@@ -165,41 +165,43 @@ describe('local owner command boundary', () => {
       expect(result.calls.some((path) => path.startsWith('/storage/'))).toBe(false);
     },
   );
-  it.each(['withdraw', 'withdraw_outcome'])(
-    'forwards the NTC category and version for %s',
-    async (action) => {
-      const { response } = await scenario(
-        {
-          organizationId: actor,
-          membershipId: session,
-          category: 'ntc',
-          action,
-          operationId: session,
-          versionId: actor,
-        },
-        true,
-        { id: actor, state: 'withdrawn' },
+  it.each([
+    ['ntc', 'withdraw'],
+    ['ntc', 'withdraw_outcome'],
+    ['medical', 'withdraw'],
+    ['medical', 'withdraw_outcome'],
+  ])('forwards the exact %s category and version for %s', async (category, action) => {
+    const { response } = await scenario(
+      {
+        organizationId: actor,
+        membershipId: session,
+        category,
+        action,
+        operationId: session,
+        versionId: actor,
+      },
+      true,
+      { id: actor, state: 'withdrawn' },
+    );
+    expect(response.status).toBe(200);
+    const rpc = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) =>
+        new URL(url instanceof Request ? url.url : url).pathname.endsWith(
+          '/credential_owner_submission',
+        ),
       );
-      expect(response.status).toBe(200);
-      const rpc = vi
-        .mocked(fetch)
-        .mock.calls.find(([url]) =>
-          new URL(url instanceof Request ? url.url : url).pathname.endsWith(
-            '/credential_owner_submission',
-          ),
-        );
-      const body = rpc?.[1]?.body;
-      if (typeof body !== 'string') throw Error('Expected JSON RPC body');
-      expect(JSON.parse(body)).toMatchObject({
-        p_actor: actor,
-        p_school: actor,
-        p_member: session,
-        p_version: actor,
-        p_action: action,
-        p_details: { category: 'ntc', operationId: session },
-      });
-    },
-  );
+    const body = rpc?.[1]?.body;
+    if (typeof body !== 'string') throw Error('Expected JSON RPC body');
+    expect(JSON.parse(body)).toMatchObject({
+      p_actor: actor,
+      p_school: actor,
+      p_member: session,
+      p_version: actor,
+      p_action: action,
+      p_details: { category, operationId: session },
+    });
+  });
   it('replays a confirmed replacement without uploading again', async () => {
     const result = await scenario(
       { ...form, action: 'replace', expectedPendingId: session },
@@ -342,7 +344,10 @@ describe('local owner command boundary', () => {
     [{ expiryDate: null }, 400],
     [{ noExpiry: true }, 400],
     [{ file: undefined }, 400],
-    [{ action: 'replace', expectedPendingId: session }, 400],
+    [{ action: 'replace', expectedPendingId: session }, 200],
+    [{ action: 'replace' }, 400],
+    [{ action: 'replace', expectedPendingId: session, diagnosis: 'synthetic' }, 400],
+    [{ action: 'submit', expectedPendingId: session }, 400],
   ] as const)('validates medical metadata before upload', async (patch, status) => {
     const result = await scenario(
       {

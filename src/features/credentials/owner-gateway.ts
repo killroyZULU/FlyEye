@@ -2,10 +2,17 @@ import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../lib/database.types';
 
-export const syntheticSample =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPQzlwPAAIGAUQpAeg+AAAAAElFTkSuQmCC';
+import { syntheticSamples } from './synthetic-samples.ts';
+export const syntheticSample = syntheticSamples[0].data;
+export { syntheticSamples };
+export type EvidenceType = (typeof syntheticSamples)[number]['mime'];
 const version = z.object({
   id: z.uuid(),
+  evidenceTypes: z
+    .array(z.enum(['image/jpeg', 'image/png', 'application/pdf']))
+    .min(1)
+    .max(2)
+    .optional(),
   state: z.enum(['pending', 'approved']),
   issueDate: z.iso.date(),
   expiryDate: z.iso.date().nullable(),
@@ -14,6 +21,8 @@ const completeness = z.enum(['approved', 'pending', 'required', 'not_yet_obtaine
 const versions = z.object({
   elpCompleteness: completeness,
   ntcCompleteness: completeness,
+  instructorApplicable: z.boolean().optional(),
+  instructorHistory: z.array(z.enum(['fi', 'gi'])).optional(),
   versions: z
     .array(
       z
@@ -24,7 +33,7 @@ const versions = z.object({
             licenseNumber: z.string(),
           }),
           version.extend({ category: z.literal('ntc'), noExpiry: z.boolean() }),
-          version.extend({ category: z.literal('medical'), noExpiry: z.boolean() }),
+          version.extend({ category: z.enum(['medical', 'fi', 'gi']), noExpiry: z.boolean() }),
           version.extend({
             category: z.literal('elp'),
             elpLevel: z.number().int().min(1).max(6),
@@ -35,7 +44,7 @@ const versions = z.object({
           (row) => row.category === 'mother_license' || row.noExpiry === (row.expiryDate === null),
         ),
     )
-    .max(8),
+    .max(12),
   validUntil: z.iso.datetime({ offset: true }),
 });
 export type CredentialFields = {
@@ -45,9 +54,9 @@ export type CredentialFields = {
 } & (
   | { licenseType: string; licenseNumber: string }
   | { category: 'elp'; elpLevel: number }
-  | { category: 'ntc' | 'medical' }
+  | { category: 'ntc' | 'medical' | 'fi' | 'gi' }
 );
-export type Category = 'mother_license' | 'elp' | 'ntc' | 'medical';
+export type Category = 'mother_license' | 'elp' | 'ntc' | 'medical' | 'fi' | 'gi';
 type Scope = { organizationId: string; membershipId: string };
 export type OwnerGateway = ReturnType<typeof createOwnerGateway>;
 export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'functions'>) {
@@ -105,20 +114,37 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
     async submit(
       scope: Scope,
       fields: CredentialFields,
-      file: File,
+      file: File | File[],
       operationId: string,
       expectedPendingId?: string,
     ) {
-      if (file.size !== 69) throw new Error('Choose the provided synthetic PNG.');
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const entries = Array.isArray(file) ? file : [file];
+      if (
+        entries.length < 1 ||
+        entries.length > 2 ||
+        (entries.length > 1 && entries.some((f) => f.type === 'application/pdf'))
+      )
+        throw new Error('Choose one PDF or one or two images.');
+      const files = await Promise.all(
+        entries.map(async (f) => {
+          if (f.size < 1 || f.size > 10_000_000 || !syntheticSamples.some((s) => s.mime === f.type))
+            throw new Error('Choose the provided synthetic samples.');
+          return {
+            filename: f.name,
+            mime: f.type,
+            file: await fileBase64(f),
+          };
+        }),
+      );
+      const first = files[0]!;
       const result = await invoke({
         ...scope,
         ...fields,
         ...(expectedPendingId ? { action: 'replace', expectedPendingId } : { action: 'submit' }),
         operationId,
-        filename: file.name,
-        mime: file.type,
-        file: btoa(String.fromCharCode(...bytes)),
+        ...(files.length === 1 && first.file === syntheticSample && first.mime === 'image/png'
+          ? first
+          : { files }),
       });
       return z.object({ state: z.literal('pending'), id: z.uuid() }).parse(result.data);
     },
@@ -143,14 +169,39 @@ export function createOwnerGateway(client: Pick<SupabaseClient<Database>, 'funct
         ])
         .parse(result.data);
     },
-    async evidence(scope: Scope, versionId: string) {
-      const result = await invoke({ ...scope, action: 'evidence', versionId });
-      if (!(result.data instanceof Blob) || result.data.size !== 69)
+    async evidence(
+      scope: Scope,
+      versionId: string,
+      slot?: number,
+      type: EvidenceType = 'image/png',
+    ) {
+      const result = await invoke({
+        ...scope,
+        action: 'evidence',
+        versionId,
+        ...(slot === undefined ? {} : { slot }),
+      });
+      const blob: unknown = result.data;
+      if (
+        !(blob instanceof Blob) ||
+        blob.size < 1 ||
+        blob.size > 10_000_000 ||
+        (result.response?.headers.get('X-Credential-Type') ?? 'image/png') !== type
+      )
         throw new Error('Evidence unavailable.');
       const until = z.iso
         .datetime({ offset: true })
         .parse(result.response?.headers.get('X-Credential-Until'));
-      return { blob: new Blob([result.data], { type: 'image/png' }), until };
+      return { blob: new Blob([blob], { type }), until };
     },
   };
+}
+
+async function fileBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const chunks: string[] = [];
+  // Keep each chunk aligned on base64 triples.
+  for (let i = 0; i < bytes.length; i += 24576)
+    chunks.push(btoa(String.fromCharCode(...bytes.subarray(i, i + 24576))));
+  return chunks.join('');
 }

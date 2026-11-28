@@ -53,7 +53,7 @@ it('reconciles a missing replacement acknowledgement against the original pendin
   fireEvent.change(screen.getByLabelText('License number'), { target: { value: 'NEW' } });
   fireEvent.change(screen.getByLabelText('Issue date'), { target: { value: '2025-02-01' } });
   fireEvent.click(screen.getByLabelText('No expiry'));
-  fireEvent.change(screen.getByLabelText('Synthetic supporting PNG'), {
+  fireEvent.change(screen.getByLabelText('Supporting evidence (one PDF or one or two images)'), {
     target: { files: [new File(['sample'], 'synthetic.png', { type: 'image/png' })] },
   });
   const form = button.closest('form');

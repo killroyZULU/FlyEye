@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { syntheticSample, type Category, type OwnerGateway } from './owner-gateway';
+import { syntheticSamples, type Category, type OwnerGateway } from './owner-gateway';
 
 function textField(form: FormData, key: string) {
   const value = form.get(key);
@@ -7,8 +7,17 @@ function textField(form: FormData, key: string) {
 }
 function formLabels(category: Category, replacing: boolean) {
   switch (category) {
+    case 'fi':
+    case 'gi': {
+      const label = category === 'fi' ? 'flight instructor license' : 'ground instructor license';
+      return replacing
+        ? ['Replace pending ' + label, 'Replace pending ' + label]
+        : ['Submit ' + label, 'Submit ' + label + ' for review'];
+    }
     case 'medical':
-      return ['Submit medical certificate', 'Submit medical certificate for review'];
+      return replacing
+        ? ['Replace pending medical certificate', 'Replace pending medical version']
+        : ['Submit medical certificate', 'Submit medical certificate for review'];
     case 'ntc':
       return replacing
         ? ['Replace pending NTC radio license', 'Replace pending NTC version']
@@ -32,7 +41,7 @@ export function OwnerLicenseForm({
   busy: boolean;
   category: Category;
   replacing: boolean;
-  onSubmit: (fields: Parameters<OwnerGateway['submit']>[1], file: File) => void;
+  onSubmit: (fields: Parameters<OwnerGateway['submit']>[1], file: File | File[]) => void;
 }) {
   const [legend, button] = formLabels(category, replacing);
   const [noExpiry, setNoExpiry] = useState(false);
@@ -48,13 +57,16 @@ export function OwnerLicenseForm({
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        const file = data.get('file');
-        if (file instanceof File)
+        const input = event.currentTarget.elements.namedItem('file');
+        const files = input instanceof HTMLInputElement ? Array.from(input.files ?? []) : [];
+        const fallback = data.get('file');
+        const file = files.length > 1 ? files : (files[0] ?? fallback);
+        if (file instanceof File || Array.isArray(file))
           onSubmit(
             {
               ...(category === 'elp'
                 ? { category: 'elp' as const, elpLevel: Number(textField(data, 'level')) }
-                : category === 'ntc' || category === 'medical'
+                : category !== 'mother_license'
                   ? { category }
                   : {
                       licenseType: textField(data, 'type'),
@@ -125,11 +137,17 @@ export function OwnerLicenseForm({
             Expiry date <input name="expires" type="date" min={issued || undefined} required />
           </label>
         )}
-        <a download="synthetic.png" href={'data:image/png;base64,' + syntheticSample}>
-          Download synthetic sample
-        </a>
+        {syntheticSamples.map(({ mime, data }) => {
+          const ext = mime === 'application/pdf' ? 'pdf' : mime === 'image/jpeg' ? 'jpg' : 'png';
+          return (
+            <a key={mime} download={'synthetic.' + ext} href={'data:' + mime + ';base64,' + data}>
+              Download synthetic {ext.toUpperCase()} sample
+            </a>
+          );
+        })}
         <label>
-          Synthetic supporting PNG <input name="file" type="file" accept="image/png" required />
+          Supporting evidence (one PDF or one or two images){' '}
+          <input name="file" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" required />
         </label>
         <button>{button}</button>
       </fieldset>

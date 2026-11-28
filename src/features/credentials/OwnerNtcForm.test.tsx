@@ -12,7 +12,9 @@ it('requires an explicit expiry choice and synthetic evidence for NTC submission
   expect(screen.getByLabelText('No expiry')).not.toBeChecked();
   fireEvent.click(screen.getByLabelText('No expiry'));
   expect(screen.queryByLabelText('Expiry date')).toBeNull();
-  expect(screen.getByLabelText('Synthetic supporting PNG')).toBeRequired();
+  expect(
+    screen.getByLabelText('Supporting evidence (one PDF or one or two images)'),
+  ).toBeRequired();
 });
 it('submits NTC replacement dates without adding license or ELP fields', () => {
   const submit = vi.fn();

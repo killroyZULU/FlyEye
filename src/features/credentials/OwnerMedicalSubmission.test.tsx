@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { OwnerSubmission } from './OwnerSubmission';
 import { syntheticSample, type OwnerGateway } from './owner-gateway';
 
-it('submits a required medical certificate and reads back the pending version under its own category', async () => {
+it('submits, replaces and withdraws the exact pending medical version', async () => {
   const scope = { organizationId: crypto.randomUUID(), membershipId: crypto.randomUUID() };
   const validUntil = new Date(Date.now() + 60000).toISOString();
   const status = {
@@ -41,7 +41,9 @@ it('submits a required medical certificate and reads back the pending version un
   await screen.findByText(/Medical certificate required/);
   expect(screen.queryByLabelText(/diagnosis|notes|license number|elp level/i)).toBeNull();
   expect(screen.queryByRole('button', { name: /declare/i })).toBeNull();
-  expect(screen.getByLabelText('Synthetic supporting PNG')).toBeRequired();
+  expect(
+    screen.getByLabelText('Supporting evidence (one PDF or one or two images)'),
+  ).toBeRequired();
   fireEvent.change(screen.getByLabelText('Issue date'), { target: { value: medical.issueDate } });
   fireEvent.change(screen.getByLabelText('Expiry date'), { target: { value: medical.expiryDate } });
   const form = screen
@@ -49,7 +51,9 @@ it('submits a required medical certificate and reads back the pending version un
     .closest('form');
   if (!form) throw Error('Expected owner form');
   gateway.status.mockResolvedValue({ ...status, versions: [medical] });
-  const upload = screen.getByLabelText<HTMLInputElement>('Synthetic supporting PNG');
+  const upload = screen.getByLabelText<HTMLInputElement>(
+    'Supporting evidence (one PDF or one or two images)',
+  );
   const sample = new File(
     [Uint8Array.from(atob(syntheticSample), (c) => c.charCodeAt(0))],
     'synthetic.png',
@@ -73,6 +77,45 @@ it('submits a required medical certificate and reads back the pending version un
     ),
   );
   await screen.findByText(/Pending .*Medical certificate.*2020-02-01.*2023-11-30/);
-  expect(screen.queryByRole('button', { name: /withdraw|replace|submit medical/i })).toBeNull();
+  const successor = { ...medical, id: crypto.randomUUID(), expiryDate: '2025-11-30' };
+  gateway.submit.mockResolvedValue({ state: 'pending', id: successor.id });
+  gateway.status.mockResolvedValue({ ...status, versions: [successor] });
+  fireEvent.change(screen.getByLabelText('Issue date'), { target: { value: successor.issueDate } });
+  fireEvent.change(screen.getByLabelText('Expiry date'), {
+    target: { value: successor.expiryDate },
+  });
+  const replacement = screen
+    .getByRole('button', { name: 'Replace pending medical version' })
+    .closest('form');
+  if (!replacement) throw Error('Expected replacement form');
+  fireEvent.change(screen.getByLabelText('Supporting evidence (one PDF or one or two images)'), {
+    target: { files: [sample] },
+  });
+  fireEvent.submit(replacement);
+  await screen.findByText(/Pending .*Medical certificate.*2025-11-30/);
+  expect(gateway.submit).toHaveBeenLastCalledWith(
+    scope,
+    {
+      category: 'medical',
+      issueDate: successor.issueDate,
+      expiryDate: successor.expiryDate,
+      noExpiry: false,
+    },
+    expect.any(File),
+    expect.any(String),
+    medical.id,
+  );
   expect(screen.getByRole('button', { name: 'View pending evidence' })).toBeVisible();
+  gateway.withdrawal.mockResolvedValue('withdrawn');
+  gateway.status.mockResolvedValue(status);
+  fireEvent.click(screen.getByRole('button', { name: 'Withdraw pending submission' }));
+  await screen.findByRole('button', { name: 'Submit medical certificate for review' });
+  expect(gateway.withdrawal).toHaveBeenCalledExactlyOnceWith(
+    scope,
+    'withdraw',
+    successor.id,
+    expect.any(String),
+    'medical',
+  );
+  expect(screen.queryByText(/Pending .*Medical certificate/)).toBeNull();
 });

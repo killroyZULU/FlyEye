@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { OwnerAssuranceForm } from './OwnerAssuranceForm';
 import { OwnerCompleteness } from './CredentialDeclaration';
 import { OwnerWithdrawal } from './OwnerWithdrawal';
-import type { Category, OwnerGateway } from './owner-gateway';
+import type { Category, OwnerGateway, EvidenceType } from './owner-gateway';
 import { OwnerLicenseForm } from './OwnerLicenseForm';
 
 type Props = {
@@ -101,6 +101,7 @@ export function OwnerSubmission(props: Props) {
     <section aria-label="Owner credential submissions">
       <CategorySelect
         category={category}
+        page={page}
         disabled={busy || !!operation?.check}
         onChange={(value) => {
           setCategory(value);
@@ -163,11 +164,13 @@ export function OwnerSubmission(props: Props) {
         rows={rows}
         canPreview={level === 'aal2'}
         busy={busy}
-        onView={(id) =>
+        onView={(id, slot, type) =>
           void act(async (gen) => {
-            const result = await gateway.evidence(scope, id);
-            if (gen === generation.current)
-              setPreview({ url: URL.createObjectURL(result.blob), until: result.until });
+            const result = await gateway.evidence(scope, id, slot, type);
+            if (gen !== generation.current || Date.parse(result.until) <= Date.now()) return;
+            const url = URL.createObjectURL(result.blob);
+            if (type === 'application/pdf') downloadPdf(url);
+            else setPreview({ url, until: result.until });
           })
         }
       />
@@ -191,12 +194,7 @@ export function OwnerSubmission(props: Props) {
           replacing={!!pendingId}
           onSubmit={(fields, file) =>
             void act(async (gen) => {
-              const id =
-                operation &&
-                operation.category === category &&
-                operation.expectedPendingId === pendingId
-                  ? operation.id
-                  : crypto.randomUUID();
+              const id = operationKey(operation, category, pendingId);
               setOperation({ id, expectedPendingId: pendingId, category, check: true });
               await gateway.submit(scope, fields, file, id, pendingId);
               if (gen === generation.current) {
@@ -219,20 +217,23 @@ function categoryView(
   const rows = page?.versions.filter((v) => v.category === category);
   const pendingId = rows?.find((v) => v.state === 'pending')?.id;
   const authorized = !!page && level === 'aal2';
+  const canStart = (category !== 'fi' && category !== 'gi') || page?.instructorApplicable === true;
   return {
     rows,
     pendingId,
-    canSubmit: authorized && (category !== 'medical' || !pendingId),
-    withdrawId: authorized && category !== 'medical' ? pendingId : undefined,
+    canSubmit: authorized && (canStart || !!pendingId),
+    withdrawId: authorized ? pendingId : undefined,
   };
 }
 function CategorySelect({
   category,
+  page,
   disabled,
   onChange,
 }: {
   category: Category;
   disabled: boolean;
+  page: Awaited<ReturnType<OwnerGateway['status']>> | undefined;
   onChange: (value: Category) => void;
 }) {
   return (
@@ -243,13 +244,23 @@ function CategorySelect({
         disabled={disabled}
         onChange={(e) =>
           onChange(
-            e.target.value === 'ntc' || e.target.value === 'elp' || e.target.value === 'medical'
+            e.target.value === 'fi' ||
+              e.target.value === 'gi' ||
+              e.target.value === 'ntc' ||
+              e.target.value === 'elp' ||
+              e.target.value === 'medical'
               ? e.target.value
               : 'mother_license',
           )
         }
       >
         <option value="mother_license">Mother license</option>
+        {(page?.instructorApplicable ||
+          page?.instructorHistory?.includes('fi') ||
+          category === 'fi') && <option value="fi">Flight instructor license</option>}
+        {(page?.instructorApplicable ||
+          page?.instructorHistory?.includes('gi') ||
+          category === 'gi') && <option value="gi">Ground instructor license</option>}
         <option value="medical">Medical certificate</option>
         <option value="ntc">NTC radio license</option>
         <option value="elp">English Language Proficiency (ELP)</option>
@@ -266,26 +277,36 @@ function OwnerVersions({
   rows: Awaited<ReturnType<OwnerGateway['status']>>['versions'] | undefined;
   canPreview: boolean;
   busy: boolean;
-  onView: (id: string) => void;
+  onView: (id: string, slot?: number, type?: EvidenceType) => void;
 }) {
   return rows?.map((v) => (
     <div key={v.id}>
       <p>
         {v.state === 'pending' ? 'Pending' : 'Current approved'} —{' '}
-        {v.category === 'elp'
-          ? `ELP Level ${v.elpLevel}`
-          : v.category === 'ntc' || v.category === 'medical'
-            ? v.category === 'ntc'
-              ? 'NTC radio license'
-              : 'Medical certificate'
-            : `${v.licenseType} ${v.licenseNumber}`}{' '}
+        {v.category === 'mother_license'
+          ? v.licenseType + ' ' + v.licenseNumber
+          : v.category === 'elp'
+            ? 'ELP Level ' + v.elpLevel
+            : {
+                fi: 'Flight instructor license',
+                gi: 'Ground instructor license',
+                ntc: 'NTC radio license',
+                medical: 'Medical certificate',
+              }[v.category]}{' '}
         · {v.issueDate} · {v.expiryDate ?? 'No expiry'}
       </p>
-      {canPreview && (
-        <button disabled={busy} onClick={() => onView(v.id)}>
-          View {v.state} evidence
-        </button>
-      )}
+      {canPreview &&
+        (v.evidenceTypes ?? (['image/png'] as const)).map((type, index, parts) => (
+          <button
+            key={index}
+            disabled={busy}
+            onClick={() => onView(v.id, v.evidenceTypes ? index : undefined, type)}
+          >
+            {type === 'application/pdf' ? 'Download' : 'View'} {v.state}{' '}
+            {type === 'application/pdf' ? 'PDF' : 'evidence'}
+            {parts.length === 2 ? (index === 0 ? ' (front)' : ' (back)') : ''}
+          </button>
+        ))}
     </div>
   ));
 }
@@ -302,4 +323,22 @@ function submissionOutcomeMessage(state: 'unconfirmed' | 'withdrawn' | 'pending'
   if (state === 'unconfirmed')
     return 'No committed submission was found. Re-select the file to retry this operation.';
   return state === 'withdrawn' ? 'Submission was withdrawn.' : 'Submission confirmed.';
+}
+
+function downloadPdf(url: string) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'credential.pdf';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function operationKey(
+  operation: { id: string; category: Category; expectedPendingId?: string } | undefined,
+  category: Category,
+  pendingId?: string,
+): string {
+  return operation && operation.category === category && operation.expectedPendingId === pendingId
+    ? operation.id
+    : crypto.randomUUID();
 }

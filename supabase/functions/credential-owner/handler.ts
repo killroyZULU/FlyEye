@@ -5,9 +5,13 @@ import {
   passwordAuthenticationIsPresent,
 } from '../_shared/authentication-evidence.ts';
 
-// Byte-for-byte allowlist of one generated, 1x1 RGB PNG, including its CRCs, compressed data and IEND.
-const syntheticPng =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPQzlwPAAIGAUQpAeg+AAAAAElFTkSuQmCC';
+import {
+  attachment,
+  selectEvidence,
+  maxRequestBytes,
+  verifiedBytes,
+  stageEvidence,
+} from './files.ts';
 const scope = z.object({ organizationId: z.uuid(), membershipId: z.uuid() });
 const day = z.iso.date();
 const license = scope
@@ -23,22 +27,19 @@ const license = scope
     issueDate: day,
     expiryDate: day.nullable(),
     noExpiry: z.boolean(),
-    filename: z
-      .string()
-      .min(5)
-      .max(128)
-      .regex(/\.png$/i),
-    mime: z.literal('image/png'),
-    file: z.literal(syntheticPng),
+    filename: attachment.shape.filename.optional(),
+    mime: z.literal('image/png').optional(),
+    file: z.string().optional(),
+    files: z.array(attachment).min(1).max(2).optional(),
   })
   .strict();
 const dated = license.omit({ licenseType: true, licenseNumber: true });
-const medical = dated.extend({ category: z.literal('medical') });
+const certificate = dated.extend({ category: z.enum(['medical', 'fi', 'gi']) });
 const ntc = dated.extend({ category: z.literal('ntc') });
 const elp = dated.extend({ category: z.literal('elp'), elpLevel: z.number().int().min(1).max(6) });
 const withdrawal = scope
   .extend({
-    category: z.enum(['elp', 'ntc']).optional(),
+    category: z.enum(['elp', 'ntc', 'medical', 'fi', 'gi']).optional(),
     versionId: z.uuid(),
     operationId: z.uuid(),
   })
@@ -49,17 +50,23 @@ const input = z.union([
   scope.extend({ action: z.literal('status') }).strict(),
   withdrawal.extend({ action: z.literal('withdraw') }),
   withdrawal.extend({ action: z.literal('withdraw_outcome') }),
-  scope.extend({ action: z.literal('evidence'), versionId: z.uuid() }).strict(),
+  scope
+    .extend({
+      action: z.literal('evidence'),
+      versionId: z.uuid(),
+      slot: z.number().int().min(0).max(1).optional(),
+    })
+    .strict(),
   scope
     .extend({
       action: z.literal('reconcile'),
-      category: z.enum(['elp', 'ntc', 'medical']).optional(),
+      category: z.enum(['elp', 'ntc', 'medical', 'fi', 'gi']).optional(),
       operationId: z.uuid(),
       expectedPendingId: z.uuid().optional(),
     })
-    .strict()
-    .refine((value) => value.category !== 'medical' || value.expectedPendingId === undefined),
-  medical.extend({ action: z.literal('submit') }),
+    .strict(),
+  certificate.extend({ action: z.literal('submit') }),
+  certificate.extend({ action: z.literal('replace'), expectedPendingId: z.uuid() }),
   license.extend({ action: z.literal('submit') }),
   elp.extend({ action: z.literal('submit') }),
   ntc.extend({ action: z.literal('submit') }),
@@ -102,11 +109,6 @@ function validDates(data: Pick<z.infer<typeof license>, 'issueDate' | 'expiryDat
     (data.expiryDate === null || data.expiryDate >= data.issueDate)
   );
 }
-async function sha256(bytes: Uint8Array<ArrayBuffer>) {
-  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) =>
-    b.toString(16).padStart(2, '0'),
-  ).join('');
-}
 async function body(request: Request) {
   const reader = request.body?.getReader();
   if (!reader) return null;
@@ -118,7 +120,7 @@ async function body(request: Request) {
       const { value, done } = await reader.read();
       if (done) break;
       bytes += value.length;
-      if (bytes > 2048) {
+      if (bytes > maxRequestBytes) {
         await reader.cancel();
         return null;
       }
@@ -134,6 +136,9 @@ async function body(request: Request) {
 const resultSchema = z
   .object({
     key: z.string().optional(),
+    keys: z.array(z.string()).optional(),
+    mime: z.enum(['image/png', 'image/jpeg', 'application/pdf']).optional(),
+    size: z.number().int().positive().max(10_000_000).optional(),
     id: z.uuid().optional(),
     state: z.string().optional(),
     rolledBack: z.boolean().optional(),
@@ -224,70 +229,59 @@ export function credentialOwnerHandler(config: Config) {
         return resultSchema.parse(result);
       };
       async function serveEvidence(data: Extract<z.infer<typeof input>, { action: 'evidence' }>) {
-        const result = await call('locate', data.versionId);
+        const selection = data.slot === undefined ? null : { slot: data.slot };
+        const result = await call('locate', data.versionId, selection);
         if (!result?.key) return await denied();
         const file = await store.download(result.key);
-        if (file.error || !file.data || file.data.size !== 69) return reply(503);
-        const bytes = new Uint8Array(await file.data.arrayBuffer());
-        if (
-          (await sha256(bytes)) !== result.digest ||
-          btoa(String.fromCharCode(...bytes)) !== syntheticPng
-        )
-          return reply(503);
+        if (file.error || !file.data) return reply(503);
+        const bytes = await verifiedBytes(file.data, result);
+        if (!bytes) return reply(503);
+        const mime = result.mime ?? 'image/png';
         if (!(await verify())) return await denied();
-        const served = await call('serve', data.versionId);
+        const served = await call('serve', data.versionId, selection);
         if (served?.key !== result.key || served.digest !== result.digest || !served.validUntil)
           return await denied();
         return new Response(bytes, {
           headers: {
             ...headers,
             'Content-Type': 'application/octet-stream',
-            'Access-Control-Expose-Headers': 'X-Credential-Until',
+            'Access-Control-Expose-Headers': 'X-Credential-Until, X-Credential-Type',
+            'X-Credential-Type': mime,
             'X-Credential-Until': served.validUntil,
-            'Content-Disposition': 'inline; filename="synthetic.png"',
+            'Content-Disposition':
+              mime === 'application/pdf' ? 'attachment; filename="credential.pdf"' : 'inline',
           },
         });
       }
       async function submitLicense(data: Submission) {
         if (!validDates(data)) return reply(400);
         const id = crypto.randomUUID();
-        const bytes = Uint8Array.from(atob(data.file), (c) => c.charCodeAt(0));
-        const details = {
-          ...(data.action === 'replace' ? { expectedPendingId: data.expectedPendingId } : {}),
-          operationId: data.operationId,
-          ...categoryFields(data),
-          issueDate: data.issueDate,
-          expiryDate: data.expiryDate,
-          noExpiry: data.noExpiry,
-          digest: await sha256(bytes),
-        };
+        const parts = await selectEvidence(data);
+        if (!parts) return reply(400);
+        const details = submissionDetails(data, parts);
         const ready = await call('prepare', id, details);
         if (ready?.replayed) return reply(200, { id: ready.id, state: ready.state });
         if (ready?.conflict) return reply(409);
         if (!ready?.key) return await denied();
-        const upload = await store.upload(ready.key, bytes, {
-          contentType: 'image/png',
-          upsert: false,
-          cacheControl: '0',
-        });
-        if (upload.error) return reply(503);
+        const uploaded = await stageEvidence(store, ready, parts, !!data.files);
+        if (!uploaded) return reply(503);
         // Only remove this fresh attempt's object on a definitive refusal. A lost commit
         // acknowledgement leaves private bytes for reconciliation, never blind deletion.
         if (!(await verify())) {
-          await store.remove([ready.key]);
+          await store.remove(uploaded);
           return await denied();
         }
         const result = await call('commit', id, details);
         if (result?.rolledBack) {
-          await store.remove([ready.key]);
+          await store.remove(uploaded);
           return reply(503);
         }
         if (result?.replayed) {
-          await store.remove([ready.key]);
+          await store.remove(uploaded);
           return reply(200, { id: result.id, state: result.state });
         }
         if (!result || result.conflict) {
-          await store.remove([ready.key]);
+          await store.remove(uploaded);
           return result?.conflict ? reply(409) : await denied();
         }
         return reply(201, result);
@@ -337,5 +331,23 @@ export function credentialOwnerHandler(config: Config) {
     } catch {
       return reply(503);
     }
+  };
+}
+
+function submissionDetails(
+  data: Submission,
+  parts: NonNullable<Awaited<ReturnType<typeof selectEvidence>>>,
+) {
+  return {
+    ...(data.action === 'replace' ? { expectedPendingId: data.expectedPendingId } : {}),
+    operationId: data.operationId,
+    ...categoryFields(data),
+    issueDate: data.issueDate,
+    expiryDate: data.expiryDate,
+    noExpiry: data.noExpiry,
+    digest: parts[0]!.digest,
+    ...(data.files && {
+      evidenceManifest: parts.map(({ mime, size, digest }) => ({ mime, size, digest })),
+    }),
   };
 }

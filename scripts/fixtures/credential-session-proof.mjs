@@ -24,7 +24,8 @@ const docker = (...args) =>
 const replacement = process.argv.includes('--replacement-proof');
 const elpLifecycle = process.argv.includes('--elp-lifecycle-proof');
 const elpDeclaration = process.argv.includes('--elp-declaration-proof');
-const medical = process.argv.includes('--medical-proof');
+const medicalLifecycle = process.argv.includes('--medical-lifecycle-proof');
+const medical = medicalLifecycle || process.argv.includes('--medical-proof');
 const ntcLifecycle = process.argv.includes('--ntc-lifecycle-proof');
 const ntc = ntcLifecycle || process.argv.includes('--ntc-proof');
 const elp = elpDeclaration || elpLifecycle || process.argv.includes('--elp-proof');
@@ -157,6 +158,7 @@ async function run() {
       ntc,
       ntcLifecycle,
       medical,
+      medicalLifecycle,
       replacement,
       auth,
       email,

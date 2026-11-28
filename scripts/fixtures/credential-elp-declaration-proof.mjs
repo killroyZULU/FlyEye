@@ -154,7 +154,7 @@ export async function proveElp({
   await page.getByLabel('ELP level').selectOption('5');
   await page.getByLabel('Issue date').fill('2020-01-02');
   await page.getByLabel('Expiry date').fill('2024-01-01');
-  await page.getByLabel('Synthetic supporting PNG').setInputFiles({
+  await page.getByLabel('Supporting evidence (one PDF or one or two images)').setInputFiles({
     name: 'sample.png',
     mimeType: 'image/png',
     buffer: Buffer.from(syntheticSample, 'base64'),

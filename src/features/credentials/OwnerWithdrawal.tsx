@@ -5,6 +5,8 @@ type Command = OwnerGateway['withdrawal'];
 const categoryNames = {
   elp: 'ELP',
   ntc: 'NTC',
+  fi: 'Flight instructor license',
+  gi: 'Ground instructor license',
   medical: 'Medical certificate',
   mother_license: 'Mother license',
 };

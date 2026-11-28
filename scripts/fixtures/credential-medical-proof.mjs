@@ -65,7 +65,7 @@ export async function proveMedical({
   await page.getByLabel('Issue date').fill('2020-02-01');
   await page.getByLabel('Expiry date').fill('2023-11-30');
   await page
-    .getByLabel('Synthetic supporting PNG')
+    .getByLabel('Supporting evidence (one PDF or one or two images)')
     .setInputFiles({ name: 'synthetic.png', mimeType: 'image/png', buffer: png });
   const submission = await click('Submit medical certificate for review', 'submit', 201);
   const id = (await submission.json()).id;
